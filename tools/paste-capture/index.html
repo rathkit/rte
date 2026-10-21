@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paste capture</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>Paste capture</h1>
+  <p class="lede">Records exactly what a copy puts on the clipboard, in this browser. Nothing leaves this computer: the page talks only to the local server you started. Use sample documents you wrote yourself, never real work or personal content.</p>
+
+  <section aria-labelledby="s1">
+    <h2 id="s1">1. Describe the copy</h2>
+    <div class="grid">
+      <label>Source app
+        <select id="app">
+          <option value="word-desktop">Word, desktop</option>
+          <option value="word-web">Word for the web</option>
+          <option value="excel-desktop">Excel, desktop</option>
+          <option value="excel-web">Excel for the web</option>
+          <option value="gdocs">Google Docs</option>
+          <option value="gsheets">Google Sheets</option>
+          <option value="outlook-web">Outlook on the web</option>
+          <option value="sharepoint">SharePoint viewer</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label>Sample (see samples.md)
+        <input id="sample" list="sample-list" placeholder="e.g. S2-lists" autocomplete="off">
+        <datalist id="sample-list">
+          <option value="S1-formatting"><option value="S2-lists"><option value="S3-table">
+          <option value="S4-links-images"><option value="S5-mixed"><option value="X1-cells">
+          <option value="X2-merged-formats"><option value="X3-wide-range">
+        </datalist>
+      </label>
+      <label>Browser
+        <select id="browser">
+          <option>chromium</option><option>firefox</option><option>safari</option><option>other</option>
+        </select>
+      </label>
+      <label>Operating system
+        <select id="os">
+          <option>windows</option><option>macos</option><option>linux</option><option>other</option>
+        </select>
+      </label>
+    </div>
+    <label>Notes (optional, for example the app version)
+      <input id="notes" autocomplete="off">
+    </label>
+  </section>
+
+  <section aria-labelledby="s2">
+    <h2 id="s2">2. Copy in the source app, then paste here</h2>
+    <p>Click the box, then press Ctrl+V (Cmd+V on a Mac). Each paste is saved automatically.</p>
+    <div id="box" contenteditable="true" role="textbox" aria-label="Paste target" tabindex="0"></div>
+    <p id="status" role="status">Waiting for a paste.</p>
+  </section>
+
+  <section aria-labelledby="s3">
+    <h2 id="s3">3. Captures this session</h2>
+    <ol id="list"></ol>
+    <pre id="detail" hidden></pre>
+  </section>
+</main>
+<script src="/capture.js"></script>
+</body>
+</html>

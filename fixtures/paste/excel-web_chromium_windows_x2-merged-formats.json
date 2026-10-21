@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "source": {
+    "app": "excel-web",
+    "sample": "X2-merged-formats",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "types": [
+    "text/plain",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\r\n<!--StartFragment--><div ccp_infra_version='3' ccp_infra_timestamp='1792601289759' ccp_infra_user_hash='3274813694' ccp_infra_copy_id='00000000-0000-4000-8000-000000000001' data-ccp-timestamp='1792601289759'><html><head><meta http-equiv=Content-Type content=\"text/html; charset=utf-8\"><meta name=ProgId content=Excel.Sheet><meta name=Generator content=\"Microsoft Excel 15\"><style>table\r\n\t{mso-displayed-decimal-separator:\"\\.\";\r\n\tmso-displayed-thousand-separator:\"\\,\";}\r\ntr\r\n\t{mso-height-source:auto;}\r\ncol\r\n\t{mso-width-source:auto;}\r\ntd\r\n\t{padding-top:1px;\r\n\tpadding-right:1px;\r\n\tpadding-left:1px;\r\n\tmso-ignore:padding;\r\n\tcolor:black;\r\n\tfont-size:11.0pt;\r\n\tfont-weight:400;\r\n\tfont-style:normal;\r\n\ttext-decoration:none;\r\n\tfont-family:Calibri, sans-serif;\r\n\tmso-font-charset:0;\r\n\ttext-align:general;\r\n\tvertical-align:bottom;\r\n\tborder:none;\r\n\twhite-space:nowrap;\r\n\tmso-rotate:0;}\r\n.xl64\r\n\t{color:black;}\r\n.xl69\r\n\t{color:black;\r\n\tfont-weight:700;}\r\n.xl71\r\n\t{color:black;\r\n\ttext-decoration:underline;\r\n\ttext-underline-style:single;}\r\n.xl76\r\n\t{color:black;\r\n\tfont-style:italic;}\r\n.xl78\r\n\t{color:black;\r\n\tbackground:yellow;\r\n\tmso-pattern:black none;}\r\n.xl80\r\n\t{color:red;}\r\n</style></head><body link=\"#0563C1\" vlink=\"#954F72\"><table width=341 style='border-collapse:collapse;width:256pt'><!--StartFragment--><col width=87 style='width:65pt'><col width=73 style='width:55pt'><col width=74 style='width:56pt'><col width=107 style='width:80pt'><tr height=20 style='height:15.0pt'><td width=87 height=20 class=xl64 style='width:65pt;height:15.0pt'>one</td><td width=73 class=xl64 style='width:55pt'>two</td><td colspan=2 width=181 height=20 class=xl64 style='width:136pt;height:15.0pt'>three</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl64 align=right style='height:15.0pt'>1</td><td class=xl64 align=right>2</td><td class=xl64 align=right>3</td><td class=xl64 align=right>4</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl64 align=right style='height:15.0pt'>1/30/2026</td><td class=xl64 align=right>3/30/2026</td><td class=xl69 align=right>5/30/2026</td><td class=xl64 align=right>12/30/2026</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl71 align=right style='height:15.0pt'>30%</td><td class=xl64 align=right>10%</td><td class=xl64 align=right>98.40%</td><td class=xl64 align=right>0.02%</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl64 align=right style='height:15.0pt'>$10,003,847<span style='mso-spacerun:yes'> </span></td><td class=xl76 align=right>$23.04<span style='mso-spacerun:yes'> </span></td><td class=xl78 align=right>$0.27<span style='mso-spacerun:yes'> </span></td><td class=xl80 align=right>$10,003,847.24<span style='mso-spacerun:yes'> </span></td></tr><!--EndFragment--></table></body></html></div><!--EndFragment-->\r\n</body>\r\n</html>",
+    "text/plain": "one\ttwo\tthree\t\r\n1\t2\t3\t4\r\n1/30/2026\t3/30/2026\t5/30/2026\t12/30/2026\r\n30%\t10%\t98.40%\t0.02%\r\n$10,003,847 \t$23.04 \t$0.27 \t$10,003,847.24 "
+  }
+}

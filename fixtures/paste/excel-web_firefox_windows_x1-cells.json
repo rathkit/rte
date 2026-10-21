@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "source": {
+    "app": "excel-web",
+    "sample": "X1-cells",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\n<!--StartFragment--><div ccp_infra_version='3' ccp_infra_timestamp='1792602181589' ccp_infra_user_hash='3274813694' ccp_infra_copy_id='00000000-0000-4000-8000-000000000001' data-ccp-timestamp='1792602181589'><html><head><meta http-equiv=Content-Type content=\"text/html; charset=utf-8\"><meta name=ProgId content=Excel.Sheet><meta name=Generator content=\"Microsoft Excel 15\"><style>table\n\t{mso-displayed-decimal-separator:\"\\.\";\n\tmso-displayed-thousand-separator:\"\\,\";}\ntr\n\t{mso-height-source:auto;}\ncol\n\t{mso-width-source:auto;}\ntd\n\t{padding-top:1px;\n\tpadding-right:1px;\n\tpadding-left:1px;\n\tmso-ignore:padding;\n\tcolor:black;\n\tfont-size:11.0pt;\n\tfont-weight:400;\n\tfont-style:normal;\n\ttext-decoration:none;\n\tfont-family:Calibri, sans-serif;\n\tmso-font-charset:0;\n\ttext-align:general;\n\tvertical-align:bottom;\n\tborder:none;\n\twhite-space:nowrap;\n\tmso-rotate:0;}\n.xl64\n\t{color:black;}\n</style></head><body link=\"#0563C1\" vlink=\"#954F72\"><table width=326 style='border-collapse:collapse;width:245pt'><!--StartFragment--><col width=73 style='width:55pt' span=3><col width=107 style='width:80pt'><tr height=20 style='height:15.0pt'><td width=73 height=20 class=xl64 style='width:55pt;height:15.0pt'>one</td><td width=73 class=xl64 style='width:55pt'>two</td><td width=73 class=xl64 style='width:55pt'>three</td><td width=107 class=xl64 style='width:80pt'>four</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl64 align=right style='height:15.0pt'>1</td><td class=xl64 align=right>2</td><td class=xl64 align=right>3</td><td class=xl64 align=right>4</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl64 align=right style='height:15.0pt'>1/30/2026</td><td class=xl64 align=right>3/30/2026</td><td class=xl64 align=right>5/30/2026</td><td class=xl64 align=right>12/30/2026</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl64 align=right style='height:15.0pt'>30%</td><td class=xl64 align=right>10%</td><td class=xl64 align=right>98.40%</td><td class=xl64 align=right>0.02%</td></tr><tr height=20 style='height:15.0pt'><td height=20 class=xl64 align=right style='height:15.0pt'>$23<span style='mso-spacerun:yes'> </span></td><td class=xl64 align=right>$23.04<span style='mso-spacerun:yes'> </span></td><td class=xl64 align=right>$0.27<span style='mso-spacerun:yes'> </span></td><td class=xl64 align=right>$10,003,847.24<span style='mso-spacerun:yes'> </span></td></tr><!--EndFragment--></table></body></html></div><!--EndFragment-->\n</body>\n</html>",
+    "text/plain": "one\ttwo\tthree\tfour\n1\t2\t3\t4\n1/30/2026\t3/30/2026\t5/30/2026\t12/30/2026\n30%\t10%\t98.40%\t0.02%\n$23 \t$23.04 \t$0.27 \t$10,003,847.24 "
+  }
+}

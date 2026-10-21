@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "source": {
+    "app": "other",
+    "sample": "S4-links-images",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "types": [
+    "text/html",
+    "text/rtf",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "\n<html>\n<head>\n\t<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n\t<title></title>\n\t<meta name=\"generator\" content=\"LibreOffice 26.8.1.1 (Windows)\"/>\n\t<style type=\"text/css\">\n\t\t@page { size: 8.5in 11in; margin: 0.79in }\n\t\tp { line-height: 115%; margin-bottom: 0.1in; background: transparent }\n\t\ta:link { color: #000080; text-decoration: underline }\n\t</style>\n</head>\n<body lang=\"en-US\" link=\"#000080\" vlink=\"#800000\" dir=\"ltr\"><p style=\"line-height: 100%; margin-bottom: 0in\">\n<a href=\"http://google.com/\">A Link</a></p>\n<p style=\"line-height: 100%; margin-bottom: 0in\"><br/>\n\n</p>\n<p style=\"line-height: 100%; margin-bottom: 0in\"><img src=\"file:///C:/Users/user/AppData/Local/Temp/lu000001.tmp/lu000002_tmp_8ff4ca79.png\" name=\"Image3\" align=\"left\" width=\"289\" height=\"182\" border=\"0\">\n  <br clear=\"left\"/>\n</img>\n<br/>\n\n</p>\n<p style=\"line-height: 100%; margin-bottom: 0in\"><br/>\n\n</p>\n<p style=\"line-height: 100%; margin-bottom: 0in\"><img src=\"file:///C:/Users/user/AppData/Local/Temp/lu000001.tmp/lu000002_tmp_c0158561.png\" name=\"Image2\" align=\"left\" width=\"665\" height=\"471\" border=\"0\"/>\n<br/>\n\n</p>\n</body>\n</html>\u0000",
+    "text/plain": "A Link\n\n\n\n"
+  }
+}

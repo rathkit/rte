@@ -4,3 +4,8 @@ dist/
 *.tsbuildinfo
 .env*
 *:Zone.Identifier
+
+# Raw paste captures stay local; only scrubbed fixtures in fixtures/ are committed.
+tools/paste-capture/captures/
+tools/paste-capture/mac-captures/
+tools/paste-capture/excluded/

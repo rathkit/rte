@@ -1,0 +1,18 @@
+:root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+body { margin: 0; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 1.6rem; margin: 0 0 8px; }
+h2 { font-size: 1.1rem; margin: 28px 0 10px; }
+.lede { max-width: 70ch; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; font-weight: 600; }
+select, input { font: inherit; padding: 6px 8px; font-weight: 400; }
+#box { min-height: 160px; border: 2px dashed #888; padding: 12px; overflow: auto; }
+#box:focus { outline: 3px solid #4a7fd6; border-style: solid; }
+#status { min-height: 1.5em; }
+#list { padding-left: 1.2em; }
+#list li { margin: 8px 0; }
+#list button { font: inherit; margin-left: 8px; }
+.types { font: .8rem ui-monospace, monospace; opacity: .85; word-break: break-all; }
+#detail { white-space: pre-wrap; word-break: break-all; max-height: 420px; overflow: auto; border: 1px solid #888; padding: 12px; font-size: .8rem; }
+.bad { color: #b3261e; }

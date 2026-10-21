@@ -13,7 +13,9 @@
     "typecheck": "nx run-many -t typecheck",
     "check:zero-deps": "node tools/check-zero-deps.mjs",
     "check:denylist": "node tools/check-denylist.mjs",
-    "check": "pnpm check:zero-deps && pnpm typecheck && pnpm test"
+    "check:fixtures": "node tools/check-fixtures.mjs",
+    "test:tools": "node --test \"tools/**/*.test.mjs\"",
+    "check": "pnpm check:zero-deps && pnpm check:fixtures && pnpm test:tools && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

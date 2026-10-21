@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "source": {
+    "app": "other",
+    "sample": "S3-table",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "types": [
+    "text/html",
+    "text/rtf",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "\n<html>\n<head>\n\t<meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\"/>\n\t<title></title>\n\t<meta name=\"generator\" content=\"LibreOffice 26.8.1.1 (Windows)\"/>\n\t<style type=\"text/css\">\n\t\t@page { size: 8.5in 11in; margin: 0.79in }\n\t\ttd p { orphans: 0; widows: 0; background: transparent }\n\t\tp { line-height: 115%; margin-bottom: 0.1in; background: transparent }\n\t\ta:link { color: #000080; text-decoration: underline }\n\t</style>\n</head>\n<body lang=\"en-US\" link=\"#000080\" vlink=\"#800000\" dir=\"ltr\">\n<table width=\"100%\" cellpadding=\"4\" cellspacing=\"0\">\n\t<col width=\"64*\"/>\n\t<col width=\"64*\"/>\n\t<col width=\"64*\"/>\n\t<col width=\"64*\"/>\n\t<tr valign=\"top\">\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tJkhbvk</p>\n\t\t</td>\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tKuhu</p>\n\t\t</td>\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tV</p>\n\t\t</td>\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tKjn</p>\n\t\t</td>\n\t</tr>\n\t<tr valign=\"top\">\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tVgv</p>\n\t\t</td>\n\t\t<td width=\"25%\" bgcolor=\"#ffff00\" style=\"background: #ffff00; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tJkbkjvk</p>\n\t\t</td>\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\t  \n\t\t\t</p>\n\t\t</td>\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tHb j</p>\n\t\t</td>\n\t</tr>\n\t<tr valign=\"top\">\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tH hv</p>\n\t\t</td>\n\t\t<td width=\"25%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\t Uub jhbk</p>\n\t\t</td>\n\t\t<td colspan=\"2\" width=\"50%\" style=\"background: transparent; border: 1px solid #000000; padding: 0.04in\"><p>\n\t\t\tK kjhb \n\t\t\t</p>\n\t\t</td>\n\t</tr>\n</table>\n</body>\n</html>\u0000",
+    "text/plain": "Jkhbvk\tKuhu\tV\tKjn\nVgv\tJkbkjvk\t  \tHb j\nH hv\t Uub jhbk\tK kjhb \n"
+  }
+}
