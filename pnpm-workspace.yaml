@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+
+# Supply-chain hardening. Everything in node_modules is a dev tool; nothing here ships.
+# nx postinstall only updates the Nx Cloud client, which we do not use (reviewed 2026-10-20).
+allowBuilds:
+  nx: false
+minimumReleaseAge: 4320
+strictDepBuilds: true

@@ -1,0 +1,22 @@
+{
+  "name": "@rathkit/rte-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Document model, transforms, commands, view layer and plugin API for Rathkit RTE.",
+  "license": "Apache-2.0",
+  "homepage": "https://rathkit.com",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"src/**/*.test.ts\""
+  }
+}
