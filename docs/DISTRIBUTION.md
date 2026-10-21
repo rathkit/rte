@@ -8,9 +8,9 @@ Status: DRAFT v0.1 (2026-10-19). Design sketch for owner review. Not legal advic
 |---|---|---|
 | Open-source scope | `@rathkit/*` on npm | Primary home; trusted publishing and provenance |
 | Premium scope | `@rathkit-pro/*` on a private registry | One scope maps to one registry, so premium cannot share `@rathkit` |
-| Open-source licence | Apache-2.0 (MIT acceptable) | Patent grant, familiar to enterprise legal teams |
-| Premium licence | Commercial EULA, drafted by counsel | Not an OSS licence |
-| Licence check | Offline, signed token, verified locally | No phone-home; auditable verifier |
+| Open-source license | Apache-2.0 (MIT acceptable) | Patent grant, familiar to enterprise legal teams |
+| Premium license | Commercial EULA, drafted by counsel | Not an OSS license |
+| License check | Offline, signed token, verified locally | No phone-home; auditable verifier |
 | Signature algorithm | ECDSA P-256 / SHA-256 (Ed25519 optional) | Works in every WebCrypto runtime and in FIPS-mode platforms |
 | Sharing detection | Registry-side observation plus contract, not client callbacks | Detects misuse without the editor ever calling home |
 | Telemetry | Off by default; separate opt-in package | Keeps core silent and zero-dependency |
@@ -23,13 +23,13 @@ Status: DRAFT v0.1 (2026-10-19). Design sketch for owner review. Not legal advic
 - `@rathkit/*` is open source. Published to npm.
 - `@rathkit-pro/*` is premium. Published only to the private registry.
 - Why two scopes: an `.npmrc` entry maps a whole scope to exactly one registry (`@rathkit:registry=...`). If premium lived under `@rathkit` on a different registry, customers could not install free and paid packages from the same scope.
-- Claim `rathkit-pro` as an npm organisation even though the packages are not hosted there. This blocks anyone else from publishing look-alike packages (see dependency confusion in section 3.3).
+- Claim `rathkit-pro` as an npm organization even though the packages are not hosted there. This blocks anyone else from publishing look-alike packages (see dependency confusion in section 3.3).
 
 ### 1.2 Names
 | Package | Scope | Notes |
 |---|---|---|
 | `rte-core`, `rte-react`, `rte-vue`, `rte-angular`, `rte-svelte`, ..., `rte-plugin-<name>`, `rte-themes`, `rte-server`, `rte-cli` | `@rathkit/` | Per the package map in the private project plan |
-| `rte-license` | `@rathkit/` | Open-source licence verifier and public keys. Open so customers can audit exactly what the check does |
+| `rte-license` | `@rathkit/` | Open-source license verifier and public keys. Open so customers can audit exactly what the check does |
 | `rte-telemetry` | `@rathkit/` | Optional, opt-in, never imported by any other package (section 5) |
 | `rte-plugin-<name>` | `@rathkit-pro/` | Paid plugins |
 | `rte-server-<feature>` | `@rathkit-pro/` | Paid server features. The reference `rte-server` stays free |
@@ -48,9 +48,9 @@ Status: DRAFT v0.1 (2026-10-19). Design sketch for owner review. Not legal advic
 - **Pro.** Adds `@rathkit-pro/*` plugins. Per-developer or per-product, to be decided.
 - **Enterprise.** Pro plus: registry access via SSO or dedicated tokens, signed offline bundles for air-gapped networks, private mirror support, security questionnaire and evidence package, support SLA.
 
-### 1.5 Licences
+### 1.5 Licenses
 - Free: Apache-2.0 recommended. MIT is simpler but has no patent grant.
-- Avoid source-available licences with usage restrictions. They reduce contributors and adoption.
+- Avoid source-available licenses with usage restrictions. They reduce contributors and adoption.
 - Premium: a commercial EULA written or reviewed by counsel, covering permitted use, redistribution, term, version entitlement (section 4.1), audit rights, and liability.
 - Trademark: protect "Rathkit" and the logo (forks may reuse code, not the name). "RTE" is generic and not worth registering.
 
@@ -60,7 +60,7 @@ Status: DRAFT v0.1 (2026-10-19). Design sketch for owner review. Not legal advic
 |---|---|---|
 | npm (npmjs.com) | **Primary** | Publish from GitHub Actions with trusted publishing (OIDC, no stored token) and provenance |
 | GitHub Releases | **Always** | Per release: tarballs, `SHA256SUMS`, SBOM, signed with Sigstore keyless. Enables vendoring and air-gapped installs |
-| JSR (jsr.io) | Optional mirror | TypeScript-native registry. Needs a `@rathkit` JSR scope. VERIFY current publishing and provenance behaviour |
+| JSR (jsr.io) | Optional mirror | TypeScript-native registry. Needs a `@rathkit` JSR scope. VERIFY current publishing and provenance behavior |
 | GitHub Packages (npm) | Optional mirror | Installing requires a personal access token even for public packages, so it adds friction. Useful mainly for GitHub-centric enterprises |
 | CDN | Automatic and later own | Public npm CDNs serve npm packages automatically. Later, an own `cdn.rathkit.com` with versioned ESM URLs and published SRI hashes |
 | Customer mirrors | Documented | Verdaccio, Artifactory, Nexus, Cloudsmith or CodeArtifact can proxy npm. Document the `.npmrc` and integrity-check steps |
@@ -84,10 +84,10 @@ Recommendation: npm plus GitHub Releases at launch. Add JSR later if TypeScript 
 | Managed multi-tenant registry (for example Cloudsmith) | **Best fit for selling to external customers.** Per-customer entitlement tokens, per-token download visibility, SSO/SCIM for enterprise accounts | Vendor cost. VERIFY the vendor's current SOC 2 report and any FedRAMP status; the vendor's docs describe entitlement tokens for private repositories, but compliance claims were not confirmed |
 | npm private packages (npmjs.com org) | Simple if customers already use npm accounts | Access is per npm user or team. Awkward for external customers. Token model is tied to your org's users |
 | GitHub Packages (npm) | Fits customers who already use GitHub | Requires classic personal access tokens with `read:packages`. Customers need GitHub accounts and access grants. Awkward at scale |
-| JFrog Artifactory (SaaS or self-hosted) | Enterprise and government customers who already run it; supports edge replication and self-hosted GovCloud deployments | Heavier and costlier. VERIFY any FedRAMP status; self-hosting in a government cloud is documented, authorisation is a separate question |
+| JFrog Artifactory (SaaS or self-hosted) | Enterprise and government customers who already run it; supports edge replication and self-hosted GovCloud deployments | Heavier and costlier. VERIFY any FedRAMP status; self-hosting in a government cloud is documented, authorization is a separate question |
 | AWS CodeArtifact | Customers living inside AWS | Access is AWS IAM, so it only suits customers who give you an AWS principal or pull from their own account. VERIFY FedRAMP scope |
 | Self-hosted Verdaccio or Nexus | Maximum control, cheapest at low volume | You own uptime, patching and the SOC 2 scope for it |
-| Custom registry service (npm protocol over your auth, tarballs in encrypted object storage with short-lived signed URLs) | Lets you personalise a tarball per customer (embed licence ID) | You build and operate it. Largest compliance surface |
+| Custom registry service (npm protocol over your auth, tarballs in encrypted object storage with short-lived signed URLs) | Lets you personalize a tarball per customer (embed license ID) | You build and operate it. Largest compliance surface |
 | Signed offline bundles | Air-gapped customers | Manual delivery. Checksums and signatures verify integrity |
 
 Recommended path:
@@ -110,19 +110,19 @@ Because premium names are private, an attacker could publish a same-named packag
 ## 4. Licensing design (offline)
 
 ### 4.1 Model
-Subscription with **version entitlement**: a licence is valid for any premium build released on or before its `entitled_until` date. When a subscription lapses, software already deployed keeps working; only newer releases stop being covered. This avoids production outages from an expired key and is easy to check offline (compare the package's build date with `entitled_until`, not just the wall clock).
+Subscription with **version entitlement**: a license is valid for any premium build released on or before its `entitled_until` date. When a subscription lapses, software already deployed keeps working; only newer releases stop being covered. This avoids production outages from an expired key and is easy to check offline (compare the package's build date with `entitled_until`, not just the wall clock).
 
 ### 4.2 Token
 Compact signed token (JWS-style: header, payload, signature). Payload fields:
 - `v` format version, `kid` signing key ID
-- `lid` licence ID (opaque, used for leak tracing and revocation lists)
+- `lid` license ID (opaque, used for leak tracing and revocation lists)
 - `cid` customer ID (opaque, no personal data)
 - `tier`, `features` (list)
 - `scope` (for example allowed origins or hostnames, `*` for internal tools)
 - `iat`, `nbf`, `entitled_until`
 - optional `seats` or `projects`, informational only
 
-No personal data in the token. Customer details live in your billing and CRM systems, not in the artefact.
+No personal data in the token. Customer details live in your billing and CRM systems, not in the artifact.
 
 ### 4.3 Signature and keys
 - Algorithm: ECDSA P-256 with SHA-256, verified through WebCrypto in browsers and Node. Platform crypto only, so no cryptography library is shipped and FIPS-mode platforms use their own validated module.
@@ -131,7 +131,7 @@ No personal data in the token. Customer details live in your billing and CRM sys
 - Signing key: kept in a cloud KMS or HSM, signing performed by a small issuing service. An offline root key signs the list of valid issuing keys. Rotation procedure documented and rehearsed.
 - Revocation offline: each release embeds a small denylist of revoked `lid` values. Revocation therefore takes effect when a customer upgrades. State this plainly in the EULA.
 
-### 4.4 Verification behaviour
+### 4.4 Verification behavior
 - Runs once, in memory, when a premium plugin registers. No network, no storage, no cookies.
 - Checks: signature, `kid` known, `nbf`, `entitled_until` versus the package build date, tier and feature match, `scope` versus `location.hostname` (always allow `localhost`, loopback and common dev hosts).
 - On failure: the plugin does not activate, a clear console message says why, and the editor shows a small non-blocking notice. **Editing never destroys user content, and the free editor keeps working.**
@@ -147,7 +147,7 @@ An offline check cannot know how many places a token is used. Options, combinabl
 | Tracing | Per-customer `lid` in the token lets a leaked token be traced to its customer | No |
 | Signed local usage report | The library can produce a report locally (counts only, no content) that the customer sends for annual true-up | No (customer sends it) |
 | Optional online attestation | Customers who want seat or usage-based billing enable periodic reporting to an endpoint, ideally one they host or relay | Yes, opt-in only |
-| Self-hosted licence server | Air-gapped or regulated customers run a validator in their own network | Inside their boundary |
+| Self-hosted license server | Air-gapped or regulated customers run a validator in their own network | Inside their boundary |
 
 Recommended: contract plus registry observation plus tracing by default. Offer the signed local report and the optional attestation to customers who need them.
 
@@ -181,7 +181,7 @@ Batched, aggregate, versioned schema, for example:
 ```
 
 - Never: document content, selection content, URLs, user IDs, IP addresses (dropped at the edge, not stored).
-- Controls: `dryRun` that prints payloads instead of sending, honours Do Not Track and Global Privacy Control, a global kill switch, configurable endpoint (self-hosted collector or the customer's own relay), and a strict CSP-friendly single endpoint.
+- Controls: `dryRun` that prints payloads instead of sending, honors Do Not Track and Global Privacy Control, a global kill switch, configurable endpoint (self-hosted collector or the customer's own relay), and a strict CSP-friendly single endpoint.
 - Enterprise: simply do not install the package. Optionally build-time exclusion in the Pro bundle.
 
 ### 5.4 Where metrics come from without client telemetry
@@ -195,7 +195,7 @@ Batched, aggregate, versioned schema, for example:
 ## 6. Security and compliance
 
 ### 6.1 What SOC 2 actually covers
-SOC 2 is an attestation report about **your organisation's systems and controls**, not a certificate on a library. For Rathkit the in-scope systems would be the licence issuing service, the customer portal and billing, the registry arrangement (an outsourced registry becomes a subservice organisation; its report supports yours), source control and CI, and support tooling.
+SOC 2 is an attestation report about **your organization's systems and controls**, not a certificate on a library. For Rathkit the in-scope systems would be the license issuing service, the customer portal and billing, the registry arrangement (an outsourced registry becomes a subservice organization; its report supports yours), source control and CI, and support tooling.
 
 The library itself has no data flows by default: it stores and transmits nothing. Say that in the security package. It makes customer security reviews short.
 
@@ -205,12 +205,12 @@ Approach:
 - Evidence the software supply chain: provenance, signed releases, SBOM, vulnerability disclosure policy, security advisories, independent penetration test summary, secure-development practices.
 
 ### 6.2 FedRAMP reality
-FedRAMP authorises **cloud service offerings** that handle federal data. A client-side library distributed as software is generally not itself authorised. Federal customers instead ask for:
+FedRAMP authorizes **cloud service offerings** that handle federal data. A client-side library distributed as software is generally not itself authorized. Federal customers instead ask for:
 - Secure software development attestation (the common federal self-attestation form based on the NIST SSDF)
 - SBOM, vulnerability management and disclosure practice
 - FIPS-validated cryptography where cryptography is used. This design ships no crypto of its own and uses platform crypto, which is what lets customers satisfy this in their own environment.
 
-A FedRAMP path would apply only to a service you operate for federal users, for example a hosted collaboration or licence service. Self-hosting `rte-server` inside the customer's boundary avoids that. Treat FedRAMP as a future decision driven by a real customer, not a launch goal. Do not claim "FedRAMP approved" until an authorisation exists.
+A FedRAMP path would apply only to a service you operate for federal users, for example a hosted collaboration or license service. Self-hosting `rte-server` inside the customer's boundary avoids that. Treat FedRAMP as a future decision driven by a real customer, not a launch goal. Do not claim "FedRAMP approved" until an authorization exists.
 
 ### 6.3 Encryption statement, made verifiable
 "No unencrypted data in motion or at rest" is a strong absolute. Memory is plaintext while data is processed. State testable claims instead:
@@ -220,32 +220,32 @@ A FedRAMP path would apply only to a service you operate for federal users, for 
 - Transmits nothing by default. Any network feature is a plugin the customer adds, using their own endpoints over HTTPS.
 - Editor content is never sent to Rathkit.
 
-**Services we operate** (licence issuer, portal, registry arrangement, optional collector)
+**Services we operate** (license issuer, portal, registry arrangement, optional collector)
 - TLS 1.2 or higher on every connection, TLS 1.3 preferred. HSTS.
 - AES-256 at rest with keys in a managed KMS. Encrypted backups. Customer-managed keys for enterprise where the vendor supports them.
 - Secrets in a vault, never in code or logs. Log scrubbing. Short retention.
 - Least-privilege access with MFA, access reviews, and audit logs.
-- Data minimisation: licence records hold opaque IDs and billing metadata only.
+- Data minimization: license records hold opaque IDs and billing metadata only.
 
 ### 6.4 Claims we will not make
 - "SOC 2 certified product". The correct phrasing is "we have a SOC 2 Type II report for [systems]".
-- "FedRAMP approved" without an authorisation.
+- "FedRAMP approved" without an authorization.
 - "Zero risk". Zero runtime dependencies reduces supply-chain exposure; build tooling, CI and accounts remain attack surface and are covered by the release gates in section 2.
 
 ## 7. Open decisions
 
-1. Free licence: Apache-2.0 or MIT.
+1. Free license: Apache-2.0 or MIT.
 2. Premium unit: per developer, per product, or per deployment.
 3. Types without runtime imports: bundled declarations or optional types-only peer.
 4. Registry vendor for launch, after verifying compliance reports.
 5. Whether to build the optional online attestation at all, or ship only the signed local report.
-6. Grace behaviour when a licence is invalid: silent disable, notice, or watermark.
+6. Grace behavior when a license is invalid: silent disable, notice, or watermark.
 7. Whether `@rathkit-pro` placeholders go on npm now.
 
 VERIFY before relying on this document:
 - Registry vendor SOC 2 and FedRAMP status (not confirmed at time of writing).
 - Artifactory and CodeArtifact FedRAMP scope (not confirmed).
-- JSR scope claiming, provenance and publishing behaviour.
+- JSR scope claiming, provenance and publishing behavior.
 - Ed25519 WebCrypto support in the specific runtime matrix you commit to.
 - Counsel review of the EULA, the Apache-2.0 notices and the trademark plan.
 
