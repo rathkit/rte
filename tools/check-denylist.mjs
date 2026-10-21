@@ -40,7 +40,8 @@ for (const file of files) {
   if (text.includes("\0")) continue;
   const inCompat = file.startsWith("packages/compat-");
   const words = inCompat ? denied.filter((word) => !compatAllowed.has(word)) : denied;
-  const lower = [file.toLowerCase(), ...text.toLowerCase().split("\n")];
+  // Integrity hashes are random base64, so short words match them by chance.
+  const lower = [file.toLowerCase(), ...text.toLowerCase().split("\n").map((line) => line.replace(/sha\d+-[a-z0-9+/=]+/g, ""))];
   lower.forEach((line, index) => {
     if (words.some((word) => line.includes(word))) hits.push(index === 0 ? `${file} (path)` : `${file}:${index}`);
   });
