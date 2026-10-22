@@ -30,6 +30,7 @@ Requires Node 26 and pnpm 12. Use pnpm, not npm.
 pnpm install
 pnpm check        # zero-deps check, typecheck, tests
 pnpm build        # build every package
+pnpm check:size   # gzip budget for built packages (after a build)
 ```
 
 Individual checks:

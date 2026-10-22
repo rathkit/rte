@@ -24,6 +24,19 @@ export interface Selection {
 
 export const pathKey = (path: Path): string => path.join(".");
 
+/**
+ * Reading order of two containers. Paths sort lexicographically in reading order: a list item comes before the items
+ * nested under it, rows run left to right then top to bottom, and so on. Negative when `a` comes first.
+ */
+export function comparePath(a: Path, b: Path): number {
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) {
+    const d = (a[i] as number) - (b[i] as number);
+    if (d !== 0) return d;
+  }
+  return a.length - b.length;
+}
+
 function listPaths(list: List, prefix: readonly number[], out: Path[]): void {
   list.items.forEach((item, i) => {
     out.push([...prefix, i]);
@@ -92,6 +105,11 @@ function slotInBlocks(blocks: readonly Block[], rest: Path): Slot | undefined {
   const [n, ...more] = rest;
   const block = n === undefined ? undefined : blocks[n];
   return block ? slotInBlock(block, more) : undefined;
+}
+
+/** True when the path leads to a container that exists. Cheap: it follows the path instead of listing every container. */
+export function hasContainer(doc: Doc, path: Path): boolean {
+  return slotInBlocks(doc.blocks, path) !== undefined;
 }
 
 export function getContent(doc: Doc, path: Path): readonly Inline[] {

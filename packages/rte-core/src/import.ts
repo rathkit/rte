@@ -87,7 +87,7 @@ export function safeUrl(raw: string | undefined, schemes: ReadonlySet<string>): 
 }
 
 /** Returns the image address when it is a remote address or a real raster image, otherwise undefined. */
-function safeImageSrc(raw: string | undefined, settings: Settings): string | undefined {
+function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData">): string | undefined {
   if (raw === undefined) return undefined;
   const value = raw.trim();
   if (/^data:/i.test(value)) {
@@ -706,3 +706,6 @@ export function importText(value: string): Block[] {
 const decodeLineBreaks = (value: string): string => value.replace(/\r\n?|\u2028|\u2029/g, "\n").replace(/^\n+|\n+$/g, "");
 
 export { decodeEntities };
+
+/** Checks an image address the same way the importer does: remote, or a raster image whose bytes match its type. */
+export const checkImageSrc = (src: string, maxDataLength = 12_000_000): string | undefined => safeImageSrc(src, { maxData: maxDataLength });

@@ -2,15 +2,15 @@
 // input events, applies each one to the model, then draws the model back. The browser never edits the
 // document itself, so Chromium, Firefox and WebKit all end up with the same result.
 import {
-  caret, clampPos, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, insertBlocks, insertLineBreak, insertText, splitBlock, startOf,
-  toggleMark, type EditResult,
+  caret, clampPos, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, extractSelection, insertBlocks, insertLineBreak,
+  insertText, isCollapsed, moveSelection, selectedText, splitBlock, startOf, toggleMark, type EditResult,
 } from "../edit.ts";
 import { exportHtml } from "../export.ts";
-import { importBlocks, importHtml } from "../import.ts";
-import { emptyDoc, type Doc, type MarkType } from "../model.ts";
+import { checkImageSrc, importBlocks, importHtml } from "../import.ts";
+import { emptyDoc, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
-import { getContent, pathKey, setContent, type Selection } from "../path.ts";
-import { domFromPos, posFromDom, renderDoc } from "./render.ts";
+import { getContent, pathKey, setContent, type Pos, type Selection } from "../path.ts";
+import { createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
 export interface EditorOptions {
   readonly element: HTMLElement;
@@ -19,6 +19,10 @@ export interface EditorOptions {
   readonly readOnly?: boolean;
   /** Draw remote (`http`, `https`) images. Off by default, so pasting never makes the browser fetch anything. */
   readonly loadRemoteImages?: boolean;
+  /** Called with the `inputType` of input the editor does not handle. That input is blocked, not applied. */
+  readonly onUnhandledInput?: (inputType: string) => void;
+  /** Largest image file, in bytes, that a paste or drop turns into an inline image. */
+  readonly maxImageFileBytes?: number;
 }
 
 interface Level {
@@ -38,6 +42,10 @@ export class Editor {
   private composing = false;
   private readOnlyMode: boolean;
   private readonly loadRemoteImages: boolean;
+  private readonly unhandled: ((inputType: string) => void) | undefined;
+  private readonly maxImageBytes: number;
+  private dragSource: Selection | null = null;
+  private readonly renderCache = createRenderCache();
   private readonly handlers: readonly PasteHandler[];
   private readonly listeners = new Set<Listener>();
   private readonly cleanups: (() => void)[] = [];
@@ -47,6 +55,8 @@ export class Editor {
     this.handlers = options.pasteHandlers ?? [];
     this.readOnlyMode = options.readOnly ?? false;
     this.loadRemoteImages = options.loadRemoteImages ?? false;
+    this.unhandled = options.onUnhandledInput;
+    this.maxImageBytes = options.maxImageFileBytes ?? 4_000_000;
     this.element.setAttribute("contenteditable", this.readOnlyMode ? "false" : "true");
     this.element.setAttribute("role", "textbox");
     this.element.setAttribute("aria-multiline", "true");
@@ -57,6 +67,12 @@ export class Editor {
     this.listen(this.element, "beforeinput", (e) => this.onBeforeInput(e as InputEvent));
     this.listen(this.element, "paste", (e) => this.onPaste(e as ClipboardEvent));
     this.listen(this.element, "keydown", (e) => this.onKeyDown(e as KeyboardEvent));
+    this.listen(this.element, "copy", (e) => this.onCopy(e as ClipboardEvent, false));
+    this.listen(this.element, "cut", (e) => this.onCopy(e as ClipboardEvent, true));
+    this.listen(this.element, "dragstart", (e) => this.onDragStart(e as DragEvent));
+    this.listen(this.element, "dragend", () => { this.dragSource = null; });
+    this.listen(this.element, "dragover", (e) => this.onDragOver(e as DragEvent));
+    this.listen(this.element, "drop", (e) => this.onDrop(e as DragEvent));
     this.listen(this.element, "compositionstart", () => { this.composing = true; });
     this.listen(this.element, "compositionend", () => { this.composing = false; this.reconcileFromDom(); });
     this.listen(document, "selectionchange", () => this.readSelection());
@@ -181,7 +197,7 @@ export class Editor {
   }
 
   private draw(): void {
-    renderDoc(this.current, this.element, { loadRemoteImages: this.loadRemoteImages });
+    renderDoc(this.current, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
     this.writeSelection();
   }
 
@@ -227,21 +243,24 @@ export class Editor {
     this.emit();
   }
 
-  /** After an input method finishes, take the text it produced from the DOM. */
+  /** After an input method finishes, take the text it produced, and where it left the caret, from the DOM. */
   private reconcileFromDom(): void {
     this.readSelection();
-    const container = this.element.querySelector(`[data-rte="${pathKey(this.sel.focus.path)}"]`);
+    const path = this.sel.focus.path;
+    const container = this.element.querySelector(`[data-rte="${pathKey(path)}"]`);
     if (!container) return;
     const clone = container.cloneNode(true) as Element;
     clone.querySelectorAll("ul, ol, [data-rte-ph]").forEach((n) => n.remove());
     const first = importBlocks(`<p>${clone.innerHTML}</p>`, { styles: "allowlist", keepEmptyBlocks: true })[0];
     if (!first || (first.type !== "p" && first.type !== "h")) return;
-    const path = this.sel.focus.path;
     if (JSON.stringify(first.content) === JSON.stringify(getContent(this.current, path))) return;
-    this.apply("type", (doc, sel) => ({
-      doc: setContent(doc, path, first.content),
-      selection: sel,
-    }));
+    // The browser has already changed the DOM, so the caret is read from it before the model catches up.
+    const domSel = document.getSelection();
+    const raw = domSel?.focusNode && this.element.contains(domSel.focusNode) ? posFromDom(this.element, domSel.focusNode, domSel.focusOffset) : null;
+    this.apply("type", (doc) => {
+      const next = setContent(doc, path, first.content);
+      return { doc: next, selection: raw ? caret(clampPos(next, raw)) : caret(clampPos(next, this.sel.focus)) };
+    });
   }
 
   private onBeforeInput(event: InputEvent): void {
@@ -271,12 +290,23 @@ export class Editor {
         case "formatItalic": this.toggle("italic"); return true;
         case "formatUnderline": this.toggle("underline"); return true;
         case "formatStrikeThrough": this.toggle("strike"); return true;
-        case "insertFromPaste": case "insertFromPasteAsQuotation": case "insertReplacementText": {
+        case "insertReplacementText": {
+          // A spelling correction replaces the word the browser targeted, which need not be where the caret is.
+          const text = event.dataTransfer?.getData("text/plain") ?? event.data ?? "";
+          const range = event.getTargetRanges()[0];
+          const from = range ? posFromDom(this.element, range.startContainer, range.startOffset) : null;
+          const to = range ? posFromDom(this.element, range.endContainer, range.endOffset) : null;
+          this.apply("type", (doc, sel) => insertText(doc, from && to ? { anchor: from, focus: to } : sel, text));
+          return true;
+        }
+        case "insertFromPaste": case "insertFromPasteAsQuotation": {
           const text = event.dataTransfer?.getData("text/plain");
           if (text) this.paste({ text, ...(event.dataTransfer?.getData("text/html") ? { html: event.dataTransfer.getData("text/html") } : {}) });
           return true;
         }
-        default: return false;
+        default:
+          this.unhandled?.(type);
+          return false;
       }
     })();
     // Anything not handled above is blocked rather than left to the browser, which would edit the DOM behind the model's back.
@@ -292,10 +322,90 @@ export class Editor {
     const html = clipboard.getData("text/html");
     const text = clipboard.getData("text/plain");
     const rtf = clipboard.getData("text/rtf");
+    if (!html && !text && clipboard.files.length > 0) {
+      void this.pasteFiles([...clipboard.files]);
+      return;
+    }
     this.paste({
       ...(html ? { html } : {}), ...(text ? { text } : {}), ...(rtf ? { rtf } : {}),
       types: [...clipboard.types],
     });
+  }
+
+  /** Copy and cut write the model's own HTML and text, not the page's markup. */
+  private onCopy(event: ClipboardEvent, cut: boolean): void {
+    this.readSelection();
+    if (isCollapsed(this.sel) || !event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData("text/html", exportHtml({ blocks: extractSelection(this.current, this.sel) }));
+    event.clipboardData.setData("text/plain", selectedText(this.current, this.sel));
+    if (cut && !this.readOnlyMode) this.apply("cut", deleteSelection);
+  }
+
+  private onDragStart(event: DragEvent): void {
+    this.readSelection();
+    if (isCollapsed(this.sel) || !event.dataTransfer) return;
+    event.dataTransfer.setData("text/html", exportHtml({ blocks: extractSelection(this.current, this.sel) }));
+    event.dataTransfer.setData("text/plain", selectedText(this.current, this.sel));
+    event.dataTransfer.effectAllowed = this.readOnlyMode ? "copy" : "copyMove";
+    this.dragSource = this.sel;
+  }
+
+  private onDragOver(event: DragEvent): void {
+    if (this.readOnlyMode) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = this.dragSource && !(event.ctrlKey || event.altKey) ? "move" : "copy";
+  }
+
+  private onDrop(event: DragEvent): void {
+    event.preventDefault();
+    const source = this.dragSource;
+    this.dragSource = null;
+    if (this.readOnlyMode || !event.dataTransfer) return;
+    const target = this.positionAt(event.clientX, event.clientY);
+    if (!target) return;
+    if (source) {
+      this.apply("drop", (doc) => moveSelection(doc, source, target, event.ctrlKey || event.altKey));
+      return;
+    }
+    this.setSelection(caret(target));
+    const data = event.dataTransfer;
+    const html = data.getData("text/html");
+    const text = data.getData("text/plain");
+    if (html || text) this.paste({ ...(html ? { html } : {}), ...(text ? { text } : {}), types: [...data.types] });
+    else void this.pasteFiles([...data.files]);
+  }
+
+  /** The document position under a screen point, using whichever caret-from-point call the browser has. */
+  private positionAt(x: number, y: number): Pos | null {
+    const doc = document as Document & {
+      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    };
+    const point = doc.caretPositionFromPoint?.(x, y);
+    const range = point ? null : doc.caretRangeFromPoint?.(x, y);
+    const node = point?.offsetNode ?? range?.startContainer;
+    const offset = point?.offset ?? range?.startOffset;
+    if (!node || offset === undefined || !this.element.contains(node)) return null;
+    const pos = posFromDom(this.element, node, offset);
+    return pos ? clampPos(this.current, pos) : null;
+  }
+
+  /** Image files become inline images, after the same address check the importer applies. Anything else is ignored. */
+  private async pasteFiles(files: readonly File[]): Promise<void> {
+    const blocks: Block[] = [];
+    for (const file of files) {
+      if (!file.type.startsWith("image/") || file.size > this.maxImageBytes) continue;
+      const url = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+      });
+      const src = checkImageSrc(url);
+      if (src) blocks.push({ type: "p", content: [{ type: "image", src }] });
+    }
+    if (blocks.length > 0) this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks));
   }
 
   private onKeyDown(event: KeyboardEvent): void {

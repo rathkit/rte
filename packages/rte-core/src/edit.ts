@@ -4,7 +4,7 @@ import {
   inlineLength, inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
 } from "./model.ts";
 import {
-  blockContainers, containerPaths, fixup, getContent, inBlockList, kindAt, mapBlockList, mapListOf, pathKey, setContent,
+  blockContainers, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, kindAt, mapBlockList, mapListOf, pathKey, setContent,
   type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -62,19 +62,15 @@ export function marksAt(content: readonly Inline[], offset: number): readonly Ma
 
 // ---- positions --------------------------------------------------------------------------------------------
 
-function order(doc: Doc, sel: Selection): { start: Pos; end: Pos } {
-  const paths = containerPaths(doc);
-  const at = (p: Pos): number => paths.findIndex((candidate) => pathKey(candidate) === pathKey(p.path));
-  const a = at(sel.anchor);
-  const f = at(sel.focus);
-  const forward = a < f || (a === f && sel.anchor.offset <= sel.focus.offset);
+function order(_doc: Doc, sel: Selection): { start: Pos; end: Pos } {
+  const c = comparePath(sel.anchor.path, sel.focus.path);
+  const forward = c < 0 || (c === 0 && sel.anchor.offset <= sel.focus.offset);
   return forward ? { start: sel.anchor, end: sel.focus } : { start: sel.focus, end: sel.anchor };
 }
 
 /** Keeps a position valid: the container must exist and the offset must lie inside it. */
 export function clampPos(doc: Doc, pos: Pos): Pos {
-  const paths = containerPaths(doc);
-  const path = paths.find((p) => pathKey(p) === pathKey(pos.path)) ?? paths.at(-1) ?? [0];
+  const path = hasContainer(doc, pos.path) ? pos.path : (containerPaths(doc).at(-1) ?? [0]);
   return { path, offset: Math.max(0, Math.min(pos.offset, inlineLength(getContent(doc, path)))) };
 }
 
@@ -402,6 +398,90 @@ function insertIntoList(doc: Doc, pos: Pos, blocks: readonly Block[], before: In
   const base = ordinalOf(doc, pos.path);
   const path = ordinalToPath(next, base + landing);
   return { doc: next, selection: caret({ path, offset: inlineLength(lastText) }) };
+}
+
+/** Negative when `a` comes before `b` in reading order, positive when after, zero when equal. */
+export const comparePos = (_doc: Doc, a: Pos, b: Pos): number => comparePath(a.path, b.path) || a.offset - b.offset;
+
+const MOVE_MARK = "\uFDD0";
+
+/**
+ * Moves (or, with `copy`, copies) the selected content to `target`. A target inside the selection, or at
+ * either of its edges, changes nothing. The target is marked in the text so it survives the removal of the source.
+ */
+export function moveSelection(doc: Doc, source: Selection, target: Pos, copy: boolean): EditResult {
+  const { start, end } = order(doc, source);
+  if (comparePos(doc, target, start) >= 0 && comparePos(doc, target, end) <= 0) return { doc, selection: source };
+  const blocks = extractSelection(doc, source);
+  if (copy) return insertBlocks(doc, caret(target), blocks);
+
+  const marked = insertText(doc, caret(target), MOVE_MARK, []).doc;
+  // The marker adds one character in the target's container, ahead of any source text that follows it there.
+  const shift = (pos: Pos): Pos => (pathKey(pos.path) === pathKey(target.path) && pos.offset >= target.offset ? { path: pos.path, offset: pos.offset + 1 } : pos);
+  const removed = deleteSelection(marked, { anchor: shift(start), focus: shift(end) }).doc;
+  const where = containerPaths(removed).find((path) => inlineText(getContent(removed, path)).includes(MOVE_MARK));
+  if (!where) return { doc, selection: source };
+  const offset = inlineText(getContent(removed, where)).indexOf(MOVE_MARK);
+  const cleaned = deleteSelection(removed, { anchor: { path: where, offset }, focus: { path: where, offset: offset + 1 } });
+  return insertBlocks(cleaned.doc, cleaned.selection, blocks);
+}
+
+/**
+ * The selected part of the document as blocks, with structure kept: a selection that covers part of a
+ * list, a table or a quote comes back as that list, table or quote holding only the selected parts.
+ */
+export function extractSelection(doc: Doc, sel: Selection): Block[] {
+  const { start, end } = order(doc, sel);
+  const first = ordinalOf(doc, start.path);
+  const last = ordinalOf(doc, end.path);
+  let n = 0;
+  const cut = (content: readonly Inline[], ordinal: number): Inline[] =>
+    sliceInline(content, ordinal === first ? start.offset : 0, ordinal === last ? end.offset : Number.POSITIVE_INFINITY);
+  const inRange = (ordinal: number): boolean => ordinal >= first && ordinal <= last;
+
+  const cropList = (list: List): List | undefined => {
+    const items = list.items.flatMap((item) => {
+      const ordinal = n++;
+      const content = inRange(ordinal) ? cut(item.content, ordinal) : [];
+      const sublists = item.sublists.map(cropList).filter((l): l is List => l !== undefined);
+      return inRange(ordinal) || sublists.length > 0 ? [{ content, sublists }] : [];
+    });
+    return items.length > 0 ? { ...list, items } : undefined;
+  };
+  const cropBlocks = (blocks: readonly Block[]): Block[] =>
+    blocks.flatMap((block): Block[] => {
+      switch (block.type) {
+        case "p": case "h": {
+          const ordinal = n++;
+          return inRange(ordinal) ? [{ ...block, content: cut(block.content, ordinal) }] : [];
+        }
+        case "pre": {
+          const ordinal = n++;
+          if (!inRange(ordinal)) return [];
+          const text = block.text.slice(ordinal === first ? start.offset : 0, ordinal === last ? end.offset : undefined);
+          return [{ ...block, text }];
+        }
+        case "ul": case "ol": {
+          const list = cropList(block);
+          return list ? [list] : [];
+        }
+        case "quote": {
+          const inner = cropBlocks(block.blocks);
+          return inner.length > 0 ? [{ ...block, blocks: inner }] : [];
+        }
+        case "table": {
+          let any = false;
+          const rows = block.rows.map((row) => row.map((cell) => {
+            const kept = cropBlocks(cell.blocks);
+            if (kept.length > 0) any = true;
+            return { ...cell, blocks: kept.length > 0 ? kept : [{ type: "p", content: [] } as Block] };
+          }));
+          return any ? [{ ...block, rows }] : [];
+        }
+        case "hr": return [];
+      }
+    });
+  return cropBlocks(doc.blocks);
 }
 
 /** Plain text of a selection, for copy. Containers are separated by newlines. */

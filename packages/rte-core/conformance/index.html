@@ -11,6 +11,7 @@ import { exportHtml } from "../dist/index.js";
 
 const el = document.getElementById("ed");
 const editor = new Editor({ element: el });
+window.__editor = editor; // for measurement scripts
 const selectedHtml = () => {
   const sel = getSelection();
   if (!sel || !sel.rangeCount) return "";

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  caret, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, insertBlocks, insertLineBreak, insertText, splitBlock, toggleMark,
+  caret, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, extractSelection, insertBlocks, moveSelection, insertLineBreak, insertText, splitBlock, toggleMark,
 } from "./edit.ts";
 import { exportHtml } from "./export.ts";
 import { importBlocks, importHtml, importText } from "./import.ts";
@@ -108,4 +108,31 @@ test("word and line deletion", () => {
   assert.equal(html(deleteWord(doc("<p>ab</p><p>cd</p>"), at([1], 0), "backward")), "<p>abcd</p>");
   assert.equal(html(deleteToEdge(doc("<p>one two</p>"), at([0], 3), "backward")), "<p>&nbsp;two</p>");
   assert.equal(html(deleteToEdge(doc("<p>one two</p>"), at([0], 3), "forward")), "<p>one</p>");
+});
+
+test("extracting a selection keeps the structure it covers", () => {
+  const d = doc("<p>one</p><ul><li>a</li><li>b<ul><li>c</li></ul></li></ul><p>two</p><table><tr><td>x</td><td>y</td></tr></table>");
+  const ex = (a: [number[], number], b: [number[], number]) =>
+    exportHtml({ blocks: extractSelection(d, { anchor: { path: a[0], offset: a[1] }, focus: { path: b[0], offset: b[1] } }) });
+  assert.equal(ex([[0], 1], [[0], 3]), "<p>ne</p>");
+  assert.equal(ex([[0], 2], [[2], 1]), "<p>e</p><ul><li>a</li><li>b<ul><li>c</li></ul></li></ul><p>t</p>");
+  assert.equal(ex([[1, 1], 0], [[1, 1, 0, 0], 1]), "<ul><li>b<ul><li>c</li></ul></li></ul>");
+  assert.equal(ex([[3, 0, 1, 0], 0], [[3, 0, 1, 0], 1]), "<table><tbody><tr><td></td><td>y</td></tr></tbody></table>");
+});
+
+test("moving a selection places it at the target and removes it from the source", () => {
+  const d = doc("<p>one two three</p>");
+  const range: Selection = { anchor: { path: [0], offset: 4 }, focus: { path: [0], offset: 8 } };
+  assert.equal(html(moveSelection(d, range, { path: [0], offset: 0 }, false)), "<p>two one three</p>");
+  assert.equal(html(moveSelection(d, range, { path: [0], offset: 13 }, false)), "<p>one threetwo&nbsp;</p>");
+  assert.equal(html(moveSelection(d, range, { path: [0], offset: 0 }, true)), "<p>two one two three</p>");
+  // Dropping inside the selection or on its edge does nothing.
+  assert.equal(html(moveSelection(d, range, { path: [0], offset: 6 }, false)), "<p>one two three</p>");
+  assert.equal(html(moveSelection(d, range, { path: [0], offset: 4 }, false)), "<p>one two three</p>");
+});
+
+test("moving across blocks", () => {
+  const d = doc("<p>aaa</p><p>bbb</p><p>ccc</p>");
+  const range: Selection = { anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 3 } };
+  assert.equal(html(moveSelection(d, range, { path: [2], offset: 3 }, false)), "<p></p><p>bbb</p><p>cccaaa</p>");
 });

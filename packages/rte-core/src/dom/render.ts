@@ -126,10 +126,49 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
   }
 }
 
-export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = { loadRemoteImages: false }): void {
-  const fragment = document.createDocumentFragment();
-  doc.blocks.forEach((block, b) => fragment.appendChild(renderBlock(block, [b], options)));
-  root.replaceChildren(fragment);
+/** Remembers the drawn element of each top-level block, so an unchanged block is not drawn again. */
+export interface RenderCache {
+  readonly drawn: WeakMap<Block, { el: HTMLElement; index: number; options: RenderOptions }>;
+}
+export const createRenderCache = (): RenderCache => ({ drawn: new WeakMap() });
+
+/** Rewrites the first number of every path inside an element, after its block moved to a new position. */
+function reindex(el: HTMLElement, index: number): void {
+  const fix = (node: Element): void => {
+    const key = node.getAttribute("data-rte");
+    if (key !== null) node.setAttribute("data-rte", [index, ...key.split(".").slice(1)].join("."));
+  };
+  fix(el);
+  el.querySelectorAll("[data-rte]").forEach(fix);
+}
+
+/**
+ * Draws the document into `root`. Blocks that are the same objects as last time, and sit where they sat, are
+ * kept as they are; only changed, new or moved blocks are touched. Edits keep untouched blocks as the same objects.
+ */
+export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = { loadRemoteImages: false }, cache: RenderCache = createRenderCache()): void {
+  const wanted: HTMLElement[] = doc.blocks.map((block, b) => {
+    const hit = cache.drawn.get(block);
+    if (hit && hit.options.loadRemoteImages === options.loadRemoteImages) {
+      if (hit.index !== b) {
+        reindex(hit.el, b);
+        hit.index = b;
+      }
+      return hit.el;
+    }
+    const el = renderBlock(block, [b], options);
+    cache.drawn.set(block, { el, index: b, options });
+    return el;
+  });
+  // Bring the root's children into line with `wanted`, moving as little as possible: first drop what is no longer
+  // wanted, then walk both lists together, inserting only what is new or has moved.
+  const keep = new Set<Node>(wanted);
+  for (const node of [...root.childNodes]) if (!keep.has(node)) root.removeChild(node);
+  let cursor: ChildNode | null = root.firstChild;
+  for (const el of wanted) {
+    if (cursor === el) cursor = cursor.nextSibling;
+    else root.insertBefore(el, cursor);
+  }
 }
 
 // ---- selection mapping ------------------------------------------------------------------------------------
