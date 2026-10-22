@@ -1,6 +1,6 @@
 # Rathkit RTE: Headless-first UI architecture
 
-Status: PROPOSAL for owner review. Nothing here is decided or built. Basis: the repo as it stands (`rte-core` model, edit, import, export, paste, `dom/view.ts`, `dom/render.ts`; `docs/DISTRIBUTION.md`), plus general web-platform and accessibility standards.
+Status: PROPOSAL, with the owner's decisions of 2026-10-22 applied (see "Decisions" at the end). Nothing here is built yet. Basis: the repo as it stands (`rte-core` model, edit, import, export, paste, `dom/view.ts`, `dom/render.ts`; `docs/DISTRIBUTION.md`), plus general web-platform and accessibility standards.
 
 ## 0. Recommendation in one paragraph
 
@@ -16,7 +16,8 @@ rte-headless      UI-item descriptors, toolbar/menu/popover/dialog machines,
 rte-ui            styled toolbar, menus, dialogs built on rte-headless        (JS + base CSS)
 rte-themes        preset theme CSS files (token values only)
 rte-icons         icon set, one module per icon
-rte-react / rte-vue / rte-svelte   adapters
+rte-element        <rk-editor> custom element (web components), the base for other wrappers
+rte-react / rte-vue / rte-svelte / rte-angular / rte-jquery   adapters
 rte-plugin-<name> (@rathkit) and @rathkit-pro/rte-plugin-<name>
 ```
 
@@ -167,7 +168,7 @@ Names use `--rk-` and describe roles, not values.
 | Motion | `--rk-motion-duration`, set to 0 under `prefers-reduced-motion` |
 | Depth | `--rk-shadow-popover` |
 
-Density is a token bundle, not a separate system: `[data-rk-density="compact|comfortable"]` sets space and `--rk-control-size`. Cap: 40 tokens in v1. A token we cannot justify in docs does not ship.
+Density is a token bundle, not a separate system: `[data-rk-density="compact|comfortable"]` sets space and `--rk-control-size`. Cap: 50 tokens in v1. A token we cannot justify in docs does not ship.
 
 ### 3.3 Light, dark, forced colors
 
@@ -209,8 +210,11 @@ Principle: wrappers contain zero editor logic and zero accessibility logic. They
 - React: `useEditor(options)`, `useCommand(editor, name)` implemented with `useSyncExternalStore(commands.subscribe, () => commands.state(name))`, `useSelector(editor, selector)`. Components `<Toolbar>` can render `ui.items()` using headless machines.
 - Vue: composables returning `shallowRef` updated by `commands.subscribe`; disposed with `onScopeDispose`.
 - Svelte: stores implementing `subscribe(run)` directly. Our `Unsubscribe`-returning signature is chosen to satisfy the Svelte store contract, so the store is a one-line adapter.
+- Angular: a standalone component and directives that mount the editor outside Angular's change detection (`NgZone.runOutsideAngular`), with `commands.subscribe` bridged to signals. It also implements the forms `ControlValueAccessor` so it works with `ngModel` and reactive forms.
+- Web components: `@rathkit/rte-element` registers `<rk-editor>` (and `<rk-toolbar>`). It uses the light DOM, like the styled UI, so selection and ARIA references behave. Attributes and properties mirror the options, events carry the state changes, and it joins forms through `ElementInternals`. It works in any page or framework with no build step, and the jQuery wrapper and server-rendered integrations sit on top of it.
+- jQuery: a plugin (`$(el).rkEditor(options)`, with `.rkEditor("getHtml")`-style method calls and `rk:change` events) over the custom element, for pages that still use it.
 
-Each wrapper is under 2 KB gzipped and needs only a conformance test: "after N edits, the number of re-renders of the bold button equals the number of bold state changes". Controlled value (`html` in/out) is deliberately limited to `onChange` plus `setHtml`, because round-tripping a document through a framework's state on every keystroke fights the caret.
+Each wrapper is under its budget (see section 6) and needs only a conformance test: "after N edits, the number of re-renders of the bold button equals the number of bold state changes". Controlled value (`html` in/out) is deliberately limited to `onChange` plus `setHtml`, because round-tripping a document through a framework's state on every keystroke fights the caret.
 
 ## 5. Accessibility
 
@@ -237,7 +241,9 @@ Visible focus ring and 3:1 contrast tokens, minimum target size, forced-colors r
 | `rte-ui` | 25 KB JS + 8 KB base CSS | Excludes icons |
 | `rte-themes` | 4 KB per preset | Token values only |
 | `rte-icons` | 0.4 KB per icon, about 14 KB for the full default set | Tree-shakeable |
-| `rte-react`, `rte-vue`, `rte-svelte` | 2 KB each | Externalize the framework as an optional peer |
+| `rte-react`, `rte-vue`, `rte-svelte`, `rte-jquery` | 2 KB each | Externalize the framework as an optional peer |
+| `rte-angular` | 3 KB | Components, directives and the forms accessor; Angular is an optional peer |
+| `rte-element` | 4 KB | The custom element, with form association and the attribute and event mapping |
 
 `pnpm check:size` already reads `rathkit.budgetGzipKB` per package; extend it to a `budgets` map per entry point. Everything is zero-dependency, self-hosted, with no network calls (the style provider takes strings and CSS, never URLs fetched at runtime; fonts are the consumer's). Free/paid: `rte-headless` and the plugin API are free; paid plugins register through `PluginHost` only. CI includes a test that a sample paid-style plugin, written outside the repo's internals, adds a command, keybinding, toolbar item and dialog that render in both `rte-ui` and a bare-bones custom UI. Behavior must hold in Chromium, Firefox and WebKit; the machine tests run in all three.
 
@@ -263,19 +269,24 @@ Visible focus ring and 3:1 contrast tokens, minimum target size, forced-colors r
 6. `rte-headless`: toolbar machine and announcer first, then menu, popover, dialog.
 7. `rte-ui` with base CSS and the `light` preset; token docs page; forced-colors and reduced-motion checks.
 8. `rte-icons`, `rte-themes` remaining presets, `StyleProvider` and `setStyle`.
-9. `rte-react` first (it exercises the external-store requirement hardest), then Vue and Svelte.
+9. `rte-element` first, because the jQuery wrapper and any server-rendered integration sit on it, then `rte-react` (it exercises the external-store requirement hardest), then Vue, Svelte and Angular, then jQuery.
+10. Integrations that come after v1: Blazor and AngularJS wrappers, and platform packages for WordPress, Laravel, Django, Ruby on Rails and similar, plus a Bootstrap-matched theme. The goal is to match the integrations that the leading commercial rich text editors offer; the list of those is kept in the private research notes, not in this repo.
 
-## Decisions for the owner
+## Decisions
 
-| Decision | Default |
+Decided by the owner on 2026-10-22. Where this differs from the default that was proposed, it says so.
+
+| Decision | Result |
 |---|---|
 | Is the command/plugin host part of core's 60 KB? | Yes, at most 7 KB |
 | Package name for the headless layer | `@rathkit/rte-headless`; styled is `@rathkit/rte-ui` |
 | Shadow DOM or light DOM for styled UI | Light DOM with cascade layers and `data-rk-part` |
-| Custom Elements wrapper (`<rk-editor>`) | Not in v1; add later over `rte-ui` if requested |
-| Token count cap and naming prefix | 40 tokens, `--rk-` |
+| Custom Elements wrapper (`<rk-editor>`) | **In v1** (was: later), as `@rathkit/rte-element` |
+| Framework wrappers in v1 | **React, Vue, Svelte, Angular, web components and jQuery** (was: React, Vue, Svelte) |
+| Token count cap and naming prefix | **50 tokens** (was: 40), `--rk-` |
 | Whether `parts` (element replacement) ships in v1 | Yes, documented as last resort |
-| Are `rte-icons` and `rte-themes` separate from `rte-ui` | Yes, separate packages (themes already planned) |
+| Are `rte-icons` and `rte-themes` separate from `rte-ui` | Yes, separate packages |
 | API stability label | `experimental` until the external-plugin test passes against both UIs |
 | Plugin panels (rich UI from plugins) | Named `panel` items with per-UI renderers |
 | Does the styled UI default to English labels only | Yes; `messages` table is the i18n path, translations are later |
+| Later integrations | Blazor, AngularJS, and platform packages (WordPress, Laravel, Django, Ruby on Rails and the like), a Bootstrap-matched theme. The aim is to match the integrations of the leading commercial editors |
