@@ -35,7 +35,8 @@ so the free editor is not expected to pass them. They are:
 - every `src-sheet-*-desktopsheet-*` scenario for the range and hidden-row cases (15 or 18 per platform set)
 - the `src-sheet-*-websheet-a-*` range and hidden-row scenarios on Chromium and Firefox
 
-The free target is therefore all 104 other scenarios, and all of them pass.
+The free target is therefore the 104 other scenarios, and all of them pass. That count assumes the word-processor
+recognizers listed in `PASTE.md` are free, which the owner has not confirmed; 16 of the 104 depend on them.
 
 ## Notes for the next slice
 
@@ -43,3 +44,17 @@ The free target is therefore all 104 other scenarios, and all of them pass.
   their own suites.
 - The editor draws the whole document again after every edit. That is fine for the paste suites and
   too slow for large documents; incremental drawing is on the list before the performance budget is tested.
+
+## Known gaps in the editing view
+
+- Input the view does not handle is blocked rather than left to the browser, which would edit the page
+  behind the model. Dropping text or files onto the editor, spell-check replacements and similar actions do
+  nothing yet. Word and line deletion, Enter, Backspace, Delete, typing, bold, italic, underline, undo and
+  redo and paste do work.
+- Input-method composition is reconciled after it ends by reading the text back from the page, with marks
+  recovered from the markup. It has not been tested with a real input method.
+- Remote images (`http`, `https`) are kept in the document but not drawn unless the host passes
+  `loadRemoteImages: true`, so pasting never makes the browser fetch anything. `Editor.remoteImages()` lists them.
+- The paste event path was exercised with a script-made event in Chromium and WebKit and with a real Ctrl+V in
+  Chromium. Firefox cannot attach data to a script-made paste event, so only the direct `paste()` call is
+  covered there.

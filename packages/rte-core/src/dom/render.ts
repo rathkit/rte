@@ -30,12 +30,21 @@ function placeholder(): HTMLElement {
   return br;
 }
 
-function renderInline(parent: HTMLElement, content: readonly Inline[]): void {
+export interface RenderOptions {
+  /** Draw `http` and `https` images with their real address. Off by default: a pasted image never causes a request. */
+  readonly loadRemoteImages: boolean;
+}
+
+const isRemote = (src: string): boolean => /^https?:/i.test(src) || src.startsWith("//");
+
+function renderInline(parent: HTMLElement, content: readonly Inline[], options: RenderOptions): void {
   for (const node of content) {
     if (node.type === "br") parent.appendChild(document.createElement("br"));
     else if (node.type === "image") {
       const img = document.createElement("img");
-      img.setAttribute("src", node.src);
+      // The address stays in the model. Without permission the view holds it in an attribute and loads nothing.
+      if (isRemote(node.src) && !options.loadRemoteImages) img.setAttribute("data-rte-remote-src", node.src);
+      else img.setAttribute("src", node.src);
       if (node.alt !== undefined) img.setAttribute("alt", node.alt);
       if (node.width !== undefined) img.setAttribute("width", String(node.width));
       if (node.height !== undefined) img.setAttribute("height", String(node.height));
@@ -58,26 +67,26 @@ function tag(name: string, path: Path): HTMLElement {
   return el;
 }
 
-function renderList(list: List, path: readonly number[]): HTMLElement {
+function renderList(list: List, path: readonly number[], options: RenderOptions): HTMLElement {
   const el = document.createElement(list.type);
   if (list.start !== undefined) el.setAttribute("start", String(list.start));
   if (list.style !== undefined) el.style.listStyleType = list.style;
   list.items.forEach((item, i) => {
     const itemPath = [...path, i];
     const li = tag("li", itemPath);
-    renderInline(li, item.content);
-    item.sublists.forEach((sub, k) => li.appendChild(renderList(sub, [...itemPath, k])));
+    renderInline(li, item.content, options);
+    item.sublists.forEach((sub, k) => li.appendChild(renderList(sub, [...itemPath, k], options)));
     el.appendChild(li);
   });
   return el;
 }
 
-function renderBlock(block: Block, path: readonly number[]): HTMLElement {
+function renderBlock(block: Block, path: readonly number[], options: RenderOptions): HTMLElement {
   switch (block.type) {
     case "p": case "h": {
       const el = tag(block.type === "p" ? "p" : `h${block.level}`, path);
       if (block.align) el.style.textAlign = block.align;
-      renderInline(el, block.content);
+      renderInline(el, block.content, options);
       return el;
     }
     case "pre": {
@@ -86,10 +95,10 @@ function renderBlock(block: Block, path: readonly number[]): HTMLElement {
       if (block.text === "" || block.text.endsWith("\n")) el.appendChild(placeholder());
       return el;
     }
-    case "ul": case "ol": return renderList(block, path);
+    case "ul": case "ol": return renderList(block, path, options);
     case "quote": {
       const el = document.createElement("blockquote");
-      block.blocks.forEach((inner, n) => el.appendChild(renderBlock(inner, [...path, n])));
+      block.blocks.forEach((inner, n) => el.appendChild(renderBlock(inner, [...path, n], options)));
       return el;
     }
     case "table": {
@@ -101,7 +110,7 @@ function renderBlock(block: Block, path: readonly number[]): HTMLElement {
           const td = document.createElement(cell.header ? "th" : "td");
           if (cell.colspan > 1) td.setAttribute("colspan", String(cell.colspan));
           if (cell.rowspan > 1) td.setAttribute("rowspan", String(cell.rowspan));
-          cell.blocks.forEach((inner, n) => td.appendChild(renderBlock(inner, [...path, r, c, n])));
+          cell.blocks.forEach((inner, n) => td.appendChild(renderBlock(inner, [...path, r, c, n], options)));
           tr.appendChild(td);
         });
         body.appendChild(tr);
@@ -117,9 +126,9 @@ function renderBlock(block: Block, path: readonly number[]): HTMLElement {
   }
 }
 
-export function renderDoc(doc: Doc, root: HTMLElement): void {
+export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = { loadRemoteImages: false }): void {
   const fragment = document.createDocumentFragment();
-  doc.blocks.forEach((block, b) => fragment.appendChild(renderBlock(block, [b])));
+  doc.blocks.forEach((block, b) => fragment.appendChild(renderBlock(block, [b], options)));
   root.replaceChildren(fragment);
 }
 

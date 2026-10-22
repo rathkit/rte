@@ -2,7 +2,7 @@
 // input events, applies each one to the model, then draws the model back. The browser never edits the
 // document itself, so Chromium, Firefox and WebKit all end up with the same result.
 import {
-  caret, clampPos, deleteBackward, deleteForward, deleteSelection, insertBlocks, insertLineBreak, insertText, splitBlock, startOf,
+  caret, clampPos, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, insertBlocks, insertLineBreak, insertText, splitBlock, startOf,
   toggleMark, type EditResult,
 } from "../edit.ts";
 import { exportHtml } from "../export.ts";
@@ -17,6 +17,8 @@ export interface EditorOptions {
   readonly html?: string;
   readonly pasteHandlers?: readonly PasteHandler[];
   readonly readOnly?: boolean;
+  /** Draw remote (`http`, `https`) images. Off by default, so pasting never makes the browser fetch anything. */
+  readonly loadRemoteImages?: boolean;
 }
 
 interface Level {
@@ -35,6 +37,7 @@ export class Editor {
   private lastKind = "";
   private composing = false;
   private readOnlyMode: boolean;
+  private readonly loadRemoteImages: boolean;
   private readonly handlers: readonly PasteHandler[];
   private readonly listeners = new Set<Listener>();
   private readonly cleanups: (() => void)[] = [];
@@ -43,6 +46,7 @@ export class Editor {
     this.element = options.element;
     this.handlers = options.pasteHandlers ?? [];
     this.readOnlyMode = options.readOnly ?? false;
+    this.loadRemoteImages = options.loadRemoteImages ?? false;
     this.element.setAttribute("contenteditable", this.readOnlyMode ? "false" : "true");
     this.element.setAttribute("role", "textbox");
     this.element.setAttribute("aria-multiline", "true");
@@ -67,6 +71,21 @@ export class Editor {
   get readOnly(): boolean { return this.readOnlyMode; }
 
   getHtml(): string { return exportHtml(this.current); }
+
+  /** Addresses of remote images in the document, so the host can decide whether to show them. */
+  remoteImages(): string[] {
+    const found: string[] = [];
+    const visit = (value: unknown): void => {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === "object") {
+        const node = value as { type?: string; src?: string };
+        if (node.type === "image" && typeof node.src === "string" && /^https?:/i.test(node.src)) found.push(node.src);
+        Object.values(value).forEach(visit);
+      }
+    };
+    visit(this.current.blocks);
+    return found;
+  }
 
   /** Replaces the whole document and empties the history. */
   setHtml(html: string): void {
@@ -162,7 +181,7 @@ export class Editor {
   }
 
   private draw(): void {
-    renderDoc(this.current, this.element);
+    renderDoc(this.current, this.element, { loadRemoteImages: this.loadRemoteImages });
     this.writeSelection();
   }
 
@@ -241,6 +260,10 @@ export class Editor {
         case "insertLineBreak": this.apply("break", insertLineBreak); return true;
         case "deleteContentBackward": this.apply("delete", deleteBackward); return true;
         case "deleteContentForward": this.apply("delete", deleteForward); return true;
+        case "deleteWordBackward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "backward")); return true;
+        case "deleteWordForward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "forward")); return true;
+        case "deleteSoftLineBackward": case "deleteHardLineBackward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "backward")); return true;
+        case "deleteSoftLineForward": case "deleteHardLineForward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "forward")); return true;
         case "deleteByCut": case "deleteByDrag": this.apply("cut", deleteSelection); return true;
         case "historyUndo": this.undo(); return true;
         case "historyRedo": this.redo(); return true;

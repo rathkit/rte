@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  caret, deleteBackward, deleteForward, deleteSelection, insertBlocks, insertLineBreak, insertText, splitBlock, toggleMark,
+  caret, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, insertBlocks, insertLineBreak, insertText, splitBlock, toggleMark,
 } from "./edit.ts";
 import { exportHtml } from "./export.ts";
 import { importBlocks, importHtml, importText } from "./import.ts";
@@ -100,4 +100,12 @@ test("pasting paragraphs into a list item adds items", () => {
 test("pasting replaces a selection", () => {
   const sel: Selection = { anchor: { path: [0], offset: 1 }, focus: { path: [0], offset: 3 } };
   assert.equal(html(insertBlocks(doc("<p>abcd</p>"), sel, importText("X\n\nY"))), "<p>aX</p><p>Yd</p>");
+});
+
+test("word and line deletion", () => {
+  assert.equal(html(deleteWord(doc("<p>one two three</p>"), at([0], 7), "backward")), "<p>one&nbsp; three</p>");
+  assert.equal(html(deleteWord(doc("<p>one two three</p>"), at([0], 4), "forward")), "<p>one&nbsp; three</p>");
+  assert.equal(html(deleteWord(doc("<p>ab</p><p>cd</p>"), at([1], 0), "backward")), "<p>abcd</p>");
+  assert.equal(html(deleteToEdge(doc("<p>one two</p>"), at([0], 3), "backward")), "<p>&nbsp;two</p>");
+  assert.equal(html(deleteToEdge(doc("<p>one two</p>"), at([0], 3), "forward")), "<p>one</p>");
 });

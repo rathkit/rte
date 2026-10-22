@@ -324,7 +324,11 @@ function splitMarker(children: readonly HNode[]): { marker: string | undefined; 
 
 const OFFICE_LIST = /^\s*(l\d+)\s+level(\d+)/i;
 
-/** Word-for-web describes a list's marker in a JSON attribute: bullet glyph code points, or [placeholder, number format]. */
+/**
+ * Word-for-web describes a list's marker in a JSON attribute: bullet glyph code points, or [placeholder, number format].
+ * Seen in real captures: format 0 (decimal), 2 (lower roman), 4 (lower letter). Formats 1 (upper roman) and 3 (upper
+ * letter) are filled in from the word processor's public numbering enumeration and have NOT been seen in a capture.
+ */
 function definitionStyle(raw: string | undefined): { type: "ul" | "ol"; style?: string } | undefined {
   if (!raw) return undefined;
   try {

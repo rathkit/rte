@@ -234,6 +234,34 @@ function joinWithPrevious(doc: Doc, into: Path, from: Pos): EditResult {
   return { doc: next, selection: caret({ path: into, offset: inlineLength(head) }) };
 }
 
+/** Deletes back to the start of the previous word (or forward to the end of the next). At a block edge it joins blocks like Backspace. */
+export function deleteWord(doc: Doc, sel: Selection, direction: "backward" | "forward"): EditResult {
+  if (!isCollapsed(sel)) return deleteSelection(doc, sel);
+  const pos = sel.anchor;
+  const text = inlineText(getContent(doc, pos.path));
+  if (direction === "backward") {
+    if (pos.offset === 0) return deleteBackward(doc, sel);
+    let i = pos.offset;
+    while (i > 0 && /\s/.test(text[i - 1] as string)) i--;
+    while (i > 0 && !/\s/.test(text[i - 1] as string)) i--;
+    return deleteSelection(doc, { anchor: { path: pos.path, offset: i }, focus: pos });
+  }
+  if (pos.offset >= text.length) return deleteForward(doc, sel);
+  let i = pos.offset;
+  while (i < text.length && /\s/.test(text[i] as string)) i++;
+  while (i < text.length && !/\s/.test(text[i] as string)) i++;
+  return deleteSelection(doc, { anchor: pos, focus: { path: pos.path, offset: i } });
+}
+
+/** Deletes from the caret to the start or end of the block. */
+export function deleteToEdge(doc: Doc, sel: Selection, direction: "backward" | "forward"): EditResult {
+  if (!isCollapsed(sel)) return deleteSelection(doc, sel);
+  const pos = sel.anchor;
+  const end = inlineLength(getContent(doc, pos.path));
+  const other = { path: pos.path, offset: direction === "backward" ? 0 : end };
+  return deleteSelection(doc, { anchor: pos, focus: other });
+}
+
 // ---- marks ------------------------------------------------------------------------------------------------
 
 /** True when every character in the range already has the mark. */
