@@ -180,24 +180,75 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
-// --- speed, against the performance budgets
+// --- speed, against the performance budgets. Each command is timed from the event to the end of layout, 20 times;
+// the budget is for the 95th percentile. Commands near the top of a long document are the expensive ones, because
+// every later block shifts, so they are measured too. The throttled run uses a CPU four times slower.
 {
   const t = await open(chromium);
-  for (const [n, setBudget, typeBudget] of [[1000, 40, 10], [5000, Infinity, 30]]) {
-    const r = await t.page.evaluate((count) => {
-      const html = Array.from({ length: count }, (_, i) => `<p>Paragraph ${i} has <strong>bold words</strong>, some <em>emphasis</em> and a <a href="https://example.com/${i}">link</a> in about ninety characters.</p>`).join("");
-      const time = (fn) => { const s = performance.now(); fn(); return performance.now() - s; };
-      const setMs = time(() => window.__editor.setHtml(html));
-      window.__conf.select({ start: `p:nth-child(${Math.floor(count / 2)})`, so: 3, eo: 3 });
-      const el = document.getElementById("ed");
-      const key = () => el.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "x", bubbles: true, cancelable: true }));
-      const times = Array.from({ length: 20 }, () => { const ms = time(key); el.getBoundingClientRect(); return ms; }).sort((a, b) => a - b);
-      return { setMs, typeMedian: times[10] };
-    }, n);
-    console.log(`speed ${n} paragraphs: set ${r.setMs.toFixed(1)} ms, one keystroke ${r.typeMedian.toFixed(1)} ms`);
-    check(`speed: ${n} paragraphs, one keystroke within ${typeBudget} ms`, r.typeMedian <= typeBudget, r);
-    check(`speed: ${n} paragraphs, set content within ${setBudget} ms`, r.setMs <= setBudget * 1.5, r);
+  const client = await t.page.context().newCDPSession(t.page);
+  const measure = (count) => t.page.evaluate((n) => {
+    const html = Array.from({ length: n }, (_, i) => `<p>Paragraph ${i} has <strong>bold words</strong>, some <em>emphasis</em> and a <a href="https://example.com/${i}">link</a> in about ninety characters.</p>`).join("");
+    const el = document.getElementById("ed");
+    const ed = window.__editor;
+    const time = (fn) => { const s = performance.now(); fn(); el.getBoundingClientRect(); return performance.now() - s; };
+    const p95 = (xs) => xs.slice().sort((a, b) => a - b)[Math.ceil(xs.length * 0.95) - 1];
+    const input = (inputType, data) => () => el.dispatchEvent(new InputEvent("beforeinput", { inputType, data, bubbles: true, cancelable: true }));
+    const at = (k, offset) => window.__conf.select({ start: `p:nth-child(${k})`, so: offset, eo: offset });
+    // The first call pays for compiling the code; the median of the next five is what a page that is already running sees.
+    const out = { setCold: time(() => ed.setHtml(html)) };
+    out.set = Array.from({ length: 5 }, () => time(() => ed.setHtml(html))).sort((a, b) => a - b)[2];
+    const run = (label, prepare, command) => {
+      const xs = [];
+      for (let i = 0; i < 20; i++) { prepare(i); xs.push(time(command)); }
+      out[label] = p95(xs);
+    };
+    run("typeMiddle", () => at(Math.floor(n / 2), 3), input("insertText", "x"));
+    run("typeTop", () => at(2, 3), input("insertText", "x"));
+    run("enterTop", () => at(2, 3), input("insertParagraph"));
+    run("joinTop", () => at(3, 0), input("deleteContentBackward"));
+    run("pasteTop", () => at(2, 3), () => ed.paste({ text: "one\n\ntwo\n\nthree" }));
+    return out;
+  }, count);
+  for (const [label, rate] of [["", 1], [" (CPU 4x slower)", 4]]) {
+    await client.send("Emulation.setCPUThrottlingRate", { rate });
+    for (const [n, commandBudget, setBudget] of [[1000, 10, 40], [5000, 30, Infinity]]) {
+      const r = await measure(n);
+      const worst = Math.max(r.typeMiddle, r.typeTop, r.enterTop, r.joinTop, r.pasteTop);
+      console.log(`speed${label} ${n} paragraphs: set ${r.set.toFixed(1)} ms warm, ${r.setCold.toFixed(1)} ms cold; p95 per command: type ${r.typeMiddle.toFixed(1)} (top ${r.typeTop.toFixed(1)}), Enter ${r.enterTop.toFixed(1)}, join ${r.joinTop.toFixed(1)}, paste ${r.pasteTop.toFixed(1)} ms`);
+      if (rate === 1) {
+        check(`speed: ${n} paragraphs, every command within ${commandBudget} ms (p95)`, worst <= commandBudget, r);
+        check(`speed: ${n} paragraphs, set content within ${setBudget} ms`, r.set <= setBudget, r);
+      }
+    }
   }
+  await t.browser.close();
+}
+
+// --- memory: how much one undo level adds, as a share of the document
+{
+  const t = await open(chromium);
+  const client = await t.page.context().newCDPSession(t.page);
+  await client.send("HeapProfiler.enable");
+  const heap = async () => {
+    await client.send("HeapProfiler.collectGarbage");
+    return (await client.send("Runtime.getHeapUsage")).usedSize;
+  };
+  const baseline = await heap();
+  await t.page.evaluate(() => {
+    const html = Array.from({ length: 5000 }, (_, i) => `<p>Paragraph ${i} has <strong>bold words</strong>, some <em>emphasis</em> and a <a href="https://example.com/${i}">link</a> in about ninety characters.</p>`).join("");
+    window.__editor.setHtml(html);
+  });
+  const withDoc = await heap();
+  await t.page.evaluate(() => {
+    window.__conf.select({ start: "p:nth-child(2500)", so: 3, eo: 3 });
+    const el = document.getElementById("ed");
+    for (let i = 0; i < 100; i++) el.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertLineBreak", bubbles: true, cancelable: true }));
+  });
+  const withLevels = await heap();
+  const docBytes = withDoc - baseline;
+  const perLevel = (withLevels - withDoc) / 100;
+  console.log(`memory: 5,000-paragraph document ${(docBytes / 1e6).toFixed(1)} MB, one undo level ${(perLevel / 1e3).toFixed(1)} KB (${((perLevel / docBytes) * 100).toFixed(2)}% of the document)`);
+  check("memory: one undo level adds at most 1% of the document", perLevel <= docBytes * 0.01, { docBytes, perLevel });
   await t.browser.close();
 }
 

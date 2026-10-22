@@ -9,8 +9,8 @@ import { exportHtml } from "../export.ts";
 import { checkImageSrc, importBlocks, importHtml } from "../import.ts";
 import { emptyDoc, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
-import { getContent, pathKey, setContent, type Pos, type Selection } from "../path.ts";
-import { createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
+import { getContent, setContent, type Pos, type Selection } from "../path.ts";
+import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
 export interface EditorOptions {
   readonly element: HTMLElement;
@@ -46,6 +46,14 @@ export class Editor {
   private readonly maxImageBytes: number;
   private dragSource: Selection | null = null;
   private readonly renderCache = createRenderCache();
+  /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
+  private readonly observer = new MutationObserver((records) => {
+    for (const record of records) {
+      let node: Node | null = record.target;
+      while (node && node.parentNode !== this.element) node = node.parentNode;
+      if (node) this.renderCache.dirty.add(node);
+    }
+  });
   private readonly handlers: readonly PasteHandler[];
   private readonly listeners = new Set<Listener>();
   private readonly cleanups: (() => void)[] = [];
@@ -76,6 +84,7 @@ export class Editor {
     this.listen(this.element, "compositionstart", () => { this.composing = true; });
     this.listen(this.element, "compositionend", () => { this.composing = false; this.reconcileFromDom(); });
     this.listen(document, "selectionchange", () => this.readSelection());
+    this.observer.observe(this.element, { subtree: true, childList: true, characterData: true, attributes: true });
   }
 
   // ---- state ----------------------------------------------------------------------------------------------
@@ -128,6 +137,7 @@ export class Editor {
     for (const cleanup of this.cleanups) cleanup();
     this.cleanups.length = 0;
     this.listeners.clear();
+    this.observer.disconnect();
   }
 
   focus(): void { this.element.focus(); }
@@ -198,6 +208,8 @@ export class Editor {
 
   private draw(): void {
     renderDoc(this.current, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
+    // Changes drawing just made are not disturbances; throw their records away.
+    this.observer.takeRecords();
     this.writeSelection();
   }
 
@@ -247,7 +259,7 @@ export class Editor {
   private reconcileFromDom(): void {
     this.readSelection();
     const path = this.sel.focus.path;
-    const container = this.element.querySelector(`[data-rte="${pathKey(path)}"]`);
+    const container = containerAt(this.element, path);
     if (!container) return;
     const clone = container.cloneNode(true) as Element;
     clone.querySelectorAll("ul, ol, [data-rte-ph]").forEach((n) => n.remove());
@@ -292,7 +304,9 @@ export class Editor {
         case "formatStrikeThrough": this.toggle("strike"); return true;
         case "insertReplacementText": {
           // A spelling correction replaces the word the browser targeted, which need not be where the caret is.
-          const text = event.dataTransfer?.getData("text/plain") ?? event.data ?? "";
+          // `||`, not `??`: a data transfer with no text must not turn a correction into a deletion.
+          const text = event.dataTransfer?.getData("text/plain") || event.data || "";
+          if (text === "") return true;
           const range = event.getTargetRanges()[0];
           const from = range ? posFromDom(this.element, range.startContainer, range.startOffset) : null;
           const to = range ? posFromDom(this.element, range.endContainer, range.endOffset) : null;

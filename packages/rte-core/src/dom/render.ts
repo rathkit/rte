@@ -61,9 +61,10 @@ function renderInline(parent: HTMLElement, content: readonly Inline[], options: 
   if (!last || last.type === "br") parent.appendChild(placeholder());
 }
 
+/** `data-rte` holds the path inside the top-level block, without the block's own index (the block's place in the root gives that). */
 function tag(name: string, path: Path): HTMLElement {
   const el = document.createElement(name);
-  el.setAttribute("data-rte", pathKey(path));
+  el.setAttribute("data-rte", pathKey(path.slice(1)));
   return el;
 }
 
@@ -128,38 +129,27 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
 
 /** Remembers the drawn element of each top-level block, so an unchanged block is not drawn again. */
 export interface RenderCache {
-  readonly drawn: WeakMap<Block, { el: HTMLElement; index: number; options: RenderOptions }>;
+  readonly drawn: WeakMap<Block, HTMLElement>;
+  /** Top-level elements something other than the editor changed (an extension, an input method). They are drawn again. */
+  readonly dirty: Set<Node>;
 }
-export const createRenderCache = (): RenderCache => ({ drawn: new WeakMap() });
-
-/** Rewrites the first number of every path inside an element, after its block moved to a new position. */
-function reindex(el: HTMLElement, index: number): void {
-  const fix = (node: Element): void => {
-    const key = node.getAttribute("data-rte");
-    if (key !== null) node.setAttribute("data-rte", [index, ...key.split(".").slice(1)].join("."));
-  };
-  fix(el);
-  el.querySelectorAll("[data-rte]").forEach(fix);
-}
+export const createRenderCache = (): RenderCache => ({ drawn: new WeakMap(), dirty: new Set() });
 
 /**
- * Draws the document into `root`. Blocks that are the same objects as last time, and sit where they sat, are
- * kept as they are; only changed, new or moved blocks are touched. Edits keep untouched blocks as the same objects.
+ * Draws the document into `root`. Blocks that are the same objects as last time, and are untouched, are kept as
+ * they are; only changed, new or disturbed blocks are drawn. Edits keep untouched blocks as the same objects, so
+ * the cost of an edit is the blocks it changed, wherever they sit and however many blocks follow them.
  */
 export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = { loadRemoteImages: false }, cache: RenderCache = createRenderCache()): void {
   const wanted: HTMLElement[] = doc.blocks.map((block, b) => {
     const hit = cache.drawn.get(block);
-    if (hit && hit.options.loadRemoteImages === options.loadRemoteImages) {
-      if (hit.index !== b) {
-        reindex(hit.el, b);
-        hit.index = b;
-      }
-      return hit.el;
-    }
+    if (hit && !cache.dirty.has(hit) && hit.getAttribute("data-rte-remote") === String(options.loadRemoteImages)) return hit;
     const el = renderBlock(block, [b], options);
-    cache.drawn.set(block, { el, index: b, options });
+    el.setAttribute("data-rte-remote", String(options.loadRemoteImages));
+    cache.drawn.set(block, el);
     return el;
   });
+  cache.dirty.clear();
   // Bring the root's children into line with `wanted`, moving as little as possible: first drop what is no longer
   // wanted, then walk both lists together, inserting only what is new or has moved.
   const keep = new Set<Node>(wanted);
@@ -200,28 +190,49 @@ const containerOf = (root: HTMLElement, node: Node): HTMLElement | null => {
   return found && root.contains(found) ? (found as HTMLElement) : null;
 };
 
-const parsePath = (key: string): Path => key.split(".").map(Number);
+const parsePath = (key: string): Path => (key === "" ? [] : key.split(".").map(Number));
+
+/** The element directly under the root that holds `node`, and its index among the root's children. */
+function topLevel(root: HTMLElement, node: Node): { el: HTMLElement; index: number } | null {
+  let el: Node | null = node;
+  while (el && el.parentNode !== root) el = el.parentNode;
+  if (!(el instanceof HTMLElement)) return null;
+  let index = 0;
+  for (let sibling = el.previousElementSibling; sibling; sibling = sibling.previousElementSibling) index++;
+  return { el, index };
+}
+
+/** The container element at a path, found by following the path from its top-level block. */
+export function containerAt(root: HTMLElement, path: Path): HTMLElement | null {
+  const top = root.children[path[0] as number];
+  if (!(top instanceof HTMLElement)) return null;
+  const relative = pathKey(path.slice(1));
+  if (relative === "") return top.hasAttribute("data-rte") ? top : null;
+  return top.querySelector<HTMLElement>(`[data-rte="${relative}"]`);
+}
 
 export function posFromDom(root: HTMLElement, node: Node, offset: number): Pos | null {
   const container = containerOf(root, node);
-  if (!container) return null;
+  const top = container ? topLevel(root, container) : null;
+  if (!container || !top) return null;
+  const pathOf = (): Path => [top.index, ...parsePath(container.getAttribute("data-rte") as string)];
   let count = 0;
   const isElement = node.nodeType !== Node.TEXT_NODE;
   const boundary = isElement ? node.childNodes[offset] : undefined;
   for (const item of inlineItems(container)) {
     if (!isElement) {
-      if (item === node) return { path: parsePath(container.getAttribute("data-rte") as string), offset: count + offset };
+      if (item === node) return { path: pathOf(), offset: count + offset };
     } else if (boundary) {
       // Items before the boundary child count; the boundary child and everything after it do not.
       if (boundary === item || boundary.contains(item) || !(boundary.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_PRECEDING)) break;
     } else if (!(node.contains(item) || node.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_PRECEDING)) break;
     count += sizeOf(item);
   }
-  return { path: parsePath(container.getAttribute("data-rte") as string), offset: count };
+  return { path: pathOf(), offset: count };
 }
 
 export function domFromPos(root: HTMLElement, pos: Pos): { node: Node; offset: number } | null {
-  const container = root.querySelector(`[data-rte="${pathKey(pos.path)}"]`);
+  const container = containerAt(root, pos.path);
   if (!container) return null;
   let count = 0;
   for (const item of inlineItems(container)) {

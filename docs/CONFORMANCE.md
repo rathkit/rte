@@ -54,14 +54,25 @@ the system clipboard, dragging text, dropping image files, input the editor does
 input-method composition in Chromium, every scrubbed capture in `fixtures/paste` (nothing may make a request
 outside the machine), and speed. 66 checks pass.
 
-Speed on the machine it was written on, Chromium, paragraphs of about ninety characters with three marks each:
+Speed, measured by the same script on the machine it was written on, in Chromium. Paragraphs are about ninety
+characters with three marks each. Each command is timed from the event through layout, 20 times; the figure is the
+95th percentile. "Near the top" means the command is at paragraph 2, so every later block shifts.
 
-| Paragraphs | Set content | One keystroke | Budget |
-| --- | --- | --- | --- |
-| 1,000 | 22 ms | 0.8 ms | set 40 ms, one command 10 ms |
-| 5,000 | 155 ms | 4 ms | one command 30 ms |
+| Paragraphs | Set content (warm / cold) | Type | Enter, join, paste near the top | Budget (one command) |
+| --- | --- | --- | --- | --- |
+| 1,000 | 34 ms / 45 ms | 2 ms | 1 to 1.5 ms | 10 ms; set content 40 ms |
+| 5,000 | 176 ms / 152 ms | 5 ms | 5 to 7 ms | 30 ms |
 
-Unchanged blocks are kept between edits, so a keystroke costs the changed paragraph, not the document.
+With the CPU four times slower, the same commands take up to 4 ms at 1,000 paragraphs and 20 to 44 ms at 5,000 paragraphs, so
+the 5,000-paragraph budget is not met on a slow machine. Cold means the first call after the page loads.
+Set content at 1,000 paragraphs is within 40 ms warm and over it cold; it is 113 ms warm and 170 ms cold with the slower CPU.
+
+Memory: a 5,000-paragraph document takes about 5.5 MB, and one undo level adds about 22 KB, which is 0.4% of it. The
+budget is 1%.
+
+Unchanged blocks are kept between edits, so a command costs the blocks it changes, not the document.
+A change to the page that the editor did not make (an extension, an autocorrect) marks that block, and the block is drawn
+again from the model the next time anything is drawn. Until then the page keeps the outside change.
 
 ## Known gaps in the editing view
 
