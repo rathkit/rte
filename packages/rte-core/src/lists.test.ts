@@ -61,8 +61,8 @@ test("Tab nests under the item before; the first item gets a placeholder; a sele
   assert.equal(html(twice), `<ul><li>a<ul><li${NONE}><ul><li>b</li></ul></li></ul></li></ul>`);
   assert.equal(html(indentItems(doc("<ul><li>a</li><li>b</li><li>c</li></ul>"), at([0, 0], 0))), `<ul><li${NONE}><ul><li>a</li></ul></li><li>b</li><li>c</li></ul>`);
   assert.equal(html(indentItems(doc("<ul><li>a</li><li>b</li><li>c</li></ul>"), range([0, 1], [0, 2]))), "<ul><li>a<ul><li>b</li><li>c</li></ul></li></ul>");
-  // An item that has children: they come along at the item's new depth.
-  assert.equal(html(indentItems(doc("<ul><li>a</li><li>b<ul><li>b1</li></ul></li></ul>"), at([0, 1], 1))), "<ul><li>a<ul><li>b</li><li>b1</li></ul></li></ul>");
+  // An item that has children keeps them: they move one level deeper with it.
+  assert.equal(html(indentItems(doc("<ul><li>a</li><li>b<ul><li>b1</li></ul></li></ul>"), at([0, 1], 1))), "<ul><li>a<ul><li>b<ul><li>b1</li></ul></li></ul></li></ul>");
 });
 
 test("the depth limit stops Tab", () => {
@@ -78,11 +78,13 @@ test("Shift+Tab moves an item out one level; from the outermost list it leaves t
   assert.equal(html(outdentItems(doc("<ul><li>a<ul><li>b</li><li>c</li></ul></li></ul>"), at([0, 0, 0, 0], 1))), "<ul><li>a</li><li>b<ul><li>c</li></ul></li></ul>");
 });
 
-test("Tab then Shift+Tab gives back what was there", () => {
-  const start = doc("<ul><li>a</li><li>b</li><li>c</li></ul>");
-  const tabbed = indentItems(start, at([0, 1], 1));
-  const back = outdentItems(tabbed.doc, tabbed.selection);
-  assert.equal(html(back), html({ doc: start }));
+test("Tab then Shift+Tab gives back what was there, children included", () => {
+  for (const source of ["<ul><li>a</li><li>b</li><li>c</li></ul>", "<ul><li>a</li><li>b<ul><li>b1</li><li>b2</li></ul></li><li>c</li></ul>"]) {
+    const start = doc(source);
+    const tabbed = indentItems(start, at([0, 1], 1));
+    const back = outdentItems(tabbed.doc, tabbed.selection);
+    assert.equal(html(back), html({ doc: start }));
+  }
 });
 
 test("Enter on an empty item", () => {

@@ -249,7 +249,7 @@ function mapListAt(doc: Doc, itemPath: Path, fn: (list: List, index: number) => 
 
 /**
  * Moves the selected items one level deeper, under the item before them. An item with nothing before it gets an empty
- * placeholder item to nest under. Items that were nested under a moved item come along as its neighbours at the new depth.
+ * placeholder item to nest under. An item keeps its own children, which move one level deeper with it.
  * `maxDepth` stops the move once an item already sits that many lists deep.
  */
 export function indentItems(doc: Doc, sel: Selection, maxDepth = Number.POSITIVE_INFINITY): EditResult {
@@ -269,8 +269,8 @@ export function indentItems(doc: Doc, sel: Selection, maxDepth = Number.POSITIVE
     if (listDepth(next, first) > maxDepth) continue;
     next = mapListAt(next, first, (list, index) => {
       const moved = list.items.slice(index, index + group.length);
-      // Children flatten to the moved item's new depth, after it.
-      const flat = moved.flatMap((item) => [{ content: item.content, sublists: [] as List[] }, ...item.sublists.flatMap(flatten)]);
+      // Items keep their children: they all move one level deeper together.
+      const flat = moved;
       const previous = list.items[index - 1];
       const nested = (target: ListItem): ListItem => {
         const last = target.sublists.at(-1);
@@ -286,8 +286,6 @@ export function indentItems(doc: Doc, sel: Selection, maxDepth = Number.POSITIVE
   }
   return { doc: next, selection: carry(doc, next, sel) };
 }
-
-const flatten = (list: List): ListItem[] => list.items.flatMap((item) => [{ content: item.content, sublists: [] as List[] }, ...item.sublists.flatMap(flatten)]);
 
 /**
  * Moves the selected items one level out, to just after the item that held them. Items that followed a moved item in its
