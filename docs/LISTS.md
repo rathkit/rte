@@ -9,8 +9,10 @@ What the list commands do, in the terms of the requirements.
   same type with a different `style` restyles the list instead of toggling it off. Headings keep their text and marks.
 - **Tab / Shift+Tab** (`indent()`, `outdent()`, on by default through `indentOnTab`): Tab nests the selected items under the item
   before them, or under a new placeholder when there is none. A selection of neighbours moves together. An item keeps its
-  children, which move one level deeper with it. `maxListDepth` stops Tab. Shift+Tab moves an item out one level, and items after it in its list
-  stay under it; from the outermost list the item becomes a paragraph.
+  children, which move one level deeper with it. `maxListDepth` stops Tab. Shift+Tab moves an item out one level with its children, and items after it in its list
+  stay under it as its children. From the outermost list the item becomes a paragraph and its children come out with it as top-level
+  lists, each keeping its own type, so pressing Shift+Tab again and again brings every line to the left edge. With a selection, every
+  selected line moves out together and the top one stops at the edge while the rest keep going.
 - **Enter** adds an item. Enter on an empty item leaves: an outermost item becomes a paragraph (the list splits if it was in the
   middle), a nested one moves out a level. **Backspace** at the start of the first item of a list does the same; at the start of
   a later item it joins the item before.

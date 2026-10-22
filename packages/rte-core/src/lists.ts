@@ -83,41 +83,50 @@ function carry(before: Doc, after: Doc, sel: Selection): Selection {
 interface Split {
   readonly before: List | undefined;
   readonly content: readonly Inline[];
+  /** The item's own sublists, lifted out to sit where the item was, one level shallower. Only when asked for. */
+  readonly lifted: readonly List[];
   readonly after: List | undefined;
 }
 
 /** Splits a list around one item. Items that followed it at a deeper level keep their depth under an empty placeholder item. */
-function splitList(list: List, path: readonly number[]): Split {
+function splitList(list: List, path: readonly number[], liftChildren: boolean): Split {
   const [i, k] = path as [number, number | undefined];
   const item = list.items[i] as ListItem;
   const numbering = (count: number): Partial<List> => (list.type === "ol" ? { start: (list.start ?? 1) + count } : {});
   if (k === undefined) {
-    const placeholder: ListItem[] = item.sublists.length > 0 ? [{ content: [], sublists: item.sublists }] : [];
+    // Children either keep their depth under an empty placeholder, or come out with the item, one level shallower.
+    const placeholder: ListItem[] = item.sublists.length > 0 && !liftChildren ? [{ content: [], sublists: item.sublists }] : [];
     const rest = [...placeholder, ...list.items.slice(i + 1)];
     return {
       before: i > 0 ? { ...list, items: list.items.slice(0, i) } : undefined,
       content: item.content,
+      lifted: liftChildren ? item.sublists : [],
       after: rest.length > 0 ? { ...list, ...numbering(i + 1), items: rest } : undefined,
     };
   }
-  const inner = splitList(item.sublists[k] as List, path.slice(2));
+  const inner = splitList(item.sublists[k] as List, path.slice(2), liftChildren);
   const keptSublists = [...item.sublists.slice(0, k), ...(inner.before ? [inner.before] : [])];
   const afterSublists = [...(inner.after ? [inner.after] : []), ...item.sublists.slice(k + 1)];
   const rest = [...(afterSublists.length > 0 ? [{ content: [], sublists: afterSublists }] : []), ...list.items.slice(i + 1)];
   return {
     before: { ...list, items: [...list.items.slice(0, i), { content: item.content, sublists: keptSublists }] },
     content: inner.content,
+    lifted: inner.lifted,
     after: rest.length > 0 ? { ...list, ...numbering(i + 1), items: rest } : undefined,
   };
 }
 
-/** Turns one list item into a paragraph at the level of the outermost list, splitting the list around it. */
-export function takeOutOfList(doc: Doc, itemPath: Path): Doc {
+/**
+ * Turns one list item into a paragraph at the level of the outermost list, splitting the list around it. By default what was
+ * nested under the item keeps its depth. With `liftChildren` it comes out with the item, one level shallower, each nested
+ * list keeping its own type, so repeated outdenting brings every line to the left edge.
+ */
+export function takeOutOfList(doc: Doc, itemPath: Path, liftChildren = false): Doc {
   const loc = locateItem(doc, itemPath);
   const root = loc ? getBlock(doc, loc.listBlock) : undefined;
   if (!loc || (root?.type !== "ul" && root?.type !== "ol")) return doc;
-  const { before, content, after } = splitList(root, loc.item);
-  return replaceBlock(doc, loc.listBlock, [...(before ? [before] : []), { type: "p", content }, ...(after ? [after] : [])]);
+  const { before, content, lifted, after } = splitList(root, loc.item, liftChildren);
+  return replaceBlock(doc, loc.listBlock, [...(before ? [before] : []), { type: "p", content }, ...lifted, ...(after ? [after] : [])]);
 }
 
 // ---- toggling ---------------------------------------------------------------------------------------------
@@ -299,7 +308,7 @@ export function outdentItems(doc: Doc, sel: Selection): EditResult {
     const loc = locateItem(next, path);
     if (!loc) continue;
     if (loc.item.length === 1) {
-      next = takeOutOfList(next, path);
+      next = takeOutOfList(next, path, true);
       continue;
     }
     // Nested: the item moves up into the list that holds its parent, right after the parent.

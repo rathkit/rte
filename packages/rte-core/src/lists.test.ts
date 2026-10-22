@@ -126,3 +126,28 @@ test("every container survives a list command: no text is lost", () => {
     assert.ok(containerPaths(r.doc).length >= 4);
   }
 });
+
+test("outdenting again and again brings every line to the left edge, children coming along", () => {
+  const first = doc("<ul><li>a</li><li>b<ul><li>b1<ol><li>b2</li></ol></li></ul></li></ul>");
+  // The item moves out of its list and its children move up a level with it, each list keeping its own type.
+  const one = outdentItems(first, at([0, 1], 1));
+  assert.equal(html(one), "<ul><li>a</li></ul><p>b</p><ul><li>b1<ol><li>b2</li></ol></li></ul>");
+  const two = outdentItems(one.doc, at([2, 0], 1));
+  assert.equal(html(two), "<ul><li>a</li></ul><p>b</p><p>b1</p><ol><li>b2</li></ol>");
+  const three = outdentItems(two.doc, at([3, 0], 1));
+  assert.equal(html(three), "<ul><li>a</li></ul><p>b</p><p>b1</p><p>b2</p>");
+});
+
+test("with a selection every selected line moves out together, and the top one stops at the left edge", () => {
+  const d = doc("<ul><li>a<ul><li>b<ul><li>c</li></ul></li></ul></li></ul>");
+  const all: Selection = { anchor: { path: [0, 0], offset: 0 }, focus: { path: [0, 0, 0, 0, 0, 0], offset: 1 } };
+  const one = outdentItems(d, all);
+  assert.equal(html(one), "<p>a</p><ul><li>b<ul><li>c</li></ul></li></ul>");
+  const two = outdentItems(one.doc, { anchor: { path: [1, 0], offset: 0 }, focus: { path: [1, 0, 0, 0], offset: 1 } });
+  assert.equal(html(two), "<p>a</p><p>b</p><ul><li>c</li></ul>");
+});
+
+test("taking an item out with the list toggle leaves what was under it where it was", () => {
+  assert.equal(html(toggleList(doc("<ul><li>a</li><li>b<ul><li>b1</li></ul></li></ul>"), at([0, 1], 1), "ul")),
+    `<ul><li>a</li></ul><p>b</p><ul><li${NONE}><ul><li>b1</li></ul></li></ul>`);
+});
