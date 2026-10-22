@@ -22,7 +22,7 @@ const check = (name, ok, detail) => {
   }
 };
 
-async function open(type, options = {}) {
+async function open(type, options = {}, cfg = "") {
   const browser = await type.launch();
   const context = await browser.newContext(options);
   const outside = [];
@@ -36,7 +36,7 @@ async function open(type, options = {}) {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
-  await page.goto(base);
+  await page.goto(cfg ? `${base}?cfg=${encodeURIComponent(cfg)}` : base);
   await page.waitForFunction("window.__confReady===true");
   const html = () => page.evaluate(() => window.__conf.snapshot().html);
   const reset = (h) => page.evaluate((v) => { window.__conf.reset(v); window.__conf.focus(); }, h);
@@ -140,10 +140,6 @@ for (const [name, type] of engines) {
   await drop("image/png", "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ", "a.png");
   await page.waitForTimeout(200);
   check(`${name} a dropped image file becomes an image`, (await html()).includes('<img src="data:image/png;base64,'), await html());
-  await reset("<p>x</p>");
-  await drop("image/svg+xml", btoa("<svg xmlns='http://www.w3.org/2000/svg'><script>1</script></svg>"), "a.svg");
-  await page.waitForTimeout(200);
-  check(`${name} an svg file is refused`, !(await html()).includes("svg"), await html());
 
   // --- input the editor does not handle is blocked, not applied
   await reset("<p>keep</p>");
@@ -161,6 +157,60 @@ for (const [name, type] of engines) {
   check(`${name} ${pasted} captures pasted, none made an outside request`, t.outside.length === 0, t.outside.slice(0, 3));
   check(`${name} no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
+}
+
+// --- images: inline limit, upload hook, svg cleaning, byte checks
+{
+  const pngBytes = (n) => { const a = new Uint8Array(n); a.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]); return Array.from(a); };
+  const dropFile = (page, name, type, bytes) => page.evaluate(([n, t, b]) => {
+    const dt = new DataTransfer();
+    dt.items.add(new File([new Uint8Array(b)], n, { type: t }));
+    const el = document.getElementById("ed");
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.x + 5, clientY: r.y + 10 }));
+  }, [name, type, bytes]);
+  for (const [name, type] of engines) {
+    // No upload function: small images embed, large ones are left out and reported.
+    const t = await open(type, {}, JSON.stringify({ maxInline: 1000 }));
+    await t.reset("<p>x</p>");
+    await dropFile(t.page, "small.png", "image/png", pngBytes(500));
+    await t.page.waitForTimeout(250);
+    check(`${name} a small image file is embedded`, (await t.html()).includes("data:image/png;base64,"), await t.html());
+    await t.reset("<p>x</p>");
+    await dropFile(t.page, "big.png", "image/png", pngBytes(5000));
+    await t.page.waitForTimeout(250);
+    const rejected = await t.page.evaluate(() => window.__rejected);
+    check(`${name} a large image file is left out and reported`, !(await t.html()).includes("<img") && rejected.length === 1 && rejected[0].reason === "too-large", { html: await t.html(), rejected });
+    await t.reset("<p>x</p>");
+    await dropFile(t.page, "fake.png", "image/png", Array.from(new TextEncoder().encode("<script>alert(1)</script>")));
+    await t.page.waitForTimeout(250);
+    check(`${name} a file whose bytes do not match its type is refused`, !(await t.html()).includes("<img") && (await t.page.evaluate(() => window.__rejected)).some((r) => r.reason === "unsupported"), await t.html());
+    await t.reset("<p>x</p>");
+    await dropFile(t.page, "a.svg", "image/svg+xml", Array.from(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><script>alert(1)</script><rect width="4" height="4" onclick="x()"/></svg>')));
+    await t.page.waitForTimeout(250);
+    const shown = await t.html();
+    const svgText = await t.page.evaluate((h) => { const m = /base64,([^"]+)"/.exec(h); return m ? atob(m[1]) : ""; }, shown);
+    check(`${name} a dropped svg is cleaned`, svgText.includes("<rect") && !/script|onclick/.test(svgText), svgText);
+    // Pasted HTML with a big embedded image: left out and reported when there is no upload function.
+    await t.reset("");
+    await t.page.evaluate((b) => window.__conf.paste({ "text/html": `<p>a</p><p><img src="data:image/png;base64,${btoa(String.fromCharCode(...b))}"></p><p>b</p>` }), pngBytes(5000));
+    check(`${name} a large image inside pasted html is left out`, (await t.html()) === "<p>a</p><p>b</p>", await t.html());
+    check(`${name} image checks: no page errors`, t.errors.length === 0, t.errors);
+    await t.browser.close();
+    // With an upload function: files and embedded images are uploaded and only addresses reach the document.
+    const u = await open(type, {}, JSON.stringify({ upload: true }));
+    await u.reset("<p>x</p>");
+    await dropFile(u.page, "photo.png", "image/png", pngBytes(5000));
+    await u.page.waitForTimeout(300);
+    check(`${name} an uploaded file becomes an address`, /<img src="https:\/\/cdn\.test\/1\.png">/.test(await u.html()) && !(await u.html()).includes("data:"), await u.html());
+    await u.reset("");
+    await u.page.evaluate((b) => window.__conf.paste({ "text/html": `<p>a</p><p><img src="data:image/png;base64,${btoa(String.fromCharCode(...b))}"></p><p><img src="data:image/png;base64,${btoa(String.fromCharCode(...b))}"></p>` }), pngBytes(5000));
+    await u.page.waitForTimeout(300);
+    const pasted = await u.html();
+    check(`${name} embedded images in pasted html are uploaded`, (pasted.match(/https:\/\/cdn\.test\//g) ?? []).length === 2 && !pasted.includes("data:"), pasted);
+    check(`${name} uploads: ${(await u.page.evaluate(() => window.__uploads)).length} calls, no page errors`, u.errors.length === 0, u.errors);
+    await u.browser.close();
+  }
 }
 
 // --- input-method composition (Chromium, through the debugging protocol; a simulation, not a real input method)

@@ -2,6 +2,7 @@
 // it parses without a DOM, applies the allow-lists, then builds the model, so nothing unsafe is ever created.
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
+import { sanitizeSvgDataUrl } from "./svg.ts";
 import {
   normalizeInline, type Align, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
@@ -92,6 +93,8 @@ function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData
   const value = raw.trim();
   if (/^data:/i.test(value)) {
     if (value.length > settings.maxData) return undefined;
+    // SVG is not trusted as it arrives; it is rewritten from a parsed, allow-listed copy.
+    if (/^data:image\/svg\+xml/i.test(value)) return sanitizeSvgDataUrl(value);
     const match = /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/]{8,})/i.exec(value);
     if (!match) return undefined;
     const body = match[2] as string;

@@ -10,7 +10,16 @@ import { Editor } from "../dist/dom/index.js";
 import { exportHtml } from "../dist/index.js";
 
 const el = document.getElementById("ed");
-const editor = new Editor({ element: el });
+// Options for checks that need a differently configured editor arrive as ?cfg={"upload":true,"maxInline":1000}.
+const cfg = JSON.parse(new URLSearchParams(location.search).get("cfg") || "{}");
+window.__uploads = [];
+window.__rejected = [];
+const editor = new Editor({
+  element: el,
+  ...(cfg.upload ? { uploadImage: async (file, info) => { window.__uploads.push(info); await new Promise((r) => setTimeout(r, 20)); return `https://cdn.test/${window.__uploads.length}.png`; } } : {}),
+  ...(cfg.maxInline ? { maxInlineImageBytes: cfg.maxInline } : {}),
+  onImageRejected: (info) => window.__rejected.push(info),
+});
 window.__editor = editor; // for measurement scripts
 const selectedHtml = () => {
   const sel = getSelection();

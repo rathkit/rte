@@ -6,7 +6,9 @@ import {
   insertText, isCollapsed, moveSelection, selectedText, splitBlock, startOf, toggleMark, type EditResult,
 } from "../edit.ts";
 import { exportHtml } from "../export.ts";
+import { collectImages, isDataImage, mapImages, readDataImage, rewriteImages } from "../images.ts";
 import { checkImageSrc, importBlocks, importHtml } from "../import.ts";
+import { encodeBase64, sanitizeSvg } from "../svg.ts";
 import { emptyDoc, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
 import { getContent, setContent, type Pos, type Selection } from "../path.ts";
@@ -21,8 +23,17 @@ export interface EditorOptions {
   readonly loadRemoteImages?: boolean;
   /** Called with the `inputType` of input the editor does not handle. That input is blocked, not applied. */
   readonly onUnhandledInput?: (inputType: string) => void;
-  /** Largest image file, in bytes, that a paste or drop turns into an inline image. */
+  /**
+   * Stores an image on the host's own server and returns its address. When set, pasted and dropped raster images are
+   * uploaded instead of being embedded in the document, so documents stay small. Nothing is sent anywhere without it.
+   */
+  readonly uploadImage?: (file: Blob, info: { readonly name: string; readonly type: string; readonly size: number }) => Promise<string>;
+  /** Largest raster image, in bytes, that is embedded in the document when there is no `uploadImage`. Default 512 KB. */
+  readonly maxInlineImageBytes?: number;
+  /** Largest image file the editor will read at all, in bytes. Default 20 MB. */
   readonly maxImageFileBytes?: number;
+  /** Called when an image is left out, with the reason, so the host can tell the person. */
+  readonly onImageRejected?: (info: { readonly reason: "too-large" | "unsupported" | "upload-failed"; readonly type: string; readonly size: number }) => void;
 }
 
 interface Level {
@@ -44,6 +55,9 @@ export class Editor {
   private readonly loadRemoteImages: boolean;
   private readonly unhandled: ((inputType: string) => void) | undefined;
   private readonly maxImageBytes: number;
+  private readonly maxInlineBytes: number;
+  private readonly upload: EditorOptions["uploadImage"];
+  private readonly rejected: EditorOptions["onImageRejected"];
   private dragSource: Selection | null = null;
   private readonly renderCache = createRenderCache();
   /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
@@ -64,7 +78,10 @@ export class Editor {
     this.readOnlyMode = options.readOnly ?? false;
     this.loadRemoteImages = options.loadRemoteImages ?? false;
     this.unhandled = options.onUnhandledInput;
-    this.maxImageBytes = options.maxImageFileBytes ?? 4_000_000;
+    this.maxImageBytes = options.maxImageFileBytes ?? 20_000_000;
+    this.maxInlineBytes = options.maxInlineImageBytes ?? 512 * 1024;
+    this.upload = options.uploadImage;
+    this.rejected = options.onImageRejected;
     this.element.setAttribute("contenteditable", this.readOnlyMode ? "false" : "true");
     this.element.setAttribute("role", "textbox");
     this.element.setAttribute("aria-multiline", "true");
@@ -192,7 +209,52 @@ export class Editor {
   paste(data: ClipboardData): void {
     const blocks = pasteBlocks(data, this.handlers);
     if (blocks.length === 0) return;
-    this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks));
+    this.insertSettled(blocks);
+  }
+
+  /**
+   * Inserts blocks after dealing with the images that came inside them as data addresses: with an upload function they
+   * are uploaded first, otherwise ones over the inline limit are left out. Without large images this is synchronous.
+   */
+  private insertSettled(blocks: readonly Block[]): void {
+    const embedded = collectImages(blocks).filter((image) => isDataImage(image) && !/^data:image\/svg/i.test(image.src));
+    if (embedded.length === 0) {
+      this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks));
+    } else if (this.upload) {
+      this.readSelection();
+      const at = this.sel;
+      void rewriteImages(blocks, async (image) => this.uploadEmbedded(image)).then((settled) => {
+        this.apply("paste", (doc) => insertBlocks(doc, { anchor: clampPos(doc, at.anchor), focus: clampPos(doc, at.focus) }, settled));
+      });
+    } else {
+      const kept = mapImages(blocks, (image) => (this.fitsInline(image) ? image : undefined));
+      this.apply("paste", (doc, sel) => insertBlocks(doc, sel, kept));
+    }
+  }
+
+  private fitsInline(image: { readonly src: string }): boolean {
+    const info = readDataImage(image.src);
+    if (!info || info.bytes.length <= this.maxInlineBytes) return true;
+    this.rejected?.({ reason: "too-large", type: info.type, size: info.bytes.length });
+    return false;
+  }
+
+  private async uploadEmbedded<T extends { readonly src: string }>(image: T): Promise<T | undefined> {
+    const info = readDataImage(image.src);
+    if (!info || !this.upload) return image;
+    return this.uploadFile(new Blob([info.bytes as BlobPart], { type: info.type }), "image", image);
+  }
+
+  private async uploadFile<T extends { readonly src: string }>(file: Blob, name: string, image: T): Promise<T | undefined> {
+    try {
+      const url = await this.upload?.(file, { name, type: file.type, size: file.size });
+      const checked = url ? checkImageSrc(url) : undefined;
+      if (checked) return { ...image, src: checked };
+      this.rejected?.({ reason: "unsupported", type: file.type, size: file.size });
+    } catch {
+      this.rejected?.({ reason: "upload-failed", type: file.type, size: file.size });
+    }
+    return undefined;
   }
 
   // ---- plumbing -------------------------------------------------------------------------------------------
@@ -405,21 +467,40 @@ export class Editor {
     return pos ? clampPos(this.current, pos) : null;
   }
 
-  /** Image files become inline images, after the same address check the importer applies. Anything else is ignored. */
+  /**
+   * Image files: SVG is cleaned and embedded; raster images are uploaded when the host gave an upload function, otherwise
+   * embedded if small enough. The file's bytes must match its type. Anything else is ignored.
+   */
   private async pasteFiles(files: readonly File[]): Promise<void> {
-    const blocks: Block[] = [];
-    for (const file of files) {
-      if (!file.type.startsWith("image/") || file.size > this.maxImageBytes) continue;
-      const url = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-        reader.onerror = () => resolve("");
-        reader.readAsDataURL(file);
-      });
-      const src = checkImageSrc(url);
-      if (src) blocks.push({ type: "p", content: [{ type: "image", src }] });
-    }
+    const images = await Promise.all(files.map((file) => this.imageFromFile(file)));
+    const blocks: Block[] = images.flatMap((image): Block[] => (image ? [{ type: "p", content: [image] }] : []));
     if (blocks.length > 0) this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks));
+  }
+
+  private async imageFromFile(file: File): Promise<{ type: "image"; src: string; alt?: string } | undefined> {
+    if (!file.type.startsWith("image/")) return undefined;
+    const reject = (reason: "too-large" | "unsupported"): undefined => {
+      this.rejected?.({ reason, type: file.type, size: file.size });
+      return undefined;
+    };
+    if (file.size > this.maxImageBytes) return reject("too-large");
+    if (file.type === "image/svg+xml") {
+      const clean = sanitizeSvg(await file.text());
+      return clean ? { type: "image", src: `data:image/svg+xml;base64,${encodeBase64(new TextEncoder().encode(clean))}` } : reject("unsupported");
+    }
+    // The first bytes must match the type the file claims before anything else is done with it.
+    const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    if (!checkImageSrc(`data:${file.type};base64,${encodeBase64(head)}`)) return reject("unsupported");
+    if (this.upload) return this.uploadFile(file, file.name, { type: "image" as const, src: "" });
+    if (file.size > this.maxInlineBytes) return reject("too-large");
+    const url = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    });
+    const src = checkImageSrc(url);
+    return src ? { type: "image", src } : reject("unsupported");
   }
 
   private onKeyDown(event: KeyboardEvent): void {
