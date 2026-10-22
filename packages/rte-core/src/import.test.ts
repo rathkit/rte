@@ -182,3 +182,16 @@ test("list markers from a word processor on the web come from its definition att
 test("underline inside a link is the link's styling even when the link's address was dropped", () => {
   assert.equal(paste('<a href="file:///C:/x.docx"><span style="text-decoration:underline">word</span></a>'), "<p>word</p>");
 });
+
+test("a trailing non-breaking space on pasted content is dropped; on loaded content it is kept", () => {
+  assert.equal(paste('<p>One<span class="EOP">&nbsp;</span></p><p>Two&nbsp;&nbsp;</p>'), "<p>One</p><p>Two</p>");
+  assert.equal(load("<p>Two&nbsp;</p>"), "<p>Two&nbsp;</p>");
+});
+
+test("spaces that Safari rewrote as non-breaking are plain spaces again, and only when the markup is Safari's", () => {
+  const safari = (inner: string): string => `<p style="-webkit-text-stroke-width: 0px;">${inner}</p>`;
+  assert.equal(paste(safari("<span>real&nbsp;</span><b>paste</b><span>&nbsp;now</span>")), "<p>real <strong>paste</strong> now</p>");
+  assert.equal(paste(safari("10&nbsp;km and Mr.&nbsp;Smith and a&nbsp;&nbsp;b")), "<p>10&nbsp;km and Mr.&nbsp;Smith and a&nbsp;&nbsp;b</p>");
+  // Not Safari's markup: nothing is touched.
+  assert.equal(paste("<p><span>real&nbsp;</span><b>paste</b></p>"), "<p>real&nbsp;<strong>paste</strong></p>");
+});

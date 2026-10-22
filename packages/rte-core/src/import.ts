@@ -160,6 +160,14 @@ class Sink {
       content = [...content.slice(0, -1), ...(trimmed ? [{ ...last, text: trimmed }] : [])];
     }
     if (content[content.length - 1]?.type === "br") content = content.slice(0, -1);
+    // Pasted content: a trailing run of spaces that are non-breaking (a word processor's end-of-paragraph marker) is junk.
+    if (!this.settings.keepEmpty) {
+      const end = content[content.length - 1];
+      if (end?.type === "text" && /[\u00a0 ]$/.test(end.text)) {
+        const trimmed = end.text.replace(/[\u00a0 ]+$/, "");
+        content = [...content.slice(0, -1), ...(trimmed ? [{ ...end, text: trimmed }] : [])];
+      }
+    }
     // Only a paragraph or heading the author actually wrote may be empty. Boundaries between containers never add one.
     if (content.length === 0 && !(explicit && this.settings.keepEmpty)) return;
     this.blocks.push(make(content));
@@ -673,6 +681,23 @@ function freezeList(list: L, depth: number): List {
   return { type: list.type, ...(list.start !== undefined ? { start: list.start } : {}), ...(style !== undefined ? { style } : {}), items };
 }
 
+/**
+ * Safari writes the space at the start or end of a run of text as a non-breaking space when it rewrites copied markup (it
+ * also writes every element's computed style into it, which is how the markup is recognized). A single non-breaking space
+ * at either edge of a text run, or alone in one, is such a space and becomes a plain one. Non-breaking spaces inside a run
+ * of text, and runs of them, are left as they are.
+ */
+function repairRewrittenSpaces(nodes: HNode[]): HNode[] {
+  return nodes.map((node): HNode => {
+    if (node.type === "el") return { ...node, children: repairRewrittenSpaces(node.children) };
+    let text = node.text;
+    if (text === "\u00a0") return { type: "text", text: " " };
+    if (/^\u00a0(?![\u00a0 ])/.test(text)) text = ` ${text.slice(1)}`;
+    if (/(?<![\u00a0 ])\u00a0$/.test(text)) text = `${text.slice(0, -1)} `;
+    return text === node.text ? node : { type: "text", text };
+  });
+}
+
 /** Converts markup to blocks. Empty input gives no blocks. */
 export function importBlocks(html: string, options: ImportOptions = {}): Block[] {
   const settings: Settings = {
@@ -682,7 +707,8 @@ export function importBlocks(html: string, options: ImportOptions = {}): Block[]
     maxData: options.maxDataImageLength ?? 12_000_000,
   };
   const sink = new Sink(settings);
-  convertNodes(parseHtml(html), sink, { marks: [], inLink: false, pre: false }, settings);
+  const tree = parseHtml(html);
+  convertNodes(/-webkit-text-stroke-width/.test(html) ? repairRewrittenSpaces(tree) : tree, sink, { marks: [], inLink: false, pre: false }, settings);
   sink.flush();
   return finishBlocks(sink.blocks);
 }
