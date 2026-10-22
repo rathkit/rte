@@ -35,8 +35,8 @@ so the free editor is not expected to pass them. They are:
 - every `src-sheet-*-desktopsheet-*` scenario for the range and hidden-row cases (15 or 18 per platform set)
 - the `src-sheet-*-websheet-a-*` range and hidden-row scenarios on Chromium and Firefox
 
-The free target is therefore the 104 other scenarios, and all of them pass. That count assumes the word-processor
-recognizers listed in `PASTE.md` are free, which the owner has not confirmed; 16 of the 104 depend on them.
+The free target is therefore the 104 other scenarios, and all of them pass. The word-processor
+recognizers listed in `PASTE.md` are free (owner decision, 2026-10-22), and 16 of the 104 depend on them.
 
 ## Notes for the next slice
 
