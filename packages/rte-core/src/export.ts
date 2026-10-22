@@ -73,6 +73,7 @@ export function exportBlock(block: Block): string {
     case "p": return `<p${alignAttr(block.align)}>${exportInline(block.content)}</p>`;
     case "h": return `<h${block.level}${alignAttr(block.align)}>${exportInline(block.content)}</h${block.level}>`;
     case "ul": case "ol": return exportList(block, 0);
+    case "dl": return `<dl>${block.entries.map((entry) => { const tag = entry.kind === "term" ? "dt" : "dd"; return `<${tag}>${exportInline(entry.content)}</${tag}>`; }).join("")}</dl>`;
     case "table": return exportTable(block);
     case "quote": return `<blockquote>${block.blocks.map(exportBlock).join("")}</blockquote>`;
     case "pre": return `<pre>${escapeText(block.text)}</pre>`;

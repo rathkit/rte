@@ -5,6 +5,7 @@ import {
   caret, clampPos, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, extractSelection, insertBlocks, insertLineBreak,
   insertText, isCollapsed, moveSelection, selectedText, splitBlock, startOf, toggleMark, type EditResult,
 } from "../edit.ts";
+import { inDefinitionList, setEntryKind, toggleDefinitionList } from "../definitions.ts";
 import { exportHtml } from "../export.ts";
 import { indentItems, inList, listShortcut, outdentItems, toggleList, type ListOptions } from "../lists.ts";
 import { collectImages, isDataImage, mapImages, readDataImage, rewriteImages } from "../images.ts";
@@ -200,8 +201,26 @@ export class Editor {
   toggleList(type: "ul" | "ol", options?: ListOptions): void {
     this.apply("list", (doc, sel) => toggleList(doc, sel, type, options));
   }
-  indent(): void { this.apply("list", (doc, sel) => indentItems(doc, sel, this.maxListDepth)); }
-  outdent(): void { this.apply("list", outdentItems); }
+  /** Makes the selected blocks terms of a definition list, or takes them out of it. */
+  toggleDefinitionList(): void { this.apply("list", toggleDefinitionList); }
+  /** In a list, nests the selected items. In a definition list, makes the selected terms details. */
+  indent(): void {
+    this.readSelection();
+    if (inDefinitionList(this.current, this.sel.focus.path)) this.apply("list", (doc, sel) => setEntryKind(doc, sel, "detail"));
+    else this.apply("list", (doc, sel) => indentItems(doc, sel, this.maxListDepth));
+  }
+  /** In a list, moves the selected items out. In a definition list, makes the selected details terms. */
+  outdent(): void {
+    this.readSelection();
+    if (inDefinitionList(this.current, this.sel.focus.path)) this.apply("list", (doc, sel) => setEntryKind(doc, sel, "term"));
+    else this.apply("list", outdentItems);
+  }
+
+  /** True when the caret is in a definition list. */
+  isInDefinitionList(): boolean {
+    this.readSelection();
+    return inDefinitionList(this.current, this.sel.focus.path);
+  }
 
   /** True when the caret is in a list item, of the given type if one is given. */
   isInList(type?: "ul" | "ol"): boolean {
@@ -542,7 +561,7 @@ export class Editor {
     if (this.composing || event.isComposing) return;
     if (event.key === "Tab" && this.indentOnTab && !event.ctrlKey && !event.metaKey && !event.altKey && !this.readOnlyMode) {
       this.readSelection();
-      if (inList(this.current, this.sel.focus.path)) {
+      if (inList(this.current, this.sel.focus.path) || inDefinitionList(this.current, this.sel.focus.path)) {
         event.preventDefault();
         if (event.shiftKey) this.outdent();
         else this.indent();

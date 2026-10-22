@@ -4,7 +4,7 @@
 import type { Block, Doc, Inline, List, Mark } from "../model.ts";
 import { pathKey, type Path, type Pos } from "../path.ts";
 
-const BLOCK_TAGS = new Set(["UL", "OL", "TABLE", "P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE", "HR", "LI"]);
+const BLOCK_TAGS = new Set(["UL", "OL", "DL", "DT", "DD", "TABLE", "P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE", "HR", "LI"]);
 const MARK_ORDER = ["link", "bold", "italic", "underline", "strike", "code", "sup", "sub", "color", "background"] as const;
 const MARK_TAG = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", sup: "sup", sub: "sub" } as const;
 
@@ -101,6 +101,15 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
       return el;
     }
     case "ul": case "ol": return renderList(block, path, options);
+    case "dl": {
+      const el = document.createElement("dl");
+      block.entries.forEach((entry, i) => {
+        const row = tag(entry.kind === "term" ? "dt" : "dd", [...path, i]);
+        renderInline(row, entry.content, options);
+        el.appendChild(row);
+      });
+      return el;
+    }
     case "quote": {
       const el = document.createElement("blockquote");
       block.blocks.forEach((inner, n) => el.appendChild(renderBlock(inner, [...path, n], options)));

@@ -4,10 +4,11 @@
 //   [b]                      top-level block b (paragraph, heading, code block)
 //   [b, i]                   item i of list b
 //   [b, i, k, j, ...]        item j of sublist k of item i of list b (and so on, down)
+//   [b, i]                   entry i of definition list b
 //   [b, r, c, n, ...]        block n inside cell c of row r of table b (the rest continues inside that block)
 //   [b, n, ...]              block n inside quote b
 import {
-  inlineLength, inlineText, type Block, type Doc, type Inline, type List, type ListItem, type Table, type TableCell,
+  inlineLength, inlineText, type Block, type DefinitionEntry, type Doc, type Inline, type List, type ListItem, type Table, type TableCell,
 } from "./model.ts";
 
 export type Path = readonly number[];
@@ -56,6 +57,7 @@ function blockPaths(block: Block, prefix: readonly number[], out: Path[]): void 
   switch (block.type) {
     case "p": case "h": case "pre": out.push(prefix); break;
     case "ul": case "ol": listPaths(block, prefix, out); break;
+    case "dl": block.entries.forEach((_, i) => out.push([...prefix, i])); break;
     case "table":
       block.rows.forEach((row, r) => row.forEach((cell, c) => cell.blocks.forEach((inner, n) => blockPaths(inner, [...prefix, r, c, n], out))));
       break;
@@ -83,6 +85,7 @@ interface Slot {
   readonly content: readonly Inline[];
   readonly block?: Block;
   readonly item?: ListItem;
+  readonly entry?: DefinitionEntry;
 }
 
 function slotInBlock(block: Block, rest: Path): Slot | undefined {
@@ -90,6 +93,10 @@ function slotInBlock(block: Block, rest: Path): Slot | undefined {
     case "p": case "h": return rest.length === 0 ? { content: block.content, block } : undefined;
     case "pre": return rest.length === 0 ? { content: preInline(block.text), block } : undefined;
     case "ul": case "ol": return slotInList(block, rest);
+    case "dl": {
+      const entry = rest.length === 1 ? block.entries[rest[0] as number] : undefined;
+      return entry ? { content: entry.content, entry } : undefined;
+    }
     case "table": {
       const [r, c, ...more] = rest;
       const cell = r === undefined || c === undefined ? undefined : block.rows[r]?.[c];
@@ -125,9 +132,11 @@ export function getContent(doc: Doc, path: Path): readonly Inline[] {
 }
 
 /** The kind of block at a path, or undefined when the path leads nowhere. Items report "li". */
-export function kindAt(doc: Doc, path: Path): "p" | "h" | "pre" | "li" | undefined {
+export function kindAt(doc: Doc, path: Path): "p" | "h" | "pre" | "li" | "dt" | "dd" | undefined {
   const slot = slotInBlocks(doc.blocks, path);
-  return slot?.item ? "li" : (slot?.block?.type as "p" | "h" | "pre" | undefined);
+  if (slot?.item) return "li";
+  if (slot?.entry) return slot.entry.kind === "term" ? "dt" : "dd";
+  return slot?.block?.type as "p" | "h" | "pre" | undefined;
 }
 
 function updateList(list: List, rest: Path, content: readonly Inline[]): List {
@@ -146,6 +155,7 @@ function updateBlock(block: Block, rest: Path, content: readonly Inline[]): Bloc
     case "p": case "h": return rest.length === 0 ? { ...block, content } : block;
     case "pre": return rest.length === 0 ? { ...block, text: inlineText(content).replace(/￼/g, "") } : block;
     case "ul": case "ol": return updateList(block, rest, content);
+    case "dl": return { ...block, entries: block.entries.map((entry, i) => (i === rest[0] ? { ...entry, content } : entry)) };
     case "table": {
       const [r, c, ...more] = rest;
       return {

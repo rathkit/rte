@@ -35,7 +35,7 @@ const DROP = new Set([
 ]);
 const CONTAINERS = new Set([
   "div", "section", "article", "header", "footer", "aside", "nav", "figure", "figcaption", "address", "main", "form",
-  "body", "html", "center", "details", "summary", "dd", "dt", "dl", "fieldset", "hgroup",
+  "body", "html", "center", "details", "summary", "dd", "dt", "fieldset", "hgroup",
 ]);
 const MARK_TAGS: Record<string, "bold" | "italic" | "underline" | "strike" | "code" | "sup" | "sub"> = {
   strong: "bold", b: "bold", em: "italic", i: "italic", cite: "italic", dfn: "italic", var: "italic", u: "underline", ins: "underline",
@@ -461,6 +461,10 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       sink.flush();
       sink.blocks.push(convertTable(el, ctx, settings));
       return;
+    case "dl":
+      sink.flush();
+      sink.blocks.push(...convertDefinitionList(el, ctx, settings));
+      return;
     case "blockquote": {
       sink.flush();
       const inner = new Sink(settings);
@@ -552,6 +556,36 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
   }
   if (style) list.style = style;
   return list;
+}
+
+/**
+ * A definition list: terms (`dt`) and details (`dd`), possibly wrapped in `div`s. An entry that holds more than text (a list, a
+ * table) cannot be an entry, so then the list is read as plain blocks, one after the other, and nothing is lost.
+ */
+function convertDefinitionList(el: HElement, ctx: Ctx, settings: Settings): Out[] {
+  const entries: { kind: "term" | "detail"; content: Inline[] }[] = [];
+  const flat: Out[] = [];
+  let plain = true;
+  const visit = (nodes: readonly HNode[]): void => {
+    for (const node of nodes) {
+      if (node.type !== "el") continue;
+      if (node.tag === "div") visit(node.children);
+      if (node.tag !== "dt" && node.tag !== "dd") continue;
+      const inner = new Sink({ ...settings, keepEmpty: false });
+      convertNodes(node.children, inner, ctx, settings);
+      inner.flush();
+      flat.push(...inner.blocks);
+      const content: Inline[] = [];
+      for (const block of inner.blocks) {
+        if (block.type === "p" || block.type === "h") content.push(...(content.length > 0 ? [{ type: "br" } as Inline] : []), ...block.content);
+        else plain = false;
+      }
+      entries.push({ kind: node.tag === "dt" ? "term" : "detail", content: normalizeInline(content) });
+    }
+  };
+  visit(el.children);
+  if (!plain) return flat;
+  return entries.length > 0 ? [{ type: "dl", entries }] : [];
 }
 
 function convertTable(el: HElement, ctx: Ctx, settings: Settings): Block {

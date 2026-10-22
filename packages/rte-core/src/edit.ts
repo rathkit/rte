@@ -3,6 +3,7 @@
 import {
   inlineLength, inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
 } from "./model.ts";
+import { backspaceAtEntryStart, insertIntoEntry, removeEntry, splitEntry } from "./definitions.ts";
 import { backspaceAtItemStart, leaveListItem } from "./lists.ts";
 import {
   blockContainers, caret, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, setContent,
@@ -70,6 +71,7 @@ const ordinalOf = (doc: Doc, path: Path): number => containerPaths(doc).findInde
 
 function removeContainer(doc: Doc, path: Path): Doc {
   const kind = kindAt(doc, path);
+  if (kind === "dt" || kind === "dd") return removeEntry(doc, path);
   if (kind === "li") {
     return mapListOf(doc, path, (list, index) => {
       const items = list.items.filter((_, i) => i !== index);
@@ -94,7 +96,7 @@ export function deleteSelection(doc: Doc, sel: Selection): EditResult {
   const endKind = kindAt(doc, end.path);
   const head = sliceInline(getContent(doc, start.path), 0, start.offset);
   const tail = sliceInline(getContent(doc, end.path), end.offset);
-  const mergeable = (kind: string | undefined): boolean => kind === "p" || kind === "h" || kind === "li";
+  const mergeable = (kind: string | undefined): boolean => kind === "p" || kind === "h" || kind === "li" || kind === "dt" || kind === "dd";
   const merge = mergeable(startKind) && mergeable(endKind);
 
   let next = setContent(doc, start.path, normalizeInline(merge ? [...head, ...tail] : head));
@@ -138,6 +140,7 @@ export function splitBlock(doc: Doc, sel: Selection): EditResult {
   const ordinal = ordinalOf(d, pos.path);
 
   if (kind === "pre") return insertText(d, cleared.selection, "\n");
+  if (kind === "dt" || kind === "dd") return splitEntry(d, pos);
 
   if (kind === "li") {
     if (content.length === 0 && sublistsOf(d, pos.path) === 0) return leaveListItem(d, pos);
@@ -180,7 +183,7 @@ export function deleteBackward(doc: Doc, sel: Selection): EditResult {
   if (!isCollapsed(sel)) return deleteSelection(doc, sel);
   const pos = sel.anchor;
   if (pos.offset > 0) return deleteSelection(doc, { anchor: { path: pos.path, offset: pos.offset - 1 }, focus: pos });
-  const leaving = backspaceAtItemStart(doc, pos);
+  const leaving = backspaceAtItemStart(doc, pos) ?? backspaceAtEntryStart(doc, pos);
   if (leaving) return leaving;
   const ordinal = ordinalOf(doc, pos.path);
   if (ordinal <= 0) return { doc, selection: sel };
@@ -203,7 +206,7 @@ export function deleteForward(doc: Doc, sel: Selection): EditResult {
 function joinWithPrevious(doc: Doc, into: Path, from: Pos): EditResult {
   const intoKind = kindAt(doc, into);
   const fromKind = kindAt(doc, from.path);
-  const joinable = (k: string | undefined): boolean => k === "p" || k === "h" || k === "li";
+  const joinable = (k: string | undefined): boolean => k === "p" || k === "h" || k === "li" || k === "dt" || k === "dd";
   if (!joinable(intoKind) || !joinable(fromKind)) return { doc, selection: caret(from) };
   const head = getContent(doc, into);
   const tail = getContent(doc, from.path);
@@ -310,6 +313,7 @@ export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[])
     return { doc: setContent(d, pos.path, merged), selection: caret({ path: pos.path, offset: inlineLength(before) + inlineLength(only.content) }) };
   }
   if (kindAt(d, pos.path) === "li") return insertIntoList(d, pos, blocks, before, after);
+  if (kindAt(d, pos.path) === "dt" || kindAt(d, pos.path) === "dd") return insertIntoEntry(d, pos, blocks, before, after);
   if (!inBlockList(d, pos.path)) return cleared;
 
   let target: Block | undefined;
@@ -446,6 +450,13 @@ export function extractSelection(doc: Doc, sel: Selection): Block[] {
         case "ul": case "ol": {
           const list = cropList(block);
           return list ? [list] : [];
+        }
+        case "dl": {
+          const entries = block.entries.flatMap((entry) => {
+            const ordinal = n++;
+            return inRange(ordinal) ? [{ ...entry, content: cut(entry.content, ordinal) }] : [];
+          });
+          return entries.length > 0 ? [{ ...block, entries }] : [];
         }
         case "quote": {
           const inner = cropBlocks(block.blocks);

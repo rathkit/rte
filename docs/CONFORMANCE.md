@@ -84,9 +84,7 @@ again from the model the next time anything is drawn. Until then the page keeps 
 - Some input types are blocked and reported through `onUnhandledInput`: justification, indent and outdent outside
   lists, subscript and superscript, remove formatting, text direction, colors and font names, insert link, transpose and
   yank. They wait for the commands behind them. Soft-line deletion deletes to the edge of the block, not the visual line.
-- Definition lists (`insert-definition-list`) are not built. Lists work: toggling, Tab and Shift+Tab, Enter and Backspace in
-  items, and the `* `, `- ` and `1. ` shortcuts. Tab on an item that has children moves them out to its depth, as the
-  requirements say; that is worth a second look with the owner, because most editors keep the children under the item.
+- Lists and definition lists work (see `LISTS.md`). Multi-block items and numbering styles beyond what import reads are not built.
 - WebKit rewrites copied HTML and turns some spaces next to inline tags into non-breaking spaces. The editor
   keeps them as written, so text pasted in WebKit can carry `&nbsp;` where Chromium has a plain space.
 - A table is drawn again as a whole when any cell changes. Large tables have not been measured.

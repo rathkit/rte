@@ -51,6 +51,13 @@ export function mapImages(blocks: readonly Block[], fn: (image: Image) => Image 
         const next = list(block);
         return next ? [next] : [];
       }
+      case "dl": {
+        const entries = block.entries.flatMap((entry) => {
+          const { content, emptied } = inline(entry.content);
+          return emptied ? [] : [{ ...entry, content }];
+        });
+        return entries.length > 0 ? [{ ...block, entries }] : [];
+      }
       case "quote": {
         const inner = walk(block.blocks);
         return inner.length > 0 ? [{ ...block, blocks: inner }] : [];
@@ -82,6 +89,7 @@ export function collectImages(blocks: readonly Block[]): Image[] {
     for (const block of bs) {
       if (block.type === "p" || block.type === "h") inline(block.content);
       else if (block.type === "ul" || block.type === "ol") list(block);
+      else if (block.type === "dl") block.entries.forEach((entry) => inline(entry.content));
       else if (block.type === "quote") walk(block.blocks);
       else if (block.type === "table") block.rows.forEach((row) => row.forEach((cell) => walk(cell.blocks)));
     }

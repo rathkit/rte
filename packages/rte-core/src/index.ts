@@ -8,3 +8,4 @@ export { defaultPaste, extractFragment, pasteBlocks, type ClipboardData, type Pa
 export { sanitizeSvg, sanitizeSvgDataUrl, decodeBase64, encodeBase64, DEFAULT_SVG_LIMITS, type SvgLimits } from "./svg.ts";
 export { collectImages, dataImageBytes, isDataImage, mapImages, readDataImage, rewriteImages } from "./images.ts";
 export { indentItems, inList, listDepth, listShortcut, outdentItems, takeOutOfList, toggleList, type ListOptions } from "./lists.ts";
+export { backspaceAtEntryStart, inDefinitionList, setEntryKind, splitEntry, takeOutOfDefinitionList, toggleDefinitionList } from "./definitions.ts";

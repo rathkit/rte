@@ -195,3 +195,11 @@ test("spaces that Safari rewrote as non-breaking are plain spaces again, and onl
   // Not Safari's markup: nothing is touched.
   assert.equal(paste("<p><span>real&nbsp;</span><b>paste</b></p>"), "<p>real&nbsp;<strong>paste</strong></p>");
 });
+
+test("definition lists import as terms and details, with or without wrapper divs", () => {
+  assert.equal(load("<dl><dt>Term</dt><dd>Detail <b>one</b></dd><dt>Two</dt></dl>"), "<dl><dt>Term</dt><dd>Detail <strong>one</strong></dd><dt>Two</dt></dl>");
+  assert.equal(load("<dl><div><dt>A</dt><dd>b</dd></div><div><dt>C</dt><dd>d</dd></div></dl>"), "<dl><dt>A</dt><dd>b</dd><dt>C</dt><dd>d</dd></dl>");
+  // An entry holding a list cannot be an entry; the content is kept as plain blocks.
+  assert.equal(load("<dl><dt>A</dt><dd><ul><li>x</li></ul></dd></dl>"), "<p>A</p><ul><li>x</li></ul>");
+  assert.equal(load("<dl></dl><p>x</p>"), "<p>x</p>");
+});

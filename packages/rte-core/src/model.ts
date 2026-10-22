@@ -49,6 +49,15 @@ export interface List {
   readonly style?: string;
   readonly items: readonly ListItem[];
 }
+export interface DefinitionEntry {
+  /** A term (`dt`) or the detail that describes it (`dd`). */
+  readonly kind: "term" | "detail";
+  readonly content: readonly Inline[];
+}
+export interface DefinitionList {
+  readonly type: "dl";
+  readonly entries: readonly DefinitionEntry[];
+}
 export interface TableCell {
   readonly header: boolean;
   readonly colspan: number;
@@ -70,7 +79,7 @@ export interface CodeBlock {
 export interface Rule {
   readonly type: "hr";
 }
-export type Block = Paragraph | Heading | List | Table | Quote | CodeBlock | Rule;
+export type Block = Paragraph | Heading | List | DefinitionList | Table | Quote | CodeBlock | Rule;
 
 export interface Doc {
   readonly blocks: readonly Block[];

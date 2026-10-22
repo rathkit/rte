@@ -108,6 +108,22 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Backspace");
   check(`${name} Backspace at the start of an item joins it up`, (await html()) === "<ul><li>ab</li></ul>", await html());
 
+  // --- definition lists
+  await reset("<p>a</p><p>b</p>");
+  await page.evaluate(() => { window.__conf.select("all"); window.__editor.toggleDefinitionList(); });
+  check(`${name} the definition list command makes terms`, (await html()) === "<dl><dt>a</dt><dt>b</dt></dl>", await html());
+  check(`${name} and reports it`, await page.evaluate(() => window.__editor.isInDefinitionList()), "state");
+  await select({ start: "dt:nth-child(2)", so: 1, eo: 1 });
+  await page.keyboard.press("Tab");
+  check(`${name} Tab makes a term a detail`, (await html()) === "<dl><dt>a</dt><dd>b</dd></dl>", await html());
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("c");
+  check(`${name} Enter after a detail starts a term`, (await html()) === "<dl><dt>a</dt><dd>b</dd><dt>c</dt></dl>", await html());
+  await page.keyboard.press("Enter");
+  check(`${name} Enter after a term starts a detail`, (await html()) === "<dl><dt>a</dt><dd>b</dd><dt>c</dt><dd></dd></dl>", await html());
+  await page.keyboard.press("Enter");
+  check(`${name} Enter on an empty entry leaves the list`, (await html()) === "<dl><dt>a</dt><dd>b</dd><dt>c</dt></dl><p></p>", await html());
+
   await reset("<p>abc</p>");
   await select({ start: "p", so: 1, eo: 3 });
   await page.keyboard.type("Z");
