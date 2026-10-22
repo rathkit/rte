@@ -30,6 +30,9 @@ function placeholder(): HTMLElement {
   return br;
 }
 
+/** Above this many top-level blocks, blocks that are off screen skip layout and paint until they are needed. */
+const LARGE_DOCUMENT = 200;
+
 export interface RenderOptions {
   /** Draw `http` and `https` images with their real address. Off by default: a pasted image never causes a request. */
   readonly loadRemoteImages: boolean;
@@ -75,6 +78,7 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
   list.items.forEach((item, i) => {
     const itemPath = [...path, i];
     const li = tag("li", itemPath);
+    if (item.content.length === 0 && item.sublists.length > 0) li.style.listStyleType = "none";
     renderInline(li, item.content, options);
     item.sublists.forEach((sub, k) => li.appendChild(renderList(sub, [...itemPath, k], options)));
     el.appendChild(li);
@@ -146,6 +150,11 @@ export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = 
     if (hit && !cache.dirty.has(hit) && hit.getAttribute("data-rte-remote") === String(options.loadRemoteImages)) return hit;
     const el = renderBlock(block, [b], options);
     el.setAttribute("data-rte-remote", String(options.loadRemoteImages));
+    if (doc.blocks.length > LARGE_DOCUMENT) {
+      // Off-screen blocks skip layout and paint, which is most of the cost of a long document. They stay searchable and selectable.
+      el.style.contentVisibility = "auto";
+      el.style.setProperty("contain-intrinsic-block-size", "auto 1.5em");
+    }
     cache.drawn.set(block, el);
     return el;
   });

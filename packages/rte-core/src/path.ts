@@ -7,7 +7,7 @@
 //   [b, r, c, n, ...]        block n inside cell c of row r of table b (the rest continues inside that block)
 //   [b, n, ...]              block n inside quote b
 import {
-  inlineText, type Block, type Doc, type Inline, type List, type ListItem, type Table, type TableCell,
+  inlineLength, inlineText, type Block, type Doc, type Inline, type List, type ListItem, type Table, type TableCell,
 } from "./model.ts";
 
 export type Path = readonly number[];
@@ -21,6 +21,14 @@ export interface Selection {
   readonly anchor: Pos;
   readonly focus: Pos;
 }
+
+export interface EditResult {
+  readonly doc: Doc;
+  readonly selection: Selection;
+}
+
+export const caret = (pos: Pos): Selection => ({ anchor: pos, focus: pos });
+export const isCollapsed = (sel: Selection): boolean => pathKey(sel.anchor.path) === pathKey(sel.focus.path) && sel.anchor.offset === sel.focus.offset;
 
 export const pathKey = (path: Path): string => path.join(".");
 
@@ -176,6 +184,23 @@ export function mapBlockList(doc: Doc, path: Path, fn: (blocks: readonly Block[]
   return { blocks: apply(doc.blocks, path) };
 }
 
+/** The block at a path that ends at a block: `[b]`, `[b, n]` inside a quote, `[b, r, c, n]` inside a table cell. */
+export function getBlock(doc: Doc, path: Path): Block | undefined {
+  const find = (blocks: readonly Block[], rest: Path): Block | undefined => {
+    const [n, ...more] = rest;
+    const block = n === undefined ? undefined : blocks[n];
+    if (!block || more.length === 0) return block;
+    if (block.type === "quote") return find(block.blocks, more);
+    if (block.type === "table") {
+      const [r, c, ...inner] = more;
+      const cell = r === undefined || c === undefined ? undefined : block.rows[r]?.[c];
+      return cell ? find(cell.blocks, inner) : undefined;
+    }
+    return undefined;
+  };
+  return find(doc.blocks, path);
+}
+
 /** True when the container is a direct child of a list of blocks (so blocks can be inserted beside it). */
 export function inBlockList(doc: Doc, path: Path): boolean {
   const slot = slotInBlocks(doc.blocks, path);
@@ -232,4 +257,10 @@ export function fixup(doc: Doc): Doc {
     return out.length === 0 && needOne ? [{ type: "p", content: [] }] : out;
   };
   return { blocks: fixBlocks(doc.blocks, true) };
+}
+
+/** Keeps a position valid: the container must exist and the offset must lie inside it. */
+export function clampPos(doc: Doc, pos: Pos): Pos {
+  const path = hasContainer(doc, pos.path) ? pos.path : (containerPaths(doc).at(-1) ?? [0]);
+  return { path, offset: Math.max(0, Math.min(pos.offset, inlineLength(getContent(doc, path)))) };
 }

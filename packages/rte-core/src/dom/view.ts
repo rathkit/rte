@@ -6,6 +6,7 @@ import {
   insertText, isCollapsed, moveSelection, selectedText, splitBlock, startOf, toggleMark, type EditResult,
 } from "../edit.ts";
 import { exportHtml } from "../export.ts";
+import { indentItems, inList, listShortcut, outdentItems, toggleList, type ListOptions } from "../lists.ts";
 import { collectImages, isDataImage, mapImages, readDataImage, rewriteImages } from "../images.ts";
 import { checkImageSrc, importBlocks, importHtml } from "../import.ts";
 import { encodeBase64, sanitizeSvg } from "../svg.ts";
@@ -30,6 +31,12 @@ export interface EditorOptions {
   readonly uploadImage?: (file: Blob, info: { readonly name: string; readonly type: string; readonly size: number }) => Promise<string>;
   /** Largest raster image, in bytes, that is embedded in the document when there is no `uploadImage`. Default 512 KB. */
   readonly maxInlineImageBytes?: number;
+  /** Tab and Shift+Tab move list items in and out. Off: the browser keeps Tab for moving focus. Default on. */
+  readonly indentOnTab?: boolean;
+  /** Deepest allowed nesting of lists. Default: no limit. */
+  readonly maxListDepth?: number;
+  /** Typing `* `, `- ` or `1. ` at the start of a paragraph starts a list. Default on. */
+  readonly listShortcuts?: boolean;
   /** Largest image file the editor will read at all, in bytes. Default 20 MB. */
   readonly maxImageFileBytes?: number;
   /** Called when an image is left out, with the reason, so the host can tell the person. */
@@ -59,6 +66,9 @@ export class Editor {
   private readonly upload: EditorOptions["uploadImage"];
   private readonly rejected: EditorOptions["onImageRejected"];
   private dragSource: Selection | null = null;
+  private readonly indentOnTab: boolean;
+  private readonly maxListDepth: number;
+  private readonly listShortcuts: boolean;
   private readonly renderCache = createRenderCache();
   /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
   private readonly observer = new MutationObserver((records) => {
@@ -78,6 +88,9 @@ export class Editor {
     this.readOnlyMode = options.readOnly ?? false;
     this.loadRemoteImages = options.loadRemoteImages ?? false;
     this.unhandled = options.onUnhandledInput;
+    this.indentOnTab = options.indentOnTab ?? true;
+    this.maxListDepth = options.maxListDepth ?? Number.POSITIVE_INFINITY;
+    this.listShortcuts = options.listShortcuts ?? true;
     this.maxImageBytes = options.maxImageFileBytes ?? 20_000_000;
     this.maxInlineBytes = options.maxInlineImageBytes ?? 512 * 1024;
     this.upload = options.uploadImage;
@@ -181,6 +194,19 @@ export class Editor {
 
   toggle(mark: MarkType): void {
     this.apply("format", (doc, sel) => toggleMark(doc, sel, { type: mark } as never));
+  }
+
+  /** Makes the selected blocks a bulleted or numbered list, or takes them out of it. */
+  toggleList(type: "ul" | "ol", options?: ListOptions): void {
+    this.apply("list", (doc, sel) => toggleList(doc, sel, type, options));
+  }
+  indent(): void { this.apply("list", (doc, sel) => indentItems(doc, sel, this.maxListDepth)); }
+  outdent(): void { this.apply("list", outdentItems); }
+
+  /** True when the caret is in a list item, of the given type if one is given. */
+  isInList(type?: "ul" | "ol"): boolean {
+    this.readSelection();
+    return inList(this.current, this.sel.focus.path, type);
   }
 
   undo(): void {
@@ -346,6 +372,15 @@ export class Editor {
         case "insertText": {
           const data = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
           if (data.includes("\n")) { this.paste({ text: data }); return true; }
+          if (data === " " && this.listShortcuts) {
+            // A shortcut such as "* " starts a list; its conversion is an undo step of its own.
+            this.readSelection();
+            const converted = listShortcut(this.current, this.sel);
+            if (converted) {
+              this.apply("pattern", () => converted);
+              return true;
+            }
+          }
           this.apply("type", (doc, sel) => insertText(doc, sel, data));
           return true;
         }
@@ -505,6 +540,15 @@ export class Editor {
 
   private onKeyDown(event: KeyboardEvent): void {
     if (this.composing || event.isComposing) return;
+    if (event.key === "Tab" && this.indentOnTab && !event.ctrlKey && !event.metaKey && !event.altKey && !this.readOnlyMode) {
+      this.readSelection();
+      if (inList(this.current, this.sel.focus.path)) {
+        event.preventDefault();
+        if (event.shiftKey) this.outdent();
+        else this.indent();
+        return;
+      }
+    }
     const mod = event.ctrlKey || event.metaKey;
     if (!mod || event.altKey) return;
     const key = event.key.toLowerCase();

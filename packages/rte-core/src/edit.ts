@@ -3,18 +3,13 @@
 import {
   inlineLength, inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
 } from "./model.ts";
+import { backspaceAtItemStart, leaveListItem } from "./lists.ts";
 import {
-  blockContainers, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, kindAt, mapBlockList, mapListOf, pathKey, setContent,
-  type Path, type Pos, type Selection,
+  blockContainers, caret, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, setContent,
+  type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
-export interface EditResult {
-  readonly doc: Doc;
-  readonly selection: Selection;
-}
-
-export const caret = (pos: Pos): Selection => ({ anchor: pos, focus: pos });
-export const isCollapsed = (sel: Selection): boolean => pathKey(sel.anchor.path) === pathKey(sel.focus.path) && sel.anchor.offset === sel.focus.offset;
+export { caret, clampPos, isCollapsed, type EditResult };
 
 /** The first position in the document. */
 export function startOf(doc: Doc): Pos {
@@ -66,12 +61,6 @@ function order(_doc: Doc, sel: Selection): { start: Pos; end: Pos } {
   const c = comparePath(sel.anchor.path, sel.focus.path);
   const forward = c < 0 || (c === 0 && sel.anchor.offset <= sel.focus.offset);
   return forward ? { start: sel.anchor, end: sel.focus } : { start: sel.focus, end: sel.anchor };
-}
-
-/** Keeps a position valid: the container must exist and the offset must lie inside it. */
-export function clampPos(doc: Doc, pos: Pos): Pos {
-  const path = hasContainer(doc, pos.path) ? pos.path : (containerPaths(doc).at(-1) ?? [0]);
-  return { path, offset: Math.max(0, Math.min(pos.offset, inlineLength(getContent(doc, path)))) };
 }
 
 const ordinalToPath = (doc: Doc, ordinal: number): Path => containerPaths(doc)[Math.max(0, Math.min(ordinal, containerPaths(doc).length - 1))] ?? [0];
@@ -151,7 +140,7 @@ export function splitBlock(doc: Doc, sel: Selection): EditResult {
   if (kind === "pre") return insertText(d, cleared.selection, "\n");
 
   if (kind === "li") {
-    if (content.length === 0) return leaveList(d, pos);
+    if (content.length === 0 && sublistsOf(d, pos.path) === 0) return leaveListItem(d, pos);
     let moved = false;
     const next = mapListOf(d, pos.path, (list, index) => {
       moved = true;
@@ -178,20 +167,11 @@ export function splitBlock(doc: Doc, sel: Selection): EditResult {
   return { doc: next, selection: caret({ path: ordinalToPath(next, ordinal + 1), offset: 0 }) };
 }
 
-/** Pressing Enter in an empty list item turns it into a paragraph after the list (splitting the list if needed). */
-function leaveList(doc: Doc, pos: Pos): EditResult {
-  if (pos.path.length !== 2) {
-    // Nested items leave to the parent list's level by becoming an item after their parent.
-    return { doc, selection: caret(pos) };
-  }
-  const [b, i] = pos.path as [number, number];
-  const list = doc.blocks[b] as List;
-  const first: List = { ...list, items: list.items.slice(0, i) };
-  const second: List = { ...list, items: list.items.slice(i + 1), ...(list.start !== undefined ? { start: list.start + i + 1 } : {}) };
-  const replacement: Block[] = [...(first.items.length > 0 ? [first] : []), { type: "p", content: [] }, ...(second.items.length > 0 ? [second] : [])];
-  const next: Doc = { blocks: [...doc.blocks.slice(0, b), ...replacement, ...doc.blocks.slice(b + 1)] };
-  const target = b + (first.items.length > 0 ? 1 : 0);
-  return { doc: next, selection: caret({ path: [target], offset: 0 }) };
+/** How many lists are nested under a list item. */
+function sublistsOf(doc: Doc, path: Path): number {
+  let found = 0;
+  mapListOf(doc, path, (list, index) => { found = list.items[index]?.sublists.length ?? 0; return list; });
+  return found;
 }
 
 // ---- Backspace and Delete ---------------------------------------------------------------------------------
@@ -200,6 +180,8 @@ export function deleteBackward(doc: Doc, sel: Selection): EditResult {
   if (!isCollapsed(sel)) return deleteSelection(doc, sel);
   const pos = sel.anchor;
   if (pos.offset > 0) return deleteSelection(doc, { anchor: { path: pos.path, offset: pos.offset - 1 }, focus: pos });
+  const leaving = backspaceAtItemStart(doc, pos);
+  if (leaving) return leaving;
   const ordinal = ordinalOf(doc, pos.path);
   if (ordinal <= 0) return { doc, selection: sel };
   const previous = ordinalToPath(doc, ordinal - 1);

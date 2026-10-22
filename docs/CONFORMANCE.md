@@ -60,12 +60,13 @@ characters with three marks each. Each command is timed from the event through l
 
 | Paragraphs | Set content (warm / cold) | Type | Enter, join, paste near the top | Budget (one command) |
 | --- | --- | --- | --- | --- |
-| 1,000 | 34 ms / 45 ms | 2 ms | 1 to 1.5 ms | 10 ms; set content 40 ms |
-| 5,000 | 176 ms / 152 ms | 5 ms | 5 to 7 ms | 30 ms |
+| 1,000 | 22 ms / 32 ms | 2 ms | 1 to 2 ms | 10 ms; set content 40 ms |
+| 5,000 | 95 ms / 95 ms | 7 ms | 5 ms | 30 ms |
 
-With the CPU four times slower, the same commands take up to 4 ms at 1,000 paragraphs and 20 to 44 ms at 5,000 paragraphs, so
-the 5,000-paragraph budget is not met on a slow machine. Cold means the first call after the page loads.
-Set content at 1,000 paragraphs is within 40 ms warm and over it cold; it is 113 ms warm and 170 ms cold with the slower CPU.
+With the CPU four times slower, commands take up to 19 ms at 1,000 paragraphs and 25 to 35 ms at 5,000, so the 5,000-paragraph
+budget is met only narrowly or missed on a slow machine. Cold means the first call after the page loads. Above 200 top-level
+blocks the editor lets the browser skip layout and paint for blocks that are off screen (`content-visibility: auto`), which cut
+set content at 5,000 paragraphs from 176 ms to 95 ms.
 
 Memory: a 5,000-paragraph document takes about 5.5 MB, and one undo level adds about 22 KB, which is 0.4% of it. The
 budget is 1%.
@@ -80,8 +81,12 @@ again from the model the next time anything is drawn. Until then the page keeps 
   only in Chromium through the debugging protocol, which simulates it. The caret and text land correctly there.
 - Spelling-correction replacement is handled (the word the browser targets is replaced, not the word at the
   caret) but has not been tried with a real spell checker.
-- Some input types are blocked and reported through `onUnhandledInput`: justification, indent, transpose,
-  yank and the like. They wait for the commands behind them.
+- Some input types are blocked and reported through `onUnhandledInput`: justification, indent and outdent outside
+  lists, subscript and superscript, remove formatting, text direction, colors and font names, insert link, transpose and
+  yank. They wait for the commands behind them. Soft-line deletion deletes to the edge of the block, not the visual line.
+- Definition lists (`insert-definition-list`) are not built. Lists work: toggling, Tab and Shift+Tab, Enter and Backspace in
+  items, and the `* `, `- ` and `1. ` shortcuts. Tab on an item that has children moves them out to its depth, as the
+  requirements say; that is worth a second look with the owner, because most editors keep the children under the item.
 - WebKit rewrites copied HTML and turns some spaces next to inline tags into non-breaking spaces. The editor
   keeps them as written, so text pasted in WebKit can carry `&nbsp;` where Chromium has a plain space.
 - A table is drawn again as a whole when any cell changes. Large tables have not been measured.
