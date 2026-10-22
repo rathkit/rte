@@ -15,7 +15,8 @@
     "check:denylist": "node tools/check-denylist.mjs",
     "check:fixtures": "node tools/check-fixtures.mjs",
     "test:tools": "node --test \"tools/**/*.test.mjs\"",
-    "check": "pnpm check:zero-deps && pnpm check:fixtures && pnpm test:tools && pnpm typecheck && pnpm test"
+    "check": "pnpm check:zero-deps && pnpm check:fixtures && pnpm test:tools && pnpm typecheck && pnpm test",
+    "check:size": "node tools/check-size.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

@@ -4,7 +4,15 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2023",
+      "DOM"
+    ]
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

@@ -3,7 +3,7 @@
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import {
-  normalizeInline, type Align, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type Paragraph,
+  normalizeInline, type Align, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 
@@ -163,6 +163,10 @@ class Sink {
   }
 }
 
+/** Headings are bold by themselves, so a bold mark inside one carries no meaning. */
+const withoutBold = (content: Inline[]): Inline[] =>
+  normalizeInline(content.map((node): Inline => (node.type === "text" ? { ...node, marks: node.marks.filter((m) => m.type !== "bold") } : node)));
+
 const levelOf = (value: string | undefined): number | undefined => {
   const n = value === undefined ? NaN : Number.parseInt(value, 10);
   return Number.isFinite(n) && n >= 1 && n <= 12 ? n : undefined;
@@ -175,51 +179,226 @@ function alignOf(el: HElement, settings: Settings): Align | undefined {
   return ALIGNS.has(value) && value !== "left" ? (value as Align) : undefined;
 }
 
-function styleMarks(el: HElement, ctx: Ctx, settings: Settings): Mark[] {
-  const marks: Mark[] = [];
-  const tag = el.tag;
-  const mark = MARK_TAGS[tag];
-  if (mark) marks.push({ type: mark });
-  const style = parseStyle(el.attrs.style);
-  const weight = style.get("font-weight");
-  if (weight && (weight === "bold" || weight === "bolder" || Number(weight) >= 600)) marks.push({ type: "bold" });
-  if (style.get("font-style")?.startsWith("italic")) marks.push({ type: "italic" });
-  const decoration = `${style.get("text-decoration") ?? ""} ${style.get("text-decoration-line") ?? ""}`;
-  if (/underline/.test(decoration) && tag !== "a" && !ctx.inLink) marks.push({ type: "underline" });
-  if (/line-through/.test(decoration)) marks.push({ type: "strike" });
-  const align = style.get("vertical-align");
-  if (align === "super") marks.push({ type: "sup" });
-  else if (align === "sub") marks.push({ type: "sub" });
-  if (settings.allowStyles) {
-    const color = tag === "font" ? el.attrs.color : style.get("color");
-    if (color && COLOR.test(color.trim())) marks.push({ type: "color", value: color.trim().toLowerCase() });
-    const background = style.get("background-color");
-    if (background && COLOR.test(background.trim())) marks.push({ type: "background", value: background.trim().toLowerCase() });
-  }
-  return marks;
+interface MarkChange {
+  readonly add: Mark[];
+  /** Mark types the element explicitly turns off, such as `font-weight: normal` on a bold wrapper. */
+  readonly remove: MarkType[];
 }
 
+function styleMarks(el: HElement, ctx: Ctx, settings: Settings): MarkChange {
+  const add: Mark[] = [];
+  const remove: MarkType[] = [];
+  const tag = el.tag;
+  const style = parseStyle(el.attrs.style);
+  const mark = MARK_TAGS[tag];
+
+  // An explicit style beats the tag: <b style="font-weight: normal"> is not bold.
+  const weight = style.get("font-weight");
+  const bold = weight === undefined ? undefined : weight === "bold" || weight === "bolder" || Number(weight) >= 600;
+  if (bold === true || (bold === undefined && mark === "bold")) add.push({ type: "bold" });
+  else if (bold === false) remove.push("bold");
+
+  const fontStyle = style.get("font-style");
+  const italic = fontStyle === undefined ? undefined : fontStyle.startsWith("italic") || fontStyle.startsWith("oblique");
+  if (italic === true || (italic === undefined && mark === "italic")) add.push({ type: "italic" });
+  else if (italic === false) remove.push("italic");
+
+  const decoration = style.get("text-decoration") ?? style.get("text-decoration-line");
+  const underline = decoration === undefined ? undefined : /underline/.test(decoration) && tag !== "a" && !ctx.inLink;
+  if (underline === true || (underline === undefined && mark === "underline")) add.push({ type: "underline" });
+  else if (decoration !== undefined && !/underline/.test(decoration)) remove.push("underline");
+  const strike = decoration === undefined ? undefined : /line-through/.test(decoration);
+  if (strike === true || (strike === undefined && mark === "strike")) add.push({ type: "strike" });
+  else if (strike === false) remove.push("strike");
+
+  if (mark === "code" || mark === "sup" || mark === "sub") add.push({ type: mark });
+  const align = style.get("vertical-align");
+  if (align === "super") add.push({ type: "sup" });
+  else if (align === "sub") add.push({ type: "sub" });
+  if (settings.allowStyles) {
+    const color = tag === "font" ? el.attrs.color : style.get("color");
+    if (color && COLOR.test(color.trim())) add.push({ type: "color", value: color.trim().toLowerCase() });
+    const background = style.get("background-color");
+    if (background && COLOR.test(background.trim())) add.push({ type: "background", value: background.trim().toLowerCase() });
+  }
+  return { add, remove };
+}
+
+const ROW_PARTS = new Set(["tbody", "thead", "tfoot", "tr"]);
+const isBlank = (node: HNode): boolean => node.type === "text" && node.text.trim() === "";
+
 function convertNodes(nodes: readonly HNode[], sink: Sink, ctx: Ctx, settings: Settings): void {
-  for (const node of nodes) {
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i] as HNode;
     if (node.type === "text") {
       sink.text(node.text, ctx.marks, ctx.pre);
+      continue;
+    }
+    if (ROW_PARTS.has(node.tag)) {
+      // Rows without their table, as some clipboards deliver them: neighbouring rows are read as one table.
+      const rows: HNode[] = [node];
+      while (i + 1 < nodes.length && (isBlank(nodes[i + 1] as HNode) || ROW_PARTS.has((nodes[i + 1] as HElement).tag))) {
+        i++;
+        if (!isBlank(nodes[i] as HNode)) rows.push(nodes[i] as HNode);
+      }
+      sink.flush();
+      sink.blocks.push(convertTable({ type: "el", tag: "table", attrs: {}, children: rows }, ctx, settings));
       continue;
     }
     convertElement(node, sink, ctx, settings);
   }
 }
 
-function withMarks(ctx: Ctx, marks: readonly Mark[], extra?: Partial<Ctx>): Ctx {
-  if (marks.length === 0 && !extra) return ctx;
-  const have = new Set(ctx.marks.map((m) => m.type));
-  const added = marks.filter((m) => !have.has(m.type) || m.type === "link" || m.type === "color" || m.type === "background");
-  return { ...ctx, ...extra, marks: [...ctx.marks.filter((m) => !added.some((a) => a.type === m.type && (a.type === "link" || a.type === "color" || a.type === "background"))), ...added] };
+function withMarks(ctx: Ctx, change: MarkChange, extra?: Partial<Ctx>): Ctx {
+  if (change.add.length === 0 && change.remove.length === 0 && !extra) return ctx;
+  // One mark of each type at most. A link, color or background replaces an outer one; the others just add.
+  const merged = ctx.marks.filter((m) => !change.remove.includes(m.type) || change.add.some((a) => a.type === m.type));
+  for (const mark of change.add) {
+    const at = merged.findIndex((m) => m.type === mark.type);
+    if (at === -1) merged.push(mark);
+    else if (mark.type === "link" || mark.type === "color" || mark.type === "background") merged[at] = mark;
+  }
+  return { ...ctx, ...extra, marks: merged };
+}
+
+
+// ---- word-processor lists ---------------------------------------------------------------------------------
+
+const ROMAN = new Map([["i", 1], ["v", 5], ["x", 10], ["l", 50], ["c", 100], ["d", 500], ["m", 1000]]);
+const romanValue = (text: string): number => {
+  let total = 0;
+  const digits = [...text.toLowerCase()].map((ch) => ROMAN.get(ch) ?? 0);
+  digits.forEach((value, i) => { total += value < (digits[i + 1] ?? 0) ? -value : value; });
+  return total;
+};
+
+interface Marker {
+  readonly type: "ul" | "ol";
+  readonly style?: string;
+  readonly start?: number;
+}
+
+/** Reads a list marker such as `·`, `o`, `§`, `3.`, `b)`, `iv.` into a list kind, marker style and start number. */
+function parseMarker(raw: string): Marker | undefined {
+  const text = raw.replace(/[\s ]+/g, "");
+  if (text === "") return undefined;
+  const numbered = /^\(?(\d{1,5})[.)]?$/.exec(text);
+  if (numbered) return { type: "ol", start: Number(numbered[1]) };
+  const lower = /^\(?([ivxlcdm]+|[a-z])[.)]$/.exec(text);
+  const upper = /^\(?([IVXLCDM]+|[A-Z])[.)]$/.exec(text);
+  const word = lower?.[1] ?? upper?.[1];
+  if (word !== undefined) {
+    const isUpper = upper !== null && lower === null;
+    // `i`, `v` and `x` alone, and any longer run of roman letters, are roman numerals. Other single letters are letters.
+    const roman = word.length > 1 || /^[ivxIVX]$/.test(word);
+    if (roman) return { type: "ol", style: isUpper ? "upper-roman" : "lower-roman", start: romanValue(word) };
+    return { type: "ol", style: isUpper ? "upper-alpha" : "lower-alpha", start: word.toLowerCase().charCodeAt(0) - 96 };
+  }
+  // Bullets. Symbol and Wingdings glyphs often arrive as private-use characters.
+  const glyph = [...text][0] as string;
+  if (/^[oO○◦∘]$/.test(glyph)) return { type: "ul", style: "circle" };
+  if (/^[§▪■□◾]$/.test(glyph)) return { type: "ul", style: "square" };
+  if (/^[·•●∙*\-–—]$/.test(glyph)) return { type: "ul", style: "disc" };
+  return undefined;
+}
+
+const textOf = (nodes: readonly HNode[]): string => nodes.map((n) => (n.type === "text" ? n.text : textOf(n.children))).join("");
+
+const isIgnoredMarker = (node: HNode): boolean =>
+  node.type === "el" && node.tag === "span" && /mso-list\s*:\s*ignore/i.test(node.attrs.style ?? "");
+
+/** Splits the marker a word processor wrote into a list paragraph from the paragraph's own content. */
+function splitMarker(children: readonly HNode[]): { marker: string | undefined; rest: HNode[] } {
+  let marker: string | undefined;
+  const strip = (nodes: readonly HNode[]): HNode[] =>
+    nodes.flatMap((node): HNode[] => {
+      if (isIgnoredMarker(node)) {
+        marker ??= textOf((node as HElement).children);
+        return [];
+      }
+      return node.type === "el" ? [{ ...node, children: strip(node.children) }] : [node];
+    });
+  const rest = strip(children);
+  return { marker, rest };
+}
+
+const OFFICE_LIST = /^\s*(l\d+)\s+level(\d+)/i;
+
+/** Word-for-web describes a list's marker in a JSON attribute: bullet glyph code points, or [placeholder, number format]. */
+function definitionStyle(raw: string | undefined): { type: "ul" | "ol"; style?: string } | undefined {
+  if (!raw) return undefined;
+  try {
+    const defn = JSON.parse(raw) as Record<string, unknown>;
+    const spec = defn["469769242"];
+    if (!Array.isArray(spec)) return undefined;
+    if (spec.length === 1) {
+      const glyph = String.fromCodePoint(Number(spec[0]));
+      const marker = parseMarker(glyph);
+      return marker?.type === "ul" ? { type: "ul", ...(marker.style ? { style: marker.style } : {}) } : { type: "ul" };
+    }
+    const format = (["decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha"] as const)[Number(spec[1])];
+    return { type: "ol", ...(format && format !== "decimal" ? { style: format } : {}) };
+  } catch {
+    return undefined;
+  }
+}
+
+/** A paragraph a word processor wrote as a list item (marker text plus a level) becomes a one-item list with a level hint. */
+function officeListItem(el: HElement, sink: Sink, ctx: Ctx, settings: Settings): boolean {
+  const info = OFFICE_LIST.exec(parseStyle(el.attrs.style).get("mso-list") ?? "");
+  if (!info) return false;
+  let { marker, rest } = splitMarker(el.children);
+  if (marker === undefined) {
+    // The wrapper that marks the bullet is gone (some browsers rewrite the markup): read the literal marker instead.
+    const lead = /^[\s ]*([^\s ]{1,6})[\s ]{2,}/.exec(textOf(rest));
+    if (lead && parseMarker(lead[1] as string)) {
+      marker = lead[1];
+      let skip = lead[0].length;
+      const trim = (nodes: readonly HNode[]): HNode[] =>
+        nodes.flatMap((node): HNode[] => {
+          if (skip <= 0) return [node];
+          if (node.type === "text") {
+            const cut = Math.min(skip, node.text.length);
+            skip -= cut;
+            return node.text.length > cut ? [{ type: "text", text: node.text.slice(cut) }] : [];
+          }
+          return [{ ...node, children: trim(node.children) }];
+        });
+      rest = trim(rest);
+    }
+  }
+  const parsed = marker === undefined ? undefined : parseMarker(marker);
+  const inner = new Sink({ ...settings, keepEmpty: false });
+  convertNodes(rest, inner, ctx, settings);
+  inner.flush();
+  const content: Inline[] = [];
+  for (const block of inner.blocks) if (block.type === "p" || block.type === "h") content.push(...(content.length > 0 ? [{ type: "br" } as Inline] : []), ...block.content);
+  const type = parsed?.type ?? "ul";
+  sink.flush();
+  sink.blocks.push({
+    type,
+    ...(parsed?.start !== undefined && parsed.start !== 1 ? { start: parsed.start } : {}),
+    ...(parsed?.style !== undefined ? { style: parsed.style } : {}),
+    items: [{ content: normalizeInline(content), sublists: [], level: Number(info[2]), listId: info[1] as string }],
+  });
+  return true;
 }
 
 function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings): void {
   const tag = el.tag;
   if (DROP.has(tag) || tag === "title") return;
   if (el.attrs.hidden !== undefined || /display\s*:\s*none/i.test(el.attrs.style ?? "")) return;
+
+  if (tag === "p" && officeListItem(el, sink, ctx, settings)) return;
+  const headingLevel = el.attrs.role === "heading" ? levelOf(el.attrs["aria-level"]) : undefined;
+  if (headingLevel !== undefined && headingLevel <= 6 && (tag === "p" || tag === "div" || tag === "span")) {
+    // A paragraph that declares itself a heading (word processors on the web do) is a heading.
+    sink.flush();
+    convertNodes(el.children, sink, ctx, settings);
+    const level = headingLevel as 1 | 2 | 3 | 4 | 5 | 6;
+    sink.flush((content) => ({ type: "h", level, content: withoutBold(content) }), true);
+    return;
+  }
 
   switch (tag) {
     case "br":
@@ -256,7 +435,7 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       convertNodes(el.children, sink, ctx, settings);
       const level = Number(tag[1]) as 1 | 2 | 3 | 4 | 5 | 6;
       const align = alignOf(el, settings);
-      sink.flush((content) => ({ type: "h", level, content, ...(align ? { align } : {}) }), true);
+      sink.flush((content) => ({ type: "h", level, content: withoutBold(content), ...(align ? { align } : {}) }), true);
       return;
     }
     case "ul": case "ol":
@@ -278,6 +457,12 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
     }
     case "pre": {
       sink.flush();
+      if (el.children.some((child) => child.type === "el" && (child.tag === "table" || child.tag === "ul" || child.tag === "ol"))) {
+        // A wrapper that merely holds a table or list (some browsers wrap copied cells this way) is not code.
+        convertNodes(el.children, sink, ctx, settings);
+        sink.flush();
+        return;
+      }
       const inner = new Sink(settings);
       convertNodes(el.children, inner, { ...ctx, pre: true }, settings);
       let value = "";
@@ -288,10 +473,10 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
     }
     case "a": {
       const href = safeUrl(el.attrs.href, settings.schemes);
-      const marks = styleMarks(el, ctx, settings);
-      if (href !== undefined) marks.push({ type: "link", href });
-      // A link with no usable address is plain text, never an empty anchor.
-      convertNodes(el.children, sink, withMarks(ctx, marks, { inLink: href !== undefined || ctx.inLink }), settings);
+      const change = styleMarks(el, ctx, settings);
+      if (href !== undefined) change.add.push({ type: "link", href });
+      // A link with no usable address is plain text, never an empty anchor. Its underline was the link's styling either way.
+      convertNodes(el.children, sink, withMarks(ctx, change, { inLink: true }), settings);
       return;
     }
   }
@@ -329,7 +514,9 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
       continue;
     }
     if (child.tag !== "li") continue;
-    style ??= listStyleOf(child);
+    const defn = definitionStyle(child.attrs["data-list-defn-props"]);
+    style ??= listStyleOf(child) ?? defn?.style;
+    if (defn && list.items.length === 0 && el.tag !== (defn.type === "ol" ? "ol" : "ul")) list.type = defn.type;
     const inner = new Sink(settings);
     convertNodes(child.children, inner, ctx, settings);
     inner.flush();
@@ -372,7 +559,9 @@ function convertTable(el: HElement, ctx: Ctx, settings: Settings): Block {
     for (const cell of row.children) {
       if (cell.type !== "el" || (cell.tag !== "td" && cell.tag !== "th")) continue;
       const inner = new Sink({ ...settings, keepEmpty: false });
-      convertNodes(cell.children, inner, ctx, settings);
+      // Marks set on the row or on the cell itself (a bold header cell, say) apply to what the cell holds.
+      const cellCtx = withMarks(withMarks(ctx, styleMarks(row, ctx, settings)), styleMarks(cell, ctx, settings));
+      convertNodes(cell.children, inner, cellCtx, settings);
       inner.flush();
       let blocks = finishBlocks(inner.blocks);
       if (blocks.length === 0) blocks = [{ type: "p", content: [] }];
@@ -437,10 +626,19 @@ function finishBlocks(blocks: readonly Out[]): Block[] {
 function nestByLevel(lists: readonly L[]): List[] {
   const result: L[] = [];
   const stack: L[] = [];
+  const ids: (string | undefined)[] = [];
   for (const list of lists) {
     for (const item of list.items) {
       const level = item.level as number;
-      while (stack.length > level) stack.pop();
+      while (stack.length > level) {
+        stack.pop();
+        ids.pop();
+      }
+      // A different kind of list (or a different list identifier) at the same level starts a new list there.
+      if (stack.length === level && (stack[level - 1]?.type !== list.type || ids[level - 1] !== item.listId)) {
+        stack.pop();
+        ids.pop();
+      }
       // A deeper level than the current depth opens lists under the last item of the list above.
       while (stack.length < level) {
         const fresh: L = { type: list.type, items: [] };
@@ -451,15 +649,12 @@ function nestByLevel(lists: readonly L[]): List[] {
         } else {
           result.push(fresh);
         }
-        if (stack.length === level - 1) {
-          if (list.start !== undefined && item === list.items[0]) fresh.start = list.start;
-          if (list.style !== undefined) fresh.style = list.style;
-        }
+        if (list.style !== undefined && stack.length === level - 1) fresh.style = list.style;
+        if (list.start !== undefined && stack.length === level - 1 && item === list.items[0]) fresh.start = list.start;
         stack.push(fresh);
+        ids.push(item.listId);
       }
-      const current = stack[stack.length - 1] as L;
-      if (current.items.length === 0 && stack.length === 1 && list.start !== undefined && current.start === undefined) current.start = list.start;
-      current.items.push({ content: item.content, sublists: item.sublists });
+      (stack[stack.length - 1] as L).items.push({ content: item.content, sublists: item.sublists });
     }
   }
   return result.map((l) => freezeList(l, 0));

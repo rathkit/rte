@@ -4,7 +4,7 @@ A rich text editor built from scratch, with zero runtime dependencies.
 
 > Built from scratch. Ships with nothing else.
 
-**Status: pre-alpha.** The workspace and tooling are in place, but there is no editor yet. Nothing is published to npm, and the APIs do not exist. Do not build on this.
+**Status: pre-alpha.** The core of an editor exists and passes its paste conformance suites, but it is far from complete. Nothing is published to npm and the APIs will change. Do not build on this.
 
 Site: <https://rathkit.com>
 
@@ -18,7 +18,7 @@ RTE is a rich text editor for the web. The core is written in TypeScript around 
 
 | Package | State |
 | --- | --- |
-| `@rathkit/rte-core` | Empty stub |
+| `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, paste pipeline, a model-driven editing view. Not published |
 
 More packages (framework wrappers, plugins, server) will appear here as they are built.
 

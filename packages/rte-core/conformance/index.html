@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RTE conformance page</title>
+<style>#ed{min-height:120px;border:1px solid #888;padding:8px}</style>
+<div id="ed"></div>
+<script type="module">
+// Implements the conformance contract (window.__conf) on top of the real editor. Scenarios only ever
+// use the contract's methods; nothing here knows about any other product's command names.
+import { Editor } from "../dist/dom/index.js";
+import { exportHtml } from "../dist/index.js";
+
+const el = document.getElementById("ed");
+const editor = new Editor({ element: el });
+const selectedHtml = () => {
+  const sel = getSelection();
+  if (!sel || !sel.rangeCount) return "";
+  const box = document.createElement("div");
+  box.appendChild(sel.getRangeAt(0).cloneContents());
+  return box.innerHTML;
+};
+window.__conf = {
+  async reset(html) { editor.setHtml(html || ""); editor.focus(); },
+  focus() { editor.focus(); },
+  select(target) {
+    if (!target) return;
+    if (target === "all") { editor.selectAll(); return; }
+    const first = (node) => (node && node.firstChild && node.firstChild.nodeType === 3 ? node.firstChild : node);
+    const a = first(el.querySelector(target.start));
+    const b = first(el.querySelector(target.end || target.start));
+    editor.selectDom(a, target.so || 0, b, target.eo ?? (b.length || 0));
+  },
+  exec(command) { throw new Error("unsupported command " + command); },
+  setContent(html) { editor.setHtml(html || ""); },
+  undo() { editor.undo(); },
+  redo() { editor.redo(); },
+  readonly(mode) { editor.setReadOnly(mode === "readonly"); },
+  async paste(data) {
+    editor.paste({ html: data["text/html"], text: data["text/plain"], rtf: data["text/rtf"], types: Object.keys(data) });
+  },
+  snapshot() {
+    const sel = getSelection();
+    let start = "";
+    if (sel && sel.rangeCount) {
+      let n = sel.getRangeAt(0).startContainer;
+      if (n.nodeType === 3) n = n.parentNode;
+      start = n === el ? "BODY" : n.nodeName;
+    }
+    return {
+      html: editor.getHtml(),
+      selection: { html: selectedHtml(), start, collapsed: !sel || !sel.rangeCount || sel.isCollapsed },
+      canUndo: editor.canUndo,
+      canRedo: editor.canRedo,
+      evalResult: null,
+    };
+  },
+};
+window.__confReady = true;
+</script>

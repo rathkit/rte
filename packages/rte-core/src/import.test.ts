@@ -116,3 +116,69 @@ test("load then save is stable", () => {
   const once = load(messy);
   assert.equal(load(once), once);
 });
+
+test("a mark given twice by one element is one mark", () => {
+  assert.equal(paste('<strong style="font-weight:600">x</strong>'), "<p><strong>x</strong></p>");
+});
+
+test("bold inside a heading is dropped; headings are bold already", () => {
+  assert.equal(paste('<h1><span style="font-weight:700">T</span></h1>'), "<h1>T</h1>");
+});
+
+test("table rows that arrive without their table are read as a table", () => {
+  assert.equal(paste("<!--StartFragment--><tr><td>a</td><td>b</td></tr><tr><td>c</td></tr><!--EndFragment-->"),
+    "<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td></td></tr></tbody></table>");
+});
+
+test("an explicit style beats the tag: a bold wrapper with normal weight is not bold", () => {
+  assert.equal(paste('<b style="font-weight:normal"><span style="font-weight:700">a</span> b</b>'), "<p><strong>a</strong> b</p>");
+  assert.equal(paste('<strong>a <span style="font-weight:400">b</span></strong>'), "<p><strong>a </strong>b</p>");
+  assert.equal(paste('<em style="font-style:normal">a</em>'), "<p>a</p>");
+});
+
+test("a different list kind at the same level starts a new list", () => {
+  const html = '<ul><li aria-level="1">a</li></ul><ol><li aria-level="1">b</li></ol><ol><li aria-level="2">c</li></ol>';
+  assert.equal(load(html), "<ul><li>a</li></ul><ol><li>b<ol><li>c</li></ol></li></ol>");
+});
+
+test("bold set on a table cell or row applies to the cell's text", () => {
+  assert.equal(paste('<table><tr style="font-weight:bold"><td>h</td></tr><tr><td style="font-weight:bold">b</td><td>c</td></tr></table>'),
+    "<table><tbody><tr><td><strong>h</strong></td><td></td></tr><tr><td><strong>b</strong></td><td>c</td></tr></tbody></table>");
+});
+
+test("a preformatted wrapper that holds a table is not code", () => {
+  assert.equal(paste("<pre><table><tr><td>a</td></tr></table></pre>"), "<table><tbody><tr><td>a</td></tr></tbody></table>");
+});
+
+test("word-processor list paragraphs become nested lists, with marker kinds read from the marker text", () => {
+  const item = (level: number, marker: string, text: string, id = "l0"): string =>
+    `<p class=MsoListParagraph style='mso-list:${id} level${level} lfo1'><![if !supportLists]><span style='mso-list:Ignore'>${marker}<span>&nbsp;&nbsp;&nbsp;</span></span><![endif]>${text}<o:p></o:p></p>`;
+  const bullets = item(1, "·", "one") + item(2, "o", "sub") + item(3, "§", "subsub") + item(1, "·", "two");
+  assert.equal(paste(bullets), "<ul><li>one<ul><li>sub<ul><li>subsub</li></ul></li></ul></li><li>two</li></ul>");
+  const numbers = item(1, "5.", "x", "l1") + item(2, "a.", "y", "l1") + item(3, "iii.", "z", "l1");
+  assert.equal(paste(numbers), '<ol start="5"><li>x<ol style="list-style-type: lower-alpha;"><li>y<ol start="3" style="list-style-type: lower-roman;"><li>z</li></ol></li></ol></li></ol>');
+  // Different list identifiers are different lists.
+  assert.equal(paste(item(1, "1.", "a", "l1") + item(1, "1.", "b", "l2")), "<ol><li>a</li></ol><ol><li>b</li></ol>");
+});
+
+test("a list marker survives as text when the wrapper that marks it is gone", () => {
+  const html = "<p style='mso-list:l0 level1 lfo1'>1.&nbsp;&nbsp;&nbsp;first</p><p style='mso-list:l0 level1 lfo1'>2.&nbsp;&nbsp;&nbsp;second</p>";
+  assert.equal(paste(html), "<ol><li>first</li><li>second</li></ol>");
+});
+
+test("a paragraph that declares itself a heading is a heading", () => {
+  assert.equal(paste('<p role="heading" aria-level="2"><span style="font-weight:bold">T</span></p><p>b</p>'), "<h2>T</h2><p>b</p>");
+});
+
+test("list markers from a word processor on the web come from its definition attribute", () => {
+  const li = (level: number, defn: string, text: string): string =>
+    `<ul role="list"><li data-aria-level="${level}" data-listid="9" data-list-defn-props='${defn}'>${text}</li></ul>`;
+  const html = li(1, '{"469769242":[8226]}', "a") + li(2, '{"469769242":[9675]}', "b") + li(2, '{"469769242":[9675]}', "c");
+  assert.equal(paste(html), "<ul><li>a<ul><li>b</li><li>c</li></ul></li></ul>");
+  const ol = '<ol role="list" start="3"><li data-aria-level="1" data-listid="4" data-list-defn-props=\'{"469769242":[65533,4]}\'>x</li></ol>';
+  assert.equal(paste(ol), '<ol start="3" style="list-style-type: lower-alpha;"><li>x</li></ol>');
+});
+
+test("underline inside a link is the link's styling even when the link's address was dropped", () => {
+  assert.equal(paste('<a href="file:///C:/x.docx"><span style="text-decoration:underline">word</span></a>'), "<p>word</p>");
+});

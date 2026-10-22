@@ -7,7 +7,9 @@
   "homepage": "https://rathkit.com",
   "type": "module",
   "sideEffects": false,
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -16,7 +18,10 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.model.json && tsc -p tsconfig.json --noEmit",
     "test": "node --test \"src/**/*.test.ts\""
+  },
+  "rathkit": {
+    "budgetGzipKB": 60
   }
 }
