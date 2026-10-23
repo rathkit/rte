@@ -38,6 +38,8 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - run: pnpm check:size
+      # What would be published: packed, installed together from the tarballs, imported and type-checked. Nothing is published.
+      - run: pnpm check:packages
 
   browsers:
     runs-on: ubuntu-latest

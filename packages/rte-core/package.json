@@ -5,10 +5,19 @@
   "description": "Document model, transforms, commands, view layer and plugin API for Rathkit RTE.",
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rathkit/rte.git",
+    "directory": "packages/rte-core"
+  },
+  "bugs": {
+    "url": "https://github.com/rathkit/rte/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "exports": {
     ".": {

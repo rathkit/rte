@@ -4,6 +4,6 @@
     "emitDeclarationOnly": false,
     "declaration": false,
     "removeComments": true,
-    "sourceMap": true
+    "sourceMap": false
   }
 }

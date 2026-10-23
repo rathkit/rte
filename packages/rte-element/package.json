@@ -5,12 +5,21 @@
   "description": "The editor as a custom element, <rk-editor>, for any page or framework: form-associated, with properties, attributes and events.",
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rathkit/rte.git",
+    "directory": "packages/rte-element"
+  },
+  "bugs": {
+    "url": "https://github.com/rathkit/rte/issues"
+  },
   "type": "module",
   "sideEffects": [
     "./dist/define.js"
   ],
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "exports": {
     ".": {

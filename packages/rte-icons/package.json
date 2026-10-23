@@ -5,10 +5,19 @@
   "description": "The icons the editor interface uses, one SVG string each.",
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rathkit/rte.git",
+    "directory": "packages/rte-icons"
+  },
+  "bugs": {
+    "url": "https://github.com/rathkit/rte/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "exports": {
     ".": {

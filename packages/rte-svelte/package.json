@@ -5,10 +5,19 @@
   "description": "The editor for Svelte: stores and an action over the headless layer, with no editor or accessibility logic of its own.",
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rathkit/rte.git",
+    "directory": "packages/rte-svelte"
+  },
+  "bugs": {
+    "url": "https://github.com/rathkit/rte/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.map"
   ],
   "exports": {
     ".": {

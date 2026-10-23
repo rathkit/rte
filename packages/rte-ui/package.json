@@ -5,13 +5,22 @@
   "description": "The styled editor interface: a toolbar and dialogs on the headless layer, themeable with tokens, presets, icons and messages.",
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rathkit/rte.git",
+    "directory": "packages/rte-ui"
+  },
+  "bugs": {
+    "url": "https://github.com/rathkit/rte/issues"
+  },
   "type": "module",
   "sideEffects": [
     "*.css"
   ],
   "files": [
     "dist",
-    "css"
+    "css",
+    "!dist/**/*.map"
   ],
   "exports": {
     ".": {
