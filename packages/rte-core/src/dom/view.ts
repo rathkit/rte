@@ -44,6 +44,10 @@ export class Editor {
   private readonly observer = new MutationObserver((records) => {
     for (const record of records) {
       let node: Node | null = record.target;
+      // Inside a table the cells around the change are marked too, so only they are drawn again, not the whole table.
+      for (let up: Node | null = node; up && up !== this.element; up = up.parentNode) {
+        if (up instanceof HTMLElement && (up.tagName === "TD" || up.tagName === "TH")) this.renderCache.dirty.add(up);
+      }
       while (node && node.parentNode !== this.element) node = node.parentNode;
       if (node) this.renderCache.dirty.add(node);
     }

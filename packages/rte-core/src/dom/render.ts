@@ -1,7 +1,7 @@
 // Draws a document into a DOM element, and maps between DOM selections and document positions.
 // Every container (paragraph, heading, code block, list item) carries `data-rte="<path>"`; that is how the
 // view finds a container again. The attributes live only in the editing surface, never in saved HTML.
-import type { Block, Doc, Inline, List, Mark } from "../model.ts";
+import type { Block, Doc, Inline, List, Mark, TableCell } from "../model.ts";
 import { pathKey, type Path, type Pos } from "../path.ts";
 
 const BLOCK_TAGS = new Set(["UL", "OL", "DL", "DT", "DD", "TABLE", "P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE", "HR", "LI"]);
@@ -86,7 +86,7 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
   return el;
 }
 
-function renderBlock(block: Block, path: readonly number[], options: RenderOptions): HTMLElement {
+function renderBlock(block: Block, path: readonly number[], options: RenderOptions, cache?: RenderCache): HTMLElement {
   switch (block.type) {
     case "p": case "h": {
       const el = tag(block.type === "p" ? "p" : `h${block.level}`, path);
@@ -112,24 +112,49 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
     }
     case "quote": {
       const el = document.createElement("blockquote");
-      block.blocks.forEach((inner, n) => el.appendChild(renderBlock(inner, [...path, n], options)));
+      block.blocks.forEach((inner, n) => el.appendChild(renderBlock(inner, [...path, n], options, cache)));
       return el;
     }
     case "table": {
-      const table = document.createElement("table");
-      const body = document.createElement("tbody");
-      block.rows.forEach((row, r) => {
+      // An edit to a table changes one cell and the row and table around it; the rest keeps its elements, so the browser has no reason
+      // to lay out the whole table again. The table's own element is found through a cell that did not change.
+      const claimed = cache?.claimed;
+      const where = path.join(",");
+      let table: HTMLElement | undefined;
+      for (const row of block.rows) {
+        for (const cell of row) {
+          const found = cache?.cells.get(cell)?.el.closest("table");
+          if (found && !claimed?.has(found) && !cache?.dirty.has(found)) { table = found; break; }
+        }
+        if (table) break;
+      }
+      table ??= document.createElement("table");
+      claimed?.add(table);
+      let body = table.querySelector(":scope > tbody") as HTMLElement | null;
+      if (!body) table.appendChild((body = document.createElement("tbody")));
+      const trs = block.rows.map((row, r) => {
+        const rowKey = `${where},${r}|${options.loadRemoteImages}`;
+        const kept = cache?.rows.get(row);
+        if (kept && kept.key === rowKey && !claimed?.has(kept.el) && !cache?.dirty.has(kept.el)) { claimed?.add(kept.el); return kept.el; }
         const tr = document.createElement("tr");
-        row.forEach((cell, c) => {
+        const tds = row.map((cell, c) => {
+          const key = `${where},${r},${c}|${options.loadRemoteImages}`;
+          const hit = cache?.cells.get(cell);
+          if (hit && hit.key === key && !claimed?.has(hit.el) && !cache?.dirty.has(hit.el)) { claimed?.add(hit.el); return hit.el; }
           const td = document.createElement(cell.header ? "th" : "td");
           if (cell.colspan > 1) td.setAttribute("colspan", String(cell.colspan));
           if (cell.rowspan > 1) td.setAttribute("rowspan", String(cell.rowspan));
-          cell.blocks.forEach((inner, n) => td.appendChild(renderBlock(inner, [...path, r, c, n], options)));
-          tr.appendChild(td);
+          cell.blocks.forEach((inner, n) => td.appendChild(renderBlock(inner, [...path, r, c, n], options, cache)));
+          cache?.cells.set(cell, { el: td, key });
+          claimed?.add(td);
+          return td;
         });
-        body.appendChild(tr);
+        reconcile(tr, tds);
+        cache?.rows.set(row, { el: tr, key: rowKey });
+        claimed?.add(tr);
+        return tr;
       });
-      table.appendChild(body);
+      reconcile(body, trs);
       return table;
     }
     case "hr": {
@@ -140,13 +165,30 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
   }
 }
 
+/** Makes the children of `parent` be `wanted`, in order, touching only what differs. */
+function reconcile(parent: Node, wanted: readonly Node[]): void {
+  const keep = new Set<Node>(wanted);
+  for (const node of [...parent.childNodes]) if (!keep.has(node)) parent.removeChild(node);
+  let cursor: ChildNode | null = parent.firstChild;
+  for (const el of wanted) {
+    if (cursor === el) cursor = cursor.nextSibling;
+    else parent.insertBefore(el, cursor);
+  }
+}
+
 /** Remembers the drawn element of each top-level block, so an unchanged block is not drawn again. */
 export interface RenderCache {
   readonly drawn: WeakMap<Block, HTMLElement>;
   /** Top-level elements something other than the editor changed (an extension, an input method). They are drawn again. */
   readonly dirty: Set<Node>;
+  /** The drawn element of each table cell, with the place it was drawn for. */
+  readonly cells: WeakMap<TableCell, { readonly el: HTMLElement; readonly key: string }>;
+  /** The drawn element of each table row. */
+  readonly rows: WeakMap<readonly TableCell[], { readonly el: HTMLElement; readonly key: string }>;
+  /** Table elements already used in the drawing in progress, so one element is never put in two places. */
+  readonly claimed: Set<Node>;
 }
-export const createRenderCache = (): RenderCache => ({ drawn: new WeakMap(), dirty: new Set() });
+export const createRenderCache = (): RenderCache => ({ drawn: new WeakMap(), dirty: new Set(), cells: new WeakMap(), rows: new WeakMap(), claimed: new Set() });
 
 /**
  * Draws the document into `root`. Blocks that are the same objects as last time, and are untouched, are kept as
@@ -154,10 +196,11 @@ export const createRenderCache = (): RenderCache => ({ drawn: new WeakMap(), dir
  * the cost of an edit is the blocks it changed, wherever they sit and however many blocks follow them.
  */
 export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = { loadRemoteImages: false }, cache: RenderCache = createRenderCache()): void {
+  cache.claimed.clear();
   const wanted: HTMLElement[] = doc.blocks.map((block, b) => {
     const hit = cache.drawn.get(block);
     if (hit && !cache.dirty.has(hit) && hit.getAttribute("data-rte-remote") === String(options.loadRemoteImages)) return hit;
-    const el = renderBlock(block, [b], options);
+    const el = renderBlock(block, [b], options, cache);
     el.setAttribute("data-rte-remote", String(options.loadRemoteImages));
     if (doc.blocks.length > LARGE_DOCUMENT) {
       // Off-screen blocks skip layout and paint, which is most of the cost of a long document. They stay searchable and selectable.
@@ -168,6 +211,7 @@ export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = 
     return el;
   });
   cache.dirty.clear();
+  cache.claimed.clear();
   // Bring the root's children into line with `wanted`, moving as little as possible: first drop what is no longer
   // wanted, then walk both lists together, inserting only what is new or has moved.
   const keep = new Set<Node>(wanted);

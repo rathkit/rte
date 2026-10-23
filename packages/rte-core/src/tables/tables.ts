@@ -2,7 +2,7 @@
 // the document, like the other edit operations. A cell can span rows and columns, so every change works on a grid of placed cells (each
 // cell with the row and column where it starts) and is turned back into rows afterwards.
 import type { Block, Doc, Table, TableCell } from "../model.ts";
-import { caret, containerPaths, fixup, getBlock, mapBlockList, type EditResult, type Path, type Selection } from "../path.ts";
+import { caret, containerPaths, fixup, getBlock, mapBlockList, pathKey, type EditResult, type Path, type Selection } from "../path.ts";
 
 interface Placed {
   readonly cell: TableCell;
@@ -176,6 +176,90 @@ export function deleteColumn(doc: Doc, sel: Selection): EditResult {
       else cells.push(p.col > c ? { ...p, col: p.col - 1 } : p);
     }
     return { grid: { cells, rows: grid.rows, cols: grid.cols - 1 }, target: { row: at.row, col: Math.min(c, grid.cols - 2) } };
+  });
+}
+
+// ---- merging and splitting --------------------------------------------------------------------------------
+
+interface Rect { readonly top: number; readonly left: number; readonly bottom: number; readonly right: number }
+
+const extent = (p: Placed): Rect => ({ top: p.row, left: p.col, bottom: p.row + p.cell.rowspan - 1, right: p.col + p.cell.colspan - 1 });
+const meets = (a: Rect, b: Rect): boolean => a.top <= b.bottom && b.top <= a.bottom && a.left <= b.right && b.left <= a.right;
+
+/** The smallest rectangle of whole cells that holds both of the cells the selection starts and ends in. */
+function selectedRect(grid: Grid, a: Placed, b: Placed): Rect {
+  let rect: Rect = {
+    top: Math.min(a.row, b.row), left: Math.min(a.col, b.col),
+    bottom: Math.max(extent(a).bottom, extent(b).bottom), right: Math.max(extent(a).right, extent(b).right),
+  };
+  // A cell that sticks out of the rectangle pulls the rectangle out to take it in whole.
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const p of grid.cells) {
+      const e = extent(p);
+      if (!meets(rect, e)) continue;
+      const next = { top: Math.min(rect.top, e.top), left: Math.min(rect.left, e.left), bottom: Math.max(rect.bottom, e.bottom), right: Math.max(rect.right, e.right) };
+      if (next.top !== rect.top || next.left !== rect.left || next.bottom !== rect.bottom || next.right !== rect.right) { rect = next; grew = true; }
+    }
+  }
+  return rect;
+}
+
+/** The two cells a selection runs between, when they are in one table, with the table's grid. */
+function selectedCells(doc: Doc, sel: Selection): { where: Where; grid: Grid; rect: Rect; count: number } | undefined {
+  const a = locate(doc, sel.anchor.path);
+  const b = locate(doc, sel.focus.path);
+  if (!a || !b || pathKey(a.table) !== pathKey(b.table)) return undefined;
+  const table = getBlock(doc, a.table);
+  if (table?.type !== "table") return undefined;
+  const grid = toGrid(table);
+  const rect = selectedRect(grid, a.placed, b.placed);
+  return { where: a, grid, rect, count: grid.cells.filter((p) => meets(rect, extent(p))).length };
+}
+
+/** Whether the selection covers more than one cell, so the cells could be merged. */
+export function canMerge(doc: Doc, sel: Selection): boolean {
+  return (selectedCells(doc, sel)?.count ?? 0) > 1;
+}
+
+/** Whether the cell at the caret spans more than one row or column, so it could be split. */
+export function canSplit(doc: Doc, path: Path): boolean {
+  const here = locate(doc, path);
+  return here !== undefined && (here.placed.cell.colspan > 1 || here.placed.cell.rowspan > 1);
+}
+
+const blankParagraph = (block: Block): boolean => block.type === "p" && block.content.length === 0;
+
+/** Joins the cells the selection runs across (the whole rectangle of them) into one that spans them, keeping their content in reading order. */
+export function mergeCells(doc: Doc, sel: Selection): EditResult {
+  const found = selectedCells(doc, sel);
+  if (!found || found.count < 2) return { doc, selection: sel };
+  const { grid, rect, where } = found;
+  const inside = grid.cells.filter((p) => meets(rect, extent(p))).sort((x, y) => x.row - y.row || x.col - y.col);
+  const first = inside[0] as Placed;
+  const kept = inside.flatMap((p) => p.cell.blocks.filter((b) => !blankParagraph(b)));
+  const merged: Placed = {
+    row: rect.top, col: rect.left,
+    cell: { header: first.cell.header, colspan: rect.right - rect.left + 1, rowspan: rect.bottom - rect.top + 1, blocks: kept.length > 0 ? kept : first.cell.blocks },
+  };
+  const grid2: Grid = { ...grid, cells: [...grid.cells.filter((p) => !meets(rect, extent(p))), merged] };
+  const next = replaceTable(doc, where.table, fromGrid(grid2));
+  const cell = cellCovering(grid2, rect.top, rect.left);
+  const path = cell && firstContainerIn(next, where.table, cell.row, cell.index);
+  return { doc: next, selection: path ? caret({ path, offset: 0 }) : sel };
+}
+
+/** Cuts the cell at the caret back into single cells: it keeps its content in the top left one, and the rest are blank. */
+export function splitCell(doc: Doc, sel: Selection): EditResult {
+  return edit(doc, sel, (grid, at) => {
+    if (at.cell.colspan === 1 && at.cell.rowspan === 1) return undefined;
+    const cells: Placed[] = grid.cells.filter((p) => p.row !== at.row || p.col !== at.col);
+    for (let r = at.row; r < at.row + at.cell.rowspan; r++) {
+      for (let c = at.col; c < at.col + at.cell.colspan; c++) {
+        cells.push(r === at.row && c === at.col ? { ...at, cell: { ...at.cell, colspan: 1, rowspan: 1 } } : { cell: blankCell(at.cell.header), row: r, col: c });
+      }
+    }
+    return { grid: { ...grid, cells }, target: { row: at.row, col: at.col } };
   });
 }
 

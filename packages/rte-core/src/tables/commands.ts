@@ -2,7 +2,7 @@
 import type { CommandDef } from "../commands.ts";
 import type { EditorSnapshot } from "../engine.ts";
 import type { KeyBinding } from "../keymap.ts";
-import { deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, moveToCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
+import { canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -27,6 +27,8 @@ export function tableCommands(): readonly Def[] {
       run: (ctx) => ctx.apply("table", toggleHeaderRow),
       state: (s) => ({ enabled: here(s), active: hasHeaderRow(s.doc, s.selection.focus.path) }),
     }),
+    def<void, never>({ name: "table.mergeCells", label: "Merge cells", run: (ctx) => ctx.apply("table", mergeCells), state: (s) => ({ enabled: canMerge(s.doc, s.selection) }) }),
+    def<void, never>({ name: "table.splitCell", label: "Split cell", run: (ctx) => ctx.apply("table", splitCell), state: (s) => ({ enabled: canSplit(s.doc, s.selection.focus.path) }) }),
     // Moving only: they leave the document alone unless the caret passes the last cell, where a row is added.
     def<void, never>({
       name: "table.nextCell", label: "Next cell",

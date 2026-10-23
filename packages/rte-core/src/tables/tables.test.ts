@@ -141,3 +141,55 @@ test("Tab and Shift+Tab move between cells; past the last cell a row is added; i
   assert.equal(inList.handleKey({ key: "Tab", ctrlKey: false, metaKey: false, altKey: false, shiftKey: false }), true);
   assert.match(exportHtml(inList.document), /<ul><li>one<ul><li>two<\/li><\/ul><\/li><\/ul>/);
 });
+
+const across = (e: ReturnType<typeof make>, from: [number, number], to: [number, number]) => {
+  const table = e.document.blocks.findIndex((b) => b.type === "table");
+  const find = ([r, c]: [number, number]) => containerPaths(e.document).find((p) => p[0] === table && p[1] === r && p[2] === c) as number[];
+  e.setSelection({ anchor: { path: find(from), offset: 0 }, focus: { path: find(to), offset: 0 } });
+};
+
+test("merge: the rectangle of cells becomes one cell that spans them, with their content in reading order", () => {
+  const e = make(cells([["a", "b"], ["c", "d"]]));
+  across(e, [0, 0], [1, 1]);
+  assert.equal(e.commands.state("table.mergeCells").enabled, true);
+  e.commands.run("table.mergeCells");
+  assert.equal(html(e), `<table><tbody><tr><td colspan="2" rowspan="2"><p>a</p><p>b</p><p>c</p><p>d</p></td></tr><tr></tr></tbody></table>`);
+  assert.deepEqual(e.selection.focus.path, [0, 0, 0, 0]);
+  e.undo();
+  assert.equal(html(e), cells([["a", "b"], ["c", "d"]]));
+  const row = make(cells([["a", "b", "c"], ["d", "e", "f"]]));
+  across(row, [0, 0], [0, 1]);
+  row.commands.run("table.mergeCells");
+  assert.equal(html(row), `<table><tbody><tr><td colspan="2"><p>a</p><p>b</p></td><td>c</td></tr><tr><td>d</td><td>e</td><td>f</td></tr></tbody></table>`);
+});
+
+test("merge skips empty cells, and takes in any spanning cell the rectangle cuts through", () => {
+  const e = make(cells([["a", ""], ["", "d"]]));
+  across(e, [0, 0], [0, 1]);
+  e.commands.run("table.mergeCells");
+  assert.equal(html(e), `<table><tbody><tr><td colspan="2">a</td></tr><tr><td></td><td>d</td></tr></tbody></table>`);
+  const cut = make(`<table><tbody><tr><td colspan="2">a</td></tr><tr><td>b</td><td>c</td></tr></tbody></table>`);
+  across(cut, [0, 0], [1, 0]);
+  cut.commands.run("table.mergeCells");
+  assert.equal(html(cut), `<table><tbody><tr><td colspan="2" rowspan="2"><p>a</p><p>b</p><p>c</p></td></tr><tr></tr></tbody></table>`);
+});
+
+test("split: a spanning cell goes back to single cells, the content stays in the first", () => {
+  const e = make(`<table><tbody><tr><td colspan="2" rowspan="2"><p>a</p><p>b</p></td><td>x</td></tr><tr><td>y</td></tr></tbody></table>`);
+  inCell(e, 0, 0);
+  assert.equal(e.commands.state("table.splitCell").enabled, true);
+  e.commands.run("table.splitCell");
+  assert.equal(html(e), `<table><tbody><tr><td><p>a</p><p>b</p></td><td></td><td>x</td></tr><tr><td></td><td></td><td>y</td></tr></tbody></table>`);
+  assert.equal(e.commands.state("table.splitCell").enabled, false, "a single cell cannot be split");
+});
+
+test("merge needs a selection across cells of one table; with a caret it is off", () => {
+  const e = make(`<p>x</p>${cells([["a", "b"]])}`);
+  inCell(e, 0, 0);
+  assert.equal(e.commands.state("table.mergeCells").enabled, false);
+  assert.equal(e.commands.run("table.mergeCells"), false);
+  const two = make(`${cells([["a"]])}${cells([["b"]])}`);
+  const paths = containerPaths(two.document);
+  two.setSelection({ anchor: { path: paths[0] as number[], offset: 0 }, focus: { path: paths[1] as number[], offset: 0 } });
+  assert.equal(two.commands.state("table.mergeCells").enabled, false, "two different tables");
+});

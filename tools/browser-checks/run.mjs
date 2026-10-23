@@ -718,6 +718,27 @@ for (const [name, type] of engines) {
     run("pasteTop", () => at(2, 3), () => ed.paste({ text: "one\n\ntwo\n\nthree" }));
     return out;
   }, count);
+  // A big table: typing in one cell must not redraw the whole table.
+  const measureTable = (rows, cols) => t.page.evaluate(([r, c]) => {
+    const cell = (i, j) => `<td>Cell ${i}-${j} with <strong>bold</strong> and <em>italic</em> words</td>`;
+    const html = `<table><tbody>${Array.from({ length: r }, (_, i) => `<tr>${Array.from({ length: c }, (_, j) => cell(i, j)).join("")}</tr>`).join("")}</tbody></table><p>after</p>`;
+    const el = document.getElementById("ed");
+    const time = (fn) => { const s = performance.now(); fn(); el.getBoundingClientRect(); return performance.now() - s; };
+    const p95 = (xs) => xs.slice().sort((a, b) => a - b)[Math.ceil(xs.length * 0.95) - 1];
+    const out = { set: time(() => window.__editor.setHtml(html)) };
+    const tagged = [...el.querySelectorAll("td")];
+    tagged.forEach((td) => { td.__kept = true; });
+    const tableEl = el.querySelector("table");
+    const xs = [];
+    for (let i = 0; i < 20; i++) {
+      window.__conf.select({ start: `tr:nth-child(${Math.floor(r / 2)}) td:nth-child(${Math.floor(c / 2)}) p`, so: 3, eo: 3 });
+      xs.push(time(() => el.dispatchEvent(new InputEvent("beforeinput", { inputType: "insertText", data: "x", bubbles: true, cancelable: true }))));
+    }
+    out.type = p95(xs);
+    out.sameTable = el.querySelector("table") === tableEl;
+    out.redrawn = [...el.querySelectorAll("td")].filter((td) => !td.__kept).length;
+    return out;
+  }, [rows, cols]);
   // Moving the caret with every command's button subscribed (about twenty of them), as a toolbar would be.
   const caretMoves = (count) => t.page.evaluate(async (n) => {
     const ed = window.__editor;
@@ -752,6 +773,10 @@ for (const [name, type] of engines) {
         check(`speed: ${n} paragraphs, set content within ${setBudget} ms`, r.set <= setBudget * scale, r);
       }
     }
+    const table = await measureTable(50, 10);
+    console.log(`speed${label} table of 500 cells: set ${table.set.toFixed(1)} ms, type in one cell p95 ${table.type.toFixed(1)} ms`);
+    if (rate === 1) check("speed: typing in a cell of a 500-cell table within 10 ms (p95)", table.type <= 10 * scale, table);
+    if (rate === 1) check("speed: typing in a cell keeps the table and every other cell as drawn", table.sameTable && table.redrawn === 1, table);
   }
   await t.browser.close();
 }
