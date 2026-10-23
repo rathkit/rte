@@ -22,6 +22,10 @@
     "test": "node --test \"src/**/*.test.ts\""
   },
   "rathkit": {
-    "budgetGzipKB": 60
+    "budgetGzipKB": 60,
+    "plugins": [
+      "lists"
+    ],
+    "standard": []
   }
 }

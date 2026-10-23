@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { caret, deleteBackward, splitBlock } from "./edit.ts";
-import { exportHtml } from "./export.ts";
-import { importHtml } from "./import.ts";
-import { indentItems, listShortcut, outdentItems, toggleList } from "./lists.ts";
-import { containerPaths, type Selection } from "./path.ts";
+import { caret, deleteBackward as coreBackward, insertBlocks as coreInsert, splitBlock as coreSplit } from "../edit.ts";
+import { exportHtml } from "../export.ts";
+import { importHtml } from "../import.ts";
+import { importText } from "../import.ts";
+import { definitionBehavior } from "./definitions.ts";
+import { indentItems, listBehavior, listShortcut, outdentItems, toggleList } from "./lists.ts";
+import { containerPaths, type Selection } from "../path.ts";
 
+const behaviors = { li: listBehavior, dt: definitionBehavior, dd: definitionBehavior };
+const splitBlock = (d: Parameters<typeof coreSplit>[0], s: Parameters<typeof coreSplit>[1]) => coreSplit(d, s, behaviors);
+const deleteBackward = (d: Parameters<typeof coreSplit>[0], s: Parameters<typeof coreSplit>[1]) => coreBackward(d, s, behaviors);
+const insertBlocks = (d: Parameters<typeof coreInsert>[0], s: Parameters<typeof coreInsert>[1], b: Parameters<typeof coreInsert>[2]) => coreInsert(d, s, b, behaviors);
 const doc = (html: string) => importHtml(html);
 const at = (path: number[], offset = 0) => caret({ path, offset });
 const range = (a: number[], b: number[], bo = 1): Selection => ({ anchor: { path: a, offset: 0 }, focus: { path: b, offset: bo } });
@@ -150,4 +156,11 @@ test("with a selection every selected line moves out together, and the top one s
 test("taking an item out with the list toggle leaves what was under it where it was", () => {
   assert.equal(html(toggleList(doc("<ul><li>a</li><li>b<ul><li>b1</li></ul></li></ul>"), at([0, 1], 1), "ul")),
     `<ul><li>a</li></ul><p>b</p><ul><li${NONE}><ul><li>b1</li></ul></li></ul>`);
+});
+
+test("Enter in an item adds one; pasting paragraphs into an item adds items", () => {
+  const r = splitBlock(doc("<ul><li>ab</li><li>cd</li></ul>"), at([0, 0], 1));
+  assert.equal(html(r), "<ul><li>a</li><li>b</li><li>cd</li></ul>");
+  assert.deepEqual(r.selection.focus, { path: [0, 1], offset: 0 });
+  assert.equal(html(insertBlocks(doc("<ul><li>ab</li></ul>"), at([0, 0], 1), importText("1\n\n2"))), "<ul><li>a1</li><li>2b</li></ul>");
 });

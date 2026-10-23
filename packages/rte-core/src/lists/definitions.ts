@@ -1,10 +1,11 @@
 // Definition lists: a term (`dt`) followed by the details (`dd`) that describe it. Pure functions over the document.
+import type { ContainerBehavior } from "../behaviors.ts";
 import { takeOutOfList } from "./lists.ts";
-import { normalizeInline, type Block, type DefinitionEntry, type DefinitionList, type Doc, type Inline } from "./model.ts";
+import { normalizeInline, type Block, type DefinitionEntry, type DefinitionList, type Doc, type Inline } from "../model.ts";
 import {
   caret, clampPos, containerPaths, selectedContainers, fixup, getBlock, getContent, kindAt, mapBlockList, pathKey,
   type EditResult, type Path, type Pos, type Selection,
-} from "./path.ts";
+} from "../path.ts";
 
 const blockPathOf = (entryPath: Path): Path => entryPath.slice(0, -1);
 const indexOf = (entryPath: Path): number => entryPath.at(-1) as number;
@@ -20,14 +21,6 @@ export const inDefinitionList = (doc: Doc, path: Path): boolean => {
 
 const replaceBlock = (doc: Doc, path: Path, blocks: readonly Block[]): Doc =>
   fixup(mapBlockList(doc, path, (list, index) => [...list.slice(0, index), ...blocks, ...list.slice(index + 1)]));
-
-/** Removes one entry from its list. A list with no entries left goes too. */
-export function removeEntry(doc: Doc, entryPath: Path): Doc {
-  const dl = dlAt(doc, entryPath);
-  if (!dl) return doc;
-  const entries = dl.entries.filter((_, i) => i !== indexOf(entryPath));
-  return replaceBlock(doc, blockPathOf(entryPath), entries.length > 0 ? [{ ...dl, entries }] : []);
-}
 
 /** Turns one entry into a paragraph, splitting the list around it. */
 export function takeOutOfDefinitionList(doc: Doc, entryPath: Path): Doc {
@@ -184,3 +177,10 @@ export function insertIntoEntry(doc: Doc, pos: Pos, blocks: readonly Block[], be
   const length = last.reduce((n, node) => n + (node.type === "text" ? node.text.length : 1), 0);
   return { doc: next, selection: caret({ path: [...blockPathOf(pos.path), i + rows.length - 1], offset: length }) };
 }
+
+/** What Enter, Backspace and paste do inside a definition list. Plugins register it for the `dt` and `dd` containers. */
+export const definitionBehavior: ContainerBehavior = {
+  split: (doc, pos) => splitEntry(doc, pos),
+  backspaceAtStart: backspaceAtEntryStart,
+  insertBlocks: insertIntoEntry,
+};

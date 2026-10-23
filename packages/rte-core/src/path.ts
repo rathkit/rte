@@ -288,3 +288,13 @@ export function selectedContainers(doc: Doc, sel: Selection): Path[] {
   const [a, b] = comparePath(sel.anchor.path, sel.focus.path) <= 0 ? [sel.anchor, sel.focus] : [sel.focus, sel.anchor];
   return containerPaths(doc).filter((p) => comparePath(p, a.path) >= 0 && comparePath(p, b.path) <= 0);
 }
+
+/** Removes one entry from a definition list. A list with no entries left goes too. */
+export function removeEntry(doc: Doc, entryPath: Path): Doc {
+  const blockPath = entryPath.slice(0, -1);
+  const index = entryPath.at(-1) as number;
+  const dl = getBlock(doc, blockPath);
+  if (dl?.type !== "dl") return doc;
+  const entries = dl.entries.filter((_, i) => i !== index);
+  return fixup(mapBlockList(doc, blockPath, (blocks, at) => [...blocks.slice(0, at), ...(entries.length > 0 ? [{ ...dl, entries }] : []), ...blocks.slice(at + 1)]));
+}

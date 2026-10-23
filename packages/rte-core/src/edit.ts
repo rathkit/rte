@@ -3,10 +3,9 @@
 import {
   inlineLength, inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
 } from "./model.ts";
-import { backspaceAtEntryStart, insertIntoEntry, removeEntry, splitEntry } from "./definitions.ts";
-import { backspaceAtItemStart, leaveListItem } from "./lists.ts";
+import type { Behaviors, ContainerKind } from "./behaviors.ts";
 import {
-  blockContainers, caret, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, setContent,
+  blockContainers, caret, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, setContent,
   type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -129,7 +128,14 @@ export function insertLineBreak(doc: Doc, sel: Selection): EditResult {
 
 // ---- Enter ------------------------------------------------------------------------------------------------
 
-export function splitBlock(doc: Doc, sel: Selection): EditResult {
+/** The behavior a plugin gave for a container, if the container is one a plugin owns. */
+const behaviorOf = (behaviors: Behaviors | undefined, kind: string | undefined) => (kind === "li" || kind === "dt" || kind === "dd" ? behaviors?.[kind as ContainerKind] : undefined);
+
+/**
+ * Enter. Without a plugin that owns the container, Enter in a list item or definition entry inserts a line break: the structure
+ * is left alone.
+ */
+export function splitBlock(doc: Doc, sel: Selection, behaviors?: Behaviors): EditResult {
   const cleared = deleteSelection(doc, sel);
   const pos = cleared.selection.anchor;
   const d = cleared.doc;
@@ -140,25 +146,7 @@ export function splitBlock(doc: Doc, sel: Selection): EditResult {
   const ordinal = ordinalOf(d, pos.path);
 
   if (kind === "pre") return insertText(d, cleared.selection, "\n");
-  if (kind === "dt" || kind === "dd") return splitEntry(d, pos);
-
-  if (kind === "li") {
-    if (content.length === 0 && sublistsOf(d, pos.path) === 0) return leaveListItem(d, pos);
-    let moved = false;
-    const next = mapListOf(d, pos.path, (list, index) => {
-      moved = true;
-      const item = list.items[index];
-      if (!item) return list;
-      const items = list.items.flatMap((candidate, i) =>
-        i !== index ? [candidate] : [{ content: before, sublists: [] }, { content: after, sublists: item.sublists }]);
-      return { ...list, items };
-    });
-    if (!moved) return cleared;
-    const items = containerPaths(next);
-    // The new item may sit before nested containers, so look it up by order: it follows the old one directly.
-    const path = items[ordinal + 1] ?? pos.path;
-    return { doc: next, selection: caret({ path, offset: 0 }) };
-  }
+  if (kind === "li" || kind === "dt" || kind === "dd") return behaviorOf(behaviors, kind)?.split?.(d, pos) ?? insertLineBreak(d, cleared.selection);
 
   // Paragraphs and headings split in place. A heading split at its end continues as a paragraph.
   const continueAsParagraph = kind === "h" && after.length === 0;
@@ -170,20 +158,13 @@ export function splitBlock(doc: Doc, sel: Selection): EditResult {
   return { doc: next, selection: caret({ path: ordinalToPath(next, ordinal + 1), offset: 0 }) };
 }
 
-/** How many lists are nested under a list item. */
-function sublistsOf(doc: Doc, path: Path): number {
-  let found = 0;
-  mapListOf(doc, path, (list, index) => { found = list.items[index]?.sublists.length ?? 0; return list; });
-  return found;
-}
-
 // ---- Backspace and Delete ---------------------------------------------------------------------------------
 
-export function deleteBackward(doc: Doc, sel: Selection): EditResult {
+export function deleteBackward(doc: Doc, sel: Selection, behaviors?: Behaviors): EditResult {
   if (!isCollapsed(sel)) return deleteSelection(doc, sel);
   const pos = sel.anchor;
   if (pos.offset > 0) return deleteSelection(doc, { anchor: { path: pos.path, offset: pos.offset - 1 }, focus: pos });
-  const leaving = backspaceAtItemStart(doc, pos) ?? backspaceAtEntryStart(doc, pos);
+  const leaving = behaviorOf(behaviors, kindAt(doc, pos.path))?.backspaceAtStart?.(doc, pos);
   if (leaving) return leaving;
   const ordinal = ordinalOf(doc, pos.path);
   if (ordinal <= 0) return { doc, selection: sel };
@@ -216,12 +197,12 @@ function joinWithPrevious(doc: Doc, into: Path, from: Pos): EditResult {
 }
 
 /** Deletes back to the start of the previous word (or forward to the end of the next). At a block edge it joins blocks like Backspace. */
-export function deleteWord(doc: Doc, sel: Selection, direction: "backward" | "forward"): EditResult {
+export function deleteWord(doc: Doc, sel: Selection, direction: "backward" | "forward", behaviors?: Behaviors): EditResult {
   if (!isCollapsed(sel)) return deleteSelection(doc, sel);
   const pos = sel.anchor;
   const text = inlineText(getContent(doc, pos.path));
   if (direction === "backward") {
-    if (pos.offset === 0) return deleteBackward(doc, sel);
+    if (pos.offset === 0) return deleteBackward(doc, sel, behaviors);
     let i = pos.offset;
     while (i > 0 && /\s/.test(text[i - 1] as string)) i--;
     while (i > 0 && !/\s/.test(text[i - 1] as string)) i--;
@@ -297,7 +278,7 @@ const textBlock = (block: Block): block is Extract<Block, { type: "p" | "h" }> =
  * Inserts blocks at the caret, replacing the selection. A pasted paragraph that starts or ends the
  * insertion joins the text next to the caret. An empty target paragraph is replaced by the pasted blocks.
  */
-export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[]): EditResult {
+export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[], behaviors?: Behaviors): EditResult {
   if (blocks.length === 0) return { doc, selection: sel };
   const cleared = deleteSelection(doc, sel);
   const pos = cleared.selection.anchor;
@@ -312,8 +293,15 @@ export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[])
     const merged = normalizeInline([...before, ...only.content, ...after]);
     return { doc: setContent(d, pos.path, merged), selection: caret({ path: pos.path, offset: inlineLength(before) + inlineLength(only.content) }) };
   }
-  if (kindAt(d, pos.path) === "li") return insertIntoList(d, pos, blocks, before, after);
-  if (kindAt(d, pos.path) === "dt" || kindAt(d, pos.path) === "dd") return insertIntoEntry(d, pos, blocks, before, after);
+  const owner = kindAt(d, pos.path);
+  if (owner === "li" || owner === "dt" || owner === "dd") {
+    // A plugin that owns the container decides; without one, everything pasted becomes text in the container, one block per line.
+    const custom = behaviorOf(behaviors, owner)?.insertBlocks?.(d, pos, blocks, before, after);
+    if (custom) return custom;
+    const lines = blocks.flatMap((block): Inline[][] => (block.type === "p" || block.type === "h" ? [block.content as Inline[]] : []));
+    const joined = lines.flatMap((line, i): Inline[] => (i === 0 ? line : [{ type: "br" }, ...line]));
+    return { doc: setContent(d, pos.path, normalizeInline([...before, ...joined, ...after])), selection: caret({ path: pos.path, offset: inlineLength(before) + inlineLength(joined) }) };
+  }
   if (!inBlockList(d, pos.path)) return cleared;
 
   let target: Block | undefined;
@@ -360,32 +348,6 @@ export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[])
   return { doc: result, selection: caret({ path, offset }) };
 }
 
-function insertIntoList(doc: Doc, pos: Pos, blocks: readonly Block[], before: Inline[], after: Inline[]): EditResult {
-  // Pasted paragraphs become list items after the one holding the caret; the first joins it.
-  const texts = blocks.flatMap((block): Inline[][] =>
-    textBlock(block) ? [block.content as Inline[]] : block.type === "ul" || block.type === "ol" ? block.items.map((item) => item.content as Inline[]) : []);
-  if (texts.length === 0) return { doc, selection: caret(pos) };
-  const [first, ...others] = texts as [Inline[], ...Inline[][]];
-  const lastText = others.length > 0 ? (others[others.length - 1] as Inline[]) : first;
-  let landing = 0;
-  const next = mapListOf(doc, pos.path, (list, index) => {
-    const item = list.items[index];
-    if (!item) return list;
-    const rows = others.length === 0
-      ? [{ content: normalizeInline([...before, ...first, ...after]), sublists: item.sublists }]
-      : [
-          { content: normalizeInline([...before, ...first]), sublists: [] },
-          ...others.slice(0, -1).map((content) => ({ content, sublists: [] })),
-          { content: normalizeInline([...lastText, ...after]), sublists: item.sublists },
-        ];
-    landing = rows.length - 1;
-    return { ...list, items: [...list.items.slice(0, index), ...rows, ...list.items.slice(index + 1)] };
-  });
-  const base = ordinalOf(doc, pos.path);
-  const path = ordinalToPath(next, base + landing);
-  return { doc: next, selection: caret({ path, offset: inlineLength(lastText) }) };
-}
-
 /** Negative when `a` comes before `b` in reading order, positive when after, zero when equal. */
 export const comparePos = (_doc: Doc, a: Pos, b: Pos): number => comparePath(a.path, b.path) || a.offset - b.offset;
 
@@ -395,11 +357,11 @@ const MOVE_MARK = "\uFDD0";
  * Moves (or, with `copy`, copies) the selected content to `target`. A target inside the selection, or at
  * either of its edges, changes nothing. The target is marked in the text so it survives the removal of the source.
  */
-export function moveSelection(doc: Doc, source: Selection, target: Pos, copy: boolean): EditResult {
+export function moveSelection(doc: Doc, source: Selection, target: Pos, copy: boolean, behaviors?: Behaviors): EditResult {
   const { start, end } = order(doc, source);
   if (comparePos(doc, target, start) >= 0 && comparePos(doc, target, end) <= 0) return { doc, selection: source };
   const blocks = extractSelection(doc, source);
-  if (copy) return insertBlocks(doc, caret(target), blocks);
+  if (copy) return insertBlocks(doc, caret(target), blocks, behaviors);
 
   const marked = insertText(doc, caret(target), MOVE_MARK, []).doc;
   // The marker adds one character in the target's container, ahead of any source text that follows it there.
@@ -409,7 +371,7 @@ export function moveSelection(doc: Doc, source: Selection, target: Pos, copy: bo
   if (!where) return { doc, selection: source };
   const offset = inlineText(getContent(removed, where)).indexOf(MOVE_MARK);
   const cleaned = deleteSelection(removed, { anchor: { path: where, offset }, focus: { path: where, offset: offset + 1 } });
-  return insertBlocks(cleaned.doc, cleaned.selection, blocks);
+  return insertBlocks(cleaned.doc, cleaned.selection, blocks, behaviors);
 }
 
 /**

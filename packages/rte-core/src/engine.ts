@@ -1,5 +1,6 @@
 // The editor's state machine, with no DOM: the document, the selection, history, read-only and focus, as immutable
 // snapshots that can be subscribed to. The browser view drives this; so can a test, a server, or any other host.
+import type { Behaviors, ContainerBehavior, ContainerKind, TextTrigger } from "./behaviors.ts";
 import { CommandRegistry, type CommandDef, type Unsubscribe } from "./commands.ts";
 import { detectPlatform, Keymap, type KeyBinding, type KeyEventLike, type Platform } from "./keymap.ts";
 import { emptyDoc, type Doc } from "./model.ts";
@@ -25,8 +26,6 @@ export interface EngineOptions {
   readonly readOnly?: boolean;
   /** Decides what `Mod` means in key chords. Detected from the environment when not given. */
   readonly platform?: Platform;
-  /** Deepest allowed nesting of lists. Default: no limit. */
-  readonly maxListDepth?: number;
   /** Called with warnings meant for developers, such as two plugins claiming one key. Default: the console. */
   readonly onWarning?: (message: string) => void;
   /** The host calls this before the engine reads state it also tracks elsewhere (a DOM selection, say). */
@@ -51,9 +50,11 @@ const MAX_HISTORY = 200;
 export class Engine {
   readonly commands: CommandRegistry;
   readonly keymap: Keymap;
-  readonly settings: { maxListDepth: number };
   /** Handlers that see the raw clipboard before the built-in paste handling does. */
   readonly pasteHandlers: PasteHandler[] = [];
+  /** How plugins want Enter, Backspace and paste to work in the containers they own. Empty without plugins. */
+  readonly behaviors: Behaviors = {};
+  private readonly textTriggers: TextTrigger[] = [];
 
   private doc: Doc;
   private sel: Selection;
@@ -80,7 +81,6 @@ export class Engine {
     this.readOnlyMode = options.readOnly ?? false;
     this.beforeAccess = options.beforeAccess;
     this.focusRequest = options.focus;
-    this.settings = { maxListDepth: options.maxListDepth ?? Number.POSITIVE_INFINITY };
     this.warn = options.onWarning ?? ((message) => console.warn(`[rte] ${message}`));
     this.keymap = new Keymap(options.platform ?? detectPlatform(), this.warn);
     this.commands = new CommandRegistry(this);
@@ -261,6 +261,19 @@ export class Engine {
     return binding ? this.commands.run(binding.command, binding.arg) : false;
   }
 
+  /**
+   * Gives the text typed next to the caret to the plugins that watch for it (a list shortcut, say). Returns the result of the
+   * first one that takes over, or undefined when none does and the text should be inserted as usual.
+   */
+  triggerText(typed: string): EditResult | undefined {
+    this.refresh();
+    for (const trigger of this.textTriggers) {
+      const result = trigger(this.doc, this.sel, typed);
+      if (result) return result;
+    }
+    return undefined;
+  }
+
   /** Adds a plugin. Returns a function that takes everything it added away again. */
   use(plugin: Plugin): Unsubscribe {
     if (this.plugins.has(plugin.id)) throw new Error(`The plugin ${plugin.id} is already registered.`);
@@ -275,6 +288,15 @@ export class Engine {
       keybinding: (binding: KeyBinding) => {
         this.keymap.add(binding, plugin.id);
         undo.push(() => this.keymap.remove(binding.command));
+      },
+      behavior: (kind: ContainerKind, behavior: ContainerBehavior) => {
+        if (this.behaviors[kind]) throw new Error(`The container ${kind} already has a behavior; ${plugin.id} cannot add another.`);
+        this.behaviors[kind] = behavior;
+        undo.push(() => { delete this.behaviors[kind]; });
+      },
+      textTrigger: (trigger: TextTrigger) => {
+        this.textTriggers.push(trigger);
+        undo.push(() => { const i = this.textTriggers.indexOf(trigger); if (i !== -1) this.textTriggers.splice(i, 1); });
       },
       pasteHandler: (handler: PasteHandler) => {
         this.pasteHandlers.push(handler);

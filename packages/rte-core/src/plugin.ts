@@ -1,6 +1,7 @@
 // The plugin contract. A plugin never imports the editor at run time: it is handed the editor and a toolkit of the
 // editing operations when it is set up, and may import types from here for checking. EXPERIMENTAL: this surface can
 // still change until the same plugin has been shown to work with both a custom interface and the styled one.
+import type { ContainerBehavior, ContainerKind, TextTrigger } from "./behaviors.ts";
 import type { CommandDef, Unsubscribe } from "./commands.ts";
 import type { Engine } from "./engine.ts";
 import type { KeyBinding } from "./keymap.ts";
@@ -19,6 +20,10 @@ export interface PluginHost {
   command<A, V>(def: CommandDef<A, V>): void;
   keybinding(binding: KeyBinding): void;
   pasteHandler(handler: PasteHandler): void;
+  /** Takes over Enter, Backspace at the start, and paste inside a kind of container the plugin owns. One plugin per kind. */
+  behavior(kind: ContainerKind, behavior: ContainerBehavior): void;
+  /** Watches typed text before it is inserted, to turn a shortcut into something else. */
+  textTrigger(trigger: TextTrigger): void;
 }
 
 export interface Plugin {

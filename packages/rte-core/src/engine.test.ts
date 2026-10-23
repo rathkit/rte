@@ -7,10 +7,16 @@ import { Engine } from "./engine.ts";
 import { exportHtml } from "./export.ts";
 import { importHtml } from "./import.ts";
 import { Keymap } from "./keymap.ts";
+import { lists } from "./lists/index.ts";
 import { shout } from "./mentions.sample.ts";
 import { caret, type Selection } from "./path.ts";
 
-const engine = (html: string, options = {}) => createEngine({ doc: importHtml(html), platform: "other", onWarning: () => undefined, ...options });
+const engine = (html: string, options: { indentOnTab?: boolean; readOnly?: boolean; platform?: "apple" | "other" } = {}) => {
+  const { indentOnTab, ...rest } = options;
+  const e = createEngine({ doc: importHtml(html), platform: "other", onWarning: () => undefined, ...rest });
+  e.use(lists(indentOnTab === undefined ? {} : { indentOnTab }));
+  return e;
+};
 const tick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
 const html = (e: Engine) => exportHtml(e.document);
 const range = (a: number, b: number): Selection => ({ anchor: { path: [0], offset: a }, focus: { path: [0], offset: b } });

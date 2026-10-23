@@ -1,10 +1,12 @@
 // List commands: turning blocks into list items and back, moving items in and out, and the typed shortcuts.
 // Pure functions over the document, like the rest of the edit operations.
-import { inlineText, type Block, type Doc, type Inline, type List, type ListItem } from "./model.ts";
+import type { ContainerBehavior } from "../behaviors.ts";
+import { sliceInline } from "../edit.ts";
+import { inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type ListItem } from "../model.ts";
 import {
   caret, clampPos, containerPaths, selectedContainers, fixup, getBlock, getContent, isCollapsed, kindAt, mapBlockList, pathKey, setContent,
   type EditResult, type Path, type Pos, type Selection,
-} from "./path.ts";
+} from "../path.ts";
 
 export interface ListOptions {
   /** A `list-style-type` keyword such as `lower-alpha`. Applying the same list type with a different style changes the style. */
@@ -379,3 +381,56 @@ export function backspaceAtItemStart(doc: Doc, pos: Pos): EditResult | undefined
   if (!held || held.index !== 0) return undefined;
   return leaveListItem(doc, pos);
 }
+
+/** Enter in a list item: a new item below, or, on an empty item, out of the list. */
+export function splitListItem(doc: Doc, pos: Pos): EditResult | undefined {
+  const content = getContent(doc, pos.path);
+  const loc = locateItem(doc, pos.path);
+  const held = listOfItem(doc, pos.path);
+  const item = held?.list.items[held.index];
+  if (!loc || !item) return undefined;
+  if (content.length === 0 && item.sublists.length === 0) return leaveListItem(doc, pos);
+  const before = sliceInline(content, 0, pos.offset);
+  const after = sliceInline(content, pos.offset);
+  const ordinal = containerPaths(doc).findIndex((p) => pathKey(p) === pathKey(pos.path));
+  const next = mapListAt(doc, pos.path, (list, index) => ({
+    ...list,
+    items: list.items.flatMap((candidate, i) => (i !== index ? [candidate] : [{ content: before, sublists: [] }, { content: after, sublists: item.sublists }])),
+  }));
+  // The new item follows the old one directly in reading order.
+  return { doc: next, selection: caret({ path: containerPaths(next)[ordinal + 1] ?? pos.path, offset: 0 }) };
+}
+
+/** Several blocks pasted into a list item: paragraphs become items after it, the first joining its text. */
+export function insertIntoList(doc: Doc, pos: Pos, blocks: readonly Block[], before: Inline[], after: Inline[]): EditResult {
+  const texts = blocks.flatMap((block): Inline[][] =>
+    block.type === "p" || block.type === "h" ? [block.content as Inline[]] : block.type === "ul" || block.type === "ol" ? block.items.map((item) => item.content as Inline[]) : []);
+  if (texts.length === 0) return { doc, selection: caret(pos) };
+  const [first, ...others] = texts as [Inline[], ...Inline[][]];
+  const lastText = others.length > 0 ? (others[others.length - 1] as Inline[]) : first;
+  let landing = 0;
+  const next = mapListAt(doc, pos.path, (list, index) => {
+    const item = list.items[index];
+    if (!item) return list;
+    const rows = others.length === 0
+      ? [{ content: normalizeInline([...before, ...first, ...after]), sublists: item.sublists }]
+      : [
+          { content: normalizeInline([...before, ...first]), sublists: [] },
+          ...others.slice(0, -1).map((content) => ({ content, sublists: [] })),
+          { content: normalizeInline([...lastText, ...after]), sublists: item.sublists },
+        ];
+    landing = rows.length - 1;
+    return { ...list, items: [...list.items.slice(0, index), ...rows, ...list.items.slice(index + 1)] };
+  });
+  const base = containerPaths(doc).findIndex((p) => pathKey(p) === pathKey(pos.path));
+  const paths = containerPaths(next);
+  const path = paths[Math.min(base + landing, paths.length - 1)] ?? pos.path;
+  return { doc: next, selection: caret({ path, offset: lastText.reduce((n, node) => n + (node.type === "text" ? node.text.length : 1), 0) }) };
+}
+
+/** What Enter, Backspace and paste do inside a list. Plugins register it for the `li` container. */
+export const listBehavior: ContainerBehavior = {
+  split: splitListItem,
+  backspaceAtStart: backspaceAtItemStart,
+  insertBlocks: insertIntoList,
+};

@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { deleteBackward, deleteSelection, extractSelection, insertBlocks, splitBlock } from "./edit.ts";
-import { setEntryKind, toggleDefinitionList } from "./definitions.ts";
-import { exportHtml } from "./export.ts";
-import { importHtml, importText } from "./import.ts";
-import { caret, type Selection } from "./path.ts";
+import { deleteBackward as coreBackward, deleteSelection, extractSelection, insertBlocks as coreInsert, splitBlock as coreSplit } from "../edit.ts";
+import { definitionBehavior, setEntryKind, toggleDefinitionList } from "./definitions.ts";
+import { listBehavior } from "./lists.ts";
+import { exportHtml } from "../export.ts";
+import { importHtml, importText } from "../import.ts";
+import { caret, type Selection } from "../path.ts";
 
+const behaviors = { li: listBehavior, dt: definitionBehavior, dd: definitionBehavior };
+const splitBlock = (d: Parameters<typeof coreSplit>[0], s: Parameters<typeof coreSplit>[1]) => coreSplit(d, s, behaviors);
+const deleteBackward = (d: Parameters<typeof coreSplit>[0], s: Parameters<typeof coreSplit>[1]) => coreBackward(d, s, behaviors);
+const insertBlocks = (d: Parameters<typeof coreInsert>[0], s: Parameters<typeof coreInsert>[1], b: Parameters<typeof coreInsert>[2]) => coreInsert(d, s, b, behaviors);
 const doc = (html: string) => importHtml(html);
 const at = (path: number[], offset = 0) => caret({ path, offset });
 const range = (a: number[], b: number[], bo = 1): Selection => ({ anchor: { path: a, offset: 0 }, focus: { path: b, offset: bo } });

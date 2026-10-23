@@ -80,9 +80,9 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Shift+Tab");
   check(`${name} Shift+Tab undoes it`, (await html()) === "<ul><li>a</li><li>b</li><li>c</li></ul>", await html());
   await reset("<p>x</p>");
-  await page.evaluate(() => window.__editor.toggleList("ol"));
+  await page.evaluate(() => window.__editor.commands.run("list.numbered"));
   check(`${name} the list command makes a numbered list`, (await html()) === "<ol><li>x</li></ol>", await html());
-  check(`${name} and reports it`, (await page.evaluate(() => [window.__editor.isInList("ol"), window.__editor.isInList("ul")])).join() === "true,false", "state");
+  check(`${name} and reports it`, (await page.evaluate(() => [window.__editor.commands.state("list.numbered").active, window.__editor.commands.state("list.bulleted").active])).join() === "true,false", "state");
   await reset("");
   await page.keyboard.type("- ");
   await page.keyboard.type("item");
@@ -110,9 +110,9 @@ for (const [name, type] of engines) {
 
   // --- definition lists
   await reset("<p>a</p><p>b</p>");
-  await page.evaluate(() => { window.__conf.select("all"); window.__editor.toggleDefinitionList(); });
+  await page.evaluate(() => { window.__conf.select("all"); window.__editor.commands.run("list.definition"); });
   check(`${name} the definition list command makes terms`, (await html()) === "<dl><dt>a</dt><dt>b</dt></dl>", await html());
-  check(`${name} and reports it`, await page.evaluate(() => window.__editor.isInDefinitionList()), "state");
+  check(`${name} and reports it`, await page.evaluate(() => window.__editor.commands.state("list.definition").active), "state");
   await select({ start: "dt:nth-child(2)", so: 1, eo: 1 });
   await page.keyboard.press("Tab");
   check(`${name} Tab makes a term a detail`, (await html()) === "<dl><dt>a</dt><dd>b</dd></dl>", await html());

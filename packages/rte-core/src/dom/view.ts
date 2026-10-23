@@ -7,9 +7,8 @@ import {
   insertText, isCollapsed, moveSelection, selectedText, splitBlock, type EditResult,
 } from "../edit.ts";
 import type { Engine } from "../engine.ts";
+import type { Plugin } from "../plugin.ts";
 import { exportHtml } from "../export.ts";
-import { inDefinitionList } from "../definitions.ts";
-import { inList, listShortcut, type ListOptions } from "../lists.ts";
 import { collectImages, isDataImage, mapImages, readDataImage, rewriteImages } from "../images.ts";
 import { checkImageSrc, importBlocks, importHtml } from "../import.ts";
 import { encodeBase64, sanitizeSvg } from "../svg.ts";
@@ -34,12 +33,8 @@ export interface EditorOptions {
   readonly uploadImage?: (file: Blob, info: { readonly name: string; readonly type: string; readonly size: number }) => Promise<string>;
   /** Largest raster image, in bytes, that is embedded in the document when there is no `uploadImage`. Default 512 KB. */
   readonly maxInlineImageBytes?: number;
-  /** Tab and Shift+Tab move list items in and out. Off: the browser keeps Tab for moving focus. Default on. */
-  readonly indentOnTab?: boolean;
-  /** Deepest allowed nesting of lists. Default: no limit. */
-  readonly maxListDepth?: number;
-  /** Typing `* `, `- ` or `1. ` at the start of a paragraph starts a list. Default on. */
-  readonly listShortcuts?: boolean;
+  /** Plugins to add: lists, for one (`@rathkit/rte-core/lists`). With none, the editor has only what is built in. */
+  readonly plugins?: readonly Plugin[];
   /** Largest image file the editor will read at all, in bytes. Default 20 MB. */
   readonly maxImageFileBytes?: number;
   /** Called when an image is left out, with the reason, so the host can tell the person. */
@@ -61,7 +56,6 @@ export class Editor {
   private readonly upload: EditorOptions["uploadImage"];
   private readonly rejected: EditorOptions["onImageRejected"];
   private dragSource: Selection | null = null;
-  private readonly listShortcuts: boolean;
   private readonly renderCache = createRenderCache();
   /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
   private readonly observer = new MutationObserver((records) => {
@@ -77,17 +71,15 @@ export class Editor {
     this.element = options.element;
     this.loadRemoteImages = options.loadRemoteImages ?? false;
     this.unhandled = options.onUnhandledInput;
-    this.listShortcuts = options.listShortcuts ?? true;
     this.engine = createEngine({
       doc: importHtml(options.html ?? ""),
       readOnly: options.readOnly ?? false,
-      ...(options.maxListDepth !== undefined ? { maxListDepth: options.maxListDepth } : {}),
-      indentOnTab: options.indentOnTab ?? true,
       // Before the engine reads the selection, bring it up to date from the page; asked to focus, focus the page.
       beforeAccess: () => this.readSelection(),
       focus: () => this.element.focus(),
     });
     this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
+    for (const plugin of options.plugins ?? []) this.engine.use(plugin);
     this.maxImageBytes = options.maxImageFileBytes ?? 20_000_000;
     this.maxInlineBytes = options.maxInlineImageBytes ?? 512 * 1024;
     this.upload = options.uploadImage;
@@ -204,29 +196,6 @@ export class Editor {
     if (mark in names) this.engine.commands.run(names[mark as keyof typeof names]);
   }
 
-  /** Makes the selected blocks a bulleted or numbered list, or takes them out of it. */
-  toggleList(type: "ul" | "ol", options?: ListOptions): void {
-    this.engine.commands.run(type === "ul" ? "list.bulleted" : "list.numbered", options);
-  }
-  /** Makes the selected blocks terms of a definition list, or takes them out of it. */
-  toggleDefinitionList(): void { this.engine.commands.run("list.definition"); }
-  /** In a list, nests the selected items. In a definition list, makes the selected terms details. */
-  indent(): void { this.engine.commands.run("list.indent"); }
-  /** In a list, moves the selected items out. In a definition list, makes the selected details terms. */
-  outdent(): void { this.engine.commands.run("list.outdent"); }
-
-  /** True when the caret is in a definition list. */
-  isInDefinitionList(): boolean {
-    this.readSelection();
-    return inDefinitionList(this.engine.document, this.engine.selection.focus.path);
-  }
-
-  /** True when the caret is in a list item, of the given type if one is given. */
-  isInList(type?: "ul" | "ol"): boolean {
-    this.readSelection();
-    return inList(this.engine.document, this.engine.selection.focus.path, type);
-  }
-
   undo(): void { this.engine.undo(); }
   redo(): void { this.engine.redo(); }
 
@@ -244,16 +213,16 @@ export class Editor {
   private insertSettled(blocks: readonly Block[]): void {
     const embedded = collectImages(blocks).filter((image) => isDataImage(image) && !/^data:image\/svg/i.test(image.src));
     if (embedded.length === 0) {
-      this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks));
+      this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks, this.engine.behaviors));
     } else if (this.upload) {
       this.readSelection();
       const at = this.engine.selection;
       void rewriteImages(blocks, async (image) => this.uploadEmbedded(image)).then((settled) => {
-        this.apply("paste", (doc) => insertBlocks(doc, { anchor: clampPos(doc, at.anchor), focus: clampPos(doc, at.focus) }, settled));
+        this.apply("paste", (doc) => insertBlocks(doc, { anchor: clampPos(doc, at.anchor), focus: clampPos(doc, at.focus) }, settled, this.engine.behaviors));
       });
     } else {
       const kept = mapImages(blocks, (image) => (this.fitsInline(image) ? image : undefined));
-      this.apply("paste", (doc, sel) => insertBlocks(doc, sel, kept));
+      this.apply("paste", (doc, sel) => insertBlocks(doc, sel, kept, this.engine.behaviors));
     }
   }
 
@@ -359,24 +328,21 @@ export class Editor {
         case "insertText": {
           const data = event.data ?? event.dataTransfer?.getData("text/plain") ?? "";
           if (data.includes("\n")) { this.paste({ text: data }); return true; }
-          if (data === " " && this.listShortcuts) {
-            // A shortcut such as "* " starts a list; its conversion is an undo step of its own.
-            this.readSelection();
-            const converted = listShortcut(this.engine.document, this.engine.selection);
-            if (converted) {
-              this.apply("pattern", () => converted);
-              return true;
-            }
+          // A plugin may take typed text over (a list shortcut, say); its conversion is an undo step of its own.
+          const taken = this.engine.triggerText(data);
+          if (taken) {
+            this.apply("pattern", () => taken);
+            return true;
           }
           this.apply("type", (doc, sel) => insertText(doc, sel, data));
           return true;
         }
-        case "insertParagraph": this.apply("split", splitBlock); return true;
+        case "insertParagraph": this.apply("split", (doc, sel) => splitBlock(doc, sel, this.engine.behaviors)); return true;
         case "insertLineBreak": this.apply("break", insertLineBreak); return true;
-        case "deleteContentBackward": this.apply("delete", deleteBackward); return true;
+        case "deleteContentBackward": this.apply("delete", (doc, sel) => deleteBackward(doc, sel, this.engine.behaviors)); return true;
         case "deleteContentForward": this.apply("delete", deleteForward); return true;
-        case "deleteWordBackward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "backward")); return true;
-        case "deleteWordForward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "forward")); return true;
+        case "deleteWordBackward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "backward", this.engine.behaviors)); return true;
+        case "deleteWordForward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "forward", this.engine.behaviors)); return true;
         case "deleteSoftLineBackward": case "deleteHardLineBackward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "backward")); return true;
         case "deleteSoftLineForward": case "deleteHardLineForward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "forward")); return true;
         case "deleteByCut": case "deleteByDrag": this.apply("cut", deleteSelection); return true;
@@ -463,7 +429,7 @@ export class Editor {
     const target = this.positionAt(event.clientX, event.clientY);
     if (!target) return;
     if (source) {
-      this.apply("drop", (doc) => moveSelection(doc, source, target, event.ctrlKey || event.altKey));
+      this.apply("drop", (doc) => moveSelection(doc, source, target, event.ctrlKey || event.altKey, this.engine.behaviors));
       return;
     }
     this.setSelection(caret(target));
@@ -496,7 +462,7 @@ export class Editor {
   private async pasteFiles(files: readonly File[]): Promise<void> {
     const images = await Promise.all(files.map((file) => this.imageFromFile(file)));
     const blocks: Block[] = images.flatMap((image): Block[] => (image ? [{ type: "p", content: [image] }] : []));
-    if (blocks.length > 0) this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks));
+    if (blocks.length > 0) this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks, this.engine.behaviors));
   }
 
   private async imageFromFile(file: File): Promise<{ type: "image"; src: string; alt?: string } | undefined> {

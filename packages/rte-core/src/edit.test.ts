@@ -39,12 +39,10 @@ test("Enter splits a paragraph and a heading, and a heading end continues as a p
   assert.deepEqual(end.selection.focus, { path: [1], offset: 0 });
 });
 
-test("Enter in a list adds an item; in an empty item it leaves the list", () => {
+test("without a lists plugin, Enter in an item is a line break and the structure stays", () => {
   const r = splitBlock(doc("<ul><li>ab</li><li>cd</li></ul>"), at([0, 0], 1));
-  assert.equal(html(r), "<ul><li>a</li><li>b</li><li>cd</li></ul>");
-  assert.deepEqual(r.selection.focus, { path: [0, 1], offset: 0 });
-  const out = splitBlock(doc("<ul><li>a</li><li></li><li>c</li></ul>"), at([0, 1], 0));
-  assert.equal(html(out), "<ul><li>a</li></ul><p></p><ul><li>c</li></ul>");
+  assert.equal(html(r), "<ul><li>a<br>b</li><li>cd</li></ul>");
+  assert.equal(html(splitBlock(doc("<dl><dt>ab</dt></dl>"), at([0, 0], 1))), "<dl><dt>a<br>b</dt></dl>");
 });
 
 test("Backspace and Delete join neighbours at block edges", () => {
@@ -92,9 +90,16 @@ test("pasting a table in the middle of text keeps the text on both sides", () =>
   assert.equal(html(r), "<p>ab</p><table><tbody><tr><td>x</td></tr></tbody></table><p>cd</p>");
 });
 
-test("pasting paragraphs into a list item adds items", () => {
-  const r = insertBlocks(doc("<ul><li>ab</li></ul>"), at([0, 0], 1), importText("1\n\n2"));
-  assert.equal(html(r), "<ul><li>a1</li><li>2b</li></ul>");
+test("without a lists plugin, blocks pasted into an item become lines of text in it", () => {
+  assert.equal(html(insertBlocks(doc("<ul><li>ab</li></ul>"), at([0, 0], 1), importText("1\n\n2"))), "<ul><li>a1<br>2b</li></ul>");
+});
+
+test("a document with lists loads, saves and survives deleting across items with no plugin at all", () => {
+  const d = doc("<ul><li>one<ul><li>two</li></ul></li><li>three</li></ul><dl><dt>t</dt><dd>d</dd></dl>");
+  assert.equal(html({ doc: d }), "<ul><li>one<ul><li>two</li></ul></li><li>three</li></ul><dl><dt>t</dt><dd>d</dd></dl>");
+  const cut = deleteSelection(d, { anchor: { path: [0, 0], offset: 1 }, focus: { path: [0, 1], offset: 2 } });
+  assert.equal(html(cut), "<ul><li>oree</li></ul><dl><dt>t</dt><dd>d</dd></dl>");
+  assert.equal(html(deleteBackward(d, at([0, 1], 0))), "<ul><li>one<ul><li>twothree</li></ul></li></ul><dl><dt>t</dt><dd>d</dd></dl>");
 });
 
 test("pasting replaces a selection", () => {
