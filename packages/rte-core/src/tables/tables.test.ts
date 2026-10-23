@@ -197,8 +197,8 @@ test("merge needs a selection across cells of one table; with a caret it is off"
 test("column widths are read from colgroup or the first row, only in forms the model accepts, and written back as a colgroup", () => {
   const e = make(`<table><colgroup><col style="width: 30%"><col width="120"><col style="width: 9em"></colgroup><tbody><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>`);
   assert.equal(html(e), `<table><colgroup><col style="width: 30%"><col style="width: 120px"><col></colgroup><tbody><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>`);
-  const fromCells = make(`<table><tbody><tr><td width="50">a</td><td style="width:40%">b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>`);
-  assert.equal(html(fromCells), `<table><colgroup><col style="width: 50px"><col style="width: 40%"></colgroup><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>`);
+  const fromCells = make(`<table><tbody><tr><td width="70">a</td><td style="width:35%">b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>`);
+  assert.equal(html(fromCells), `<table><colgroup><col style="width: 70px"><col style="width: 35%"></colgroup><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>`);
   assert.equal(html(make(cells([["a"]]))), cells([["a"]]), "no colgroup when nothing sets a width");
 });
 
