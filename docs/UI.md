@@ -80,3 +80,7 @@ Tooltips are one shared element (`data-rk-part="tooltip"`, `role="tooltip"`) put
 When the editor has the find plugin, a bar sits between the toolbar and the writing area (`data-rk-part="findbar"`). It opens with the toolbar button or Mod-f, with the focus in the search box. Enter and Shift+Enter move between matches, Escape closes it and puts the focus back in the editor. It holds no search logic: it reads `find.set` and runs the `find.*` commands. Matches are painted with the page's highlight registry (`::highlight(rk-find)`, `rk-find-current`) where the browser has one, so nothing in the document changes; the match being looked at is the selection. The count is announced once typing pauses.
 
 A status line (`data-rk-part="status"`) under the writing area shows the words and characters, or the selected words against the whole. It is recounted at most a few times a second. Turn it off with `status: false`.
+
+## HTML source
+
+When the editor can give its HTML, a toolbar button (`source`) swaps the writing area for a text box with the document's HTML, one block to a line. Closing it with the button applies what was typed through `document.setHtml`, so it is read like anything pasted (what is not allowed is dropped) and is one undo step. Escape closes it and throws the changes away. While it is open the other buttons do nothing.

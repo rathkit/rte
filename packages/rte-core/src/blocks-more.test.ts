@@ -101,3 +101,14 @@ test("clear formatting removes marks but keeps links, for a range and for the ne
   caretCase.commands.run("format.clear");
   assert.equal(caretCase.commands.state("format.bold").active, false);
 });
+
+test("document.setHtml replaces the document as one undo step and reads the HTML like anything pasted", () => {
+  const e = make("<p>old</p>");
+  assert.equal(e.commands.run("document.setHtml", { html: '<h1>New</h1>\n<p onclick="x()">kept <script>bad()</script>text</p>' }), true);
+  assert.equal(html(e), "<h1>New</h1><p>kept text</p>");
+  e.undo();
+  assert.equal(html(e), "<p>old</p>");
+  assert.equal(e.commands.run("document.setHtml", {}), false);
+  const readOnly = createEngine({ doc: importHtml("<p>x</p>"), platform: "other", readOnly: true });
+  assert.equal(readOnly.commands.run("document.setHtml", { html: "<p>y</p>" }), false);
+});

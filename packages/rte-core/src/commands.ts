@@ -1,6 +1,7 @@
 // Named commands, their state, and subscriptions to that state.
 import type { Engine, EditorSnapshot } from "./engine.ts";
 import type { EditResult } from "./path.ts";
+import { importHtml } from "./import.ts";
 import type { Doc, Mark } from "./model.ts";
 import type { Selection } from "./path.ts";
 
@@ -23,6 +24,8 @@ export interface CommandContext {
   redo(): boolean;
   /** Chooses the marks for the text typed next at the caret. False when a range is selected or the editor is read-only. */
   setStoredMarks(marks: readonly Mark[]): boolean;
+  /** Reads HTML the way the editor does (with what its plugins taught the importer). */
+  parseHtml(html: string): Doc;
   /** Keeps a plugin's own state with the editor (read it from `snapshot.plugins[id]`). Not an undo step. */
   setPluginState(id: string, value: unknown): void;
   focus(): void;
@@ -101,6 +104,7 @@ export class CommandRegistry {
       apply: (kind, op) => engine.apply(kind, op),
       setStoredMarks: (marks) => engine.setStoredMarks(marks),
       setPluginState: (id, value) => engine.setPluginState(id, value),
+      parseHtml: (html) => importHtml(html, engine.importOptions),
       undo: () => engine.undo(),
       redo: () => engine.redo(),
       focus: () => engine.requestFocus(),

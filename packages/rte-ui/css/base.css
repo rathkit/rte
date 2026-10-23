@@ -163,6 +163,14 @@
   .rk-root:focus-within [data-rk-part="content"] :focus-visible,
   .rk-root [data-rk-part="content"] :focus-visible { outline: none; }
 
+  /* ---- HTML source view: the text box takes the place of the writing area ---- */
+  [data-rk-part="content"][data-rk-source] > :not([data-rk-part="source"]) { display: none; }
+  [data-rk-part="source"] {
+    display: block; width: 100%; min-height: 14em; margin: 0; padding: 0; font: 0.9em / 1.5 var(--rk-font-mono); color: var(--rk-fg);
+    background: var(--rk-bg); border: 0; outline: none; resize: vertical; tab-size: 2;
+  }
+  [data-rk-part="source"][hidden] { display: none; }
+
   /* ---- find and replace ---- */
   [data-rk-part="findbar"] { padding: var(--rk-space-2); background: var(--rk-surface); border-bottom: var(--rk-border-width) solid var(--rk-border); }
   [data-rk-part="findbar"][hidden] { display: none; }

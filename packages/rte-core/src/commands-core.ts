@@ -1,13 +1,13 @@
 // The commands every editor has, and the keys that run them. Each one is a thin wrapper over a pure editing operation.
 import { alignAt, blockKindAt, inCodeBlock, inQuote, insertRule, setAlign, setBlockType, toggleCodeBlock, toggleQuote } from "./blocks.ts";
 import type { CommandDef } from "./commands.ts";
-import { marksAt, rangeHasMark, removeMarks, setMark, toggleMark } from "./edit.ts";
+import { marksAt, rangeHasMark, removeMarks, setMark, startOf, toggleMark } from "./edit.ts";
 import type { EditorSnapshot } from "./engine.ts";
 import type { KeyBinding } from "./keymap.ts";
 import type { UiItem, UiSlot } from "./ui.ts";
 import { linkAt, setLink } from "./links.ts";
 import { COLOR_VALUE, type Align, type Mark, type MarkType } from "./model.ts";
-import { comparePath, getContent, isCollapsed } from "./path.ts";
+import { caret, comparePath, getContent, isCollapsed } from "./path.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -114,6 +114,11 @@ export function coreCommands(): readonly Def[] {
         if (!isCollapsed(ctx.snapshot.selection)) return ctx.apply("format", (doc, sel) => removeMarks(doc, sel, FORMATTING));
         return ctx.setStoredMarks(caretMarks(ctx.snapshot).filter((m) => !FORMATTING.includes(m.type)));
       },
+    }),
+    // Replaces the whole document with this HTML as one undo step (the source view uses it). The HTML is read like anything pasted or loaded.
+    def<{ readonly html?: string } | undefined, never>({
+      name: "document.setHtml", label: "Set HTML",
+      run: (ctx, arg) => (typeof arg?.html === "string" ? ctx.apply("source", () => { const doc = ctx.parseHtml(arg.html as string); return { doc, selection: caret(startOf(doc)) }; }) : false),
     }),
     colorCommand("format.color", "Text color", "color"),
     colorCommand("format.background", "Highlight", "background"),

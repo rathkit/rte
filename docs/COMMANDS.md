@@ -19,6 +19,7 @@ changes the document is disabled.
 | `block.quote` | | Wraps the selected blocks (paragraphs, headings, code blocks, lists) in a quote, or takes them out of it |
 | `block.rule` | | A horizontal rule after the block (in place of an empty paragraph), with the caret in a paragraph after it |
 | `block.align` | `left`, `center`, `right`, `justify` | Aligns the selected paragraphs and headings |
+| `document.setHtml` | `{ html }` | Replaces the whole document with this HTML as one undo step; it is read like anything pasted or loaded. The source view uses it |
 | `link.set`, `link.remove` | `{ href }` | Sets or removes the link on the selection or the link under the caret |
 
 ## Plugins

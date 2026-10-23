@@ -12,6 +12,7 @@ export const DEFAULT_MESSAGES: Readonly<Record<string, string>> = {
   "status.words": "{count} words",
   "status.characters": "{count} characters",
   "status.selection": "{selected} of {total} words",
+  "source.label": "HTML source",
   "find.find": "Find",
   "find.replaceWith": "Replace with",
   "find.previous": "Previous match",

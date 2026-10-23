@@ -4,6 +4,7 @@ import type { UiItem } from "@rathkit/rte-core";
 import { checkFields, createAnnouncer, createDialog, createMenu, createToolbar, createTooltip, type Dialog, type Menu } from "@rathkit/rte-headless";
 import { createFindBar, type FindBar } from "./findbar.ts";
 import { setIcon } from "./icon.ts";
+import { createSourceView } from "./source.ts";
 import { text } from "./messages.ts";
 import type { PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
 
@@ -73,7 +74,10 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       popup.style.left = `${Math.round(Math.max(0, Math.min(at.left - box.left, box.width - popup.offsetWidth)))}px`;
     },
   });
+  // The HTML source view, when the editor can give its HTML: a button for it joins the toolbar.
+  const removeSourceItem = editor.getHtml ? editor.ui.add(slot, { kind: "panel", id: "source", name: "source", label: "HTML source", icon: "source", group: "tools", order: 1 }) : undefined;
   const toolbar = createToolbar(editor, { slot, label: message("toolbar.label") });
+  const sourceView = editor.getHtml ? createSourceView({ editor, content: contentEl, toolbar: toolbarEl, part: (el, name) => part(el, name as PartName), message: (key) => message(key as never), announce: (m) => announcer.announce(m) }) : undefined;
 
   // ---- look: theme attributes, tokens, classes, icons, words --------------------------------------------------
   const iconSpans = new Map<HTMLElement, string>();
@@ -119,7 +123,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   function control(item: UiItem): HTMLElement | undefined {
     if (item.kind === "separator") return part(document.createElement("span"), "separator");
-    if (item.kind === "panel") return undefined;
+    if (item.kind === "panel" && item.name !== "source") return undefined;
     const state = toolbar.state(item.id);
     if (!state) return undefined;
     if (item.kind === "select") {
@@ -272,7 +276,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     }
     toolbarEl.replaceChildren(...controls);
     // A menu opens itself (the headless menu listens on its own button), so only dialogs are opened from here.
-    unbind = toolbar.bind(toolbarEl, { onOpen: (item, opener) => { if (item.kind === "dialog") openDialog(item, opener); } });
+    unbind = toolbar.bind(toolbarEl, { onOpen: (item, opener) => { if (item.kind === "dialog") openDialog(item, opener); else if (item.kind === "panel" && item.name === "source") sourceView?.toggle(opener); } });
     // Our click listener goes after the headless layer's, so by the time it runs the command has run and the state is the new one.
     toolbarEl.removeEventListener("click", onToolbarClick);
     toolbarEl.addEventListener("click", onToolbarClick);
@@ -411,6 +415,8 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       tipEl.remove();
       stopStatus?.();
       findBar?.destroy();
+      sourceView?.destroy();
+      removeSourceItem?.();
       if (statusTimer) clearTimeout(statusTimer);
       statusEl.remove();
       stopRedraw();

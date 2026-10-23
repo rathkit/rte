@@ -645,6 +645,28 @@ for (const [name, type] of engines) {
   check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
+  // The HTML source view.
+  const src = '#root [data-rk-part="source"]';
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<h2>Title</h2><p>Some <strong>bold</strong> text</p>"); e.focus(); });
+  await page.waitForTimeout(60);
+  check(`${name} (ui) the source button is named and starts off`, await page.evaluate(() => { const b = document.querySelector('#root [data-rk-item="source"]'); return b.getAttribute("aria-label") === "HTML source" && !!b.querySelector("svg") && document.querySelector('#root [data-rk-part="source"]').hidden; }), "button");
+  await page.click('#root [data-rk-item="source"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) it shows the HTML, a block to a line, in place of the writing area`, await page.evaluate((q) => { const a = document.querySelector(q); return !a.hidden && a.value === "<h2>Title</h2>\n<p>Some <strong>bold</strong> text</p>" && getComputedStyle(document.getElementById("root").querySelector("[data-rk-part=content] > :first-child")).display === "none" && document.activeElement === a && document.querySelector('#root [data-rk-item="source"]').getAttribute("aria-pressed") === "true"; }, src), await page.evaluate((q) => document.querySelector(q).value, src));
+  await page.click('#root [data-rk-item="bold"]', { force: true }).catch(() => undefined);
+  check(`${name} (ui) the other buttons do nothing while it is open`, await page.evaluate(() => window.__one.editor.getHtml() === "<h2>Title</h2><p>Some <strong>bold</strong> text</p>"), "guard");
+  await page.fill(src, "<h1>New</h1>\n<p>parsed <em>again</em></p>");
+  await page.click('#root [data-rk-item="source"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) closing it applies the HTML and returns to the editor`, await page.evaluate((q) => window.__one.editor.getHtml() === "<h1>New</h1><p>parsed <em>again</em></p>" && document.querySelector(q).hidden && document.querySelector("#root [data-rk-part=content]").contains(document.activeElement), src), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} (ui) and it is one undo step`, await page.evaluate(() => window.__one.editor.getHtml() === "<h2>Title</h2><p>Some <strong>bold</strong> text</p>"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="source"]');
+  await page.waitForTimeout(60);
+  await page.fill(src, "<p>discard me</p>");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(60);
+  check(`${name} (ui) Escape closes it and throws the changes away`, await page.evaluate((q) => window.__one.editor.getHtml() === "<h2>Title</h2><p>Some <strong>bold</strong> text</p>" && document.querySelector(q).hidden, src), await page.evaluate(() => window.__one.editor.getHtml()));
   // Find and replace.
   const bar = '#root [data-rk-part="findbar"]';
   const barText = () => page.evaluate((b) => ({ hidden: document.querySelector(b).hidden, count: document.querySelector(b + " [data-rk-part=find-count]").textContent, active: document.activeElement?.name ?? document.activeElement?.tagName }), bar);

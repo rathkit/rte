@@ -82,4 +82,4 @@ export function exportBlock(block: Block): string {
   }
 }
 
-export const exportHtml = (doc: Doc): string => doc.blocks.map(exportBlock).join("");
+export const exportHtml = (doc: Doc, separator = ""): string => doc.blocks.map(exportBlock).join(separator);

@@ -144,7 +144,8 @@ export class Editor {
   /** Adds a plugin. Returns a function that removes it. */
   use: Engine["use"] = (plugin) => this.engine.use(plugin);
 
-  getHtml(): string { return exportHtml(this.engine.document); }
+  /** The document as HTML. `separator` goes between blocks (a newline makes it readable). */
+  getHtml(separator = ""): string { return exportHtml(this.engine.document, separator); }
 
   /** Addresses of remote images in the document, so the host can decide whether to show them. */
   remoteImages(): string[] {
