@@ -7,7 +7,8 @@ import { emptyDoc, type Doc } from "./model.ts";
 import type { PasteHandler } from "./paste.ts";
 import { caret, pathKey, type EditResult, type Selection } from "./path.ts";
 import { startOf } from "./edit.ts";
-import { PLUGIN_API_VERSION, satisfiesApi, type Plugin, type PluginHost } from "./plugin.ts";
+import type { ImportOptions } from "./import.ts";
+import { PLUGIN_API_VERSION, satisfiesApi, type FileHandler, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
 import { ops } from "./ops.ts";
 
 export interface EditorSnapshot {
@@ -55,6 +56,12 @@ export class Engine {
   /** How plugins want Enter, Backspace and paste to work in the containers they own. Empty without plugins. */
   readonly behaviors: Behaviors = {};
   private readonly textTriggers: TextTrigger[] = [];
+  /** Plugins that change pasted blocks before they go in. */
+  readonly pasteTransforms: PasteTransform[] = [];
+  /** Plugins that turn pasted and dropped files into blocks. */
+  readonly fileHandlers: FileHandler[] = [];
+  /** How HTML is imported here: what plugins have added (an SVG cleaner, recognizers). Pass it to the importer. */
+  readonly importOptions: { sanitizeSvg?: ImportOptions["sanitizeSvg"]; recognizers: NonNullable<ImportOptions["recognizers"]> } = { recognizers: [] };
 
   private doc: Doc;
   private sel: Selection;
@@ -297,6 +304,26 @@ export class Engine {
       textTrigger: (trigger: TextTrigger) => {
         this.textTriggers.push(trigger);
         undo.push(() => { const i = this.textTriggers.indexOf(trigger); if (i !== -1) this.textTriggers.splice(i, 1); });
+      },
+      importOptions: (options) => {
+        const previous = { sanitizeSvg: this.importOptions.sanitizeSvg, recognizers: this.importOptions.recognizers };
+        if (options.sanitizeSvg) {
+          if (this.importOptions.sanitizeSvg) throw new Error(`${plugin.id} cannot set an SVG cleaner: one is already set.`);
+          this.importOptions.sanitizeSvg = options.sanitizeSvg;
+        }
+        if (options.recognizers) this.importOptions.recognizers = [...this.importOptions.recognizers, ...options.recognizers];
+        undo.push(() => {
+          if (options.sanitizeSvg) delete this.importOptions.sanitizeSvg;
+          this.importOptions.recognizers = previous.recognizers;
+        });
+      },
+      pasteTransform: (transform: PasteTransform) => {
+        this.pasteTransforms.push(transform);
+        undo.push(() => { const i = this.pasteTransforms.indexOf(transform); if (i !== -1) this.pasteTransforms.splice(i, 1); });
+      },
+      fileHandler: (handler: FileHandler) => {
+        this.fileHandlers.push(handler);
+        undo.push(() => { const i = this.fileHandlers.indexOf(handler); if (i !== -1) this.fileHandlers.splice(i, 1); });
       },
       pasteHandler: (handler: PasteHandler) => {
         this.pasteHandlers.push(handler);

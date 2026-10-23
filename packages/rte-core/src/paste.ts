@@ -1,7 +1,7 @@
 // The paste pipeline. A paste starts as raw clipboard data and ends as blocks ready to insert.
 // Plugins get the raw data first, before anything is sanitized, through the same public hook shape
 // the built-in handling uses: a handler either returns blocks or declines by returning undefined.
-import { importBlocks, importText } from "./import.ts";
+import { importBlocks, importText, type ImportOptions } from "./import.ts";
 import type { Block } from "./model.ts";
 
 export interface ClipboardData {
@@ -40,18 +40,18 @@ function unwrapSingleCell(blocks: Block[]): Block[] {
 }
 
 /** Built-in handling: standard HTML if there is any, otherwise plain text. */
-export function defaultPaste(data: ClipboardData): Block[] {
+export function defaultPaste(data: ClipboardData, importOptions: ImportOptions = {}): Block[] {
   if (data.html && data.html.trim() !== "") {
-    const blocks = importBlocks(data.html, { styles: "semantic" });
+    const blocks = importBlocks(data.html, { ...importOptions, styles: "semantic" });
     if (blocks.length > 0) return unwrapSingleCell(blocks);
   }
   return importText(data.text ?? "");
 }
 
-export function pasteBlocks(data: ClipboardData, handlers: readonly PasteHandler[] = []): readonly Block[] {
+export function pasteBlocks(data: ClipboardData, handlers: readonly PasteHandler[] = [], importOptions: ImportOptions = {}): readonly Block[] {
   for (const handler of handlers) {
     const result = handler(data);
     if (result) return result;
   }
-  return defaultPaste(data);
+  return defaultPaste(data, importOptions);
 }

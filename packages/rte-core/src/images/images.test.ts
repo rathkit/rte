@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { collectImages, dataImageBytes, mapImages, readDataImage, rewriteImages } from "./images.ts";
-import { importBlocks } from "./import.ts";
-import { exportHtml } from "./export.ts";
-import { encodeBase64 } from "./svg.ts";
+import { importBlocks } from "../import.ts";
+import { exportHtml } from "../export.ts";
+import { encodeBase64 } from "../base64.ts";
 
 const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ";
 

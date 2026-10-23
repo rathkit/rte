@@ -5,7 +5,8 @@
 //
 // What the result can do: draw shapes, text, gradients, clips, masks and simple filters. What it cannot do: run
 // script, load another file, link anywhere, animate, embed HTML, or point at anything outside the picture itself.
-import { escapeAttribute, escapeText } from "./html/entities.ts";
+import { decodeBase64, encodeBase64 } from "../base64.ts";
+import { escapeAttribute, escapeText } from "../html/entities.ts";
 
 export interface SvgLimits {
   /** Largest input, in characters. */
@@ -203,42 +204,6 @@ export function sanitizeSvg(source: string, limits: SvgLimits = DEFAULT_SVG_LIMI
   if (name !== "svg" && name !== "svg:svg") return undefined;
   const clean = cleanElement(tree);
   return clean && usesAreSafe(clean) ? write(clean) : undefined;
-}
-
-// ---- base64, without relying on a global that only some environments have ----------------------------------
-
-const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-export function decodeBase64(input: string): Uint8Array | undefined {
-  const text = input.replace(/\s+/g, "").replace(/=+$/, "");
-  if (/[^A-Za-z0-9+/]/.test(text)) return undefined;
-  const out = new Uint8Array(Math.floor((text.length * 3) / 4));
-  let bits = 0;
-  let value = 0;
-  let at = 0;
-  for (const ch of text) {
-    value = (value << 6) | B64.indexOf(ch);
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      out[at++] = (value >> bits) & 0xff;
-    }
-  }
-  return out.subarray(0, at);
-}
-
-export function encodeBase64(bytes: Uint8Array): string {
-  let out = "";
-  for (let i = 0; i < bytes.length; i += 3) {
-    const a = bytes[i] as number;
-    const b = bytes[i + 1];
-    const c = bytes[i + 2];
-    out += B64[a >> 2] as string;
-    out += B64[((a & 3) << 4) | ((b ?? 0) >> 4)] as string;
-    out += b === undefined ? "=" : (B64[((b & 15) << 2) | ((c ?? 0) >> 6)] as string);
-    out += c === undefined ? "=" : (B64[c & 63] as string);
-  }
-  return out;
 }
 
 /**

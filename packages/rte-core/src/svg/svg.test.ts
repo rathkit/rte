@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { exportHtml } from "./export.ts";
-import { importBlocks } from "./import.ts";
-import { decodeBase64, encodeBase64, sanitizeSvg, sanitizeSvgDataUrl } from "./svg.ts";
+import { exportHtml } from "../export.ts";
+import { importBlocks } from "../import.ts";
+import { decodeBase64, encodeBase64 } from "../base64.ts";
+import { sanitizeSvg, sanitizeSvgDataUrl } from "./svg.ts";
 
 const wrap = (inner: string, attrs = ""): string => `<svg xmlns="http://www.w3.org/2000/svg" ${attrs}>${inner}</svg>`;
 
@@ -103,11 +104,11 @@ test("base64 round-trips", () => {
 test("pasted svg images are cleaned by the importer; a remote svg address is kept as an address", () => {
   const svg = wrap('<script>1</script><rect width="4" height="4"/>');
   const src = `data:image/svg+xml;base64,${encodeBase64(new TextEncoder().encode(svg))}`;
-  const html = exportHtml({ blocks: importBlocks(`<img src="${src}">`) });
+  const html = exportHtml({ blocks: importBlocks(`<img src="${src}">`, { sanitizeSvg: sanitizeSvgDataUrl }) });
   const decoded = new TextDecoder().decode(decodeBase64(/base64,([^"]+)"/.exec(html)?.[1] as string) as Uint8Array);
   assert.ok(decoded.includes("<rect") && !decoded.includes("script"));
-  assert.equal(exportHtml({ blocks: importBlocks('<img src="https://x.test/logo.svg">') }), '<p><img src="https://x.test/logo.svg"></p>');
-  assert.equal(exportHtml({ blocks: importBlocks('<img src="data:image/svg+xml;base64,PHNjcmlwdD4=">') }), "");
+  assert.equal(exportHtml({ blocks: importBlocks('<img src="https://x.test/logo.svg">', { sanitizeSvg: sanitizeSvgDataUrl }) }), '<p><img src="https://x.test/logo.svg"></p>');
+  assert.equal(exportHtml({ blocks: importBlocks('<img src="data:image/svg+xml;base64,PHNjcmlwdD4=">', { sanitizeSvg: sanitizeSvgDataUrl }) }), "");
 });
 
 test("copies of copies that grow without limit are refused", () => {
@@ -128,4 +129,9 @@ test("random damage never lets a dangerous token through", () => {
     // Text a picture displays is harmless, so only the markup between the text is checked.
     if (out !== undefined) assert.ok(!/script|javascript|onload|e\.test|foreignObject|<image|<animate|behavior|<a[ >]|<!ENTITY/i.test(out.replace(/>[^<]*</g, "><")), out);
   }
+});
+
+test("without the sanitizer, svg images are refused", () => {
+  const src = `data:image/svg+xml;base64,${encodeBase64(new TextEncoder().encode(wrap("<rect/>")))}`;
+  assert.equal(exportHtml({ blocks: importBlocks(`<img src="${src}">`) }), "");
 });

@@ -265,6 +265,31 @@ for (const [name, type] of engines) {
   }
 }
 
+// --- the editor with no plugins at all: lists in a document survive, Tab is left to the browser, SVG images are refused
+{
+  const sampleSvg = `data:image/svg+xml;base64,${Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4"/></svg>').toString("base64")}`;
+  for (const [name, type] of engines) {
+    const t = await open(type, {}, JSON.stringify({ core: true }));
+    await t.reset("<ul><li>one<ul><li>two</li></ul></li><li>three</li></ul><dl><dt>t</dt><dd>d</dd></dl>");
+    check(`${name} (no plugins) a document with lists loads and saves intact`, (await t.html()) === "<ul><li>one<ul><li>two</li></ul></li><li>three</li></ul><dl><dt>t</dt><dd>d</dd></dl>", await t.html());
+    await t.select({ start: "li:nth-child(2)", so: 1, eo: 1 });
+    await t.page.keyboard.press("Enter");
+    check(`${name} (no plugins) Enter in an item is a line break`, (await t.html()).includes("<li>t<br>hree</li>") || (await t.html()).includes("<li>three<br></li>") || (await t.html()).includes("<br>"), await t.html());
+    const tabbed = await t.page.evaluate(() => { const e = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }); document.getElementById("ed").dispatchEvent(e); return e.defaultPrevented; });
+    check(`${name} (no plugins) Tab is left to the browser`, tabbed === false, tabbed);
+    check(`${name} (no plugins) there are no list commands`, !(await t.page.evaluate(() => window.__editor.commands.has("list.bulleted"))), "commands");
+    await t.reset("");
+    await t.page.evaluate((src) => window.__conf.paste({ "text/html": `<p>a</p><p><img src="${src}"></p>` }), sampleSvg);
+    check(`${name} (no plugins) an svg data image is refused`, !(await t.html()).includes("<img"), await t.html());
+    await t.browser.close();
+    const s = await open(type, {});
+    await s.reset("");
+    await s.page.evaluate((src) => window.__conf.paste({ "text/html": `<p>a</p><p><img src="${src}"></p>` }), sampleSvg);
+    check(`${name} (standard) the same svg image is kept`, (await s.html()).includes("<img src=\"data:image/svg+xml;base64,"), await s.html());
+    await s.browser.close();
+  }
+}
+
 // --- input-method composition (Chromium, through the debugging protocol; a simulation, not a real input method)
 {
   const t = await open(chromium);

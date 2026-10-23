@@ -1,6 +1,6 @@
 // Helpers for the images inside blocks: finding them, measuring inline ones, and rewriting them. DOM-free.
-import type { Block, Image, Inline, List, ListItem } from "./model.ts";
-import { decodeBase64 } from "./svg.ts";
+import type { Block, Image, Inline, List, ListItem } from "../model.ts";
+import { decodeBase64 } from "../base64.ts";
 
 /** The decoded size, in bytes, of a base64 data address, without decoding it. Zero for anything else. */
 export function dataImageBytes(src: string): number {

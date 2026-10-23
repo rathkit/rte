@@ -4,14 +4,34 @@
 import type { ContainerBehavior, ContainerKind, TextTrigger } from "./behaviors.ts";
 import type { CommandDef, Unsubscribe } from "./commands.ts";
 import type { Engine } from "./engine.ts";
+import type { ImportOptions } from "./import.ts";
 import type { KeyBinding } from "./keymap.ts";
+import type { Block } from "./model.ts";
 import type { Ops } from "./ops.ts";
 import type { PasteHandler } from "./paste.ts";
 
 export const PLUGIN_API_VERSION = 1;
 
+/** Looks at blocks about to be pasted and returns the blocks to insert. May take time (an upload); then the paste waits. */
+export type PasteTransform = (blocks: readonly Block[]) => readonly Block[] | Promise<readonly Block[]>;
+
+/** What a plugin needs of a file that was pasted or dropped. A browser `File` fits. */
+export interface BlobLike {
+  readonly type: string;
+  readonly size: number;
+  arrayBuffer(): Promise<ArrayBuffer>;
+}
+export interface FileLike extends BlobLike {
+  readonly name: string;
+  slice(start?: number, end?: number): BlobLike;
+  text(): Promise<string>;
+}
+
+/** Turns pasted or dropped files into blocks, or returns undefined if it does not handle them. */
+export type FileHandler = (files: readonly FileLike[]) => readonly Block[] | undefined | Promise<readonly Block[] | undefined>;
+
 /** What a plugin sees of the editor: the same object a host gets, nothing more. */
-export type EditorHandle = Pick<Engine, "snapshot" | "apply" | "commands" | "subscribe" | "select" | "keymap" | "warn">;
+export type EditorHandle = Pick<Engine, "snapshot" | "apply" | "commands" | "subscribe" | "select" | "keymap" | "warn" | "importOptions">;
 
 export interface PluginHost {
   readonly editor: EditorHandle;
@@ -24,6 +44,12 @@ export interface PluginHost {
   behavior(kind: ContainerKind, behavior: ContainerBehavior): void;
   /** Watches typed text before it is inserted, to turn a shortcut into something else. */
   textTrigger(trigger: TextTrigger): void;
+  /** Adds to how HTML is imported everywhere (loading, paste, drop): an SVG cleaner, recognizers for a source's markup. */
+  importOptions(options: Pick<ImportOptions, "sanitizeSvg" | "recognizers">): void;
+  /** Changes pasted blocks before they are inserted. */
+  pasteTransform(transform: PasteTransform): void;
+  /** Handles pasted and dropped files. */
+  fileHandler(handler: FileHandler): void;
 }
 
 export interface Plugin {

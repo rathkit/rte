@@ -7,20 +7,21 @@
 // Implements the conformance contract (window.__conf) on top of the real editor. Scenarios only ever
 // use the contract's methods; nothing here knows about any other product's command names.
 import { Editor } from "../dist/dom/index.js";
-import { lists } from "../dist/lists/index.js";
+import { createEditor } from "../dist/standard/index.js";
 
 const el = document.getElementById("ed");
 // Options for checks that need a differently configured editor arrive as ?cfg={"upload":true,"maxInline":1000,"core":true}.
+// "core" is the editor with no plugins at all; otherwise it is the standard editor.
 const cfg = JSON.parse(new URLSearchParams(location.search).get("cfg") || "{}");
 window.__uploads = [];
 window.__rejected = [];
-const editor = new Editor({
+const common = {
   element: el,
-  plugins: cfg.core ? [] : [lists()],
+  onImageRejected: (info) => window.__rejected.push(info),
   ...(cfg.upload ? { uploadImage: async (file, info) => { window.__uploads.push(info); await new Promise((r) => setTimeout(r, 20)); return `https://cdn.test/${window.__uploads.length}.png`; } } : {}),
   ...(cfg.maxInline ? { maxInlineImageBytes: cfg.maxInline } : {}),
-  onImageRejected: (info) => window.__rejected.push(info),
-});
+};
+const editor = cfg.core ? new Editor({ element: el }) : createEditor(common);
 window.__editor = editor; // for measurement scripts
 const selectedHtml = () => {
   const sel = getSelection();

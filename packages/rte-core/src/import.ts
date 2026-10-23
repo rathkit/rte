@@ -2,13 +2,50 @@
 // it parses without a DOM, applies the allow-lists, then builds the model, so nothing unsafe is ever created.
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
-import { sanitizeSvgDataUrl } from "./svg.ts";
 import {
   normalizeInline, type Align, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 
+/** Handed to a recognizer so it can read content without knowing how the importer works inside. */
+export interface ImportContext {
+  /** Converts nodes to inline content the way the importer would, joining separate paragraphs with line breaks. */
+  inline(nodes: readonly HNode[]): Inline[];
+}
+
+/** One list item that a recognizer found written as something else (a paragraph with a marker, say). The importer nests items by level. */
+export interface RecognizedListItem {
+  readonly listItem: {
+    readonly type: "ul" | "ol";
+    readonly style?: string;
+    readonly start?: number;
+    /** 1 for the outermost list. */
+    readonly level: number;
+    /** Items with the same level and list id belong to one list. */
+    readonly listId: string;
+    readonly content: readonly Inline[];
+  };
+}
+
+/**
+ * Teaches the importer about markup from a particular source. It sees every element before the importer does and returns data
+ * (never importer internals); the importer builds the document from it. EXPERIMENTAL, like the plugin API it is part of.
+ */
+export interface ImportRecognizer {
+  /** Return what the element stands for to take it over, or undefined to let the importer handle it. */
+  element?(el: HElement, context: ImportContext): readonly RecognizedListItem[] | undefined;
+  /** The marker kind and style of a list item that carries vendor markup describing it. */
+  listItemStyle?(li: HElement): { readonly type: "ul" | "ol"; readonly style?: string } | undefined;
+}
+
 export interface ImportOptions {
+  /**
+   * Cleans an SVG data address and returns a safe one, or undefined to refuse it. Without this, SVG images are refused:
+   * SVG can run script and load files, so it is never passed through as it came.
+   */
+  readonly sanitizeSvg?: ((dataUrl: string) => string | undefined) | undefined;
+  /** Recognizers for markup from particular sources, tried in order. */
+  readonly recognizers?: readonly ImportRecognizer[];
   /**
    * `semantic` keeps only meaning (bold, italic, underline, strike, super/subscript, list markers, spans).
    * `allowlist` also keeps text color, background color and alignment. Paste uses `semantic`.
@@ -27,6 +64,8 @@ interface Settings {
   readonly schemes: ReadonlySet<string>;
   readonly keepEmpty: boolean;
   readonly maxData: number;
+  readonly svg: ((dataUrl: string) => string | undefined) | undefined;
+  readonly recognizers: readonly ImportRecognizer[];
 }
 
 const DROP = new Set([
@@ -88,13 +127,13 @@ export function safeUrl(raw: string | undefined, schemes: ReadonlySet<string>): 
 }
 
 /** Returns the image address when it is a remote address or a real raster image, otherwise undefined. */
-function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData">): string | undefined {
+function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData" | "svg">): string | undefined {
   if (raw === undefined) return undefined;
   const value = raw.trim();
   if (/^data:/i.test(value)) {
     if (value.length > settings.maxData) return undefined;
     // SVG is not trusted as it arrives; it is rewritten from a parsed, allow-listed copy.
-    if (/^data:image\/svg\+xml/i.test(value)) return sanitizeSvgDataUrl(value);
+    if (/^data:image\/svg\+xml/i.test(value)) return settings.svg?.(value);
     const match = /^data:(image\/[a-z]+);base64,([A-Za-z0-9+/]{8,})/i.exec(value);
     if (!match) return undefined;
     const body = match[2] as string;
@@ -273,130 +312,14 @@ function withMarks(ctx: Ctx, change: MarkChange, extra?: Partial<Ctx>): Ctx {
 }
 
 
-// ---- word-processor lists ---------------------------------------------------------------------------------
-
-const ROMAN = new Map([["i", 1], ["v", 5], ["x", 10], ["l", 50], ["c", 100], ["d", 500], ["m", 1000]]);
-const romanValue = (text: string): number => {
-  let total = 0;
-  const digits = [...text.toLowerCase()].map((ch) => ROMAN.get(ch) ?? 0);
-  digits.forEach((value, i) => { total += value < (digits[i + 1] ?? 0) ? -value : value; });
-  return total;
-};
-
-interface Marker {
-  readonly type: "ul" | "ol";
-  readonly style?: string;
-  readonly start?: number;
-}
-
-/** Reads a list marker such as `·`, `o`, `§`, `3.`, `b)`, `iv.` into a list kind, marker style and start number. */
-function parseMarker(raw: string): Marker | undefined {
-  const text = raw.replace(/[\s ]+/g, "");
-  if (text === "") return undefined;
-  const numbered = /^\(?(\d{1,5})[.)]?$/.exec(text);
-  if (numbered) return { type: "ol", start: Number(numbered[1]) };
-  const lower = /^\(?([ivxlcdm]+|[a-z])[.)]$/.exec(text);
-  const upper = /^\(?([IVXLCDM]+|[A-Z])[.)]$/.exec(text);
-  const word = lower?.[1] ?? upper?.[1];
-  if (word !== undefined) {
-    const isUpper = upper !== null && lower === null;
-    // `i`, `v` and `x` alone, and any longer run of roman letters, are roman numerals. Other single letters are letters.
-    const roman = word.length > 1 || /^[ivxIVX]$/.test(word);
-    if (roman) return { type: "ol", style: isUpper ? "upper-roman" : "lower-roman", start: romanValue(word) };
-    return { type: "ol", style: isUpper ? "upper-alpha" : "lower-alpha", start: word.toLowerCase().charCodeAt(0) - 96 };
-  }
-  // Bullets. Symbol and Wingdings glyphs often arrive as private-use characters.
-  const glyph = [...text][0] as string;
-  if (/^[oO○◦∘]$/.test(glyph)) return { type: "ul", style: "circle" };
-  if (/^[§▪■□◾]$/.test(glyph)) return { type: "ul", style: "square" };
-  if (/^[·•●∙*\-–—]$/.test(glyph)) return { type: "ul", style: "disc" };
-  return undefined;
-}
-
-const textOf = (nodes: readonly HNode[]): string => nodes.map((n) => (n.type === "text" ? n.text : textOf(n.children))).join("");
-
-const isIgnoredMarker = (node: HNode): boolean =>
-  node.type === "el" && node.tag === "span" && /mso-list\s*:\s*ignore/i.test(node.attrs.style ?? "");
-
-/** Splits the marker a word processor wrote into a list paragraph from the paragraph's own content. */
-function splitMarker(children: readonly HNode[]): { marker: string | undefined; rest: HNode[] } {
-  let marker: string | undefined;
-  const strip = (nodes: readonly HNode[]): HNode[] =>
-    nodes.flatMap((node): HNode[] => {
-      if (isIgnoredMarker(node)) {
-        marker ??= textOf((node as HElement).children);
-        return [];
-      }
-      return node.type === "el" ? [{ ...node, children: strip(node.children) }] : [node];
-    });
-  const rest = strip(children);
-  return { marker, rest };
-}
-
-const OFFICE_LIST = /^\s*(l\d+)\s+level(\d+)/i;
-
-/**
- * Word-for-web describes a list's marker in a JSON attribute: bullet glyph code points, or [placeholder, number format].
- * Seen in real captures: format 0 (decimal), 2 (lower roman), 4 (lower letter). Formats 1 (upper roman) and 3 (upper
- * letter) are filled in from the word processor's public numbering enumeration and have NOT been seen in a capture.
- */
-function definitionStyle(raw: string | undefined): { type: "ul" | "ol"; style?: string } | undefined {
-  if (!raw) return undefined;
-  try {
-    const defn = JSON.parse(raw) as Record<string, unknown>;
-    const spec = defn["469769242"];
-    if (!Array.isArray(spec)) return undefined;
-    if (spec.length === 1) {
-      const glyph = String.fromCodePoint(Number(spec[0]));
-      const marker = parseMarker(glyph);
-      return marker?.type === "ul" ? { type: "ul", ...(marker.style ? { style: marker.style } : {}) } : { type: "ul" };
-    }
-    const format = (["decimal", "upper-roman", "lower-roman", "upper-alpha", "lower-alpha"] as const)[Number(spec[1])];
-    return { type: "ol", ...(format && format !== "decimal" ? { style: format } : {}) };
-  } catch {
-    return undefined;
-  }
-}
-
-/** A paragraph a word processor wrote as a list item (marker text plus a level) becomes a one-item list with a level hint. */
-function officeListItem(el: HElement, sink: Sink, ctx: Ctx, settings: Settings): boolean {
-  const info = OFFICE_LIST.exec(parseStyle(el.attrs.style).get("mso-list") ?? "");
-  if (!info) return false;
-  let { marker, rest } = splitMarker(el.children);
-  if (marker === undefined) {
-    // The wrapper that marks the bullet is gone (some browsers rewrite the markup): read the literal marker instead.
-    const lead = /^[\s ]*([^\s ]{1,6})[\s ]{2,}/.exec(textOf(rest));
-    if (lead && parseMarker(lead[1] as string)) {
-      marker = lead[1];
-      let skip = lead[0].length;
-      const trim = (nodes: readonly HNode[]): HNode[] =>
-        nodes.flatMap((node): HNode[] => {
-          if (skip <= 0) return [node];
-          if (node.type === "text") {
-            const cut = Math.min(skip, node.text.length);
-            skip -= cut;
-            return node.text.length > cut ? [{ type: "text", text: node.text.slice(cut) }] : [];
-          }
-          return [{ ...node, children: trim(node.children) }];
-        });
-      rest = trim(rest);
-    }
-  }
-  const parsed = marker === undefined ? undefined : parseMarker(marker);
+/** Inline content of some nodes, with separate paragraphs joined by line breaks. */
+function inlineOf(nodes: readonly HNode[], ctx: Ctx, settings: Settings): Inline[] {
   const inner = new Sink({ ...settings, keepEmpty: false });
-  convertNodes(rest, inner, ctx, settings);
+  convertNodes(nodes, inner, ctx, settings);
   inner.flush();
   const content: Inline[] = [];
   for (const block of inner.blocks) if (block.type === "p" || block.type === "h") content.push(...(content.length > 0 ? [{ type: "br" } as Inline] : []), ...block.content);
-  const type = parsed?.type ?? "ul";
-  sink.flush();
-  sink.blocks.push({
-    type,
-    ...(parsed?.start !== undefined && parsed.start !== 1 ? { start: parsed.start } : {}),
-    ...(parsed?.style !== undefined ? { style: parsed.style } : {}),
-    items: [{ content: normalizeInline(content), sublists: [], level: Number(info[2]), listId: info[1] as string }],
-  });
-  return true;
+  return normalizeInline(content);
 }
 
 function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings): void {
@@ -404,7 +327,20 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
   if (DROP.has(tag) || tag === "title") return;
   if (el.attrs.hidden !== undefined || /display\s*:\s*none/i.test(el.attrs.style ?? "")) return;
 
-  if (tag === "p" && officeListItem(el, sink, ctx, settings)) return;
+  for (const recognizer of settings.recognizers) {
+    const found = recognizer.element?.(el, { inline: (nodes) => inlineOf(nodes, ctx, settings) });
+    if (!found) continue;
+    sink.flush();
+    for (const { listItem } of found) {
+      sink.blocks.push({
+        type: listItem.type,
+        ...(listItem.start !== undefined && listItem.start !== 1 ? { start: listItem.start } : {}),
+        ...(listItem.style !== undefined ? { style: listItem.style } : {}),
+        items: [{ content: normalizeInline(listItem.content as Inline[]), sublists: [], level: listItem.level, listId: listItem.listId }],
+      });
+    }
+    return;
+  }
   const headingLevel = el.attrs.role === "heading" ? levelOf(el.attrs["aria-level"]) : undefined;
   if (headingLevel !== undefined && headingLevel <= 6 && (tag === "p" || tag === "div" || tag === "span")) {
     // A paragraph that declares itself a heading (word processors on the web do) is a heading.
@@ -533,7 +469,7 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
       continue;
     }
     if (child.tag !== "li") continue;
-    const defn = definitionStyle(child.attrs["data-list-defn-props"]);
+    const defn = settings.recognizers.map((r) => r.listItemStyle?.(child)).find((d) => d !== undefined);
     style ??= listStyleOf(child) ?? defn?.style;
     if (defn && list.items.length === 0 && el.tag !== (defn.type === "ol" ? "ol" : "ul")) list.type = defn.type;
     const inner = new Sink(settings);
@@ -739,6 +675,8 @@ export function importBlocks(html: string, options: ImportOptions = {}): Block[]
     schemes: new Set(options.linkSchemes ?? ["http", "https", "mailto", "tel"]),
     keepEmpty: options.keepEmptyBlocks ?? false,
     maxData: options.maxDataImageLength ?? 12_000_000,
+    svg: options.sanitizeSvg,
+    recognizers: options.recognizers ?? [],
   };
   const sink = new Sink(settings);
   const tree = parseHtml(html);
@@ -771,4 +709,5 @@ const decodeLineBreaks = (value: string): string => value.replace(/\r\n?|\u2028|
 export { decodeEntities };
 
 /** Checks an image address the same way the importer does: remote, or a raster image whose bytes match its type. */
-export const checkImageSrc = (src: string, maxDataLength = 12_000_000): string | undefined => safeImageSrc(src, { maxData: maxDataLength });
+export const checkImageSrc = (src: string, maxDataLength = 12_000_000, sanitizeSvg?: ImportOptions["sanitizeSvg"]): string | undefined =>
+  safeImageSrc(src, { maxData: maxDataLength, svg: sanitizeSvg });
