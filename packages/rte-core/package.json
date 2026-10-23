@@ -14,18 +14,82 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./dom": {
+      "types": "./dist/dom/index.d.ts",
+      "default": "./dist/dom/index.js"
+    },
+    "./lists": {
+      "types": "./dist/lists/index.d.ts",
+      "default": "./dist/lists/index.js"
+    },
+    "./word": {
+      "types": "./dist/word/index.d.ts",
+      "default": "./dist/word/index.js"
+    },
+    "./svg": {
+      "types": "./dist/svg/index.d.ts",
+      "default": "./dist/svg/index.js"
+    },
+    "./images": {
+      "types": "./dist/images/index.d.ts",
+      "default": "./dist/images/index.js"
+    },
+    "./standard": {
+      "types": "./dist/standard/index.d.ts",
+      "default": "./dist/standard/index.js"
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.js.json",
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && tsc -p tsconfig.build.js.json",
     "typecheck": "tsc -p tsconfig.model.json && tsc -p tsconfig.json --noEmit",
     "test": "node --test \"src/**/*.test.ts\""
   },
   "rathkit": {
-    "budgetGzipKB": 60,
     "plugins": [
-      "lists"
+      "lists",
+      "word",
+      "svg",
+      "images"
     ],
-    "standard": []
+    "standard": [
+      "standard"
+    ],
+    "budgets": [
+      {
+        "name": "core",
+        "entry": "dist/index.js",
+        "gzipKB": 60
+      },
+      {
+        "name": "core + browser view",
+        "entry": "dist/dom/index.js",
+        "gzipKB": 60
+      },
+      {
+        "name": "lists plugin",
+        "entry": "dist/lists/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "word plugin",
+        "entry": "dist/word/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "svg plugin",
+        "entry": "dist/svg/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "images plugin",
+        "entry": "dist/images/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      }
+    ]
   }
 }

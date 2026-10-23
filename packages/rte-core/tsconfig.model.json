@@ -4,8 +4,15 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src"],
-  "exclude": ["src/dom"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/dom",
+    "src/standard"
+  ]
 }
