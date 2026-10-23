@@ -12,6 +12,7 @@ the styled one (see `HEADLESS.md`).
 | `@rathkit/rte-core/dom` | The browser view (`Editor`) | 3.5 KB more |
 | `@rathkit/rte-core/lists` | Bulleted, numbered and definition lists: commands, Tab, Enter and Backspace in items, typed shortcuts | 3.5 KB |
 | `@rathkit/rte-core/tables` | Insert a table; add and remove rows and columns; merge and split cells; column widths; header row; Tab and Shift+Tab between cells. See `TABLES.md` | 5 KB |
+| `@rathkit/rte-core/find` | Find and replace: case and whole-word options, next and previous, replace one or all in a single undo step. See `COMMANDS.md` | 2 KB |
 | `@rathkit/rte-core/word` | Reads lists the way word processors write them | 1.1 KB |
 | `@rathkit/rte-core/svg` | The SVG cleaner; lets content carry SVG images once cleaned | 2.5 KB |
 | `@rathkit/rte-core/images` | The image policy: upload hook, inline limit, reports | 1.2 KB |
@@ -44,8 +45,12 @@ plugin, Enter in an item is a line break and blocks pasted into an item become l
 
 A plugin names the plugin API versions it supports (`api: ">=1 <2"`), and a mismatch fails when it is added. Removing a plugin takes
 everything it added away. A plugin file should contain only `import type` lines from the core (`mentions.sample.ts` is checked for that).
-The lists, tables, word, SVG and images plugins are built the same way, and a test (`plugins-use-host.test.ts`) fails if one of them takes anything from the core that is not also in `ops`, so an outside plugin can do everything these do through the host.
+The lists, tables, find, word, SVG and images plugins are built the same way, and a test (`plugins-use-host.test.ts`) fails if one of them takes anything from the core that is not also in `ops`, so an outside plugin can do everything these do through the host.
 
 ## Sharing a key
 
 Two plugins may want the same chord, as lists and tables both want Tab. A binding marked `stack: true` shares its chord with others that say so: they are tried in the order they were added, and the first whose command does something takes the key. A command that does not apply returns false, so the key falls to the next one, and finally to the browser. Without `stack`, the first binding keeps the chord and a warning names the second.
+
+## Plugin state
+
+A plugin that has state of its own (a search in progress) keeps it with `ctx.setPluginState(id, value)` and reads it as `snapshot.plugins[id]`, so command states and interfaces are plain functions of the snapshot. It is not part of the document and not an undo step.

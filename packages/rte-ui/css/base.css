@@ -163,6 +163,20 @@
   .rk-root:focus-within [data-rk-part="content"] :focus-visible,
   .rk-root [data-rk-part="content"] :focus-visible { outline: none; }
 
+  /* ---- find and replace ---- */
+  [data-rk-part="findbar"] { padding: var(--rk-space-2); background: var(--rk-surface); border-bottom: var(--rk-border-width) solid var(--rk-border); }
+  [data-rk-part="findbar"][hidden] { display: none; }
+  [data-rk-part="find-line"] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--rk-space-1); }
+  [data-rk-part="find-line"] + [data-rk-part="find-line"] { margin-top: var(--rk-space-1); }
+  [data-rk-part="find-row"] { display: flex; align-items: center; gap: var(--rk-space-2); flex: 1 1 14rem; }
+  [data-rk-part="find-label"] { min-width: 6.5em; font-weight: 600; }
+  [data-rk-part="find-field"] {
+    flex: 1; min-width: 6em; height: var(--rk-control-size); padding: 0 var(--rk-space-2); font: inherit; color: var(--rk-fg);
+    background: var(--rk-bg); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-s);
+  }
+  [data-rk-part="find-count"] { min-width: 5.5em; color: var(--rk-fg-muted); font-size: 0.9em; }
+  [data-rk-part="findbar"] [aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+
   /* ---- status line ---- */
   [data-rk-part="status"] {
     padding: var(--rk-space-1) var(--rk-space-3); font-size: 0.85em; color: var(--rk-fg-muted); background: var(--rk-surface);
@@ -197,6 +211,10 @@
   }
   [data-rk-part="action"][data-primary] { color: var(--rk-accent-fg); background: var(--rk-accent); border-color: var(--rk-accent); }
 
+  /* Matches painted by the page's highlight registry (nothing in the document changes). Dark text on a strong tint reads on any theme. */
+  ::highlight(rk-find) { background-color: #ffe08a; color: #14181f; }
+  ::highlight(rk-find-current) { background-color: #ff9632; color: #14181f; }
+
   @media (prefers-reduced-motion: reduce) { .rk-root { --rk-motion-scale: 0; } }
 
   /* Forced colors (Windows high contrast): use the user's colors, and real borders and outlines, which survive where shadows and tints do not. */
@@ -211,6 +229,9 @@
     .rk-root :focus-visible, .rk-root:focus-within { outline-color: Highlight; }
     [data-rk-part="separator"], [data-rk-part="menu-separator"] { background: CanvasText; }
     [data-rk-part="menu"] { border-color: CanvasText; background: Canvas; }
+    ::highlight(rk-find) { background-color: Mark; color: MarkText; }
+    ::highlight(rk-find-current) { background-color: Highlight; color: HighlightText; }
+    [data-rk-part="find-field"] { border-color: ButtonText; }
     [data-rk-part="tooltip"] { color: CanvasText; background: Canvas; border: 1px solid CanvasText; }
     [data-rk-part="menu-item"] { color: ButtonText; }
     [data-rk-part="menu-item"]:hover:not([aria-disabled="true"]), [data-rk-part="menu-item"]:focus-visible { background: Highlight; color: HighlightText; }

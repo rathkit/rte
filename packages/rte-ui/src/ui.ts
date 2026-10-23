@@ -2,6 +2,7 @@
 // stable data-rk-part so themes and utility classes can address it; the look comes from tokens (see @rathkit/rte-themes).
 import type { UiItem } from "@rathkit/rte-core";
 import { checkFields, createAnnouncer, createDialog, createMenu, createToolbar, createTooltip, type Dialog, type Menu } from "@rathkit/rte-headless";
+import { createFindBar, type FindBar } from "./findbar.ts";
 import { setIcon } from "./icon.ts";
 import { text } from "./messages.ts";
 import type { PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
@@ -52,6 +53,11 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       ? message("status.selection", "", { selected: String(counts.selection.words), total: String(words) })
       : `${message(words === 1 ? "status.word" : "status.words", "", { count: String(words) })} · ${message("status.characters", "", { count: String(counts.document.characters) })}`;
   };
+  // Find and replace, when the editor has it: a bar between the toolbar and the writing area.
+  const findBar: FindBar | undefined = editor.commands.list().some((c) => c.name === "find.set")
+    ? createFindBar({ editor, part: (el, name) => part(el, name as PartName), message: (key, fallback, values) => message(key as never, fallback, values), icon: (name) => iconFor(name), announce: (m) => announcer.announce(m) })
+    : undefined;
+  if (findBar) root.insertBefore(findBar.element, contentEl);
   const stopStatus = editor.counts && options.status !== false ? editor.subscribe(() => { statusTimer ??= setTimeout(showStatus, 150); }) : undefined;
   if (stopStatus) root.appendChild(statusEl);
   const announcer = createAnnouncer(root);
@@ -59,7 +65,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   const tipEl = part(document.createElement("div"), "tooltip");
   root.appendChild(tipEl);
   const tooltip = createTooltip({
-    container: toolbarEl, popup: tipEl,
+    container: root, popup: tipEl,
     onShow: (target, popup) => {
       const box = root.getBoundingClientRect();
       const at = target.getBoundingClientRect();
@@ -96,7 +102,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       appliedClasses.set(name, classes);
       for (const el of parts.get(name) ?? []) el.classList.add(...classes);
     }
-    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) draw();
+    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) { draw(); findBar?.refresh(); }
     syncDialogs();
   }
 
@@ -249,12 +255,12 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     for (const menu of menus.splice(0)) menu.destroy();
     menuItems.clear();
     iconSpans.clear();
-    parts.set("button", new Set());
-    parts.set("select", new Set());
-    parts.set("separator", new Set());
-    parts.set("icon", new Set());
-    parts.set("label", new Set());
-    for (const name of ["menu-host", "menu", "menu-item", "menu-separator", "menu-keys", "swatch"] as const) parts.set(name, new Set());
+    // Forget the parts the toolbar drew last time (they are about to be replaced), and keep the ones drawn elsewhere, such as the find bar's.
+    for (const name of ["button", "select", "separator", "icon", "label", "menu-host", "menu", "menu-item", "menu-separator", "menu-keys", "swatch"] as const) {
+      const kept = new Set<HTMLElement>();
+      for (const el of parts.get(name) ?? []) if (!toolbarEl.contains(el)) kept.add(el);
+      parts.set(name, kept);
+    }
     const controls: HTMLElement[] = [];
     let group: string | undefined;
     for (const item of toolbar.items) {
@@ -404,6 +410,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       tooltip.destroy();
       tipEl.remove();
       stopStatus?.();
+      findBar?.destroy();
       if (statusTimer) clearTimeout(statusTimer);
       statusEl.remove();
       stopRedraw();

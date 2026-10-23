@@ -24,6 +24,8 @@ export interface EditorSnapshot {
   readonly canRedo: boolean;
   /** Marks the next typed text takes, chosen with the caret in place (bold switched on before typing). Undefined when none are chosen here. */
   readonly storedMarks: readonly Mark[] | undefined;
+  /** State that plugins keep with the editor (a search in progress, say), by plugin id. Not part of the document and not in the history. */
+  readonly plugins: Readonly<Record<string, unknown>>;
 }
 
 export interface EngineOptions {
@@ -74,6 +76,7 @@ export class Engine {
   private undoStack: Level[] = [];
   private redoStack: Level[] = [];
   private lastKind = "";
+  private pluginState: Readonly<Record<string, unknown>> = {};
   private stored: { readonly path: Path; readonly offset: number; readonly marks: readonly Mark[] } | undefined;
   private readOnlyMode: boolean;
   private focusedState = false;
@@ -133,7 +136,7 @@ export class Engine {
     else this.stored = undefined;
     return {
       version: this.version, doc: this.doc, selection: this.sel, readOnly: this.readOnlyMode, focused: this.focusedState,
-      canUndo: this.undoStack.length > 0, canRedo: this.redoStack.length > 0, storedMarks,
+      canUndo: this.undoStack.length > 0, canRedo: this.redoStack.length > 0, storedMarks, plugins: this.pluginState,
     };
   }
 
@@ -209,6 +212,13 @@ export class Engine {
     if (sameSelection(selection, this.sel)) return;
     this.sel = selection;
     this.commit({ docChanged: false, selectionChanged: true });
+  }
+
+  /** Keeps a plugin's own state with the editor, so commands and interfaces read it from the snapshot. Changes the snapshot; not an undo step. */
+  setPluginState(id: string, value: unknown): void {
+    if (Object.is(this.pluginState[id], value)) return;
+    this.pluginState = { ...this.pluginState, [id]: value };
+    this.commit({ docChanged: false, selectionChanged: false });
   }
 
   /** Chooses the marks for the text typed next at the caret. False when a range is selected or the editor is read-only. */

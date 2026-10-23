@@ -12,6 +12,18 @@ export const DEFAULT_MESSAGES: Readonly<Record<string, string>> = {
   "status.words": "{count} words",
   "status.characters": "{count} characters",
   "status.selection": "{selected} of {total} words",
+  "find.find": "Find",
+  "find.replaceWith": "Replace with",
+  "find.previous": "Previous match",
+  "find.next": "Next match",
+  "find.close": "Close find and replace",
+  "find.matchCase": "Match case",
+  "find.wholeWord": "Whole word",
+  "find.replace": "Replace",
+  "find.replaceAll": "Replace all",
+  "find.none": "No matches",
+  "find.count": "{current} of {total}",
+  "find.total": "{total} matches",
 };
 
 export function text(table: Partial<Record<MessageKey, string>> | undefined, key: MessageKey, fallback = "", values: Record<string, string> = {}): string {

@@ -117,6 +117,16 @@ export class Editor {
   get selection(): Selection { return this.engine.selection; }
   /** Words and characters in the document and in the selection. */
   counts(): ReturnType<Engine["counts"]> { return this.engine.counts(); }
+  /** The part of the page between two positions in the document, for drawing over it (a highlight) or scrolling to it. Null if it is not drawn. */
+  rangeFor(from: Pos, to: Pos): Range | null {
+    const a = domFromPos(this.element, from);
+    const b = domFromPos(this.element, to);
+    if (!a || !b) return null;
+    const range = document.createRange();
+    range.setStart(a.node, a.offset);
+    range.setEnd(b.node, b.offset);
+    return range;
+  }
   get canUndo(): boolean { return this.engine.canUndo; }
   get canRedo(): boolean { return this.engine.canRedo; }
   get readOnly(): boolean { return this.engine.readOnly; }

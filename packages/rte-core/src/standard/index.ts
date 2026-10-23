@@ -1,6 +1,7 @@
 // @rathkit/rte-core/standard: the editor with the free standard plugins already in it (lists, word-processor lists, SVG
 // images, the image policy). This is the one to use unless you want to pick the parts yourself.
 import { Editor, type EditorOptions } from "../dom/view.ts";
+import { find } from "../find/plugin.ts";
 import { images, type ImagesOptions } from "../images/plugin.ts";
 import { lists, type ListsOptions } from "../lists/plugin.ts";
 import type { Plugin } from "../plugin.ts";
@@ -12,6 +13,8 @@ import { word } from "../word/plugin.ts";
 export interface StandardPluginOptions extends ImagesOptions {
   /** Options for lists, or `false` to leave lists out. */
   readonly lists?: ListsOptions | false;
+  /** `false` to leave find and replace out. */
+  readonly find?: false;
   /** Options for tables, or `false` to leave tables out. */
   readonly tables?: TablesOptions | false;
   /** More plugins, added after the standard ones. */
@@ -26,6 +29,7 @@ export function standardPlugins(options: StandardPluginOptions = {}): Plugin[] {
   return [
     ...(options.lists === false ? [] : [lists(options.lists)]),
     ...(options.tables === false ? [] : [tables(options.tables)]),
+    ...(options.find === false ? [] : [find()]),
     word(),
     svg(),
     images({
@@ -39,8 +43,8 @@ export function standardPlugins(options: StandardPluginOptions = {}): Plugin[] {
 }
 
 export function createEditor(options: StandardOptions): Editor {
-  const { lists: _lists, tables: _tables, plugins: _plugins, uploadImage: _u, maxInlineImageBytes: _m, maxImageFileBytes: _f, onImageRejected: _r, ...editorOptions } = options;
-  void [_lists, _tables, _plugins, _u, _m, _f, _r];
+  const { lists: _lists, tables: _tables, find: _find, plugins: _plugins, uploadImage: _u, maxInlineImageBytes: _m, maxImageFileBytes: _f, onImageRejected: _r, ...editorOptions } = options;
+  void [_lists, _tables, _find, _plugins, _u, _m, _f, _r];
   return new Editor({ ...editorOptions, plugins: standardPlugins(options) });
 }
 

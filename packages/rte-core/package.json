@@ -27,6 +27,10 @@
       "types": "./dist/tables/index.d.ts",
       "default": "./dist/tables/index.js"
     },
+    "./find": {
+      "types": "./dist/find/index.d.ts",
+      "default": "./dist/find/index.js"
+    },
     "./word": {
       "types": "./dist/word/index.d.ts",
       "default": "./dist/word/index.js"
@@ -53,6 +57,7 @@
     "plugins": [
       "lists",
       "tables",
+      "find",
       "word",
       "svg",
       "images"
@@ -80,6 +85,12 @@
       {
         "name": "tables plugin",
         "entry": "dist/tables/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "find plugin",
+        "entry": "dist/find/index.js",
         "gzipKB": 15,
         "plugin": true
       },

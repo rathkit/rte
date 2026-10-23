@@ -23,6 +23,8 @@ export interface CommandContext {
   redo(): boolean;
   /** Chooses the marks for the text typed next at the caret. False when a range is selected or the editor is read-only. */
   setStoredMarks(marks: readonly Mark[]): boolean;
+  /** Keeps a plugin's own state with the editor (read it from `snapshot.plugins[id]`). Not an undo step. */
+  setPluginState(id: string, value: unknown): void;
   focus(): void;
 }
 
@@ -98,6 +100,7 @@ export class CommandRegistry {
       get snapshot() { return engine.snapshot; },
       apply: (kind, op) => engine.apply(kind, op),
       setStoredMarks: (marks) => engine.setStoredMarks(marks),
+      setPluginState: (id, value) => engine.setPluginState(id, value),
       undo: () => engine.undo(),
       redo: () => engine.redo(),
       focus: () => engine.requestFocus(),
