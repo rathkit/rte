@@ -65,3 +65,5 @@ jobs:
       - run: tools/browser-checks/run.sh
         env:
           RTE_PLAYWRIGHT: ${{ runner.temp }}/pw/node_modules
+          # Shared runners are slower and noisier than a desk, so the speed budgets are doubled here.
+          RTE_SPEED_SCALE: "2"

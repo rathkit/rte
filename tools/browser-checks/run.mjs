@@ -633,18 +633,20 @@ for (const [name, type] of engines) {
     times.sort((a, b) => a - b);
     return { p95: times[Math.ceil(times.length * 0.95) - 1], subscribed: names.length, woken };
   }, count);
+  // Shared machines are slower and noisier than a desk: RTE_SPEED_SCALE widens every budget by that factor (CI sets 2). Unset, it is 1.
+  const scale = Number(process.env.RTE_SPEED_SCALE ?? 1);
   for (const [label, rate] of [["", 1], [" (CPU 4x slower)", 4]]) {
     await client.send("Emulation.setCPUThrottlingRate", { rate });
     const caret = await caretMoves(5000);
     console.log(`speed${label} 5000 paragraphs, caret move with ${caret.subscribed} subscribed commands: p95 ${caret.p95.toFixed(2)} ms (${caret.woken} notifications)`);
-    if (rate === 1) check("speed: a caret move with every command subscribed, 5000 paragraphs, within 30 ms (p95)", caret.p95 <= 30, caret);
+    if (rate === 1) check("speed: a caret move with every command subscribed, 5000 paragraphs, within 30 ms (p95)", caret.p95 <= 30 * scale, caret);
     for (const [n, commandBudget, setBudget] of [[1000, 10, 40], [5000, 30, Infinity]]) {
       const r = await measure(n);
       const worst = Math.max(r.typeMiddle, r.typeTop, r.enterTop, r.joinTop, r.pasteTop);
       console.log(`speed${label} ${n} paragraphs: set ${r.set.toFixed(1)} ms warm, ${r.setCold.toFixed(1)} ms cold; p95 per command: type ${r.typeMiddle.toFixed(1)} (top ${r.typeTop.toFixed(1)}), Enter ${r.enterTop.toFixed(1)}, join ${r.joinTop.toFixed(1)}, paste ${r.pasteTop.toFixed(1)} ms`);
       if (rate === 1) {
-        check(`speed: ${n} paragraphs, every command within ${commandBudget} ms (p95)`, worst <= commandBudget, r);
-        check(`speed: ${n} paragraphs, set content within ${setBudget} ms`, r.set <= setBudget, r);
+        check(`speed: ${n} paragraphs, every command within ${commandBudget} ms (p95)`, worst <= commandBudget * scale, r);
+        check(`speed: ${n} paragraphs, set content within ${setBudget} ms`, r.set <= setBudget * scale, r);
       }
     }
   }
