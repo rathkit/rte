@@ -1,25 +1,26 @@
 // Serves the editor's conformance page and its built files on 127.0.0.1, for a conformance runner to drive.
 //   node tools/conformance/serve.mjs [port]      (default: a free port, printed on the first line)
-// Only files under packages/rte-core/conformance and packages/rte-core/dist are served, and, under /headless/, packages/rte-headless/dist and demo.
+// Only files under packages/rte-core/conformance and packages/rte-core/dist are served, and, under /headless/ and /element/, the dist and demo folders of packages/rte-headless and packages/rte-element.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../../packages/rte-core");
-const headless = resolve(import.meta.dirname, "../../packages/rte-headless");
+const packages = { "/headless/": resolve(import.meta.dirname, "../../packages/rte-headless"), "/element/": resolve(import.meta.dirname, "../../packages/rte-element") };
 const allowed = ["conformance", "dist"];
-const allowedHeadless = ["dist", "demo"];
+const allowedOther = ["dist", "demo"];
 const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".map": "application/json" };
 
 const server = createServer(async (req, res) => {
   const host = req.headers.host ?? "";
   const url = new URL(req.url ?? "/", "http://localhost");
-  const isHeadless = url.pathname.startsWith("/headless/");
-  const base = isHeadless ? headless : root;
-  const rel = normalize(decodeURIComponent(url.pathname.slice(isHeadless ? "/headless".length : 0))).replace(/^[/\\]+/, "");
+  const prefix = Object.keys(packages).find((p) => url.pathname.startsWith(p));
+  const isHeadless = prefix !== undefined;
+  const base = prefix ? (packages[prefix] ?? root) : root;
+  const rel = normalize(decodeURIComponent(url.pathname.slice(prefix ? prefix.length - 1 : 0))).replace(/^[/\\]+/, "");
   const file = join(base, rel.endsWith("/") || rel === "" ? `${rel}index.html` : rel);
   const top = rel.split(/[/\\]/)[0] ?? "";
-  if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host) || !file.startsWith(base) || !(isHeadless ? allowedHeadless : allowed).includes(top)) {
+  if (!/^(127\.0\.0\.1|localhost):\d+$/.test(host) || !file.startsWith(base) || !(isHeadless ? allowedOther : allowed).includes(top)) {
     res.writeHead(403).end("forbidden");
     return;
   }

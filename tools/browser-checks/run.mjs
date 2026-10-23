@@ -23,6 +23,8 @@ const check = (name, ok, detail) => {
 };
 
 async function open(type, options = {}, cfg = "", demo = false) {
+  const page_url = demo === "element" ? "/element/demo/" : "/headless/demo/";
+  const ready_flag = demo === "element" ? "window.__elementReady===true" : "window.__demoReady===true";
   const browser = await type.launch();
   const context = await browser.newContext(options);
   const outside = [];
@@ -36,8 +38,8 @@ async function open(type, options = {}, cfg = "", demo = false) {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
-  await page.goto(demo ? new URL("/headless/demo/", base).href : cfg ? `${base}?cfg=${encodeURIComponent(cfg)}` : base);
-  await page.waitForFunction(demo ? "window.__demoReady===true" : "window.__confReady===true");
+  await page.goto(demo ? new URL(page_url, base).href : cfg ? `${base}?cfg=${encodeURIComponent(cfg)}` : base);
+  await page.waitForFunction(demo ? ready_flag : "window.__confReady===true");
   const html = () => page.evaluate(demo ? () => window.__demo.editor.getHtml() : () => window.__conf.snapshot().html);
   const reset = (h) => page.evaluate(demo ? (v) => { window.__demo.editor.setHtml(v); window.__demo.editor.focus(); } : (v) => { window.__conf.reset(v); window.__conf.focus(); }, h);
   const select = demo
@@ -410,6 +412,61 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Escape");
   check(`${name} (headless) Escape closes it and focus returns to what opened it`, (await page.evaluate(() => document.getElementById("plain").hidden)) && (await active()) === "plain-open", await active());
   check(`${name} (headless) no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
+// --- the custom element <rk-editor> and <rk-toolbar>, in a real form
+for (const [name, type] of engines) {
+  const t = await open(type, {}, "", "element");
+  const { page } = t;
+  const val = (id) => page.evaluate((i) => document.getElementById(i).value, id);
+  const form = () => page.evaluate(() => Object.fromEntries(new FormData(document.getElementById("f"))));
+  const events = () => page.evaluate(() => window.__events.splice(0).map((e) => e.join(":")));
+  check(`${name} (element) both elements are defined and the editors are ready`, await page.evaluate(() => !!customElements.get("rk-editor") && !!customElements.get("rk-toolbar") && window.__events.filter((e) => e[0] === "rk-ready").length === 3), "defined");
+  check(`${name} (element) the value attribute and the element's own children are the starting content`, (await val("body")) === "<p>Hello</p>" && (await val("second")) === "<p>from children</p>", [await val("body"), await val("second")]);
+  check(`${name} (element) the editing surface is named from the label attribute`, await page.evaluate(() => document.querySelector("#body [data-rk-surface]").getAttribute("aria-label") === "Body"), "label");
+  const f0 = await form();
+  check(`${name} (element) the editors take part in the form`, f0.body === "<p>Hello</p>" && f0.second === "<p>from children</p>", f0);
+  await events();
+  await page.click("#body [data-rk-surface]");
+  await page.keyboard.press("End");
+  await page.keyboard.type("!");
+  const ev = await events();
+  check(`${name} (element) typing sends rk-change and input, and updates the form`, ev.includes('rk-change:body:<p>Hello!</p>') && ev.includes("input:body") && (await form()).body === "<p>Hello!</p>", [ev, await form()]);
+  check(`${name} (element) and the other editor is untouched`, (await val("second")) === "<p>from children</p>", await val("second"));
+  await page.click("#second [data-rk-surface]");
+  check(`${name} (element) leaving an editor whose value changed sends change`, (await events()).includes("change:body"), "change");
+  await page.click("#reset");
+  await page.waitForTimeout(50);
+  check(`${name} (element) a form reset puts the starting content back`, (await val("body")) === "<p>Hello</p>" && (await form()).body === "<p>Hello</p>", await val("body"));
+  await page.evaluate(() => { document.getElementById("body").value = "<p>Set</p>"; });
+  check(`${name} (element) setting value replaces the document and the form value`, (await val("body")) === "<p>Set</p>" && (await form()).body === "<p>Set</p>", await form());
+  await page.evaluate(() => document.getElementById("body").setAttribute("value", "<p>Attr</p>"));
+  check(`${name} (element) changing the value attribute does too`, (await val("body")) === "<p>Attr</p>", await val("body"));
+  await page.evaluate(() => document.getElementById("second").setAttribute("readonly", ""));
+  check(`${name} (element) readonly makes the surface read-only, and removing it makes it editable again`, await page.evaluate(() => { const e = document.getElementById("second"); const a = e.editor.readOnly && e.querySelector("[data-rk-surface]").getAttribute("contenteditable") === "false"; e.removeAttribute("readonly"); return a && !e.editor.readOnly; }), "readonly");
+  check(`${name} (element) a required editor that is empty is invalid, and valid once it has text`, await (async () => {
+    const bad = await page.evaluate(() => document.getElementById("req").validity.valueMissing && !document.getElementById("f").checkValidity());
+    await page.click("#req [data-rk-surface]");
+    await page.keyboard.type("text");
+    const good = await page.evaluate(() => !document.getElementById("req").validity.valueMissing);
+    return bad && good;
+  })(), "required");
+  // The toolbar: built from the editor's items, behaving through the headless layer.
+  check(`${name} (element) the toolbar draws a control for each item and names it`, await page.evaluate(() => { const b = document.querySelector("rk-toolbar"); const bold = b.querySelector('[data-rk-item="bold"]'); return b.getAttribute("role") === "toolbar" && bold && bold.textContent === "Bold" && b.querySelectorAll("[data-rk-item]").length > 10; }), "toolbar");
+  await page.evaluate(() => { document.getElementById("body").value = "<p>one two</p>"; });
+  await page.click("#body [data-rk-surface]");
+  await page.evaluate(() => { const n = document.querySelector("#body [data-rk-surface] p").firstChild; document.getElementById("body").editor.selectDom(n, 0, n, 3); });
+  await page.waitForTimeout(60);
+  await page.click('rk-toolbar [data-rk-item="bold"]');
+  await page.waitForTimeout(60);
+  check(`${name} (element) pressing Bold in the toolbar bolds the selection in its editor`, (await val("body")) === "<p><strong>one</strong> two</p>", await val("body"));
+  // Moving an element in the page keeps what it holds. Removing one cleans up.
+  await page.evaluate(() => { const e = document.getElementById("body"); document.body.appendChild(e); });
+  await page.waitForTimeout(50);
+  check(`${name} (element) moving the element keeps its content and it still works`, (await val("body")) === "<p><strong>one</strong> two</p>" && (await page.evaluate(() => !!document.getElementById("body").editor)), await val("body"));
+  await page.evaluate(() => document.getElementById("second").remove());
+  check(`${name} (element) removing an element leaves no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
 

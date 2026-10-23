@@ -178,6 +178,15 @@ importers:
 
   packages/rte-core: {}
 
+  packages/rte-element:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+      '@rathkit/rte-headless':
+        specifier: workspace:*
+        version: link:../rte-headless
+
   packages/rte-headless:
     devDependencies:
       '@rathkit/rte-core':
