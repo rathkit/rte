@@ -8,6 +8,7 @@ import type { PasteHandler } from "./paste.ts";
 import { caret, isCollapsed, pathKey, type EditResult, type Path, type Selection } from "./path.ts";
 import { startOf } from "./edit.ts";
 import type { ImportOptions } from "./import.ts";
+import { countDocument, countSelection, type Counts } from "./stats.ts";
 import { UiRegistry } from "./ui.ts";
 import { PLUGIN_API_VERSION, satisfiesApi, type FileHandler, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
 import { ops } from "./ops.ts";
@@ -107,6 +108,14 @@ export class Engine {
   get snapshot(): EditorSnapshot {
     return this.current;
   }
+  /** Words and characters in the whole document and in the selection (zero for a caret). Worked out when asked, once per state. */
+  counts(): { readonly document: Counts; readonly selection: Counts } {
+    if (this.countsAt?.version !== this.version) {
+      this.countsAt = { version: this.version, value: { document: countDocument(this.doc), selection: isCollapsed(this.sel) ? { words: 0, characters: 0 } : countSelection(this.doc, this.sel) } };
+    }
+    return this.countsAt.value;
+  }
+  private countsAt: { version: number; value: { readonly document: Counts; readonly selection: Counts } } | undefined;
   get document(): Doc { return this.doc; }
   get selection(): Selection { return this.sel; }
   get readOnly(): boolean { return this.readOnlyMode; }

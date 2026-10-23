@@ -1,17 +1,18 @@
 import type { Toolbar, ItemState, HeadlessEditor } from "@rathkit/rte-headless";
-import type { UiItem } from "@rathkit/rte-core";
+import type { Counts, UiItem } from "@rathkit/rte-core";
 import type { TokenName } from "@rathkit/rte-themes";
 
 /** The parts the interface is made of. Selectors and `classes` address them by these names (as `data-rk-part`). */
 export type PartName =
   | "root" | "toolbar" | "button" | "select" | "separator" | "icon" | "label" | "content"
-  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip"
+  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status"
   | "dialog" | "dialog-title" | "field-label" | "field" | "field-error" | "actions" | "action";
 
 /** Words the interface says. Each has a default in English; this table is also the way to translate it. */
 export type MessageKey =
   | "toolbar.label" | "dialog.ok" | "dialog.cancel" | "field.required" | "field.url"
   | "toggle.on" | "toggle.off"
+  | "status.word" | "status.words" | "status.characters" | "status.selection"
   /** Rename any item: `item.bold`, `item.link`, and so on. */
   | `item.${string}`;
 
@@ -41,12 +42,18 @@ export interface StyleProvider {
 }
 
 /** What the interface needs of an editor: the headless needs, and the element that is the editing surface. */
-export type UiEditor = HeadlessEditor & { readonly element: HTMLElement };
+export type UiEditor = HeadlessEditor & {
+  readonly element: HTMLElement;
+  /** Words and characters, for the status line. Without it there is no status line. */
+  counts?(): { readonly document: Counts; readonly selection: Counts };
+};
 
 export interface UiOptions {
   /** The element the interface is built in. It gets the `rk-root` class. */
   readonly root: HTMLElement;
   readonly style?: StyleProvider;
+  /** A line under the writing area with the number of words and characters. Default: on, when the editor can count. */
+  readonly status?: boolean;
   /** Which set of interface items to draw. Default: the main toolbar. */
   readonly slot?: string;
   /**

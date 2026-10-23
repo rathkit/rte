@@ -163,6 +163,13 @@
   .rk-root:focus-within [data-rk-part="content"] :focus-visible,
   .rk-root [data-rk-part="content"] :focus-visible { outline: none; }
 
+  /* ---- status line ---- */
+  [data-rk-part="status"] {
+    padding: var(--rk-space-1) var(--rk-space-3); font-size: 0.85em; color: var(--rk-fg-muted); background: var(--rk-surface);
+    border-top: var(--rk-border-width) solid var(--rk-border-subtle); border-radius: 0 0 calc(var(--rk-radius-m) - var(--rk-border-width)) calc(var(--rk-radius-m) - var(--rk-border-width));
+  }
+  [data-rk-part="content"]:has(+ [data-rk-part="status"]) { border-radius: 0; }
+
   /* ---- dialog ---- */
   [data-rk-part="dialog"] {
     width: min(26rem, calc(100vw - 2 * var(--rk-space-4)));

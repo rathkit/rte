@@ -38,8 +38,22 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   part(root, "root");
   const toolbarEl = part(document.createElement("div"), "toolbar");
   const contentEl = part(document.createElement("div"), "content");
+  const statusEl = part(document.createElement("div"), "status");
   root.append(toolbarEl, contentEl);
   contentEl.appendChild(editor.element);
+  // The count under the writing area: worked out at most a few times a second, so a long document is not recounted on every key.
+  let statusTimer: ReturnType<typeof setTimeout> | undefined;
+  const showStatus = (): void => {
+    statusTimer = undefined;
+    const counts = editor.counts?.();
+    if (!counts) return;
+    const words = counts.document.words;
+    statusEl.textContent = counts.selection.words > 0
+      ? message("status.selection", "", { selected: String(counts.selection.words), total: String(words) })
+      : `${message(words === 1 ? "status.word" : "status.words", "", { count: String(words) })} · ${message("status.characters", "", { count: String(counts.document.characters) })}`;
+  };
+  const stopStatus = editor.counts && options.status !== false ? editor.subscribe(() => { statusTimer ??= setTimeout(showStatus, 150); }) : undefined;
+  if (stopStatus) root.appendChild(statusEl);
   const announcer = createAnnouncer(root);
   // One tooltip for the whole toolbar, put under the control it is for and kept inside the editor's width.
   const tipEl = part(document.createElement("div"), "tooltip");
@@ -378,6 +392,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   // ---- go ---------------------------------------------------------------------------------------------------
   drawn = toolbar.items.map((i) => i.id).join("\u0000");
   applyStyle(options.style ?? {});
+  if (stopStatus) showStatus();
 
   return {
     root, toolbar,
@@ -388,6 +403,9 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       for (const menu of menus.splice(0)) menu.destroy();
       tooltip.destroy();
       tipEl.remove();
+      stopStatus?.();
+      if (statusTimer) clearTimeout(statusTimer);
+      statusEl.remove();
       stopRedraw();
       toolbarEl.removeEventListener("click", onToolbarClick);
       for (const d of dialogs.values()) { d.dialog.destroy(); d.element.remove(); }

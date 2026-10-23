@@ -115,6 +115,8 @@ export class Editor {
 
   get doc(): Doc { return this.engine.document; }
   get selection(): Selection { return this.engine.selection; }
+  /** Words and characters in the document and in the selection. */
+  counts(): ReturnType<Engine["counts"]> { return this.engine.counts(); }
   get canUndo(): boolean { return this.engine.canUndo; }
   get canRedo(): boolean { return this.engine.canRedo; }
   get readOnly(): boolean { return this.engine.readOnly; }

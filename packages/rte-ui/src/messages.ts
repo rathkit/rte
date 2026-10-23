@@ -8,6 +8,10 @@ export const DEFAULT_MESSAGES: Readonly<Record<string, string>> = {
   "field.url": "{label} must be a web, mail or phone address.",
   "toggle.on": "{label} on",
   "toggle.off": "{label} off",
+  "status.word": "{count} word",
+  "status.words": "{count} words",
+  "status.characters": "{count} characters",
+  "status.selection": "{selected} of {total} words",
 };
 
 export function text(table: Partial<Record<MessageKey, string>> | undefined, key: MessageKey, fallback = "", values: Record<string, string> = {}): string {

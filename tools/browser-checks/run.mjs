@@ -645,6 +645,17 @@ for (const [name, type] of engines) {
   check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
+  // The status line.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p><p>four</p>"); e.focus(); });
+  await page.waitForTimeout(300);
+  const statusText = () => page.evaluate(() => document.querySelector("#root [data-rk-part=status]")?.textContent ?? null);
+  check(`${name} (ui) the status line counts words and characters`, (await statusText()) === "4 words · 17 characters", await statusText());
+  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 7); });
+  await page.waitForTimeout(300);
+  check(`${name} (ui) and counts the selection against the whole`, (await statusText()) === "2 of 4 words", await statusText());
+  await page.evaluate(() => window.__one.editor.setHtml("<p>solo</p>"));
+  await page.waitForTimeout(300);
+  check(`${name} (ui) one word is singular`, (await statusText()) === "1 word · 4 characters", await statusText());
   // Tooltips: shown on hover after a pause and at once on keyboard focus; dismissed with Escape; the pointer may move onto them.
   const tip = '#root [data-rk-part="tooltip"]';
   const tipText = () => page.evaluate((t) => { const e = document.querySelector(t); return e.hidden ? null : e.textContent; }, tip);
