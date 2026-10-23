@@ -24,8 +24,9 @@ RTE is a rich text editor for the web. The core is written in TypeScript around 
 | `@rathkit/rte-ui` | Early. The styled interface: toolbar and link dialog on the headless layer, themeable by preset, tokens, icons, classes and messages. Not published. See `docs/UI.md` |
 | `@rathkit/rte-themes` | Early. Preset themes (light, dark, auto, high contrast) and density as token files, with tests for contrast. Not published |
 | `@rathkit/rte-icons` | Early. The icon set, one SVG string each. Not published |
+| `@rathkit/rte-react` | Early. `RteEditor`, `useRteEditor`, and the hooks `useCommand` and `useSelector`, over the headless layer; a component re-renders only when the value it reads changes. Not published |
 
-More packages (the other framework wrappers, server) will appear here as they are built.
+More packages (the Vue, Svelte, Angular and jQuery wrappers, server) will appear here as they are built.
 
 ## Development
 

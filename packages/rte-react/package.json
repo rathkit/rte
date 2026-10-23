@@ -1,0 +1,53 @@
+{
+  "name": "@rathkit/rte-react",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The editor for React: a component and hooks over the headless layer, with no editor or accessibility logic of its own.",
+  "license": "Apache-2.0",
+  "homepage": "https://rathkit.com",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "peerDependencies": {
+    "@rathkit/rte-core": "*",
+    "@rathkit/rte-headless": "*",
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@rathkit/rte-core": {
+      "optional": true
+    },
+    "@rathkit/rte-headless": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@rathkit/rte-core": "workspace:*",
+    "@rathkit/rte-headless": "workspace:*"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && tsc -p tsconfig.build.js.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --import ./test/register.mjs --test \"src/**/*.test.ts\""
+  },
+  "rathkit": {
+    "budgets": [
+      {
+        "name": "react",
+        "entry": "dist/index.js",
+        "gzipKB": 2
+      }
+    ]
+  }
+}

@@ -159,7 +159,7 @@ snapshots:
 lockfileVersion: '9.0'
 
 settings:
-  autoInstallPeers: true
+  autoInstallPeers: false
   excludeLinksFromLockfile: false
 
 importers:
@@ -194,6 +194,15 @@ importers:
         version: link:../rte-core
 
   packages/rte-icons: {}
+
+  packages/rte-react:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+      '@rathkit/rte-headless':
+        specifier: workspace:*
+        version: link:../rte-headless
 
   packages/rte-themes: {}
 
