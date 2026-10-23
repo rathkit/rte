@@ -134,6 +134,15 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.type("Z");
   check(`${name} Shift+Tab goes back`, (await html()).includes("<tr><td>c</td><td>dZ</td></tr>") || (await html()).includes("<tr><td>c</td><td>Zd</td></tr>"), await html());
+  // Formatting the browser asks for by name runs the command; Mod+\ clears formatting.
+  await reset("<p>one two</p>");
+  await select({ start: "p", so: 0, eo: 3 });
+  await page.evaluate(() => document.getElementById("ed").dispatchEvent(new InputEvent("beforeinput", { inputType: "formatSuperscript", bubbles: true, cancelable: true })));
+  check(`${name} the browser's superscript request makes the text superscript`, (await html()) === "<p><sup>one</sup> two</p>", await html());
+  await page.evaluate(() => document.getElementById("ed").dispatchEvent(new InputEvent("beforeinput", { inputType: "formatJustifyCenter", bubbles: true, cancelable: true })));
+  check(`${name} and a justify request aligns the block`, (await html()).includes('text-align: center'), await html());
+  await page.keyboard.press("ControlOrMeta+\\");
+  check(`${name} Mod+\\ clears the formatting`, !(await html()).includes("<sup>"), await html());
   // Cell edges: Backspace at the start of a cell and Delete at the end of one leave the table whole.
   await reset("<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>");
   await page.click("td:nth-child(2)");
@@ -281,7 +290,7 @@ for (const [name, type] of engines) {
 
   // --- input the editor does not handle is blocked, not applied
   await reset("<p>keep</p>");
-  const blocked = await page.evaluate(() => { const e = new InputEvent("beforeinput", { inputType: "formatJustifyCenter", cancelable: true, bubbles: true }); document.getElementById("ed").dispatchEvent(e); return e.defaultPrevented; });
+  const blocked = await page.evaluate(() => { const e = new InputEvent("beforeinput", { inputType: "formatFontName", cancelable: true, bubbles: true }); document.getElementById("ed").dispatchEvent(e); return e.defaultPrevented; });
   check(`${name} unknown input is prevented`, blocked && (await html()) === "<p>keep</p>", blocked);
 
   // --- every scrubbed capture, pasted: nothing may leave the machine, and nothing may throw
@@ -670,12 +679,12 @@ for (const [name, type] of engines) {
   // The table menu: a button that opens a list of commands.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>text</p>"); e.focus(); });
   await page.waitForTimeout(60);
-  const menu = '#root [data-rk-part="menu"]';
+  const menu = '#root [data-rk-item="table"] + [data-rk-part="menu"]';
   const trigger = '#root [data-rk-item="table"]';
   check(`${name} (ui) the menu button is named, announces a menu, and starts closed`, await page.evaluate(([t, m]) => { const b = document.querySelector(t); return b.getAttribute("aria-haspopup") === "menu" && b.getAttribute("aria-expanded") === "false" && b.getAttribute("aria-label") === "Table" && document.querySelector(m).hidden; }, [trigger, menu]), "closed");
   await page.click(trigger);
   await page.waitForTimeout(80);
-  check(`${name} (ui) clicking it opens the menu and focus goes to the first entry`, await page.evaluate(([t, m]) => document.querySelector(t).getAttribute("aria-expanded") === "true" && !document.querySelector(m).hidden && document.activeElement.getAttribute("data-rk-menu-item") === "table-insert", [trigger, menu]), await active());
+  check(`${name} (ui) clicking it opens the menu and focus goes to the first entry`, await page.evaluate(([t, m]) => document.querySelector(t).getAttribute("aria-expanded") === "true" && !document.querySelector(m).hidden && document.activeElement.getAttribute("data-rk-menu-item") === "table-insert", [trigger, menu]), await page.evaluate(() => document.activeElement.outerHTML.slice(0, 160)));
   check(`${name} (ui) entries outside a table say they are unavailable but can still be reached`, await page.evaluate(() => { const e = document.querySelector('#root [data-rk-menu-item="table-row-after"]'); return e.getAttribute("aria-disabled") === "true" && e.tabIndex !== undefined && e.getAttribute("role") === "menuitem"; }), "disabled entries");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
@@ -690,14 +699,42 @@ for (const [name, type] of engines) {
   check(`${name} (ui) inside a table the row entries are available and "Header row" is a checkbox entry`, await page.evaluate(() => { const row = document.querySelector('#root [data-rk-menu-item="table-row-after"]'); const head = document.querySelector('#root [data-rk-menu-item="table-header"]'); return row.getAttribute("aria-disabled") === "false" && head.getAttribute("role") === "menuitemcheckbox" && head.getAttribute("aria-checked") === "false"; }), "enabled entries");
   await page.click('#root [data-rk-menu-item="table-header"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) choosing it turns the header row on, closes the menu and announces it`, await page.evaluate(() => window.__one.editor.getHtml().includes('<th scope="col">') && document.querySelector('#root [data-rk-part="menu"]').hidden && document.querySelector("#root [role=status]").textContent === "Header row on"), await page.evaluate(() => document.querySelector("#root [role=status]").textContent));
+  check(`${name} (ui) choosing it turns the header row on, closes the menu and announces it`, await page.evaluate(() => window.__one.editor.getHtml().includes('<th scope="col">') && document.querySelector('#root [data-rk-item="table"] + [data-rk-part="menu"]').hidden && document.querySelector("#root [role=status]").textContent === "Header row on"), await page.evaluate(() => document.querySelector("#root [role=status]").textContent));
   await page.click(trigger);
   await page.waitForTimeout(80);
   check(`${name} (ui) and now shows it as checked, with a visible check mark`, await page.evaluate(() => { const head = document.querySelector('#root [data-rk-menu-item="table-header"]'); return head.getAttribute("aria-checked") === "true" && getComputedStyle(head, "::before").content.includes("\u2713"); }), "checked");
   await page.mouse.click(5, 5);
   await page.waitForTimeout(60);
   check(`${name} (ui) a click elsewhere closes the menu`, await page.evaluate((m) => document.querySelector(m).hidden, menu), "outside click");
+  // Block buttons and the color menus.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="quote"]');
+  await page.waitForTimeout(60);
+  check(`${name} (ui) the quote button wraps the paragraph and shows as on`, await page.evaluate(() => window.__one.editor.getHtml() === "<blockquote><p>one two three</p></blockquote>" && document.querySelector('#root [data-rk-item="quote"]').getAttribute("aria-pressed") === "true"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="quote"]');
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="code-block"]');
+  await page.waitForTimeout(60);
+  check(`${name} (ui) the code block button makes a code block`, await page.evaluate(() => window.__one.editor.getHtml() === "<pre>one two three</pre>"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="code-block"]');
+  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="text-color"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) the color menu shows named swatches`, await page.evaluate(() => { const e = document.querySelector('#root [data-rk-menu-item="text-color-red"]'); const sw = e.querySelector("[data-rk-part=swatch]"); return e.textContent.includes("Red") && getComputedStyle(sw).backgroundColor === "rgb(198, 40, 40)" && e.getAttribute("role") === "menuitemcheckbox"; }), "swatch");
+  await page.click('#root [data-rk-menu-item="text-color-red"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) choosing a color colors the selected text`, await page.evaluate(() => window.__one.editor.getHtml().includes('<span style="color: #c62828;">one</span>')), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="text-color"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) and that color shows as the chosen one`, await page.evaluate(() => document.querySelector('#root [data-rk-menu-item="text-color-red"]').getAttribute("aria-checked") === "true" && document.querySelector('#root [data-rk-menu-item="text-color-blue"]').getAttribute("aria-checked") === "false"), "checked");
+  await page.click('#root [data-rk-menu-item="text-color-none"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) Automatic takes the color away`, await page.evaluate(() => !window.__one.editor.getHtml().includes("color")), await page.evaluate(() => window.__one.editor.getHtml()));
   // A menu entry that asks for something opens a dialog.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
+  await page.waitForTimeout(60);
   await page.click(trigger);
   await page.waitForTimeout(80);
   await page.click('#root [data-rk-menu-item="table-column-width"]');

@@ -6,6 +6,7 @@ import type { Unsubscribe } from "./commands.ts";
 /** The name of an icon. What it looks like is up to whoever draws it. */
 export type IconName = string;
 
+
 export interface Field {
   readonly name: string;
   readonly type: "text" | "url" | "number" | "color" | "choice";
@@ -23,9 +24,9 @@ interface Placement {
 }
 
 export type UiItem =
-  | (Placement & { readonly kind: "button"; readonly command: string; readonly arg?: unknown; readonly icon?: IconName; readonly label?: string })
+  | (Placement & { readonly kind: "button"; readonly command: string; readonly arg?: unknown; readonly icon?: IconName; readonly label?: string; readonly swatch?: string })
   /** Like a button, but it shows whether the command is active (`aria-pressed`). */
-  | (Placement & { readonly kind: "toggle"; readonly command: string; readonly arg?: unknown; readonly icon?: IconName; readonly label?: string })
+  | (Placement & { readonly kind: "toggle"; readonly command: string; readonly arg?: unknown; readonly icon?: IconName; readonly label?: string; readonly swatch?: string })
   | (Placement & { readonly kind: "menu"; readonly label: string; readonly icon?: IconName; readonly items: readonly UiItem[] })
   /** Choose one of several values; each runs the command with its value as the argument. */
   | (Placement & { readonly kind: "select"; readonly command: string; readonly label: string; readonly options: readonly { readonly value: unknown; readonly label: string }[] })

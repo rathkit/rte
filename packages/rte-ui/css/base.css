@@ -100,6 +100,10 @@
   [data-rk-part="menu-item"][aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
   /* A switched-on entry has a check mark in front of it, so it never depends on color alone. */
   [data-rk-part="menu-item"][aria-checked="true"]::before { content: "\2713"; position: absolute; inset-inline-start: var(--rk-space-2); font-weight: 700; color: var(--rk-accent); }
+  /* A sample of a color, with a border so it shows on any background (a white swatch on white, say). */
+  [data-rk-part="swatch"] { flex: none; width: 1em; height: 1em; margin-inline-end: var(--rk-space-2); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-s); }
+  [data-rk-part="menu-item"]:has([data-rk-part="swatch"]) { justify-content: flex-start; }
+  [data-rk-part="menu-item"]:has([data-rk-part="swatch"]) [data-rk-part="menu-keys"] { margin-inline-start: auto; }
   [data-rk-part="menu-keys"] { color: var(--rk-fg-muted); font-size: 0.85em; }
   [data-rk-part="menu-separator"] { height: var(--rk-border-width); margin: var(--rk-space-1) var(--rk-space-2); background: var(--rk-border-subtle); }
 

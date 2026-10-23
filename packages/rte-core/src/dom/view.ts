@@ -16,6 +16,16 @@ import { getContent, setContent, type Pos, type Selection } from "../path.ts";
 import { CellMarks, installColumnResize } from "./tableview.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
+/** Input types the browser may ask for that are commands here: the command, and what it is given ("data" is the event's text). */
+const INPUT_COMMANDS: Readonly<Record<string, readonly [string, unknown?]>> = {
+  formatSubscript: ["format.subscript"], formatSuperscript: ["format.superscript"],
+  formatJustifyLeft: ["block.align", "left"], formatJustifyCenter: ["block.align", "center"], formatJustifyRight: ["block.align", "right"], formatJustifyFull: ["block.align", "justify"],
+  insertHorizontalRule: ["block.rule"], formatRemove: ["format.clear"],
+  formatFontColor: ["format.color", "data"], formatBackColor: ["format.background", "data"],
+  formatIndent: ["list.indent"], formatOutdent: ["list.outdent"],
+  insertLink: ["link.set", "href"],
+};
+
 export interface EditorOptions {
   readonly element: HTMLElement;
   readonly html?: string;
@@ -360,9 +370,17 @@ export class Editor {
           if (text) this.paste({ text, ...(event.dataTransfer?.getData("text/html") ? { html: event.dataTransfer.getData("text/html") } : {}) });
           return true;
         }
-        default:
+        default: {
+          // Formatting the browser asks for by name (from a context menu, a spell checker, a screen reader) runs the matching command.
+          const mapped = INPUT_COMMANDS[type];
+          if (mapped && this.engine.commands.list().some((c) => c.name === mapped[0])) {
+            const arg = mapped[1] === "data" ? (event.data ?? event.dataTransfer?.getData("text/plain") ?? "") : mapped[1] === "href" ? { href: event.data ?? "" } : mapped[1];
+            this.engine.commands.run(mapped[0], arg);
+            return true;
+          }
           this.unhandled?.(type);
           return false;
+        }
       }
     })();
     // Anything not handled above is blocked rather than left to the browser, which would edit the DOM behind the model's back.

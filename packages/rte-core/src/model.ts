@@ -71,6 +71,9 @@ export interface Table {
   readonly widths?: readonly (string | null)[];
 }
 
+/** A color the model accepts: hex, a plain name, or rgb()/hsl(). Anything else is not a color. */
+export const COLOR_VALUE = /^(#[0-9a-f]{3,8}|[a-z]{3,20}|(?:rgb|hsl)a?\([\d\s.,%/-]+\))$/i;
+
 /** A column width the model accepts: a plain number with `px` or `%`. Anything else is not a width. */
 export const COLUMN_WIDTH = /^\d{1,5}(\.\d{1,2})?(px|%)$/;
 export interface Quote {

@@ -178,6 +178,13 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       entry.setAttribute("data-rk-menu-item", child.id);
       const words = part(document.createElement("span"), "label");
       const keys = part(document.createElement("span"), "menu-keys");
+      if (child.kind !== "dialog" && child.swatch) {
+        // A color sample in front of the name; the name is still there for anyone who cannot see the color.
+        const swatch = part(document.createElement("span"), "swatch");
+        swatch.setAttribute("aria-hidden", "true");
+        swatch.style.backgroundColor = child.swatch;
+        entry.append(swatch);
+      }
       entry.append(words, keys);
       popup.appendChild(entry);
     }
@@ -233,7 +240,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     parts.set("separator", new Set());
     parts.set("icon", new Set());
     parts.set("label", new Set());
-    for (const name of ["menu-host", "menu", "menu-item", "menu-separator", "menu-keys"] as const) parts.set(name, new Set());
+    for (const name of ["menu-host", "menu", "menu-item", "menu-separator", "menu-keys", "swatch"] as const) parts.set(name, new Set());
     const controls: HTMLElement[] = [];
     let group: string | undefined;
     for (const item of toolbar.items) {

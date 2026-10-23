@@ -359,6 +359,35 @@ export function toggleMark(doc: Doc, sel: Selection, mark: Mark): EditResult {
   return { doc: next, selection: sel };
 }
 
+/** Puts a mark on the selected text, replacing any mark of the same type (a color, say). */
+export function setMark(doc: Doc, sel: Selection, mark: Mark): EditResult {
+  return mapSelectedText(doc, sel, (node) => ({ ...node, marks: [...node.marks.filter((m) => m.type !== mark.type), mark] }));
+}
+
+/** Takes every mark of the given types off the selected text. */
+export function removeMarks(doc: Doc, sel: Selection, types: readonly MarkType[]): EditResult {
+  return mapSelectedText(doc, sel, (node) => ({ ...node, marks: node.marks.filter((m) => !types.includes(m.type)) }));
+}
+
+function mapSelectedText(doc: Doc, sel: Selection, change: (node: TextRun) => TextRun): EditResult {
+  if (isCollapsed(sel)) return { doc, selection: sel };
+  const { start, end } = order(doc, sel);
+  const paths = containerPaths(doc);
+  const s = ordinalOf(doc, start.path);
+  const e = ordinalOf(doc, end.path);
+  let next = doc;
+  for (let i = s; i <= e; i++) {
+    const path = paths[i] as Path;
+    if (kindAt(next, path) === "pre") continue;
+    const content = getContent(next, path);
+    const from = i === s ? start.offset : 0;
+    const to = i === e ? end.offset : inlineLength(content);
+    const middle = sliceInline(content, from, to).map((node): Inline => (node.type === "text" ? change(node) : node));
+    next = setContent(next, path, normalizeInline([...sliceInline(content, 0, from), ...middle, ...sliceInline(content, to)]));
+  }
+  return { doc: next, selection: sel };
+}
+
 // ---- inserting blocks (paste) -----------------------------------------------------------------------------
 
 const textBlock = (block: Block): block is Extract<Block, { type: "p" | "h" }> => block.type === "p" || block.type === "h";

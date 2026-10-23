@@ -5,7 +5,7 @@ import type { TokenName } from "@rathkit/rte-themes";
 /** The parts the interface is made of. Selectors and `classes` address them by these names (as `data-rk-part`). */
 export type PartName =
   | "root" | "toolbar" | "button" | "select" | "separator" | "icon" | "label" | "content"
-  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "tooltip"
+  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip"
   | "dialog" | "dialog-title" | "field-label" | "field" | "field-error" | "actions" | "action";
 
 /** Words the interface says. Each has a default in English; this table is also the way to translate it. */
