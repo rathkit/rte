@@ -1,0 +1,9 @@
+{
+  "name": "rte-browser-checks",
+  "private": true,
+  "description": "The browser driver for the browser checks. Its own project with its own lockfile: nothing here is part of the main workspace or ships.",
+  "type": "module",
+  "devDependencies": {
+    "playwright": "1.64.1"
+  }
+}

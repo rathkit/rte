@@ -1,7 +1,7 @@
 // Drives the real editor with real browser events in Chromium, Firefox and WebKit: typing, the system clipboard,
 // drag and drop, input-method composition, outside requests and speed. Playwright is not a dependency of this repo;
 // point RTE_PLAYWRIGHT at a node_modules folder that has it.
-//   RTE_PLAYWRIGHT=<node_modules> tools/browser-checks/run.sh
+//   RTE_PLAYWRIGHT=tools/browser-checks/node_modules tools/browser-checks/run.sh
 import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";

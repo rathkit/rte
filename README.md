@@ -54,8 +54,9 @@ pnpm test
 Real-framework checks live in `tools/framework-checks`, a project of its own with its own lockfile (React, Vue, Svelte and jQuery, pinned exactly, with the same install rules). Nothing in it is part of the workspace or ships. It needs a browser driver and a bundler binary, so it is run locally, not in CI:
 
 ```sh
+(cd tools/browser-checks && pnpm install --frozen-lockfile --ignore-scripts)
 (cd tools/framework-checks && pnpm install --frozen-lockfile)
-RTE_PLAYWRIGHT=<node_modules with playwright> RTE_PACK=<rathkit-pack binary> tools/framework-checks/run.sh
+RTE_PLAYWRIGHT=tools/browser-checks/node_modules RTE_PACK=<rathkit-pack binary> tools/framework-checks/run.sh
 ```
 
 The workspace is managed with Nx. The only development tools are `nx`, `typescript` and `@types/node`, pinned to exact versions. Tests use the built-in `node:test` runner on TypeScript files directly, with no test framework. Installs refuse packages published less than three days ago and refuse dependency build scripts unless they are explicitly allowed in `pnpm-workspace.yaml`.

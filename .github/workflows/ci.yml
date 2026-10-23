@@ -53,17 +53,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      # The browser driver is not a dependency of this repo: it is installed here, in a folder outside the workspace, at an exact version
-      # and without install scripts. Fetching the browsers is a separate, explicit command.
+      # The browser driver is not a dependency of the workspace: it is a project of its own (tools/browser-checks) whose lockfile pins the
+      # exact tarball by its sha512 hash. Installed without install scripts; fetching the browsers is a separate, explicit command.
       - name: Install the browser driver and the browsers
+        working-directory: tools/browser-checks
         run: |
-          npm install --prefix "$RUNNER_TEMP/pw" --ignore-scripts --no-audit --no-fund --save-exact playwright@1.64.1
-          node "$RUNNER_TEMP/pw/node_modules/playwright/cli.js" install --with-deps chromium firefox webkit
+          pnpm install --frozen-lockfile --ignore-scripts
+          node node_modules/playwright/cli.js install --with-deps chromium firefox webkit
       # The checks run with the network switched off, in a new network namespace; this runner image restricts those by default.
       - name: Allow unprivileged network namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: tools/browser-checks/run.sh
         env:
-          RTE_PLAYWRIGHT: ${{ runner.temp }}/pw/node_modules
+          RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/node_modules
           # Shared runners are slower and noisier than a desk, so the speed budgets are doubled here.
           RTE_SPEED_SCALE: "2"
