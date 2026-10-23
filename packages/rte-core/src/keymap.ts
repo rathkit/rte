@@ -20,10 +20,14 @@ export type Platform = "apple" | "other";
 const ALIASES: Record<string, string> = { control: "Ctrl", ctrl: "Ctrl", cmd: "Meta", command: "Meta", meta: "Meta", option: "Alt", alt: "Alt", shift: "Shift", minus: "-" };
 const ORDER = ["Ctrl", "Alt", "Shift", "Meta"];
 
-/** The platform this code is running on, for hosts that do not say. */
+/**
+ * The platform this code is running on, for hosts that do not say. The platform string is trusted over the user agent, which
+ * some browsers fill with another system's name (a Linux build of WebKit says "Macintosh").
+ */
 export function detectPlatform(): Platform {
-  const nav = (globalThis as { navigator?: { platform?: string; userAgent?: string } }).navigator;
-  return /Mac|iPhone|iPad|iPod/i.test(`${nav?.platform ?? ""} ${nav?.userAgent ?? ""}`) ? "apple" : "other";
+  const nav = (globalThis as { navigator?: { platform?: string; userAgent?: string; userAgentData?: { platform?: string } } }).navigator;
+  const platform = nav?.userAgentData?.platform || nav?.platform || "";
+  return /Mac|iPhone|iPad|iPod|iOS/i.test(platform || nav?.userAgent || "") ? "apple" : "other";
 }
 
 export class Keymap {
