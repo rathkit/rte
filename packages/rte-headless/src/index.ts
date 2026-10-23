@@ -1,0 +1,5 @@
+// @rathkit/rte-headless: how a toolbar, menu, dialog or announcement should behave for the keyboard and assistive technology, with no
+// markup or CSS of its own. Whoever draws the interface (the styled one, or a custom one) draws the elements; this makes them behave.
+export { createToolbar, type BindOptions, type ItemState, type Toolbar, type ToolbarOptions } from "./toolbar.ts";
+export { createAnnouncer, type Announcer } from "./announcer.ts";
+export type { HeadlessEditor, Unsubscribe } from "./types.ts";

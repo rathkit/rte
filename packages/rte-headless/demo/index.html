@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Headless toolbar demo</title>
+<!-- A deliberately bare consumer of the headless layer: no styles, no icons, just elements drawn from the items. -->
+<div id="bar"></div>
+<div id="ed"></div>
+<script type="module">
+import { createEditor } from "/dist/standard/index.js";
+import { createAnnouncer, createToolbar } from "/headless/dist/index.js";
+
+const editor = createEditor({ element: document.getElementById("ed") });
+const toolbar = createToolbar(editor, { label: "Formatting" });
+const bar = document.getElementById("bar");
+for (const item of toolbar.items) {
+  if (item.kind === "separator") continue;
+  const el = item.kind === "select" ? document.createElement("select") : document.createElement("button");
+  el.setAttribute("data-rk-item", item.id);
+  el.id = `rk-${item.id}`;
+  if (item.kind === "select") {
+    for (const o of item.options) { const opt = document.createElement("option"); opt.value = String(o.value); opt.textContent = o.label; el.appendChild(opt); }
+  } else el.type = "button"; // no text: the toolbar must name icon-only controls itself
+  bar.appendChild(el);
+}
+window.__opened = [];
+toolbar.bind(bar, { onOpen: (item) => window.__opened.push(item.id) });
+const announcer = createAnnouncer();
+window.__demo = { editor, toolbar, announcer };
+window.__demoReady = true;
+</script>

@@ -178,6 +178,12 @@ importers:
 
   packages/rte-core: {}
 
+  packages/rte-headless:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+
 packages:
 
   '@clack/core@1.4.3':

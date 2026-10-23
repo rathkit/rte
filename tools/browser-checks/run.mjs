@@ -22,7 +22,7 @@ const check = (name, ok, detail) => {
   }
 };
 
-async function open(type, options = {}, cfg = "") {
+async function open(type, options = {}, cfg = "", demo = false) {
   const browser = await type.launch();
   const context = await browser.newContext(options);
   const outside = [];
@@ -36,11 +36,13 @@ async function open(type, options = {}, cfg = "") {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
-  await page.goto(cfg ? `${base}?cfg=${encodeURIComponent(cfg)}` : base);
-  await page.waitForFunction("window.__confReady===true");
-  const html = () => page.evaluate(() => window.__conf.snapshot().html);
-  const reset = (h) => page.evaluate((v) => { window.__conf.reset(v); window.__conf.focus(); }, h);
-  const select = (target) => page.evaluate((t) => window.__conf.select(t), target);
+  await page.goto(demo ? new URL("/headless/demo/", base).href : cfg ? `${base}?cfg=${encodeURIComponent(cfg)}` : base);
+  await page.waitForFunction(demo ? "window.__demoReady===true" : "window.__confReady===true");
+  const html = () => page.evaluate(demo ? () => window.__demo.editor.getHtml() : () => window.__conf.snapshot().html);
+  const reset = (h) => page.evaluate(demo ? (v) => { window.__demo.editor.setHtml(v); window.__demo.editor.focus(); } : (v) => { window.__conf.reset(v); window.__conf.focus(); }, h);
+  const select = demo
+    ? (target) => page.evaluate((t) => { const n = document.querySelector(`#ed ${t.start}`).firstChild; window.__demo.editor.selectDom(n, t.so, n, t.eo); }, target)
+    : (target) => page.evaluate((t) => window.__conf.select(t), target);
   return { browser, context, page, html, reset, select, outside, errors };
 }
 
@@ -288,6 +290,64 @@ for (const [name, type] of engines) {
     check(`${name} (standard) the same svg image is kept`, (await s.html()).includes("<img src=\"data:image/svg+xml;base64,"), await s.html());
     await s.browser.close();
   }
+}
+
+// --- the headless toolbar, driven through a bare page with no styles: keyboard, ARIA, focus, announcements
+for (const [name, type] of engines) {
+  const t = await open(type, {}, "", true);
+  const { page } = t;
+  const q = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return e && { tabindex: e.tabIndex, disabled: e.disabled, ariaDisabled: e.getAttribute("aria-disabled"), pressed: e.getAttribute("aria-pressed"), label: e.getAttribute("aria-label"), keys: e.getAttribute("aria-keyshortcuts") }; }, sel);
+  const active = () => page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName));
+  check(`${name} (headless) the toolbar is named and has the toolbar role`, await page.evaluate(() => { const b = document.getElementById("bar"); return b.getAttribute("role") === "toolbar" && b.getAttribute("aria-label") === "Formatting" && b.getAttribute("aria-orientation") === "horizontal"; }), "role");
+  check(`${name} (headless) exactly one control is a tab stop`, (await page.evaluate(() => [...document.querySelectorAll("[data-rk-item]")].filter((e) => e.tabIndex === 0).length)) === 1, "tab stops");
+  check(`${name} (headless) icon-only buttons get a name`, (await q("#rk-bold"))?.label === "Bold", await q("#rk-bold"));
+  check(`${name} (headless) a shortcut is announced`, (await q("#rk-bold"))?.keys === "Control+B", await q("#rk-bold"));
+  await t.reset("<p>one two three</p>");
+  await page.evaluate(() => window.__demo.editor.focus());
+  await page.waitForTimeout(60);
+  const off = await q("#rk-bold");
+  check(`${name} (headless) an unavailable control is aria-disabled, not disabled, so it can still be found`, off?.ariaDisabled === "true" && off?.disabled === false, off);
+  // Select "two", press Bold with the mouse: the editor keeps the focus and the selection, and the button shows it is on.
+  await t.select({ start: "p", so: 4, eo: 7 });
+  await page.waitForTimeout(60);
+  await page.click("#rk-bold");
+  await page.waitForTimeout(60);
+  check(`${name} (headless) pressing Bold bolds the selection`, (await t.html()) === "<p>one <strong>two</strong> three</p>", await t.html());
+  check(`${name} (headless) and the focus stays in the editor`, (await active()) === "ed", await active());
+  check(`${name} (headless) and the button reports it is pressed`, (await q("#rk-bold"))?.pressed === "true", await q("#rk-bold"));
+  // A native select for the block type.
+  await page.selectOption("#rk-block", "2");
+  await page.waitForTimeout(60);
+  check(`${name} (headless) choosing Heading 2 in the select changes the block`, (await t.html()).startsWith("<h2>"), await t.html());
+  check(`${name} (headless) and returns the focus to the editor`, (await active()) === "ed", await active());
+  // Keyboard: Tab into the toolbar lands on its one tab stop, arrows move, Home and End jump, Escape goes back to the editor.
+  await page.evaluate(() => document.getElementById("rk-undo").focus());
+  await page.keyboard.press("ArrowRight");
+  check(`${name} (headless) ArrowRight moves along the toolbar`, (await active()) === "rk-redo", await active());
+  check(`${name} (headless) and moves the tab stop with it`, (await q("#rk-redo"))?.tabindex === 0 && (await q("#rk-undo"))?.tabindex === -1, [await q("#rk-redo"), await q("#rk-undo")]);
+  await page.keyboard.press("End");
+  const last = await page.evaluate(() => [...document.querySelectorAll("[data-rk-item]")].at(-1).id);
+  check(`${name} (headless) End jumps to the last control`, (await active()) === last, [await active(), last]);
+  await page.keyboard.press("ArrowRight");
+  check(`${name} (headless) and the toolbar wraps round`, (await active()) === "rk-undo", await active());
+  await page.keyboard.press("Escape");
+  check(`${name} (headless) Escape returns to the editor`, (await active()) === "ed", await active());
+  // A dialog item does not run a command by itself: it asks the page to open something.
+  await page.evaluate(() => { window.__opened.length = 0; });
+  await t.select({ start: "h2", so: 0, eo: 3 });
+  await page.waitForTimeout(60);
+  await page.click("#rk-link");
+  check(`${name} (headless) a dialog item asks the page to open its dialog`, JSON.stringify(await page.evaluate(() => window.__opened)) === '["link"]', await page.evaluate(() => window.__opened));
+  // The announcer is a polite live region, and says the same message twice.
+  await page.evaluate(() => window.__demo.announcer.announce("Bold on"));
+  await page.waitForTimeout(150);
+  const live = await page.evaluate(() => { const e = document.querySelector("[role=status]"); return { text: e.textContent, live: e.getAttribute("aria-live"), atomic: e.getAttribute("aria-atomic") }; });
+  check(`${name} (headless) the announcer is polite and says its message`, live.text === "Bold on" && live.live === "polite" && live.atomic === "true", live);
+  await page.evaluate(() => window.__demo.announcer.announce("Bold on"));
+  const cleared = await page.evaluate(() => document.querySelector("[role=status]").textContent);
+  check(`${name} (headless) a repeated message is cleared first, so it is said again`, cleared === "", cleared);
+  check(`${name} (headless) no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
 }
 
 // --- input-method composition (Chromium, through the debugging protocol; a simulation, not a real input method)
