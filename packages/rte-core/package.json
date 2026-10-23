@@ -17,7 +17,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.build.js.json",
     "typecheck": "tsc -p tsconfig.model.json && tsc -p tsconfig.json --noEmit",
     "test": "node --test \"src/**/*.test.ts\""
   },
