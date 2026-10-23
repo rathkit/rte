@@ -306,15 +306,16 @@ export class Engine {
         undo.push(() => { const i = this.textTriggers.indexOf(trigger); if (i !== -1) this.textTriggers.splice(i, 1); });
       },
       importOptions: (options) => {
-        const previous = { sanitizeSvg: this.importOptions.sanitizeSvg, recognizers: this.importOptions.recognizers };
         if (options.sanitizeSvg) {
           if (this.importOptions.sanitizeSvg) throw new Error(`${plugin.id} cannot set an SVG cleaner: one is already set.`);
           this.importOptions.sanitizeSvg = options.sanitizeSvg;
         }
-        if (options.recognizers) this.importOptions.recognizers = [...this.importOptions.recognizers, ...options.recognizers];
+        const added = options.recognizers ?? [];
+        this.importOptions.recognizers = [...this.importOptions.recognizers, ...added];
+        // Taking the plugin away takes away what it added and nothing else.
         undo.push(() => {
-          if (options.sanitizeSvg) delete this.importOptions.sanitizeSvg;
-          this.importOptions.recognizers = previous.recognizers;
+          if (options.sanitizeSvg && this.importOptions.sanitizeSvg === options.sanitizeSvg) delete this.importOptions.sanitizeSvg;
+          this.importOptions.recognizers = this.importOptions.recognizers.filter((r) => !added.includes(r));
         });
       },
       pasteTransform: (transform: PasteTransform) => {

@@ -43,4 +43,4 @@ plugin, Enter in an item is a line break and blocks pasted into an item become l
 
 A plugin names the plugin API versions it supports (`api: ">=1 <2"`), and a mismatch fails when it is added. Removing a plugin takes
 everything it added away. A plugin file should contain only `import type` lines from the core (`mentions.sample.ts` is checked for that).
-The lists, word, SVG and images plugins are built the same way, so they show the API is enough.
+The lists, word, SVG and images plugins are built the same way, and a test (`plugins-use-host.test.ts`) fails if one of them takes anything from the core that is not also in `ops`, so an outside plugin can do everything these do through the host.

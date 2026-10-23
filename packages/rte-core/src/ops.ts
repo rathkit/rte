@@ -8,10 +8,21 @@ import {
 import { exportBlock, exportHtml, exportInline } from "./export.ts";
 import { importBlocks, importHtml, importText } from "./import.ts";
 import { setLink } from "./links.ts";
-import { caret, containerPaths, getBlock, getContent, kindAt, selectedContainers, setContent } from "./path.ts";
+import { decodeBase64, encodeBase64 } from "./base64.ts";
+import { escapeAttribute, escapeText } from "./html/entities.ts";
+import { checkImageSrc, parseStyle } from "./import.ts";
+import { inlineLength, inlineText, normalizeInline } from "./model.ts";
+import {
+  caret, clampPos, containerPaths, fixup, getBlock, getContent, isCollapsed, kindAt, mapBlockList, pathKey, selectedContainers, setContent,
+} from "./path.ts";
 
 export const ops = {
-  caret, containerPaths, selectedContainers, getContent, setContent, getBlock, kindAt, sliceInline,
+  // Reading and changing the document by position.
+  caret, clampPos, containerPaths, selectedContainers, getContent, setContent, getBlock, kindAt, mapBlockList, fixup, pathKey, isCollapsed,
+  inlineLength, inlineText, normalizeInline, sliceInline,
+  // Importing, with the same address checks the editor uses.
+  parseStyle, checkImageSrc, escapeText, escapeAttribute, encodeBase64, decodeBase64,
+  // Editing.
   insertText, insertBlocks, insertLineBreak, splitBlock, deleteSelection, deleteBackward, deleteForward, moveSelection,
   extractSelection, selectedText, toggleMark, rangeHasMark, setBlockType, setAlign, setLink,
   importHtml, importBlocks, importText, exportHtml, exportBlock, exportInline,

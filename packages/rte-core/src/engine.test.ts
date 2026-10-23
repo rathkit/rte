@@ -5,11 +5,12 @@ import { createEngine } from "./core.ts";
 import { insertText } from "./edit.ts";
 import { Engine } from "./engine.ts";
 import { exportHtml } from "./export.ts";
-import { importHtml } from "./import.ts";
+import { importBlocks, importHtml } from "./import.ts";
 import { Keymap } from "./keymap.ts";
 import { lists } from "./lists/index.ts";
 import { shout } from "./mentions.sample.ts";
 import { caret, type Selection } from "./path.ts";
+import type { Plugin } from "./plugin.ts";
 
 const engine = (html: string, options: { indentOnTab?: boolean; readOnly?: boolean; platform?: "apple" | "other" } = {}) => {
   const { indentOnTab, ...rest } = options;
@@ -186,4 +187,28 @@ test("the sample plugin uses only type imports, so it does not need the editor a
   assert.ok(imports.length > 0);
   for (const line of imports) assert.match(line, /^import type /, line);
   assert.ok(!/\brequire\(|\bimport\(/.test(source));
+});
+
+test("removing a plugin takes away only what it added to the importer", () => {
+  const e = createEngine({ onWarning: () => undefined });
+  const mark = (id: string, tag: string) => ({
+    id, api: "1",
+    setup: (host: Parameters<Plugin["setup"]>[0]) => host.importOptions({
+      recognizers: [{ element: (el) => (el.tag === tag ? [{ listItem: { type: "ul" as const, level: 1, listId: id, content: [] } }] : undefined) }],
+    }),
+  });
+  const removeA = e.use(mark("acme.a", "a-item"));
+  e.use(mark("acme.b", "b-item"));
+  assert.equal(e.importOptions.recognizers.length, 2);
+  removeA();
+  assert.equal(e.importOptions.recognizers.length, 1);
+  const html = (tag: string) => exportHtml({ blocks: importBlocks(`<${tag}>x</${tag}>`, e.importOptions) });
+  assert.match(html("b-item"), /<ul>/, "the second plugin still recognizes its markup");
+  assert.doesNotMatch(html("a-item"), /<ul>/);
+  // An SVG cleaner belongs to the plugin that set it.
+  const cleaner = (url: string): string => url;
+  const removeS = e.use({ id: "acme.s", api: "1", setup: (host) => host.importOptions({ sanitizeSvg: cleaner }) });
+  assert.throws(() => e.use({ id: "acme.s2", api: "1", setup: (host) => host.importOptions({ sanitizeSvg: cleaner }) }), /already set/);
+  removeS();
+  assert.equal(e.importOptions.sanitizeSvg, undefined);
 });

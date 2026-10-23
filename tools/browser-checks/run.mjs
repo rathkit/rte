@@ -274,7 +274,7 @@ for (const [name, type] of engines) {
     check(`${name} (no plugins) a document with lists loads and saves intact`, (await t.html()) === "<ul><li>one<ul><li>two</li></ul></li><li>three</li></ul><dl><dt>t</dt><dd>d</dd></dl>", await t.html());
     await t.select({ start: "li:nth-child(2)", so: 1, eo: 1 });
     await t.page.keyboard.press("Enter");
-    check(`${name} (no plugins) Enter in an item is a line break`, (await t.html()).includes("<li>t<br>hree</li>") || (await t.html()).includes("<li>three<br></li>") || (await t.html()).includes("<br>"), await t.html());
+    check(`${name} (no plugins) Enter in an item is a line break`, (await t.html()) === "<ul><li>one<ul><li>two</li></ul></li><li>t<br>hree</li></ul><dl><dt>t</dt><dd>d</dd></dl>", await t.html());
     const tabbed = await t.page.evaluate(() => { const e = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }); document.getElementById("ed").dispatchEvent(e); return e.defaultPrevented; });
     check(`${name} (no plugins) Tab is left to the browser`, tabbed === false, tabbed);
     check(`${name} (no plugins) there are no list commands`, !(await t.page.evaluate(() => window.__editor.commands.has("list.bulleted"))), "commands");
