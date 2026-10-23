@@ -21,6 +21,9 @@ interface Collection {
 }
 
 const KEY = "rkEditor";
+type Host = HTMLElement & { __rk?: RkEditor };
+/** The editor element inside a host the plugin was called on (or the element itself, if it is an editor). */
+const editorOf = (host: HTMLElement | undefined): RkEditor | undefined => (host as Host | undefined)?.__rk ?? (host as RkEditor | undefined);
 
 /**
  * Adds `.rkEditor()` to jQuery:
@@ -33,16 +36,16 @@ const KEY = "rkEditor";
 export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQueryLike }).jQuery): void {
   $.fn[KEY] = function (this: Collection, arg?: string | RkJqueryOptions, value?: string): unknown {
     if (typeof arg === "string") {
-      const first = this[0] as RkEditor | undefined;
+      const first = editorOf(this[0]);
       switch (arg) {
         case "html":
           if (value === undefined) return first?.value;
-          this.each(function () { (this as RkEditor).value = value; });
+          this.each(function () { const el = editorOf(this); if (el) el.value = value; });
           return this;
         case "editor":
           return first?.whenReady() as Promise<Editor> | undefined;
         case "destroy":
-          this.each(function () { (this as HTMLElement & { __rk?: HTMLElement }).__rk?.remove(); delete (this as { __rk?: HTMLElement }).__rk; });
+          this.each(function () { (this as Host).__rk?.remove(); delete (this as Host).__rk; });
           return this;
         default:
           throw new Error(`rkEditor: unknown method "${arg}"`);
@@ -50,7 +53,7 @@ export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQue
     }
     const options = arg as RkJqueryOptions;
     return this.each(function () {
-      const host = this as HTMLElement & { __rk?: RkEditor };
+      const host = this as Host;
       if (host.__rk) return;
       const { html, readOnly, label, ...rest } = options;
       const el = document.createElement("rk-editor") as RkEditor;

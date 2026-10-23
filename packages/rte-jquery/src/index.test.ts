@@ -34,10 +34,11 @@ test("reads and replaces html, hands out the editor, and removes it", async () =
   jq.fn.rkEditor!.call(c, { label: "Body" });
   const el = host.children[0]!;
   el.value = "<p>now</p>";
-  assert.equal(jq.fn.rkEditor!.call(collection(el), "html"), "<p>now</p>");
-  jq.fn.rkEditor!.call(collection(el), "html", "<p>new</p>");
+  // Called on the host the plugin was set up on, which is what a page has in hand; the editor element is inside it.
+  assert.equal(jq.fn.rkEditor!.call(c, "html"), "<p>now</p>");
+  jq.fn.rkEditor!.call(c, "html", "<p>new</p>");
   assert.equal(el.value, "<p>new</p>");
-  assert.equal(await (jq.fn.rkEditor!.call(collection(el), "editor") as Promise<string>), "editor");
+  assert.equal(await (jq.fn.rkEditor!.call(c, "editor") as Promise<string>), "editor");
   jq.fn.rkEditor!.call(c, "destroy");
   assert.equal(el.removed, true);
   assert.throws(() => jq.fn.rkEditor!.call(c, "nope"), /unknown method/);
