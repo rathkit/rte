@@ -193,6 +193,25 @@ importers:
         specifier: workspace:*
         version: link:../rte-core
 
+  packages/rte-icons: {}
+
+  packages/rte-themes: {}
+
+  packages/rte-ui:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+      '@rathkit/rte-headless':
+        specifier: workspace:*
+        version: link:../rte-headless
+      '@rathkit/rte-icons':
+        specifier: workspace:*
+        version: link:../rte-icons
+      '@rathkit/rte-themes':
+        specifier: workspace:*
+        version: link:../rte-themes
+
 packages:
 
   '@clack/core@1.4.3':

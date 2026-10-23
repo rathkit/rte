@@ -1,0 +1,169 @@
+/* @rathkit/rte-ui base styles. Everything is in cascade layers, so any CSS you write outside a layer wins without a specificity fight.
+   Parts are addressed by data-rk-part, never by class; the only class is .rk-root, which scopes everything to one editor.
+   Colors, sizes and fonts come from the --rk-* tokens (see @rathkit/rte-themes). Nothing here reaches outside .rk-root. */
+@layer rathkit.defaults, rathkit.base;
+
+/* Light values, used only when no theme is chosen, so the editor is never unstyled. A theme's tokens replace them. */
+@layer rathkit.defaults {
+  .rk-root:where(:not([data-rk-theme])) {
+    --rk-bg: #ffffff; --rk-surface: #f4f6f9; --rk-surface-raised: #ffffff; --rk-fg: #14181f; --rk-fg-muted: #505b6b;
+    --rk-border: #78849a; --rk-border-subtle: #d4dae3; --rk-accent: #17408b; --rk-accent-fg: #ffffff; --rk-accent-subtle: #e3ecfa;
+    --rk-danger: #b3261e; --rk-selection-bg: #cddffa; --rk-control-hover: #e6ebf3; --rk-control-active: #d3dcec;
+    --rk-brand: #b9812a; --rk-brand-text: #86590f; --rk-focus-color: #17408b;
+    --rk-space-1: 4px; --rk-space-2: 8px; --rk-space-3: 12px; --rk-space-4: 16px; --rk-control-size: 32px;
+    --rk-radius-s: 4px; --rk-radius-m: 8px; --rk-border-width: 1px; --rk-focus-width: 2px; --rk-focus-offset: 2px;
+    --rk-font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; --rk-font-content: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --rk-font-heading: system-ui, sans-serif; --rk-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --rk-font-size: 16px; --rk-line-height: 1.55; --rk-motion-duration: 120ms;
+    --rk-shadow-popover: 0 6px 24px rgb(20 24 31 / 0.18), 0 1px 3px rgb(20 24 31 / 0.12);
+    color-scheme: light;
+  }
+}
+
+@layer rathkit.base {
+  .rk-root {
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    font: var(--rk-font-size) / var(--rk-line-height) var(--rk-font-ui);
+    color: var(--rk-fg);
+    background: var(--rk-bg);
+    border: var(--rk-border-width) solid var(--rk-border);
+    border-radius: var(--rk-radius-m);
+  }
+  .rk-root *, .rk-root *::before, .rk-root *::after { box-sizing: inherit; }
+
+  /* ---- toolbar ---- */
+  [data-rk-part="toolbar"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--rk-space-1);
+    padding: var(--rk-space-2);
+    background: var(--rk-surface);
+    border-bottom: var(--rk-border-width) solid var(--rk-border);
+    border-radius: calc(var(--rk-radius-m) - var(--rk-border-width)) calc(var(--rk-radius-m) - var(--rk-border-width)) 0 0;
+  }
+  [data-rk-part="separator"] {
+    align-self: stretch;
+    width: var(--rk-border-width);
+    margin-inline: var(--rk-space-1);
+    background: var(--rk-border-subtle);
+  }
+  [data-rk-part="button"],
+  [data-rk-part="select"] {
+    min-width: var(--rk-control-size);
+    height: var(--rk-control-size);
+    margin: 0;
+    padding: 0 var(--rk-space-2);
+    font: inherit;
+    color: var(--rk-fg);
+    background: transparent;
+    border: var(--rk-border-width) solid transparent;
+    border-radius: var(--rk-radius-s);
+    cursor: pointer;
+    transition: background-color calc(var(--rk-motion-duration) * var(--rk-motion-scale, 1)) ease;
+  }
+  [data-rk-part="button"] { display: inline-flex; align-items: center; justify-content: center; gap: var(--rk-space-1); }
+  [data-rk-part="select"] { background: var(--rk-surface-raised); border-color: var(--rk-border); }
+  [data-rk-part="button"]:hover:not([aria-disabled="true"]),
+  [data-rk-part="select"]:hover:not([aria-disabled="true"]) { background: var(--rk-control-hover); }
+  [data-rk-part="button"]:active:not([aria-disabled="true"]) { background: var(--rk-control-active); }
+  /* On: a tint, an accent border all round, and a thicker bar underneath, so it never depends on color alone. */
+  [data-rk-part="button"][aria-pressed="true"] {
+    color: var(--rk-accent);
+    background: var(--rk-accent-subtle);
+    border-color: var(--rk-accent);
+    border-bottom-width: 3px;
+  }
+  [data-rk-part="button"][aria-disabled="true"],
+  [data-rk-part="select"][aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+  [data-rk-part="icon"] { display: inline-flex; width: 20px; height: 20px; }
+  [data-rk-part="icon"] svg { width: 100%; height: 100%; }
+
+  .rk-root :focus-visible {
+    outline: var(--rk-focus-width) solid var(--rk-focus-color);
+    outline-offset: var(--rk-focus-offset);
+  }
+
+  /* ---- the writing area ---- */
+  [data-rk-part="content"] {
+    padding: var(--rk-space-3) var(--rk-space-4);
+    background: var(--rk-bg);
+    border-radius: 0 0 var(--rk-radius-m) var(--rk-radius-m);
+    font-family: var(--rk-font-content);
+  }
+  [data-rk-part="content"] > :first-child { outline: none; min-height: 8em; }
+  [data-rk-part="content"] ::selection { background: var(--rk-selection-bg); color: var(--rk-fg); }
+  [data-rk-part="content"] > :first-child > :first-child { margin-top: 0; }
+  [data-rk-part="content"] > :first-child > :last-child { margin-bottom: 0; }
+  [data-rk-part="content"] p { margin: 0 0 0.75em; }
+  [data-rk-part="content"] :is(h1, h2, h3, h4, h5, h6) { margin: 1.1em 0 0.4em; font-family: var(--rk-font-heading); line-height: 1.25; font-weight: 700; }
+  [data-rk-part="content"] h1 { font-size: 1.9em; }
+  [data-rk-part="content"] h2 { font-size: 1.5em; }
+  [data-rk-part="content"] h3 { font-size: 1.25em; }
+  [data-rk-part="content"] h4 { font-size: 1.1em; }
+  [data-rk-part="content"] :is(h5, h6) { font-size: 1em; }
+  [data-rk-part="content"] :is(ul, ol) { margin: 0 0 0.75em; padding-inline-start: 1.6em; }
+  [data-rk-part="content"] :is(ul, ol) :is(ul, ol) { margin-bottom: 0; }
+  [data-rk-part="content"] dt { font-weight: 700; }
+  [data-rk-part="content"] dd { margin-inline-start: 1.6em; }
+  [data-rk-part="content"] blockquote { margin: 0 0 0.75em; padding-inline-start: var(--rk-space-3); border-inline-start: 3px solid var(--rk-brand); color: var(--rk-fg-muted); }
+  [data-rk-part="content"] pre { margin: 0 0 0.75em; padding: var(--rk-space-2) var(--rk-space-3); font-family: var(--rk-font-mono); font-size: 0.9em; background: var(--rk-surface); border: var(--rk-border-width) solid var(--rk-border-subtle); border-radius: var(--rk-radius-s); overflow-x: auto; }
+  [data-rk-part="content"] code { font-family: var(--rk-font-mono); font-size: 0.9em; padding: 0.1em 0.3em; background: var(--rk-surface); border-radius: var(--rk-radius-s); }
+  [data-rk-part="content"] pre code { padding: 0; background: none; }
+  [data-rk-part="content"] a { color: var(--rk-accent); text-decoration: underline; text-underline-offset: 0.15em; }
+  [data-rk-part="content"] hr { border: 0; border-top: var(--rk-border-width) solid var(--rk-border); margin: 1em 0; }
+  [data-rk-part="content"] img { max-width: 100%; height: auto; }
+  [data-rk-part="content"] table { border-collapse: collapse; margin: 0 0 0.75em; }
+  [data-rk-part="content"] :is(td, th) { padding: var(--rk-space-1) var(--rk-space-2); border: var(--rk-border-width) solid var(--rk-border); vertical-align: top; min-width: 2em; }
+  [data-rk-part="content"] :is(td, th) > p { margin: 0; }
+  [data-rk-part="content"] :is(td, th) > p + p { margin-top: 0.5em; }
+  [data-rk-part="content"] th { background: var(--rk-surface); text-align: start; }
+  /* Focus inside the writing area shows on the whole editor, not as a box around the text. */
+  .rk-root:focus-within { outline: var(--rk-focus-width) solid var(--rk-focus-color); outline-offset: var(--rk-focus-offset); }
+  .rk-root:focus-within [data-rk-part="content"] :focus-visible,
+  .rk-root [data-rk-part="content"] :focus-visible { outline: none; }
+
+  /* ---- dialog ---- */
+  [data-rk-part="dialog"] {
+    width: min(26rem, calc(100vw - 2 * var(--rk-space-4)));
+    padding: var(--rk-space-4);
+    color: var(--rk-fg);
+    background: var(--rk-surface-raised);
+    border: var(--rk-border-width) solid var(--rk-border);
+    border-radius: var(--rk-radius-m);
+    box-shadow: var(--rk-shadow-popover);
+    font: var(--rk-font-size) / var(--rk-line-height) var(--rk-font-ui);
+  }
+  [data-rk-part="dialog"]::backdrop { background: rgb(0 0 0 / 0.45); }
+  [data-rk-part="dialog-title"] { margin: 0 0 var(--rk-space-3); font: 700 1.15em / 1.3 var(--rk-font-heading); }
+  [data-rk-part="field-label"] { display: block; margin-bottom: var(--rk-space-1); font-weight: 600; }
+  [data-rk-part="field"] {
+    display: block; width: 100%; height: var(--rk-control-size); padding: 0 var(--rk-space-2); font: inherit; color: var(--rk-fg);
+    background: var(--rk-bg); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-s);
+  }
+  [data-rk-part="field"][aria-invalid="true"] { border-color: var(--rk-danger); border-width: 2px; }
+  [data-rk-part="field-error"] { display: block; min-height: 1.4em; margin-top: var(--rk-space-1); color: var(--rk-danger); font-size: 0.9em; }
+  [data-rk-part="actions"] { display: flex; justify-content: flex-end; gap: var(--rk-space-2); margin-top: var(--rk-space-3); }
+  [data-rk-part="action"] {
+    min-width: 5rem; height: var(--rk-control-size); padding: 0 var(--rk-space-3); font: inherit; font-weight: 600; color: var(--rk-fg);
+    background: var(--rk-surface-raised); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-s); cursor: pointer;
+  }
+  [data-rk-part="action"][data-primary] { color: var(--rk-accent-fg); background: var(--rk-accent); border-color: var(--rk-accent); }
+
+  @media (prefers-reduced-motion: reduce) { .rk-root { --rk-motion-scale: 0; } }
+
+  /* Forced colors (Windows high contrast): use the user's colors, and real borders and outlines, which survive where shadows and tints do not. */
+  @media (forced-colors: active) {
+    .rk-root { border-color: CanvasText; }
+    [data-rk-part="toolbar"] { border-bottom-color: CanvasText; }
+    [data-rk-part="button"], [data-rk-part="select"], [data-rk-part="field"], [data-rk-part="action"] { border-color: ButtonText; color: ButtonText; background: ButtonFace; }
+    [data-rk-part="button"][aria-pressed="true"] { border-color: Highlight; color: HighlightText; background: Highlight; border-bottom-width: 4px; }
+    [data-rk-part="button"][aria-disabled="true"], [data-rk-part="select"][aria-disabled="true"] { color: GrayText; border-color: GrayText; opacity: 1; }
+    [data-rk-part="content"] a { color: LinkText; }
+    .rk-root :focus-visible, .rk-root:focus-within { outline-color: Highlight; }
+    [data-rk-part="separator"] { background: CanvasText; }
+  }
+}

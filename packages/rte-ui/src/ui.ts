@@ -1,0 +1,289 @@
+// The styled interface: a toolbar and dialogs, built from the editor's interface items on the headless layer. Every element carries a
+// stable data-rk-part so themes and utility classes can address it; the look comes from tokens (see @rathkit/rte-themes).
+import type { UiItem } from "@rathkit/rte-core";
+import { checkFields, createAnnouncer, createDialog, createToolbar, type Dialog } from "@rathkit/rte-headless";
+import { setIcon } from "./icon.ts";
+import { text } from "./messages.ts";
+import type { PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
+
+let counter = 0;
+
+const sameEntries = (a: object | undefined, b: object | undefined): boolean => {
+  const x = Object.entries(a ?? {});
+  const y = Object.entries(b ?? {});
+  return x.length === y.length && x.every(([k, v], i) => y[i]?.[0] === k && Object.is(y[i]?.[1], v));
+};
+
+export function createUi(editor: UiEditor, options: UiOptions): Ui {
+  const { root } = options;
+  const slot = options.slot ?? "toolbar.main";
+  let style: StyleProvider = {};
+  const appliedTokens = new Set<string>();
+  const appliedClasses = new Map<PartName, string[]>();
+  const parts = new Map<PartName, Set<HTMLElement>>();
+
+  /** Marks an element as a part: the attribute that selectors use, and any classes the style asks for. */
+  const part = <E extends HTMLElement>(el: E, name: PartName): E => {
+    el.setAttribute("data-rk-part", name);
+    let set = parts.get(name);
+    if (!set) parts.set(name, (set = new Set()));
+    set.add(el);
+    for (const cls of style.classes?.[name]?.split(/\s+/).filter(Boolean) ?? []) el.classList.add(cls);
+    return el;
+  };
+  const message = (key: Parameters<typeof text>[1], fallback = "", values: Record<string, string> = {}): string => text(style.messages, key, fallback, values);
+
+  // ---- structure -----------------------------------------------------------------------------------------
+  root.classList.add("rk-root");
+  part(root, "root");
+  const toolbarEl = part(document.createElement("div"), "toolbar");
+  const contentEl = part(document.createElement("div"), "content");
+  root.append(toolbarEl, contentEl);
+  contentEl.appendChild(editor.element);
+  const announcer = createAnnouncer(root);
+  const toolbar = createToolbar(editor, { slot, label: message("toolbar.label") });
+
+  // ---- look: theme attributes, tokens, classes, icons, words --------------------------------------------------
+  const iconSpans = new Map<HTMLElement, string>();
+  const dialogs = new Map<string, { dialog: Dialog; element: HTMLDialogElement; form: HTMLFormElement; title: HTMLElement; ok: HTMLElement; cancel: HTMLElement; from: { opener: HTMLElement } }>();
+
+  function applyStyle(given: StyleProvider): void {
+    const previous = style;
+    const base = options.defaults;
+    // What the caller gave, over the defaults it was built with.
+    const next: StyleProvider = base
+      ? { ...given, icons: { ...base.icons, ...given.icons }, messages: { ...base.messages, ...given.messages } }
+      : given;
+    style = next;
+    const set = (name: string, value: string | undefined): void => (value === undefined ? root.removeAttribute(name) : root.setAttribute(name, value));
+    set("data-rk-theme", next.theme);
+    set("data-rk-scheme", next.scheme);
+    set("data-rk-density", next.density);
+    // Tokens: set the ones asked for, and let go of the ones that were asked for before and are not any more.
+    for (const name of [...appliedTokens]) if (!(next.tokens && name in next.tokens)) { root.style.removeProperty(name); appliedTokens.delete(name); }
+    for (const [name, value] of Object.entries(next.tokens ?? {})) { root.style.setProperty(name, value as string); appliedTokens.add(name); }
+    // Classes: take away what was added, add what is asked for.
+    for (const [name, classes] of appliedClasses) for (const el of parts.get(name) ?? []) el.classList.remove(...classes);
+    appliedClasses.clear();
+    for (const [name, value] of Object.entries(next.classes ?? {}) as [PartName, string][]) {
+      const classes = value.split(/\s+/).filter(Boolean);
+      appliedClasses.set(name, classes);
+      for (const el of parts.get(name) ?? []) el.classList.add(...classes);
+    }
+    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) draw();
+    syncDialogs();
+  }
+
+  function iconFor(name: string | undefined): string | (() => Node) | undefined {
+    return name === undefined ? undefined : style.icons?.[name];
+  }
+
+  // ---- the toolbar ---------------------------------------------------------------------------------------------
+  let unbind: (() => void) | undefined;
+
+  function labelOf(item: UiItem): string {
+    return message(`item.${item.id}` as `item.${string}`, toolbar.state(item.id)?.label ?? item.id);
+  }
+
+  function control(item: UiItem): HTMLElement | undefined {
+    if (item.kind === "separator") return part(document.createElement("span"), "separator");
+    if (item.kind === "menu" || item.kind === "panel") return undefined;
+    const state = toolbar.state(item.id);
+    if (!state) return undefined;
+    if (item.kind === "select") {
+      const select = part(document.createElement("select"), "select");
+      select.setAttribute("data-rk-item", item.id);
+      for (const o of item.options) {
+        const option = document.createElement("option");
+        option.value = String(o.value);
+        option.textContent = o.label;
+        select.appendChild(option);
+      }
+      return select;
+    }
+    const customize = style.parts?.button;
+    if (customize) {
+      const el = customize({ item, state, run: (value) => toolbar.activate(item.id, value) });
+      el.setAttribute("data-rk-part", "button");
+      el.setAttribute("data-rk-item", item.id);
+      (parts.get("button") ?? parts.set("button", new Set()).get("button"))?.add(el);
+      return el;
+    }
+    const button = part(document.createElement("button"), "button");
+    button.type = "button";
+    button.setAttribute("data-rk-item", item.id);
+    const icon = part(document.createElement("span"), "icon");
+    icon.setAttribute("aria-hidden", "true");
+    if (setIcon(icon, iconFor(state.icon))) {
+      iconSpans.set(icon, state.icon ?? "");
+      button.appendChild(icon);
+    } else {
+      // No icon for this name: show the words instead, so the control still means something.
+      const label = part(document.createElement("span"), "label");
+      label.textContent = labelOf(item);
+      button.appendChild(label);
+    }
+    return button;
+  }
+
+  function draw(): void {
+    unbind?.();
+    iconSpans.clear();
+    parts.set("button", new Set());
+    parts.set("select", new Set());
+    parts.set("separator", new Set());
+    parts.set("icon", new Set());
+    parts.set("label", new Set());
+    const controls: HTMLElement[] = [];
+    let group: string | undefined;
+    for (const item of toolbar.items) {
+      const next = item.group ?? "";
+      if (group !== undefined && next !== group && item.kind !== "separator") controls.push(part(document.createElement("span"), "separator"));
+      group = next;
+      const el = control(item);
+      if (el) controls.push(el);
+    }
+    toolbarEl.replaceChildren(...controls);
+    unbind = toolbar.bind(toolbarEl, { onOpen: (item, opener) => { if (item.kind === "dialog") openDialog(item, opener); } });
+    // Our click listener goes after the headless layer's, so by the time it runs the command has run and the state is the new one.
+    toolbarEl.removeEventListener("click", onToolbarClick);
+    toolbarEl.addEventListener("click", onToolbarClick);
+    names();
+  }
+
+  /** Names for everything drawn: the accessible name and the tooltip, with the key that runs it. */
+  function names(): void {
+    for (const el of toolbarEl.querySelectorAll<HTMLElement>("[data-rk-item]")) {
+      const id = el.getAttribute("data-rk-item") ?? "";
+      const item = toolbar.items.find((i) => i.id === id);
+      const state = toolbar.state(id);
+      if (!item || !state) continue;
+      const label = labelOf(item);
+      el.setAttribute("aria-label", label);
+      el.title = state.shortcutLabel ? `${label} (${state.shortcutLabel})` : label;
+      if (el.tagName === "BUTTON") {
+        const word = el.querySelector<HTMLElement>('[data-rk-part="label"]');
+        if (word) word.textContent = label;
+      }
+    }
+  }
+  toolbar.subscribe(names);
+  const stopRedraw = toolbar.subscribe(() => {
+    // A change in which items exist (a plugin added or removed one) needs a redraw; a change in state does not.
+    const ids = toolbar.items.map((i) => i.id).join("\u0000");
+    if (ids !== drawn) { drawn = ids; draw(); }
+  });
+  let drawn = "";
+
+  // Say what a toggle did, but only when a person pressed it, not when the caret moved.
+  const onToolbarClick = (e: Event): void => {
+    const el = (e.target as Element | null)?.closest<HTMLElement>("[data-rk-item]");
+    if (!el) return;
+    const item = toolbar.items.find((i) => i.id === el.getAttribute("data-rk-item"));
+    const state = item ? toolbar.state(item.id) : undefined;
+    if (item?.kind === "toggle" && state && !state.disabled) {
+      const group = item.group === "align" || item.group === "lists";
+      announcer.announce(group ? labelOf(item) : message(state.pressed ? "toggle.on" : "toggle.off", "", { label: labelOf(item) }));
+    }
+  };
+
+  // ---- dialogs -------------------------------------------------------------------------------------------------
+  function syncDialogs(): void {
+    for (const [id, d] of dialogs) {
+      const item = toolbar.items.find((i) => i.id === id);
+      if (!item || item.kind !== "dialog") continue;
+      d.title.textContent = labelOf(item);
+      d.ok.textContent = message("dialog.ok");
+      d.cancel.textContent = message("dialog.cancel");
+    }
+  }
+
+  function openDialog(item: Extract<UiItem, { kind: "dialog" }>, opener: HTMLElement): void {
+    let entry = dialogs.get(item.id);
+    if (!entry) {
+      const element = part(document.createElement("dialog"), "dialog");
+      const titleId = `rk-dialog-title-${++counter}`;
+      element.setAttribute("aria-labelledby", titleId);
+      const form = document.createElement("form");
+      form.noValidate = true;
+      const title = part(document.createElement("h2"), "dialog-title");
+      title.id = titleId;
+      form.appendChild(title);
+      for (const field of item.fields) {
+        const inputId = `rk-field-${++counter}`;
+        const label = part(document.createElement("label"), "field-label");
+        label.htmlFor = inputId;
+        label.textContent = field.label;
+        const input = part(document.createElement("input"), "field");
+        input.id = inputId;
+        input.name = field.name;
+        input.type = "text";
+        if (field.type === "url") input.inputMode = "url";
+        input.autocomplete = "off";
+        if (field.required) input.required = true;
+        const error = part(document.createElement("span"), "field-error");
+        error.setAttribute("data-rk-error", field.name);
+        form.append(label, input, error);
+      }
+      const actions = part(document.createElement("div"), "actions");
+      const ok = part(document.createElement("button"), "action");
+      ok.type = "submit";
+      ok.setAttribute("data-primary", "");
+      const cancel = part(document.createElement("button"), "action");
+      cancel.type = "button";
+      actions.append(cancel, ok);
+      form.appendChild(actions);
+      element.appendChild(form);
+      root.appendChild(element);
+      // Focus goes back to whatever opened the dialog this time, so the opener is read when the dialog closes.
+      const from = { opener };
+      const dialog = createDialog({ dialog: element, editor, get opener() { return from.opener; } });
+      cancel.addEventListener("click", () => dialog.close("cancel"));
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const check = checkFields(form, item.fields, { required: message("field.required", "", { label: "{label}" }), url: message("field.url") }, (m) => announcer.announce(m));
+        if (!check.ok) return;
+        dialog.close("submit");
+        editor.commands.run(item.command, check.values);
+      });
+      entry = { dialog, element, form, title, ok, cancel, from };
+      dialogs.set(item.id, entry);
+      syncDialogs();
+    }
+    // Fill a single-field dialog with what the command says is there now (the address of the link under the caret, say).
+    const current = editor.commands.state(item.command).value;
+    const only = item.fields.length === 1 ? item.fields[0] : undefined;
+    const input = only ? entry.form.querySelector<HTMLInputElement>(`[name="${only.name}"]`) : null;
+    if (input) input.value = typeof current === "string" ? current : "";
+    for (const f of item.fields) {
+      const bad = entry.form.querySelector<HTMLElement>(`[name="${f.name}"]`);
+      bad?.removeAttribute("aria-invalid");
+      const err = entry.form.querySelector<HTMLElement>(`[data-rk-error="${f.name}"]`);
+      if (err) err.textContent = "";
+    }
+    entry.from.opener = opener;
+    entry.dialog.open();
+  }
+
+  // ---- go ---------------------------------------------------------------------------------------------------
+  drawn = toolbar.items.map((i) => i.id).join("\u0000");
+  applyStyle(options.style ?? {});
+
+  return {
+    root, toolbar,
+    setStyle: applyStyle,
+    announce: (m) => announcer.announce(m),
+    destroy() {
+      unbind?.();
+      stopRedraw();
+      toolbarEl.removeEventListener("click", onToolbarClick);
+      for (const d of dialogs.values()) { d.dialog.destroy(); d.element.remove(); }
+      announcer.destroy();
+      toolbar.destroy();
+      toolbarEl.remove();
+      root.classList.remove("rk-root");
+      for (const name of ["data-rk-theme", "data-rk-scheme", "data-rk-density", "data-rk-part"]) root.removeAttribute(name);
+      for (const t of appliedTokens) root.style.removeProperty(t);
+    },
+  };
+}

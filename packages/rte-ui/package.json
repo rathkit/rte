@@ -1,0 +1,72 @@
+{
+  "name": "@rathkit/rte-ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The styled editor interface: a toolbar and dialogs on the headless layer, themeable with tokens, presets, icons and messages.",
+  "license": "Apache-2.0",
+  "homepage": "https://rathkit.com",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist",
+    "css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./standard": {
+      "types": "./dist/standard.d.ts",
+      "default": "./dist/standard.js"
+    },
+    "./base.css": "./css/base.css"
+  },
+  "peerDependencies": {
+    "@rathkit/rte-core": "*",
+    "@rathkit/rte-headless": "*",
+    "@rathkit/rte-themes": "*",
+    "@rathkit/rte-icons": "*"
+  },
+  "peerDependenciesMeta": {
+    "@rathkit/rte-core": {
+      "optional": true
+    },
+    "@rathkit/rte-headless": {
+      "optional": true
+    },
+    "@rathkit/rte-themes": {
+      "optional": true
+    },
+    "@rathkit/rte-icons": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@rathkit/rte-core": "workspace:*",
+    "@rathkit/rte-headless": "workspace:*",
+    "@rathkit/rte-themes": "workspace:*",
+    "@rathkit/rte-icons": "workspace:*"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && tsc -p tsconfig.build.js.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node -e \"process.exit(0)\""
+  },
+  "rathkit": {
+    "budgets": [
+      {
+        "name": "ui",
+        "entry": "dist/index.js",
+        "gzipKB": 25
+      },
+      {
+        "name": "ui with default icons",
+        "entry": "dist/standard.js",
+        "gzipKB": 30
+      }
+    ]
+  }
+}

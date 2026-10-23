@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>rte-ui demo</title>
+<script type="importmap">
+{ "imports": {
+  "@rathkit/rte-core/standard": "/dist/standard/index.js",
+  "@rathkit/rte-core/dom": "/dist/dom/index.js",
+  "@rathkit/rte-headless": "/headless/dist/index.js",
+  "@rathkit/rte-icons": "/icons/dist/index.js"
+} }
+</script>
+<link rel="stylesheet" href="/ui/css/base.css">
+<link rel="stylesheet" href="/themes/css/light.css">
+<link rel="stylesheet" href="/themes/css/dark.css">
+<link rel="stylesheet" href="/themes/css/auto.css">
+<link rel="stylesheet" href="/themes/css/high-contrast.css">
+<link rel="stylesheet" href="/themes/css/density.css">
+<style>body { margin: 24px; font-family: system-ui, sans-serif; background: #e9edf2; } #second { margin-top: 24px; }</style>
+<div id="root"></div>
+<div id="second"></div>
+<script type="module">
+import { createEditor } from "@rathkit/rte-core/standard";
+import { createStandardUi } from "/ui/dist/standard.js";
+
+const sample = `<h1>Rathkit RTE</h1><p>A rich text editor <strong>built from scratch</strong>, with <em>nothing</em> else in it. It has <a href="https://rathkit.com">links</a>, <code>inline code</code>, and text that is <u>underlined</u> or <s>struck through</s>.</p>
+<h2>Lists</h2><ul><li>Bulleted items<ul><li>and nested ones</li></ul></li><li>in a list</li></ul><ol><li>Numbered</li><li>too</li></ol>
+<blockquote><p>A quotation sits in the margin.</p></blockquote><pre>const editor = "code blocks keep their spacing";</pre>
+<table><tr><th>Part</th><th>Size</th></tr><tr><td>Core</td><td>17 KB</td></tr><tr><td>Lists</td><td>3.5 KB</td></tr></table><dl><dt>Term</dt><dd>What it means.</dd></dl>`;
+
+function make(rootId, style, html) {
+  const root = document.getElementById(rootId);
+  const surface = document.createElement("div");
+  const editor = createEditor({ element: surface, html });
+  const ui = createStandardUi(editor, { root, style });
+  return { editor, ui };
+}
+window.__one = make("root", { theme: "light" }, sample);
+window.__two = make("second", { theme: "dark" }, "<p>A second editor on the same page, in another theme.</p>");
+window.__uiReady = true;
+</script>

@@ -23,8 +23,8 @@ const check = (name, ok, detail) => {
 };
 
 async function open(type, options = {}, cfg = "", demo = false) {
-  const page_url = demo === "element" ? "/element/demo/" : "/headless/demo/";
-  const ready_flag = demo === "element" ? "window.__elementReady===true" : "window.__demoReady===true";
+  const page_url = demo === "element" ? "/element/demo/" : demo === "ui" ? "/ui/demo/" : "/headless/demo/";
+  const ready_flag = demo === "element" ? "window.__elementReady===true" : demo === "ui" ? "window.__uiReady===true" : "window.__demoReady===true";
   const browser = await type.launch();
   const context = await browser.newContext(options);
   const outside = [];
@@ -467,6 +467,96 @@ for (const [name, type] of engines) {
   check(`${name} (element) moving the element keeps its content and it still works`, (await val("body")) === "<p><strong>one</strong> two</p>" && (await page.evaluate(() => !!document.getElementById("body").editor)), await val("body"));
   await page.evaluate(() => document.getElementById("second").remove());
   check(`${name} (element) removing an element leaves no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
+// --- the styled interface: parts, themes, tokens, density, classes, messages, icons, forced colors, reduced motion, the link dialog
+for (const [name, type] of engines) {
+  const t = await open(type, {}, "", "ui");
+  const { page } = t;
+  const css = (sel, prop) => page.evaluate(([s, p]) => getComputedStyle(document.querySelector(s))[p], [sel, prop]);
+  const rootBg = (id) => page.evaluate((i) => getComputedStyle(document.getElementById(i)).backgroundColor, id);
+  const setStyle = (which, style) => page.evaluate(([w, st]) => window[w].ui.setStyle(st), [which, style]);
+  const active = () => page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName));
+  check(`${name} (ui) the root, toolbar and content are parts, and every control is a part`, await page.evaluate(() => { const r = document.getElementById("root"); return r.classList.contains("rk-root") && r.getAttribute("data-rk-part") === "root" && !!r.querySelector('[data-rk-part=toolbar]') && !!r.querySelector('[data-rk-part=content]') && [...r.querySelectorAll("[data-rk-item]")].every((e) => e.hasAttribute("data-rk-part")); }), "parts");
+  check(`${name} (ui) groups of controls are separated`, (await page.evaluate(() => document.querySelectorAll('#root [data-rk-part=separator]').length)) >= 4, "separators");
+  check(`${name} (ui) every button has an icon, a name and a tooltip with its key`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rk-item]')].every((b) => b.querySelector('[data-rk-part=icon] svg') && b.getAttribute("aria-label") && b.title) && document.querySelector('#root [data-rk-item=bold]').title === "Bold (Ctrl+B)"), "icons");
+  check(`${name} (ui) the block-type select is named`, (await page.evaluate(() => document.querySelector("#root select[data-rk-item=block]").getAttribute("aria-label"))) === "Block type", "select");
+  // Themes: two editors in two themes on one page, and a switch at run time.
+  check(`${name} (ui) light and dark themes color their own editor`, (await rootBg("root")) === "rgb(255, 255, 255)" && (await rootBg("second")) === "rgb(16, 21, 29)", [await rootBg("root"), await rootBg("second")]);
+  await setStyle("__one", { theme: "dark" });
+  check(`${name} (ui) the default icons survive a theme switch`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rk-item]')].every((b) => b.querySelector("svg"))), "icons after switch");
+  check(`${name} (ui) switching theme at run time changes the look without rebuilding`, (await rootBg("root")) === "rgb(16, 21, 29)", await rootBg("root"));
+  await setStyle("__one", { theme: "high-contrast" });
+  check(`${name} (ui) the high-contrast theme is black and white`, (await rootBg("root")) === "rgb(0, 0, 0)" && (await css("#root [data-rk-part=content]", "color")) === "rgb(255, 255, 255)", await rootBg("root"));
+  await setStyle("__one", { theme: "auto" });
+  await page.emulateMedia({ colorScheme: "dark" });
+  check(`${name} (ui) the auto theme follows the system's dark setting`, (await rootBg("root")) === "rgb(16, 21, 29)", await rootBg("root"));
+  await setStyle("__one", { theme: "auto", scheme: "light" });
+  check(`${name} (ui) and a chosen scheme beats the system`, (await rootBg("root")) === "rgb(255, 255, 255)", await rootBg("root"));
+  await page.emulateMedia({ colorScheme: "light" });
+  await setStyle("__one", { theme: "light" });
+  // Tokens, density, classes, messages, icons.
+  await setStyle("__one", { theme: "light", tokens: { "--rk-bg": "#ffeedd" } });
+  check(`${name} (ui) a token beats the preset`, (await rootBg("root")) === "rgb(255, 238, 221)", await rootBg("root"));
+  await setStyle("__one", { theme: "light" });
+  check(`${name} (ui) and takes itself off again when it is no longer asked for`, (await rootBg("root")) === "rgb(255, 255, 255)", await rootBg("root"));
+  const size = async (d) => { await setStyle("__one", { theme: "light", ...(d ? { density: d } : {}) }); return css("#root [data-rk-item=bold]", "height"); };
+  check(`${name} (ui) density changes control size: compact 28px, default 32px, comfortable 40px`, [await size("compact"), await size(undefined), await size("comfortable")].join() === "28px,32px,40px", "density");
+  await setStyle("__one", { theme: "light", classes: { button: "u-btn u-big", content: "u-body" } });
+  check(`${name} (ui) extra classes land on every element of a part`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=button]")].every((b) => b.classList.contains("u-btn") && b.classList.contains("u-big")) && document.querySelector("#root [data-rk-part=content]").classList.contains("u-body")), "classes");
+  await setStyle("__one", { theme: "light" });
+  check(`${name} (ui) and are taken away again`, await page.evaluate(() => !document.querySelector("#root .u-btn, #root .u-body")), "classes gone");
+  await setStyle("__one", { theme: "light", messages: { "item.bold": "Gras" } });
+  check(`${name} (ui) messages rename an item for assistive technology and the tooltip`, await page.evaluate(() => { const b = document.querySelector("#root [data-rk-item=bold]"); return b.getAttribute("aria-label") === "Gras" && b.title.startsWith("Gras"); }), "messages");
+  await setStyle("__one", { theme: "light", icons: { bold: '<svg viewBox="0 0 24 24" id="custom-bold"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>', italic: '<svg viewBox="0 0 24 24"><script>alert(1)</script></svg>' } });
+  check(`${name} (ui) a given icon replaces the default`, await page.evaluate(() => !!document.querySelector("#root [data-rk-item=bold] svg#custom-bold")), "custom icon");
+  check(`${name} (ui) and an icon that is not plain svg is refused, leaving the words`, await page.evaluate(() => { const b = document.querySelector("#root [data-rk-item=italic]"); return !b.querySelector("svg") && b.textContent === "Italic"; }), "unsafe icon");
+  await setStyle("__one", { theme: "light" });
+  // Non-color cues, focus, forced colors, reduced motion.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="bold"]');
+  await page.waitForTimeout(60);
+  check(`${name} (ui) a pressed button has a thicker bottom edge, not only a different color`, (await css('#root [data-rk-item="bold"]', "borderBottomWidth")) === "3px" && (await css('#root [data-rk-item="italic"]', "borderBottomWidth")) === "1px", [await css('#root [data-rk-item="bold"]', "borderBottomWidth"), await css('#root [data-rk-item="italic"]', "borderBottomWidth")]);
+  await page.evaluate(() => document.querySelector('#root [data-rk-item="bold"]').focus());
+  await page.keyboard.press("ArrowRight");
+  const ring = await page.evaluate(() => { const c = getComputedStyle(document.activeElement); return { style: c.outlineStyle, width: c.outlineWidth, color: c.outlineColor }; });
+  check(`${name} (ui) keyboard focus draws a 2px solid ring in the focus color`, ring.style === "solid" && ring.width === "2px" && ring.color === "rgb(23, 64, 139)", ring);
+  await page.emulateMedia({ forcedColors: "active" });
+  const forced = await page.evaluate(() => { const b = document.querySelector('#root [data-rk-item="bold"]'); const c = getComputedStyle(b); return { bottom: c.borderBottomWidth, style: c.borderBottomStyle }; });
+  check(`${name} (ui) in forced colors a pressed button keeps a real border, thicker still`, forced.bottom === "4px" && forced.style === "solid", forced);
+  await page.emulateMedia({ forcedColors: "none" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  check(`${name} (ui) reduced motion turns the button transitions off`, (await css('#root [data-rk-item="italic"]', "transitionDuration")) === "0s", await css('#root [data-rk-item="italic"]', "transitionDuration"));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  // Announcements and the link dialog.
+  check(`${name} (ui) pressing a toggle announces it`, await page.evaluate(() => new Promise((resolve) => setTimeout(() => resolve(document.querySelector("#root [role=status]").textContent === "Bold on"), 150))), "announce");
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 4, n, 7); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="link"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) the link dialog opens with its title, a labelled field, and focus in the field`, await page.evaluate(() => { const d = document.querySelector("#root [data-rk-part=dialog]"); const f = d.querySelector("[data-rk-part=field]"); return d.open && d.querySelector("[data-rk-part=dialog-title]").textContent === "Link" && f.labels[0].textContent === "Address" && document.activeElement === f; }), await active());
+  await page.keyboard.type("javascript:alert(1)");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(60);
+  check(`${name} (ui) an unsafe address is refused with a message tied to the field`, await page.evaluate(() => { const f = document.querySelector("#root [data-rk-part=field]"); const e = document.querySelector("#root [data-rk-part=field-error]"); return f.getAttribute("aria-invalid") === "true" && f.getAttribute("aria-describedby") === e.id && e.textContent.length > 0 && document.querySelector("#root [data-rk-part=dialog]").open; }), "unsafe");
+  await page.fill("#root [data-rk-part=field]", "https://x.test");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(80);
+  check(`${name} (ui) a good address closes the dialog and links the selected text`, (await page.evaluate(() => window.__one.editor.getHtml())) === '<p>one <a href="https://x.test">two</a> three</p>' && !(await page.evaluate(() => document.querySelector("#root [data-rk-part=dialog]").open)), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) focus goes back to the control that opened it`, (await active()) === "rk-link" || (await page.evaluate(() => document.activeElement.getAttribute("data-rk-item"))) === "link", await active());
+  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rk-part=content] a").firstChild; e.selectDom(n, 1, n, 1); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="link"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(60);
+  // Cleaning up.
+  await page.evaluate(() => window.__two.ui.destroy());
+  check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");
+  check(`${name} (ui) no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
 
