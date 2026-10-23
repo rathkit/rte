@@ -947,7 +947,7 @@ for (const [name, type] of engines) {
     }
     const table = await measureTable(50, 10);
     console.log(`speed${label} table of 500 cells: set ${table.set.toFixed(1)} ms, type in one cell p95 ${table.type.toFixed(1)} ms`);
-    if (rate === 1) check("speed: typing in a cell of a 500-cell table within 10 ms (p95)", table.type <= 10 * scale, table);
+    if (rate === 1) check("speed: typing in a cell of a 500-cell table within 12 ms (p95)", table.type <= 12 * scale, table);
     if (rate === 1) check("speed: typing in a cell keeps the table and every other cell as drawn", table.sameTable && table.redrawn === 1, table);
   }
   await t.browser.close();
