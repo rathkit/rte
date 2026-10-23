@@ -1,5 +1,7 @@
 # Images: what is allowed in, and how
 
+The SVG cleaner is the `svg` entry point and the policy below is the `images` entry point; `createEditor()` from the `standard` entry has both. Without the svg plugin SVG images are refused.
+
 Decided 2026-10-22.
 
 ## What gets in

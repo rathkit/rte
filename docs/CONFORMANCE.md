@@ -2,7 +2,7 @@
 
 The editor is checked against requirement suites kept outside this repo. A suite drives an editor page
 through a small contract, `window.__conf`, and compares what comes out by meaning. The page for this
-editor is `packages/rte-core/conformance/index.html`. It uses only the editor's public API.
+editor (the standard editor, or with `?cfg={"core":true}` one with no plugins) is `packages/rte-core/conformance/index.html`. It uses only the editor's public API.
 
 ## Running a suite
 

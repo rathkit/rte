@@ -1,5 +1,7 @@
 # Lists
 
+Lists are the `lists` entry point (`@rathkit/rte-core/lists`), a plugin; the standard editor has it. The commands are `list.bulleted`, `list.numbered`, `list.definition`, `list.indent` and `list.outdent`, and the options are `lists({ maxDepth, indentOnTab, shortcuts })`.
+
 What the list commands do, in the terms of the requirements.
 
 - **Toggle** (`Editor.toggleList("ul" | "ol", { style?, start? })`): the block where the selection starts decides. Already in a list

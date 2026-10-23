@@ -18,7 +18,7 @@ RTE is a rich text editor for the web. The core is written in TypeScript around 
 
 | Package | State |
 | --- | --- |
-| `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, paste pipeline, a model-driven editing view. Not published |
+| `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, an engine with named commands, keys and a plugin host, a model-driven browser view, and the free standard plugins (lists, word-processor lists, SVG, images) as separate entry points. Not published. See `docs/PLUGINS.md` |
 
 More packages (framework wrappers, plugins, server) will appear here as they are built.
 
