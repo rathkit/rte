@@ -36,7 +36,7 @@ export interface BindOptions {
 }
 
 export interface Toolbar {
-  /** The items now, in display order. The same array until the items change. */
+  /** The items now, in display order: the top level, with the items of a menu inside it. The same array until the items change. */
   readonly items: readonly UiItem[];
   /** The state of one item. The same object until that item's state changes, so a framework can compare by identity. */
   state(id: string): ItemState | undefined;
@@ -57,6 +57,9 @@ export function createToolbar(editor: HeadlessEditor, options: ToolbarOptions = 
   const listeners = new Set<() => void>();
   const cache = new Map<string, { state: ItemState; source: unknown; label: string; shortcut: string | undefined }>();
   let items = editor.ui.items(slot);
+  // Items inside menus have state and can be activated like the others, so they are looked up in this flat list.
+  const flatten = (list: readonly UiItem[]): UiItem[] => list.flatMap((i): UiItem[] => (i.kind === "menu" ? [i, ...flatten(i.items)] : [i]));
+  let everything = flatten(items);
   let watching: Unsubscribe[] = [];
   let scheduled = false;
   let destroyed = false;
@@ -75,7 +78,7 @@ export function createToolbar(editor: HeadlessEditor, options: ToolbarOptions = 
     for (const stop of watching) stop();
     watching = [];
     const seen = new Set<string>();
-    for (const item of items) {
+    for (const item of everything) {
       const command = commandOf(item);
       if (command && !seen.has(command)) {
         seen.add(command);
@@ -86,11 +89,12 @@ export function createToolbar(editor: HeadlessEditor, options: ToolbarOptions = 
   watch();
   const stopItems = editor.ui.subscribe(slot, () => {
     items = editor.ui.items(slot);
+    everything = flatten(items);
     watch();
     notify();
   });
 
-  const find = (id: string): UiItem | undefined => items.find((i) => i.id === id);
+  const find = (id: string): UiItem | undefined => everything.find((i) => i.id === id);
 
   function state(id: string): ItemState | undefined {
     const item = find(id);

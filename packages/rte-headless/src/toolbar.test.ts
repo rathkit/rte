@@ -112,3 +112,23 @@ test("an item without a label of its own takes the command's, and failing that i
   assert.equal(toolbar.state("mystery")?.disabled, true, "a command that does not exist is unavailable");
   assert.equal(toolbar.activate("mystery"), false);
 });
+
+test("items inside a menu have state and can be run, and a change in their command wakes the toolbar", async () => {
+  const { engine, toolbar } = setup("<p>one two three</p>");
+  engine.ui.add("toolbar.main", {
+    kind: "menu", id: "more", label: "More",
+    items: [{ kind: "toggle", id: "more-italic", command: "format.italic" }, { kind: "separator", id: "more-sep" }, { kind: "button", id: "more-undo", command: "history.undo" }],
+  });
+  await tick();
+  assert.equal(toolbar.items.some((i) => i.id === "more"), true);
+  assert.equal(toolbar.items.some((i) => i.id === "more-italic"), false, "only the menu is at the top level");
+  assert.equal(toolbar.state("more")?.label, "More");
+  assert.equal(toolbar.state("more-italic")?.pressed, false);
+  let woke = 0;
+  toolbar.subscribe(() => woke++);
+  engine.setSelection(range(0, 3));
+  assert.equal(toolbar.activate("more-italic"), true);
+  await tick();
+  assert.equal(toolbar.state("more-italic")?.pressed, true);
+  assert.equal(woke >= 1, true, "heard about the change inside the menu");
+});

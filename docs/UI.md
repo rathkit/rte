@@ -16,7 +16,7 @@ All shipped CSS is in cascade layers, so your own unlayered CSS wins without a s
 
 ## Parts
 
-Every element carries `data-rk-part`: `root`, `toolbar`, `button`, `select`, `separator`, `icon`, `label`, `content`, `dialog`, `dialog-title`,
+Every element carries `data-rk-part`: `root`, `toolbar`, `button`, `select`, `separator`, `icon`, `label`, `content`, `menu-host`, `menu`, `menu-item`, `menu-separator`, `menu-keys`, `tooltip`, `dialog`, `dialog-title`,
 `field-label`, `field`, `field-error`, `actions`, `action`. Selectors and the `classes` option address parts by these names, never by class,
 so the inside of the interface can change without breaking a theme. The only class is `rk-root`, which scopes everything to one editor.
 Nothing reaches outside it, and tokens are never set on `:root`, so two editors on a page can differ.
@@ -65,7 +65,12 @@ its words instead. `messages` can rename any item (`item.bold`), the dialog butt
 
 ## Accessibility the interface adds on the headless layer
 
-A visible focus ring, a pressed state that does not rely on color (a thicker bottom edge and a border), tooltips with the key (`Bold (Ctrl+B)`) as the
-control's `title`, forced-colors rendering with real borders and outlines, no animation when the person prefers reduced motion, and spoken confirmation
+A visible focus ring, a pressed state that does not rely on color (a thicker bottom edge and a border), tooltips with the key (`Bold (Ctrl+B)`; see below), forced-colors rendering with real borders and outlines, no animation when the person prefers reduced motion, and spoken confirmation
 when a toggle is pressed. Controls keep their name from `aria-label`, so an icon-only toolbar is still named. The headless layer supplies roving focus,
 `aria-pressed`, `aria-disabled`, and the dialog and menu behavior.
+
+## Menus and tooltips
+
+A `menu` item in the interface list is drawn as a button that opens a list of commands (the Table menu is one). It is the headless menu: arrow keys move through the entries, typing jumps to one, Enter or Space chooses, Escape closes and returns the focus to the button, and a click elsewhere closes it. An entry whose command is unavailable stays reachable and says `aria-disabled`; a toggle entry is a `menuitemcheckbox` with `aria-checked`, and a check mark in front of it so the state never depends on color. After a choice the focus goes back to the editor, and toggles are announced.
+
+Tooltips are one shared element (`data-rk-part="tooltip"`, `role="tooltip"`) put under the control it is for. The tip shows after a pause when the pointer rests on a control and at once when the keyboard focuses it; it is dismissed with Escape (anywhere on the page) without moving the pointer or the focus; the pointer can move onto it without it going away; and it goes when the pointer or focus leaves. The words are the control's accessible name already, so the tip is not announced a second time. Controls carry the tip text in `data-rk-tip`.

@@ -7,3 +7,4 @@ export { createMenu, type Menu, type MenuOptions } from "./menu.ts";
 export { checkFields, createDialog, type Dialog, type DialogOptions, type FormCheck } from "./dialog.ts";
 export { commandStore, selectStore, snapshotStore, toReadable, type ExternalStore, type Readable } from "./stores.ts";
 export type { HeadlessEditor, Unsubscribe } from "./types.ts";
+export { createTooltip, type Tooltip, type TooltipOptions } from "./tooltip.ts";

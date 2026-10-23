@@ -515,7 +515,7 @@ for (const [name, type] of engines) {
   const active = () => page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName));
   check(`${name} (ui) the root, toolbar and content are parts, and every control is a part`, await page.evaluate(() => { const r = document.getElementById("root"); return r.classList.contains("rk-root") && r.getAttribute("data-rk-part") === "root" && !!r.querySelector('[data-rk-part=toolbar]') && !!r.querySelector('[data-rk-part=content]') && [...r.querySelectorAll("[data-rk-item]")].every((e) => e.hasAttribute("data-rk-part")); }), "parts");
   check(`${name} (ui) groups of controls are separated`, (await page.evaluate(() => document.querySelectorAll('#root [data-rk-part=separator]').length)) >= 4, "separators");
-  check(`${name} (ui) every button has an icon, a name and a tooltip with its key`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rk-item]')].every((b) => b.querySelector('[data-rk-part=icon] svg') && b.getAttribute("aria-label") && b.title) && document.querySelector('#root [data-rk-item=bold]').title === "Bold (Ctrl+B)"), "icons");
+  check(`${name} (ui) every button has an icon, a name and a tooltip with its key`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rk-item]')].every((b) => b.querySelector('[data-rk-part=icon] svg') && b.getAttribute("aria-label") && b.getAttribute("data-rk-tip")) && document.querySelector('#root [data-rk-item=bold]').getAttribute("data-rk-tip") === "Bold (Ctrl+B)"), "icons");
   check(`${name} (ui) the block-type select is named`, (await page.evaluate(() => document.querySelector("#root select[data-rk-item=block]").getAttribute("aria-label"))) === "Block type", "select");
   // Themes: two editors in two themes on one page, and a switch at run time.
   check(`${name} (ui) light and dark themes color their own editor`, (await rootBg("root")) === "rgb(255, 255, 255)" && (await rootBg("second")) === "rgb(16, 21, 29)", [await rootBg("root"), await rootBg("second")]);
@@ -543,7 +543,7 @@ for (const [name, type] of engines) {
   await setStyle("__one", { theme: "light" });
   check(`${name} (ui) and are taken away again`, await page.evaluate(() => !document.querySelector("#root .u-btn, #root .u-body")), "classes gone");
   await setStyle("__one", { theme: "light", messages: { "item.bold": "Gras" } });
-  check(`${name} (ui) messages rename an item for assistive technology and the tooltip`, await page.evaluate(() => { const b = document.querySelector("#root [data-rk-item=bold]"); return b.getAttribute("aria-label") === "Gras" && b.title.startsWith("Gras"); }), "messages");
+  check(`${name} (ui) messages rename an item for assistive technology and the tooltip`, await page.evaluate(() => { const b = document.querySelector("#root [data-rk-item=bold]"); return b.getAttribute("aria-label") === "Gras" && b.getAttribute("data-rk-tip").startsWith("Gras"); }), "messages");
   await setStyle("__one", { theme: "light", icons: { bold: '<svg viewBox="0 0 24 24" id="custom-bold"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>', italic: '<svg viewBox="0 0 24 24"><script>alert(1)</script></svg>' } });
   check(`${name} (ui) a given icon replaces the default`, await page.evaluate(() => !!document.querySelector("#root [data-rk-item=bold] svg#custom-bold")), "custom icon");
   check(`${name} (ui) and an icon that is not plain svg is refused, leaving the words`, await page.evaluate(() => { const b = document.querySelector("#root [data-rk-item=italic]"); return !b.querySelector("svg") && b.textContent === "Italic"; }), "unsafe icon");
@@ -588,6 +588,67 @@ for (const [name, type] of engines) {
   check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
+  // Tooltips: shown on hover after a pause and at once on keyboard focus; dismissed with Escape; the pointer may move onto them.
+  const tip = '#root [data-rk-part="tooltip"]';
+  const tipText = () => page.evaluate((t) => { const e = document.querySelector(t); return e.hidden ? null : e.textContent; }, tip);
+  // Start from rest: the pointer away from the toolbar, and the focus in the editor.
+  await page.mouse.move(5, 400);
+  await page.evaluate(() => window.__one.editor.focus());
+  await page.waitForTimeout(400);
+  check(`${name} (ui) tooltips are a role, hidden until needed, and the controls no longer carry a title`, await page.evaluate((t) => document.querySelector(t).getAttribute("role") === "tooltip" && document.querySelector(t).hidden && ![...document.querySelectorAll("#root [data-rk-item]")].some((e) => e.hasAttribute("title")), tip), "role");
+  await page.hover('#root [data-rk-item="italic"]');
+  await page.waitForTimeout(150);
+  check(`${name} (ui) hovering does not show the tip at once`, (await tipText()) === null, await tipText());
+  await page.waitForTimeout(600);
+  check(`${name} (ui) it shows after a pause, with the name and the key`, (await tipText()) === "Italic (Ctrl+I)", await tipText());
+  check(`${name} (ui) and sits below its control, inside the editor`, await page.evaluate((t) => { const p = document.querySelector(t).getBoundingClientRect(); const c = document.querySelector('#root [data-rk-item="italic"]').getBoundingClientRect(); const r = document.getElementById("root").getBoundingClientRect(); return p.top >= c.bottom && p.left >= r.left && p.right <= r.right + 1; }, tip), "placement");
+  await page.mouse.move(5, 300);
+  await page.waitForTimeout(400);
+  check(`${name} (ui) it goes when the pointer leaves`, (await tipText()) === null, await tipText());
+  await page.hover('#root [data-rk-item="italic"]');
+  await page.waitForTimeout(700);
+  await page.keyboard.press("Escape");
+  check(`${name} (ui) Escape puts the tip away without moving the focus or the pointer`, (await tipText()) === null, await tipText());
+  await page.evaluate(() => document.querySelector('#root [data-rk-item="bold"]').focus());
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(60);
+  check(`${name} (ui) keyboard focus shows the tip at once`, (await tipText()) === "Italic (Ctrl+I)", await tipText());
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(60);
+  check(`${name} (ui) and it follows the focus`, (await tipText()) === "Underline (Ctrl+U)", await tipText());
+  await page.evaluate(() => window.__one.editor.focus());
+  await page.waitForTimeout(60);
+  check(`${name} (ui) and goes when the focus leaves the toolbar`, (await tipText()) === null, await tipText());
+  // The table menu: a button that opens a list of commands.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>text</p>"); e.focus(); });
+  await page.waitForTimeout(60);
+  const menu = '#root [data-rk-part="menu"]';
+  const trigger = '#root [data-rk-item="table"]';
+  check(`${name} (ui) the menu button is named, announces a menu, and starts closed`, await page.evaluate(([t, m]) => { const b = document.querySelector(t); return b.getAttribute("aria-haspopup") === "menu" && b.getAttribute("aria-expanded") === "false" && b.getAttribute("aria-label") === "Table" && document.querySelector(m).hidden; }, [trigger, menu]), "closed");
+  await page.click(trigger);
+  await page.waitForTimeout(80);
+  check(`${name} (ui) clicking it opens the menu and focus goes to the first entry`, await page.evaluate(([t, m]) => document.querySelector(t).getAttribute("aria-expanded") === "true" && !document.querySelector(m).hidden && document.activeElement.getAttribute("data-rk-menu-item") === "table-insert", [trigger, menu]), await active());
+  check(`${name} (ui) entries outside a table say they are unavailable but can still be reached`, await page.evaluate(() => { const e = document.querySelector('#root [data-rk-menu-item="table-row-after"]'); return e.getAttribute("aria-disabled") === "true" && e.tabIndex !== undefined && e.getAttribute("role") === "menuitem"; }), "disabled entries");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(60);
+  check(`${name} (ui) Escape closes the menu and focus returns to its button`, await page.evaluate(([t, m]) => document.querySelector(m).hidden && document.activeElement === document.querySelector(t), [trigger, menu]), await active());
+  await page.keyboard.press("ArrowDown");
+  await page.waitForTimeout(60);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(80);
+  check(`${name} (ui) choosing "Insert table" from the keyboard inserts a table and returns to the editor`, await page.evaluate(() => window.__one.editor.getHtml().includes("<table>") && document.querySelector("#root [data-rk-part=content]").contains(document.activeElement)), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click(trigger);
+  await page.waitForTimeout(80);
+  check(`${name} (ui) inside a table the row entries are available and "Header row" is a checkbox entry`, await page.evaluate(() => { const row = document.querySelector('#root [data-rk-menu-item="table-row-after"]'); const head = document.querySelector('#root [data-rk-menu-item="table-header"]'); return row.getAttribute("aria-disabled") === "false" && head.getAttribute("role") === "menuitemcheckbox" && head.getAttribute("aria-checked") === "false"; }), "enabled entries");
+  await page.click('#root [data-rk-menu-item="table-header"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) choosing it turns the header row on, closes the menu and announces it`, await page.evaluate(() => window.__one.editor.getHtml().includes('<th scope="col">') && document.querySelector('#root [data-rk-part="menu"]').hidden && document.querySelector("#root [role=status]").textContent === "Header row on"), await page.evaluate(() => document.querySelector("#root [role=status]").textContent));
+  await page.click(trigger);
+  await page.waitForTimeout(80);
+  check(`${name} (ui) and now shows it as checked, with a visible check mark`, await page.evaluate(() => { const head = document.querySelector('#root [data-rk-menu-item="table-header"]'); return head.getAttribute("aria-checked") === "true" && getComputedStyle(head, "::before").content.includes("\u2713"); }), "checked");
+  await page.mouse.click(5, 5);
+  await page.waitForTimeout(60);
+  check(`${name} (ui) a click elsewhere closes the menu`, await page.evaluate((m) => document.querySelector(m).hidden, menu), "outside click");
   // Cleaning up.
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");

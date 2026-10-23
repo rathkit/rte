@@ -1,7 +1,7 @@
 // The styled interface: a toolbar and dialogs, built from the editor's interface items on the headless layer. Every element carries a
 // stable data-rk-part so themes and utility classes can address it; the look comes from tokens (see @rathkit/rte-themes).
 import type { UiItem } from "@rathkit/rte-core";
-import { checkFields, createAnnouncer, createDialog, createToolbar, type Dialog } from "@rathkit/rte-headless";
+import { checkFields, createAnnouncer, createDialog, createMenu, createToolbar, createTooltip, type Dialog, type Menu } from "@rathkit/rte-headless";
 import { setIcon } from "./icon.ts";
 import { text } from "./messages.ts";
 import type { PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
@@ -41,6 +41,18 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   root.append(toolbarEl, contentEl);
   contentEl.appendChild(editor.element);
   const announcer = createAnnouncer(root);
+  // One tooltip for the whole toolbar, put under the control it is for and kept inside the editor's width.
+  const tipEl = part(document.createElement("div"), "tooltip");
+  root.appendChild(tipEl);
+  const tooltip = createTooltip({
+    container: toolbarEl, popup: tipEl,
+    onShow: (target, popup) => {
+      const box = root.getBoundingClientRect();
+      const at = target.getBoundingClientRect();
+      popup.style.top = `${Math.round(at.bottom - box.top + 6)}px`;
+      popup.style.left = `${Math.round(Math.max(0, Math.min(at.left - box.left, box.width - popup.offsetWidth)))}px`;
+    },
+  });
   const toolbar = createToolbar(editor, { slot, label: message("toolbar.label") });
 
   // ---- look: theme attributes, tokens, classes, icons, words --------------------------------------------------
@@ -87,7 +99,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   function control(item: UiItem): HTMLElement | undefined {
     if (item.kind === "separator") return part(document.createElement("span"), "separator");
-    if (item.kind === "menu" || item.kind === "panel") return undefined;
+    if (item.kind === "panel") return undefined;
     const state = toolbar.state(item.id);
     if (!state) return undefined;
     if (item.kind === "select") {
@@ -101,6 +113,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       }
       return select;
     }
+    if (item.kind === "menu") return menuControl(item, state);
     const customize = style.parts?.button;
     if (customize) {
       const el = customize({ item, state, run: (value) => toolbar.activate(item.id, value) });
@@ -126,14 +139,99 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     return button;
   }
 
+  // ---- menus ---------------------------------------------------------------------------------------------------
+  const menus: Menu[] = [];
+  const menuItems = new Map<string, UiItem>();
+
+  /** A button that opens a list of commands. The headless menu does the keys, the focus and the ARIA; this does the elements. */
+  function menuControl(item: Extract<UiItem, { kind: "menu" }>, state: NonNullable<ReturnType<typeof toolbar.state>>): HTMLElement {
+    const host = part(document.createElement("span"), "menu-host");
+    const trigger = part(document.createElement("button"), "button");
+    trigger.type = "button";
+    trigger.setAttribute("data-rk-item", item.id);
+    const icon = part(document.createElement("span"), "icon");
+    icon.setAttribute("aria-hidden", "true");
+    if (setIcon(icon, iconFor(state.icon))) {
+      iconSpans.set(icon, state.icon ?? "");
+      trigger.appendChild(icon);
+    } else {
+      const label = part(document.createElement("span"), "label");
+      label.textContent = labelOf(item);
+      trigger.appendChild(label);
+    }
+    const caret = part(document.createElement("span"), "icon");
+    caret.setAttribute("aria-hidden", "true");
+    if (setIcon(caret, iconFor("chevron-down"))) trigger.appendChild(caret);
+    const popup = part(document.createElement("div"), "menu");
+    for (const child of item.items) {
+      if (child.kind === "separator") {
+        const rule = part(document.createElement("div"), "menu-separator");
+        rule.setAttribute("role", "separator");
+        popup.appendChild(rule);
+        continue;
+      }
+      if (child.kind !== "button" && child.kind !== "toggle") continue;
+      menuItems.set(child.id, child);
+      const entry = part(document.createElement("button"), "menu-item");
+      entry.type = "button";
+      entry.setAttribute("data-rk-menuitem", "");
+      entry.setAttribute("data-rk-menu-item", child.id);
+      const words = part(document.createElement("span"), "label");
+      const keys = part(document.createElement("span"), "menu-keys");
+      entry.append(words, keys);
+      popup.appendChild(entry);
+    }
+    host.append(trigger, popup);
+    const menu = createMenu({
+      trigger, menu: popup,
+      onSelect: (entry) => {
+        const id = entry.getAttribute("data-rk-menu-item") ?? "";
+        const child = menuItems.get(id);
+        if (toolbar.activate(id) && child?.kind === "toggle") {
+          const now = toolbar.state(id);
+          announcer.announce(message(now?.pressed ? "toggle.on" : "toggle.off", "", { label: labelOf(child) }));
+        }
+        editor.focus();
+      },
+    });
+    for (const entry of popup.querySelectorAll<HTMLElement>("[data-rk-menu-item]")) {
+      if (menuItems.get(entry.getAttribute("data-rk-menu-item") ?? "")?.kind === "toggle") entry.setAttribute("role", "menuitemcheckbox");
+    }
+    menus.push(menu);
+    return host;
+  }
+
+  /** Words, keys and state for every entry of every menu. */
+  function menuEntries(): void {
+    for (const entry of toolbarEl.querySelectorAll<HTMLElement>("[data-rk-menu-item]")) {
+      const id = entry.getAttribute("data-rk-menu-item") ?? "";
+      const child = menuItems.get(id);
+      const state = toolbar.state(id);
+      if (!child || !state) continue;
+      const label = labelOf(child);
+      const words = entry.querySelector<HTMLElement>('[data-rk-part="label"]');
+      if (words) words.textContent = label;
+      const keys = entry.querySelector<HTMLElement>('[data-rk-part="menu-keys"]');
+      if (keys) keys.textContent = state.shortcutLabel ?? "";
+      if (state.shortcut) entry.setAttribute("aria-keyshortcuts", state.shortcut);
+      else entry.removeAttribute("aria-keyshortcuts");
+      // Unavailable entries stay reachable by keyboard; they only say they are unavailable.
+      entry.setAttribute("aria-disabled", String(state.disabled));
+      if (child.kind === "toggle") entry.setAttribute("aria-checked", String(state.pressed === true));
+    }
+  }
+
   function draw(): void {
     unbind?.();
+    for (const menu of menus.splice(0)) menu.destroy();
+    menuItems.clear();
     iconSpans.clear();
     parts.set("button", new Set());
     parts.set("select", new Set());
     parts.set("separator", new Set());
     parts.set("icon", new Set());
     parts.set("label", new Set());
+    for (const name of ["menu-host", "menu", "menu-item", "menu-separator", "menu-keys"] as const) parts.set(name, new Set());
     const controls: HTMLElement[] = [];
     let group: string | undefined;
     for (const item of toolbar.items) {
@@ -144,11 +242,13 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       if (el) controls.push(el);
     }
     toolbarEl.replaceChildren(...controls);
+    // A menu opens itself (the headless menu listens on its own button), so only dialogs are opened from here.
     unbind = toolbar.bind(toolbarEl, { onOpen: (item, opener) => { if (item.kind === "dialog") openDialog(item, opener); } });
     // Our click listener goes after the headless layer's, so by the time it runs the command has run and the state is the new one.
     toolbarEl.removeEventListener("click", onToolbarClick);
     toolbarEl.addEventListener("click", onToolbarClick);
     names();
+    menuEntries();
   }
 
   /** Names for everything drawn: the accessible name and the tooltip, with the key that runs it. */
@@ -160,7 +260,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       if (!item || !state) continue;
       const label = labelOf(item);
       el.setAttribute("aria-label", label);
-      el.title = state.shortcutLabel ? `${label} (${state.shortcutLabel})` : label;
+      el.setAttribute("data-rk-tip", state.shortcutLabel ? `${label} (${state.shortcutLabel})` : label);
       if (el.tagName === "BUTTON") {
         const word = el.querySelector<HTMLElement>('[data-rk-part="label"]');
         if (word) word.textContent = label;
@@ -168,6 +268,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     }
   }
   toolbar.subscribe(names);
+  toolbar.subscribe(menuEntries);
   const stopRedraw = toolbar.subscribe(() => {
     // A change in which items exist (a plugin added or removed one) needs a redraw; a change in state does not.
     const ids = toolbar.items.map((i) => i.id).join("\u0000");
@@ -275,6 +376,9 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     announce: (m) => announcer.announce(m),
     destroy() {
       unbind?.();
+      for (const menu of menus.splice(0)) menu.destroy();
+      tooltip.destroy();
+      tipEl.remove();
       stopRedraw();
       toolbarEl.removeEventListener("click", onToolbarClick);
       for (const d of dialogs.values()) { d.dialog.destroy(); d.element.remove(); }
