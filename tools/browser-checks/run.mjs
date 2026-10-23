@@ -134,6 +134,22 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.type("Z");
   check(`${name} Shift+Tab goes back`, (await html()).includes("<tr><td>c</td><td>dZ</td></tr>") || (await html()).includes("<tr><td>c</td><td>Zd</td></tr>"), await html());
+  // Cell edges: Backspace at the start of a cell and Delete at the end of one leave the table whole.
+  await reset("<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>");
+  await page.click("td:nth-child(2)");
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Backspace");
+  check(`${name} Backspace at the start of a cell does nothing`, (await html()) === "<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>", await html());
+  await page.keyboard.press("End");
+  await page.keyboard.press("Delete");
+  check(`${name} Delete at the end of a cell does nothing`, (await html()) === "<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>", await html());
+  await page.click("td:nth-child(1)");
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Shift+ArrowRight");
+  await page.keyboard.press("Shift+ArrowRight");
+  await page.keyboard.press("Shift+ArrowRight");
+  await page.keyboard.press("Backspace");
+  check(`${name} a selection across two cells deletes in each without joining them`, (await html()) === "<p>x</p><table><tbody><tr><td></td><td>cd</td></tr></tbody></table><p>y</p>" || (await html()) === "<p>x</p><table><tbody><tr><td></td><td>d</td></tr></tbody></table><p>y</p>", await html());
   await page.evaluate(() => window.__editor.commands.run("table.deleteRow"));
   check(`${name} the delete row command removes the row`, !(await html()).includes("<tr><td>c</td>"), await html());
   await reset("<ul><li>a</li><li>b</li></ul>");

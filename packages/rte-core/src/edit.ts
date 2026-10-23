@@ -1,11 +1,11 @@
 // Editing operations as pure functions: (document, selection) in, (document, selection) out.
 // Nothing here touches a DOM, so every operation can be tested on its own and replayed on a server.
 import {
-  inlineLength, inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
+  inlineLength, inlineText, normalizeInline, type Block, type TableCell, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
 } from "./model.ts";
 import type { Behaviors, ContainerKind } from "./behaviors.ts";
 import {
-  blockContainers, caret, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, setContent,
+  blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, sameCells, setContent,
   type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -80,6 +80,60 @@ function removeContainer(doc: Doc, path: Path): Doc {
   return fixup(mapBlockList(doc, path, (blocks, index) => blocks.filter((_, i) => i !== index)));
 }
 
+const startsWith = (path: Path, prefix: Path): boolean => prefix.every((v, i) => path[i] === v);
+const blankCell = (cell: TableCell): TableCell => ({ ...cell, blocks: [{ type: "p", content: [] }] });
+
+/** Replaces the table at `table` with a changed one. */
+function changeTable(doc: Doc, table: Path, change: (rows: readonly (readonly TableCell[])[]) => readonly (readonly TableCell[])[]): Doc {
+  return mapBlockList(doc, table, (blocks, index) => {
+    const block = blocks[index];
+    return block?.type === "table" ? [...blocks.slice(0, index), { ...block, rows: change(block.rows) }, ...blocks.slice(index + 1)] : blocks;
+  });
+}
+
+/**
+ * A selection that begins in one table cell and ends in another, or crosses the edge of a table. Cells are never merged and a table
+ * is never cut in two: inside one table the two end cells lose their selected text and the cells between are emptied; across the
+ * edge of a table only the part outside it is deleted, unless the whole table is inside the selection (that case is in deleteSelection).
+ */
+function deleteAcrossCells(doc: Doc, start: Pos, end: Pos, from: readonly Path[], to: readonly Path[]): EditResult {
+  let k = 0;
+  while (k < from.length && k < to.length && pathKey(from[k] as Path) === pathKey(to[k] as Path)) k++;
+  const a = from[k];
+  const b = to[k];
+  const paths = containerPaths(doc);
+  if (a && b && pathKey(a.slice(0, -2)) === pathKey(b.slice(0, -2))) {
+    const table = a.slice(0, -2);
+    const [ar, ac] = a.slice(-2) as [number, number];
+    const [br, bc] = b.slice(-2) as [number, number];
+    // Cells strictly between the two, in reading order, are emptied.
+    const before = (r: number, c: number, r2: number, c2: number): boolean => r < r2 || (r === r2 && c < c2);
+    let next = changeTable(doc, table, (rows) => rows.map((row, r) => row.map((cell, c) => (before(ar, ac, r, c) && before(r, c, br, bc) ? blankCell(cell) : cell))));
+    // The ends keep what lies outside the selection: the start cell up to the caret, the end cell after it.
+    const lastInA = [...paths].reverse().find((p) => startsWith(p, a)) as Path;
+    const firstInB = paths.find((p) => startsWith(p, b)) as Path;
+    const nextEnd = deleteSelection(next, { anchor: { path: firstInB, offset: 0 }, focus: end }).doc;
+    next = deleteSelection(nextEnd, { anchor: start, focus: { path: lastInA, offset: inlineLength(getContent(nextEnd, lastInA)) } }).doc;
+    return { doc: next, selection: caret(start) };
+  }
+  // Across the edge of a table: leave the table alone and delete the part outside it.
+  let newStart = start;
+  let newEnd = end;
+  if (a) {
+    const after = paths.filter((p) => !startsWith(p, a.slice(0, -2)) && comparePath(p, a) > 0)[0];
+    if (!after) return { doc, selection: caret(start) };
+    newStart = { path: after, offset: 0 };
+  }
+  if (b) {
+    const first = paths.find((p) => startsWith(p, b.slice(0, -2))) as Path;
+    const previous = [...paths].reverse().find((p) => comparePath(p, first) < 0);
+    if (!previous) return { doc, selection: caret(start) };
+    newEnd = { path: previous, offset: inlineLength(getContent(doc, previous)) };
+  }
+  if (comparePath(newStart.path, newEnd.path) > 0 || (pathKey(newStart.path) === pathKey(newEnd.path) && newStart.offset > newEnd.offset)) return { doc, selection: caret(start) };
+  return deleteSelection(doc, { anchor: newStart, focus: newEnd });
+}
+
 /** Deletes the selected range and returns the document with a collapsed caret where it was. */
 export function deleteSelection(doc: Doc, sel: Selection): EditResult {
   const { start, end } = order(doc, sel);
@@ -88,6 +142,9 @@ export function deleteSelection(doc: Doc, sel: Selection): EditResult {
     const next = normalizeInline([...sliceInline(content, 0, start.offset), ...sliceInline(content, end.offset)]);
     return { doc: setContent(doc, start.path, next), selection: caret(start) };
   }
+  const from = cellChain(doc, start.path);
+  const to = cellChain(doc, end.path);
+  if (!sameCells(from, to)) return deleteAcrossCells(doc, start, end, from, to);
   const s = ordinalOf(doc, start.path);
   const e = ordinalOf(doc, end.path);
   const paths = containerPaths(doc);
@@ -100,8 +157,25 @@ export function deleteSelection(doc: Doc, sel: Selection): EditResult {
 
   let next = setContent(doc, start.path, normalizeInline(merge ? [...head, ...tail] : head));
   if (!merge) next = setContent(next, end.path, normalizeInline(tail));
-  // Remove what lies between, last first so earlier paths stay valid.
-  for (let i = merge ? e : e - 1; i > s; i--) next = removeContainer(next, paths[i] as Path);
+  // Remove what lies between, last first so earlier paths stay valid. A table that lies wholly inside the range goes as a table,
+  // not as a grid of emptied cells.
+  const upper = merge ? e : e - 1;
+  const gone = new Set<string>();
+  for (let i = upper; i > s; i--) {
+    const path = paths[i] as Path;
+    const chain = cellChain(doc, path);
+    const covered = chain.find((cell) => {
+      const inside = paths.map((p, at) => ({ p, at })).filter((x) => startsWith(x.p, cell.slice(0, -2)));
+      return inside.every((x) => x.at > s && x.at <= upper) && !gone.has(pathKey(cell.slice(0, -2)));
+    });
+    if (covered) {
+      const table = covered.slice(0, -2);
+      gone.add(pathKey(table));
+      next = fixup(mapBlockList(next, table, (blocks, index) => blocks.filter((_, j) => j !== index)));
+    } else if (!chain.some((cell) => gone.has(pathKey(cell.slice(0, -2))))) {
+      next = removeContainer(next, path);
+    }
+  }
   return { doc: next, selection: caret(clampPos(next, { path: ordinalToPath(next, s), offset: start.offset })) };
 }
 
@@ -160,6 +234,17 @@ export function splitBlock(doc: Doc, sel: Selection, behaviors?: Behaviors): Edi
 
 // ---- Backspace and Delete ---------------------------------------------------------------------------------
 
+/**
+ * For two neighboring containers in different table cells, how deep each is in tables (undefined when they are in the same cell).
+ * Joining them would break the table, so Backspace at the start of a cell and Delete at the end of one do nothing, and at the edge of
+ * a table the caret steps into it instead of pulling it apart.
+ */
+function cellDepths(doc: Doc, first: Path, second: Path): [number, number] | undefined {
+  const a = cellChain(doc, first);
+  const b = cellChain(doc, second);
+  return sameCells(a, b) ? undefined : [a.length, b.length];
+}
+
 export function deleteBackward(doc: Doc, sel: Selection, behaviors?: Behaviors): EditResult {
   if (!isCollapsed(sel)) return deleteSelection(doc, sel);
   const pos = sel.anchor;
@@ -169,6 +254,8 @@ export function deleteBackward(doc: Doc, sel: Selection, behaviors?: Behaviors):
   const ordinal = ordinalOf(doc, pos.path);
   if (ordinal <= 0) return { doc, selection: sel };
   const previous = ordinalToPath(doc, ordinal - 1);
+  const depths = cellDepths(doc, previous, pos.path);
+  if (depths) return depths[0] > depths[1] ? { doc, selection: caret({ path: previous, offset: inlineLength(getContent(doc, previous)) }) } : { doc, selection: sel };
   return joinWithPrevious(doc, previous, pos);
 }
 
@@ -180,6 +267,8 @@ export function deleteForward(doc: Doc, sel: Selection): EditResult {
   const paths = containerPaths(doc);
   const next = paths[ordinalOf(doc, pos.path) + 1];
   if (!next) return { doc, selection: sel };
+  const depths = cellDepths(doc, pos.path, next);
+  if (depths) return depths[1] > depths[0] ? { doc, selection: caret({ path: next, offset: 0 }) } : { doc, selection: sel };
   return joinWithPrevious(doc, pos.path, { path: next, offset: 0 });
 }
 

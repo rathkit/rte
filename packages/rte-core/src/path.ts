@@ -298,3 +298,28 @@ export function removeEntry(doc: Doc, entryPath: Path): Doc {
   const entries = dl.entries.filter((_, i) => i !== index);
   return fixup(mapBlockList(doc, blockPath, (blocks, at) => [...blocks.slice(0, at), ...(entries.length > 0 ? [{ ...dl, entries }] : []), ...blocks.slice(at + 1)]));
 }
+
+/**
+ * The table cells around a container, outermost first, each as the path `[...table, row, cell]` (a table inside a cell of another table
+ * gives two). Empty for a container that is in no table. Two containers are in the same cell when their chains are equal.
+ */
+export function cellChain(doc: Doc, path: Path): Path[] {
+  const chain: Path[] = [];
+  const walk = (blocks: readonly Block[], rest: Path, prefix: Path): void => {
+    const [n, ...more] = rest;
+    const block = n === undefined ? undefined : blocks[n];
+    if (n === undefined || !block) return;
+    if (block.type === "quote") walk(block.blocks, more, [...prefix, n]);
+    else if (block.type === "table") {
+      const [r, c, ...inner] = more;
+      if (r === undefined || c === undefined) return;
+      chain.push([...prefix, n, r, c]);
+      const cell = block.rows[r]?.[c];
+      if (cell) walk(cell.blocks, inner, [...prefix, n, r, c]);
+    }
+  };
+  walk(doc.blocks, path, []);
+  return chain;
+}
+
+export const sameCells = (a: readonly Path[], b: readonly Path[]): boolean => a.length === b.length && a.every((p, i) => pathKey(p) === pathKey(b[i] as Path));
