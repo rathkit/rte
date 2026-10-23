@@ -1,0 +1,40 @@
+/* Rathkit RTE theme: high-contrast. Token values only: no rules for any part. Load it after the base styles of @rathkit/rte-ui.
+   Scope: any element with data-rk-theme="high-contrast" (normally the .rk-root of an editor), never :root. */
+:where([data-rk-theme="high-contrast"]) {
+  --rk-space-1: 4px;
+  --rk-space-2: 8px;
+  --rk-space-3: 12px;
+  --rk-space-4: 16px;
+  --rk-control-size: 32px;
+  --rk-radius-s: 4px;
+  --rk-radius-m: 8px;
+  --rk-border-width: 2px;
+  --rk-focus-width: 3px;
+  --rk-focus-offset: 2px;
+  --rk-font-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rk-font-content: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rk-font-heading: "Archivo", "Instrument Sans", system-ui, sans-serif;
+  --rk-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rk-font-size: 16px;
+  --rk-line-height: 1.55;
+  --rk-motion-duration: 0ms;
+  --rk-shadow-popover: none;
+  --rk-bg: #000000;
+  --rk-surface: #000000;
+  --rk-surface-raised: #000000;
+  --rk-fg: #ffffff;
+  --rk-fg-muted: #e6e6e6;
+  --rk-border: #ffffff;
+  --rk-border-subtle: #ffffff;
+  --rk-accent: #ffd54a;
+  --rk-accent-fg: #000000;
+  --rk-accent-subtle: #2a2a00;
+  --rk-danger: #ff9a9a;
+  --rk-selection-bg: #0a3cff;
+  --rk-control-hover: #1f1f1f;
+  --rk-control-active: #3a3a3a;
+  --rk-brand: #ffd54a;
+  --rk-brand-text: #ffd54a;
+  --rk-focus-color: #ffd54a;
+  color-scheme: dark;
+}

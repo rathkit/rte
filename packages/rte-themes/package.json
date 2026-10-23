@@ -1,0 +1,35 @@
+{
+  "name": "@rathkit/rte-themes",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Preset themes for the Rathkit RTE interface: design token values, as plain CSS.",
+  "license": "Apache-2.0",
+  "homepage": "https://rathkit.com",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist",
+    "css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./light.css": "./css/light.css",
+    "./dark.css": "./css/dark.css",
+    "./auto.css": "./css/auto.css",
+    "./high-contrast.css": "./css/high-contrast.css",
+    "./density.css": "./css/density.css"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && tsc -p tsconfig.build.js.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "rathkit": {
+    "budgets": []
+  }
+}

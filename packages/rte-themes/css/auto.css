@@ -1,0 +1,86 @@
+/* Rathkit RTE theme: auto. Token values only: no rules for any part. Load it after the base styles of @rathkit/rte-ui.
+   Scope: any element with data-rk-theme="auto" (normally the .rk-root of an editor), never :root. */
+:where([data-rk-theme="auto"]) {
+  --rk-space-1: 4px;
+  --rk-space-2: 8px;
+  --rk-space-3: 12px;
+  --rk-space-4: 16px;
+  --rk-control-size: 32px;
+  --rk-radius-s: 4px;
+  --rk-radius-m: 8px;
+  --rk-border-width: 1px;
+  --rk-focus-width: 2px;
+  --rk-focus-offset: 2px;
+  --rk-font-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rk-font-content: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rk-font-heading: "Archivo", "Instrument Sans", system-ui, sans-serif;
+  --rk-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rk-font-size: 16px;
+  --rk-line-height: 1.55;
+  --rk-motion-duration: 120ms;
+  --rk-shadow-popover: 0 6px 24px rgb(20 24 31 / 0.18), 0 1px 3px rgb(20 24 31 / 0.12);
+  --rk-bg: #ffffff;
+  --rk-surface: #f4f6f9;
+  --rk-surface-raised: #ffffff;
+  --rk-fg: #14181f;
+  --rk-fg-muted: #505b6b;
+  --rk-border: #78849a;
+  --rk-border-subtle: #d4dae3;
+  --rk-accent: #17408b;
+  --rk-accent-fg: #ffffff;
+  --rk-accent-subtle: #e3ecfa;
+  --rk-danger: #b3261e;
+  --rk-selection-bg: #cddffa;
+  --rk-control-hover: #e6ebf3;
+  --rk-control-active: #d3dcec;
+  --rk-brand: #b9812a;
+  --rk-brand-text: #86590f;
+  --rk-focus-color: #17408b;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :where([data-rk-theme="auto"]:not([data-rk-scheme="light"])) {
+    --rk-bg: #10151d;
+    --rk-surface: #171e29;
+    --rk-surface-raised: #1d2633;
+    --rk-fg: #eaeef4;
+    --rk-fg-muted: #a9b4c3;
+    --rk-border: #6b7789;
+    --rk-border-subtle: #2b3646;
+    --rk-accent: #6fa0e8;
+    --rk-accent-fg: #0b1a33;
+    --rk-accent-subtle: #1d3257;
+    --rk-danger: #ff8f86;
+    --rk-selection-bg: #294a80;
+    --rk-control-hover: #243044;
+    --rk-control-active: #2f3e57;
+    --rk-brand: #e0a850;
+    --rk-brand-text: #e0a850;
+    --rk-focus-color: #9bc0f5;
+    --rk-shadow-popover: 0 6px 24px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+
+:where([data-rk-theme="auto"][data-rk-scheme="dark"]) {
+  --rk-bg: #10151d;
+  --rk-surface: #171e29;
+  --rk-surface-raised: #1d2633;
+  --rk-fg: #eaeef4;
+  --rk-fg-muted: #a9b4c3;
+  --rk-border: #6b7789;
+  --rk-border-subtle: #2b3646;
+  --rk-accent: #6fa0e8;
+  --rk-accent-fg: #0b1a33;
+  --rk-accent-subtle: #1d3257;
+  --rk-danger: #ff8f86;
+  --rk-selection-bg: #294a80;
+  --rk-control-hover: #243044;
+  --rk-control-active: #2f3e57;
+  --rk-brand: #e0a850;
+  --rk-brand-text: #e0a850;
+  --rk-focus-color: #9bc0f5;
+  --rk-shadow-popover: 0 6px 24px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}
