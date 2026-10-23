@@ -14,6 +14,8 @@ export interface Grid {
   readonly cols: number;
   /** The width of each column, or null where it is automatic. */
   readonly widths: readonly (string | null)[];
+  /** The least height of each row, or null where it is automatic. */
+  readonly heights: readonly (string | null)[];
 }
 
 
@@ -41,14 +43,18 @@ export function toGrid(table: Table): Grid {
       rows = Math.max(rows, r + cell.rowspan);
     }
   });
-  return { cells, rows, cols, widths: Array.from({ length: cols }, (_, i) => table.widths?.[i] ?? null) };
+  return { cells, rows, cols, widths: Array.from({ length: cols }, (_, i) => table.widths?.[i] ?? null), heights: Array.from({ length: rows }, (_, i) => table.heights?.[i] ?? null) };
 }
 
 export const inRow = (cells: readonly Placed[], row: number): Placed[] => cells.filter((p) => p.row === row).sort((a, b) => a.col - b.col);
 
 export function fromGrid(grid: Grid): Table {
   const rows = Array.from({ length: grid.rows }, (_, r) => inRow(grid.cells, r).map((p) => p.cell));
-  return grid.widths.some((w) => w !== null) ? { type: "table", rows, widths: grid.widths } : { type: "table", rows };
+  return {
+    type: "table", rows,
+    ...(grid.widths.some((w) => w !== null) ? { widths: grid.widths } : {}),
+    ...(grid.heights.some((h) => h !== null) ? { heights: grid.heights.slice(0, grid.rows) } : {}),
+  };
 }
 
 

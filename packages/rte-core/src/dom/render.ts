@@ -149,15 +149,19 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
       let body = table.querySelector(":scope > tbody") as HTMLElement | null;
       if (!body) table.appendChild((body = document.createElement("tbody")));
       const trs = block.rows.map((row, r) => {
-        const rowKey = `${where},${r}|${options.loadRemoteImages}`;
+        const rowKey = `${where},${r}|${options.loadRemoteImages}|${block.heights?.[r] ?? ""}`;
         const kept = cache?.rows.get(row);
         if (kept && kept.key === rowKey && !claimed?.has(kept.el) && !cache?.dirty.has(kept.el)) { claimed?.add(kept.el); return kept.el; }
         const tr = document.createElement("tr");
+        const height = block.heights?.[r];
+        if (height) tr.style.height = height;
         const tds = row.map((cell, c) => {
           const key = `${where},${r},${c}|${options.loadRemoteImages}`;
           const hit = cache?.cells.get(cell);
           if (hit && hit.key === key && !claimed?.has(hit.el) && !cache?.dirty.has(hit.el)) { claimed?.add(hit.el); return hit.el; }
           const td = document.createElement(cell.header ? "th" : "td");
+          if (cell.background) td.style.backgroundColor = cell.background;
+          if (cell.border) td.style.border = `${cell.border.width}px ${cell.border.style} ${cell.border.color}`;
           if (cell.colspan > 1) td.setAttribute("colspan", String(cell.colspan));
           if (cell.rowspan > 1) td.setAttribute("rowspan", String(cell.rowspan));
           cell.blocks.forEach((inner, n) => td.appendChild(renderBlock(inner, [...path, r, c, n], options, cache)));

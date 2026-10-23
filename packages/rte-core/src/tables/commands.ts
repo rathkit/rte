@@ -2,7 +2,7 @@
 import type { CommandDef } from "../commands.ts";
 import type { EditorSnapshot } from "../engine.ts";
 import type { KeyBinding } from "../keymap.ts";
-import { columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, setColumnWidth, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
+import { cellBackground, cellBorderPreset, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -34,6 +34,21 @@ export function tableCommands(): readonly Def[] {
       // `cell` and `edge` are for a dragged column edge: the cell whose right edge it is, rather than the caret's cell.
       run: (ctx, arg) => ctx.apply("table", (doc, sel) => setColumnWidth(doc, sel, arg?.width, arg?.cell as number[] | undefined, arg?.edge)),
       state: (s) => ({ enabled: here(s), value: columnWidth(s.doc, s.selection.focus.path) }),
+    }),
+    def<string | null | undefined, string>({
+      name: "table.cellBackground", label: "Cell color",
+      run: (ctx, color) => ctx.apply("table", (doc, sel) => setCellBackground(doc, sel, color)),
+      state: (s) => ({ enabled: here(s), value: cellBackground(s.doc, s.selection) }),
+    }),
+    def<string | { readonly style?: string; readonly width?: number; readonly color?: string } | undefined, string>({
+      name: "table.cellBorder", label: "Cell border",
+      run: (ctx, choice) => ctx.apply("table", (doc, sel) => setCellBorder(doc, sel, choice)),
+      state: (s) => ({ enabled: here(s), value: cellBorderPreset(s.doc, s.selection) }),
+    }),
+    def<{ readonly height?: string | null } | undefined, string>({
+      name: "table.rowHeight", label: "Row height",
+      run: (ctx, arg) => ctx.apply("table", (doc, sel) => setRowHeight(doc, sel, arg?.height)),
+      state: (s) => ({ enabled: here(s), value: rowHeight(s.doc, s.selection.focus.path) }),
     }),
     // Moving only: they leave the document alone unless the caret passes the last cell, where a row is added.
     def<void, never>({

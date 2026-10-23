@@ -230,3 +230,59 @@ test("widths follow their columns when columns are added or removed", () => {
   e.commands.run("table.deleteColumn");
   assert.equal(html(e), cells([["b"], ["d"]]), "the width went with its column");
 });
+
+test("how cells look: background and border are read from a cell's style, written back, and set on the selected cells", () => {
+  const e = make('<table><tbody><tr style="height: 40px"><td style="background-color: #FFF3BF; border: 2px dashed rgb(0, 0, 0)">a</td><td style="background: url(x); border: 1px double red">b</td></tr><tr><td bgcolor="blue">c</td><td>d</td></tr></tbody></table>');
+  assert.equal(html(e), '<table><tbody><tr style="height: 40px"><td style="background-color: #fff3bf; border: 2px dashed rgb(0, 0, 0);">a</td><td>b</td></tr><tr><td style="background-color: blue;">c</td><td>d</td></tr></tbody></table>', "only plain colors and solid, dashed or dotted lines; the rest is dropped");
+  const f = make(cells([["a", "b"], ["c", "d"]]));
+  inCell(f, 0, 0);
+  assert.equal(f.commands.state("table.cellBackground").value, "");
+  assert.equal(f.commands.state("table.cellBorder").value, "none");
+  f.commands.run("table.cellBackground", "#C8E6C9");
+  f.commands.run("table.cellBorder", "thick");
+  assert.equal(html(f), '<table><tbody><tr><td style="background-color: #c8e6c9; border: 3px solid currentcolor;">a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>');
+  assert.equal(f.commands.state("table.cellBackground").value, "#c8e6c9");
+  assert.equal(f.commands.state("table.cellBorder").value, "thick");
+  assert.equal(f.commands.run("table.cellBackground", "url(javascript:x)"), false);
+  assert.equal(f.commands.run("table.cellBorder", "wavy"), false);
+  assert.equal(f.commands.run("table.cellBorder", { style: "solid", width: 20 }), false, "too wide");
+  f.commands.run("table.cellBorder", { style: "dotted", width: 2, color: "#336699" });
+  assert.match(html(f), /border: 2px dotted #336699/);
+  f.commands.run("table.cellBackground", "");
+  f.commands.run("table.cellBorder", "none");
+  assert.equal(html(f), cells([["a", "b"], ["c", "d"]]), "taken away again");
+});
+
+test("the look is set on every cell of the selected rectangle, and stays with a cell that is merged or split", () => {
+  const e = make(cells([["a", "b"], ["c", "d"]]));
+  across(e, [0, 0], [1, 0]);
+  e.commands.run("table.cellBackground", "yellow");
+  assert.equal(html(e), '<table><tbody><tr><td style="background-color: yellow;">a</td><td>b</td></tr><tr><td style="background-color: yellow;">c</td><td>d</td></tr></tbody></table>');
+  across(e, [0, 0], [0, 1]);
+  e.commands.run("table.mergeCells");
+  assert.match(html(e), /<td colspan="2" style="background-color: yellow;"><p>a<\/p><p>b<\/p><\/td>/, "the merged cell keeps the first cell's look");
+  inCell(e, 0, 0);
+  e.commands.run("table.splitCell");
+  assert.equal((html(e).match(/background-color: yellow/g) ?? []).length, 3, "the cells made by splitting share it");
+});
+
+test("row height: read, set for the rows a selection covers, and carried with its row", () => {
+  const e = make(cells([["a", "b"], ["c", "d"], ["e", "f"]]));
+  inCell(e, 1, 0);
+  assert.equal(e.commands.state("table.rowHeight").value, "");
+  e.commands.run("table.rowHeight", { height: "48" });
+  assert.equal(html(e), '<table><tbody><tr><td>a</td><td>b</td></tr><tr style="height: 48px"><td>c</td><td>d</td></tr><tr><td>e</td><td>f</td></tr></tbody></table>');
+  assert.equal(e.commands.state("table.rowHeight").value, "48px");
+  assert.equal(e.commands.run("table.rowHeight", { height: "tall" }), false);
+  assert.equal(e.commands.run("table.rowHeight", { height: "99999" }), false);
+  e.commands.run("table.rowBefore");
+  assert.match(html(e), /<tr><td><\/td><td><\/td><\/tr><tr style="height: 48px"><td>c<\/td>/, "a new row above leaves the height with its row");
+  inCell(e, 2, 0);
+  e.commands.run("table.deleteRow");
+  assert.doesNotMatch(html(e), /height/, "the row went and so did its height");
+  across(e, [0, 0], [1, 0]);
+  e.commands.run("table.rowHeight", { height: "30px" });
+  assert.equal((html(e).match(/height: 30px/g) ?? []).length, 2, "two rows covered");
+  e.commands.run("table.rowHeight", { height: "" });
+  assert.doesNotMatch(html(e), /height/);
+});

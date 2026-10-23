@@ -3,7 +3,7 @@
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import {
-  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, normalizeInline, type Align, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
+  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, ROW_HEIGHT, normalizeInline, type Align, type CellBorder, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 
@@ -581,18 +581,21 @@ function convertTable(el: HElement, ctx: Ctx, settings: Settings): Block {
       if (cell.type !== "el" || (cell.tag !== "td" && cell.tag !== "th")) continue;
       const inner = new Sink({ ...settings, keepEmpty: false });
       // Marks set on the row or on the cell itself (a bold header cell, say) apply to what the cell holds.
-      const cellCtx = withMarks(withMarks(ctx, styleMarks(row, ctx, settings)), styleMarks(cell, ctx, settings));
+      // A cell's own background is the cell's, not a highlight on its text.
+      const own = styleMarks(cell, ctx, settings);
+      const cellCtx = withMarks(withMarks(ctx, styleMarks(row, ctx, settings)), settings.allowStyles ? { ...own, add: own.add.filter((m) => m.type !== "background") } : own);
       convertNodes(cell.children, inner, cellCtx, settings);
       inner.flush();
       let blocks = finishBlocks(inner.blocks);
       if (blocks.length === 0) blocks = [{ type: "p", content: [] }];
-      cells.push({ header: cell.tag === "th", colspan: span(cell.attrs.colspan, 100), rowspan: span(cell.attrs.rowspan, 100), blocks });
+      cells.push({ header: cell.tag === "th", colspan: span(cell.attrs.colspan, 100), rowspan: span(cell.attrs.rowspan, 100), blocks, ...(settings.allowStyles ? cellLook(cell) : {}) });
     }
     if (cells.length > 0) rows.push(cells);
   }
   const padded = padRows(rows);
   const widths = columnWidths(el, padded);
-  return widths ? { type: "table", rows: padded, widths } : { type: "table", rows: padded };
+  const heights = settings.allowStyles ? rowHeights(rowEls, rows.length) : undefined;
+  return { type: "table", rows: padded, ...(widths ? { widths } : {}), ...(heights ? { heights } : {}) };
 }
 
 /** A width from an attribute or a style, in the forms the model accepts (a bare number is pixels). */
@@ -600,6 +603,51 @@ function widthOf(el: HElement): string | null {
   const raw = (parseStyle(el.attrs.style).get("width") ?? el.attrs.width ?? "").trim().toLowerCase();
   const value = /^\d+(\.\d+)?$/.test(raw) ? `${raw}px` : raw;
   return COLUMN_WIDTH.test(value) ? value : null;
+}
+
+/** A cell's background color and border, from its style: only plain colors, and one border all round (`border: 1px solid #000`). */
+function cellLook(cell: HElement): { background?: string; border?: CellBorder } {
+  const style = parseStyle(cell.attrs.style);
+  const out: { background?: string; border?: CellBorder } = {};
+  const bg = (style.get("background-color") ?? style.get("background") ?? cell.attrs.bgcolor ?? "").trim().toLowerCase();
+  if (bg && COLOR_VALUE.test(bg) && bg !== "transparent" && bg !== "none") out.background = bg;
+  const shorthand = style.get("border");
+  if (shorthand) {
+    // Split on spaces that are not inside a color function.
+    const tokens = shorthand.trim().toLowerCase().split(/\s+(?![^(]*\))/);
+    let width = 1;
+    let line: CellBorder["style"] | undefined;
+    let color = "currentcolor";
+    for (const t of tokens) {
+      if (t === "solid" || t === "dashed" || t === "dotted") line = t;
+      else if (t === "thin") width = 1;
+      else if (t === "medium") width = 3;
+      else if (t === "thick") width = 5;
+      else if (/^\d+(\.\d+)?(px|pt)?$/.test(t)) width = Math.max(1, Math.min(8, Math.round(lengthToPx(t.replace(/^(\d+(\.\d+)?)$/, "$1px")))));
+      else if (COLOR_VALUE.test(t)) color = t;
+    }
+    if (line) out.border = { style: line, width, color };
+  }
+  return out;
+}
+
+/** The height a row asks for, from the row's style or the first cell's `height`, in the forms the model accepts. */
+function rowHeightOf(row: HElement): string | null {
+  const first = row.children.find((c): c is HElement => c.type === "el" && (c.tag === "td" || c.tag === "th"));
+  for (const raw of [parseStyle(row.attrs.style).get("height"), parseStyle(first?.attrs.style).get("height"), row.attrs.height, first?.attrs.height]) {
+    const v = (raw ?? "").trim().toLowerCase();
+    if (v === "") continue;
+    const px = /^\d+(\.\d+)?$/.test(v) ? `${v}px` : /^[\d.]+(pt|in|cm|mm|pc)$/.test(v) ? `${Math.round(lengthToPx(v))}px` : v;
+    if (ROW_HEIGHT.test(px)) return px;
+  }
+  return null;
+}
+
+/** One height for each row that has cells (rows without any were dropped), or undefined when no row asks for one. */
+function rowHeights(rowEls: readonly HElement[], kept: number): (string | null)[] | undefined {
+  const withCells = rowEls.filter((row) => row.children.some((c) => c.type === "el" && (c.tag === "td" || c.tag === "th")));
+  const heights = withCells.slice(0, kept).map(rowHeightOf);
+  return heights.some((h) => h !== null) ? heights : undefined;
 }
 
 /** Column widths from `<colgroup>`, else from the cells of the first row that span one column. Undefined when none is given. */

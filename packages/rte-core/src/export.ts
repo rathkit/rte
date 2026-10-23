@@ -60,16 +60,25 @@ function exportList(list: List, depth: number): string {
   return `<${list.type}${start}${style}>${items}</${list.type}>`;
 }
 
+/** The style of a cell: the color behind it and the line round it. */
+function cellStyle(cell: TableCell): string {
+  const parts = [...(cell.background ? [`background-color: ${cell.background}`] : []), ...(cell.border ? [`border: ${cell.border.width}px ${cell.border.style} ${cell.border.color}`] : [])];
+  return parts.length > 0 ? ` style="${escapeAttribute(parts.join("; "))};"` : "";
+}
+
 function exportCell(cell: TableCell, scope: "col" | "row" | undefined): string {
   const tag = cell.header ? "th" : "td";
-  const attrs = `${cell.header && scope ? ` scope="${scope}"` : ""}${cell.colspan > 1 ? ` colspan="${cell.colspan}"` : ""}${cell.rowspan > 1 ? ` rowspan="${cell.rowspan}"` : ""}`;
+  const attrs = `${cell.header && scope ? ` scope="${scope}"` : ""}${cell.colspan > 1 ? ` colspan="${cell.colspan}"` : ""}${cell.rowspan > 1 ? ` rowspan="${cell.rowspan}"` : ""}${cellStyle(cell)}`;
   const only = cell.blocks.length === 1 ? cell.blocks[0] : undefined;
   const body = only?.type === "p" && !only.align && !only.dir && !only.indent ? exportInline(only.content) : cell.blocks.map(exportBlock).join("");
   return `<${tag}${attrs}>${body}</${tag}>`;
 }
 
 function exportTable(table: Table): string {
-  const rows = table.rows.map((row, r) => `<tr>${row.map((cell, c) => exportCell(cell, r === 0 ? "col" : c === 0 ? "row" : undefined)).join("")}</tr>`);
+  const rows = table.rows.map((row, r) => {
+    const height = table.heights?.[r];
+    return `<tr${height ? ` style="height: ${height}"` : ""}>${row.map((cell, c) => exportCell(cell, r === 0 ? "col" : c === 0 ? "row" : undefined)).join("")}</tr>`;
+  });
   const cols = table.widths ? `<colgroup>${table.widths.map((w) => (w ? `<col style="width: ${w}">` : "<col>")).join("")}</colgroup>` : "";
   return `<table>${cols}<tbody>${rows.join("")}</tbody></table>`;
 }

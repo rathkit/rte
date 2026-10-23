@@ -68,18 +68,33 @@ export interface DefinitionList {
   readonly type: "dl";
   readonly entries: readonly DefinitionEntry[];
 }
+/** A line round all four sides of a cell. */
+export interface CellBorder {
+  readonly style: "solid" | "dashed" | "dotted";
+  /** In pixels, 1 to 8. */
+  readonly width: number;
+  readonly color: string;
+}
 export interface TableCell {
   readonly header: boolean;
   readonly colspan: number;
   readonly rowspan: number;
   readonly blocks: readonly Block[];
+  /** The color behind the cell. */
+  readonly background?: string;
+  readonly border?: CellBorder;
 }
 export interface Table {
   readonly type: "table";
   readonly rows: readonly (readonly TableCell[])[];
   /** The width of each column of the grid as a CSS length in `px` or `%`, or null for automatic. Absent when every column is automatic. */
   readonly widths?: readonly (string | null)[];
+  /** The least height of each row of the grid in `px`, or null for automatic. Absent when every row is automatic. */
+  readonly heights?: readonly (string | null)[];
 }
+
+/** A row height the model accepts: a plain number with `px`. */
+export const ROW_HEIGHT = /^\d{1,4}(\.\d{1,2})?px$/;
 
 /** A color the model accepts: hex, a plain name, or rgb()/hsl(). Anything else is not a color. */
 export const COLOR_VALUE = /^(#[0-9a-f]{3,8}|[a-z]{3,20}|(?:rgb|hsl)a?\([\d\s.,%/-]+\))$/i;

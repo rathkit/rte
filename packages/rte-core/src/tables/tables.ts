@@ -1,7 +1,7 @@
 // Table editing: adding and removing rows and columns, the header row, moving between cells, and inserting a table. Pure functions over
 // the document, like the other edit operations. A cell can span rows and columns, so every change works on a grid of placed cells (each
 // cell with the row and column where it starts) and is turned back into rows afterwards.
-import { COLUMN_WIDTH, type Block, type Doc, type Table, type TableCell } from "../model.ts";
+import { COLOR_VALUE, COLUMN_WIDTH, ROW_HEIGHT, type Block, type CellBorder, type Doc, type Table, type TableCell } from "../model.ts";
 import { caret, containerPaths, fixup, getBlock, mapBlockList, type EditResult, type Path, type Selection } from "../path.ts";
 import { extent, fromGrid, inRow, locateCell as locate, meets, selectedCells, toGrid, type Grid, type Placed, type Where } from "../tablegrid.ts";
 
@@ -46,7 +46,7 @@ function insertRowAt(grid: Grid, k: number): Grid {
   const cells: Placed[] = grid.cells.map((p) => (p.row >= k ? { ...p, row: p.row + 1 } : p.row + p.cell.rowspan > k ? { ...p, cell: { ...p.cell, rowspan: p.cell.rowspan + 1 } } : p));
   const covered = (col: number): boolean => grid.cells.some((p) => p.row < k && k < p.row + p.cell.rowspan && p.col <= col && col < p.col + p.cell.colspan);
   for (let col = 0; col < grid.cols; col++) if (!covered(col)) cells.push({ cell: blankCell(), row: k, col });
-  return { ...grid, cells, rows: grid.rows + 1 };
+  return { ...grid, cells, rows: grid.rows + 1, heights: [...grid.heights.slice(0, k), null, ...grid.heights.slice(k)] };
 }
 
 export function insertRow(doc: Doc, sel: Selection, where: "before" | "after"): EditResult {
@@ -71,7 +71,7 @@ export function deleteRow(doc: Doc, sel: Selection): EditResult {
       } else if (p.row < r && r < p.row + p.cell.rowspan) cells.push({ ...p, cell: { ...p.cell, rowspan: p.cell.rowspan - 1 } });
       else cells.push(p.row > r ? { ...p, row: p.row - 1 } : p);
     }
-    return { grid: { ...grid, cells, rows: grid.rows - 1 }, target: { row: Math.min(r, grid.rows - 2), col: at.col } };
+    return { grid: { ...grid, cells, rows: grid.rows - 1, heights: grid.heights.filter((_, i) => i !== r) }, target: { row: Math.min(r, grid.rows - 2), col: at.col } };
   });
 }
 
@@ -139,7 +139,7 @@ export function mergeCells(doc: Doc, sel: Selection): EditResult {
   const kept = inside.flatMap((p) => p.cell.blocks.filter((b) => !blankParagraph(b)));
   const merged: Placed = {
     row: rect.top, col: rect.left,
-    cell: { header: first.cell.header, colspan: rect.right - rect.left + 1, rowspan: rect.bottom - rect.top + 1, blocks: kept.length > 0 ? kept : first.cell.blocks },
+    cell: { ...first.cell, colspan: rect.right - rect.left + 1, rowspan: rect.bottom - rect.top + 1, blocks: kept.length > 0 ? kept : first.cell.blocks },
   };
   const grid2: Grid = { ...grid, cells: [...grid.cells.filter((p) => !meets(rect, extent(p))), merged] };
   const next = replaceTable(doc, where.table, fromGrid(grid2));
@@ -155,11 +155,90 @@ export function splitCell(doc: Doc, sel: Selection): EditResult {
     const cells: Placed[] = grid.cells.filter((p) => p.row !== at.row || p.col !== at.col);
     for (let r = at.row; r < at.row + at.cell.rowspan; r++) {
       for (let c = at.col; c < at.col + at.cell.colspan; c++) {
-        cells.push(r === at.row && c === at.col ? { ...at, cell: { ...at.cell, colspan: 1, rowspan: 1 } } : { cell: blankCell(at.cell.header), row: r, col: c });
+        cells.push(r === at.row && c === at.col ? { ...at, cell: { ...at.cell, colspan: 1, rowspan: 1 } } : { cell: { ...blankCell(at.cell.header), ...(at.cell.background ? { background: at.cell.background } : {}), ...(at.cell.border ? { border: at.cell.border } : {}) }, row: r, col: c });
       }
     }
     return { grid: { ...grid, cells }, target: { row: at.row, col: at.col } };
   });
+}
+
+// ---- how cells look: color behind, line round, row height -----------------------------------------------------
+
+/** The line presets people choose from. The color follows the text color, so it reads on any theme. */
+export const BORDER_PRESETS: Readonly<Record<string, CellBorder | undefined>> = {
+  none: undefined,
+  thin: { style: "solid", width: 1, color: "currentcolor" },
+  thick: { style: "solid", width: 3, color: "currentcolor" },
+  dashed: { style: "dashed", width: 1, color: "currentcolor" },
+  dotted: { style: "dotted", width: 1, color: "currentcolor" },
+};
+
+/** Which preset a border is: "none" for no border, "" for one that is none of them. */
+export function borderPreset(border: CellBorder | undefined): string {
+  if (!border) return "none";
+  return Object.entries(BORDER_PRESETS).find(([, b]) => b && b.style === border.style && b.width === border.width && b.color === border.color)?.[0] ?? "";
+}
+
+/** The cells a change to appearance applies to: those the selection runs across (as a rectangle), or the caret's cell. */
+function styled(doc: Doc, sel: Selection, change: (cell: TableCell) => TableCell): EditResult {
+  const found = selectedCells(doc, sel);
+  if (!found) return { doc, selection: sel };
+  const { grid, rect, where } = found;
+  const cells = grid.cells.map((p) => (meets(rect, extent(p)) ? { ...p, cell: change(p.cell) } : p));
+  return { doc: replaceTable(doc, where.table, fromGrid({ ...grid, cells })), selection: sel };
+}
+
+/** The first of the selected cells, for reading back its look. */
+function firstCell(doc: Doc, sel: Selection): TableCell | undefined {
+  const found = selectedCells(doc, sel);
+  return found?.grid.cells.filter((p) => meets(found.rect, extent(p))).sort((a, b) => a.row - b.row || a.col - b.col)[0]?.cell;
+}
+
+export const cellBackground = (doc: Doc, sel: Selection): string => firstCell(doc, sel)?.background ?? "";
+export const cellBorderPreset = (doc: Doc, sel: Selection): string => { const c = firstCell(doc, sel); return c ? borderPreset(c.border) : ""; };
+
+/** Puts a color behind the selected cells, or takes it away (an empty color). A value that is not a color changes nothing. */
+export function setCellBackground(doc: Doc, sel: Selection, color: string | null | undefined): EditResult {
+  const value = (color ?? "").trim().toLowerCase();
+  if (value !== "" && !COLOR_VALUE.test(value)) return { doc, selection: sel };
+  return styled(doc, sel, ({ background: _old, ...rest }) => (value === "" ? rest : { ...rest, background: value }));
+}
+
+/** Draws a line round the selected cells: a preset name (`thin`, `thick`, `dashed`, `dotted`, `none`) or `{ style, width, color }`. */
+export function setCellBorder(doc: Doc, sel: Selection, choice: string | { readonly style?: string; readonly width?: number; readonly color?: string } | undefined): EditResult {
+  let border: CellBorder | undefined;
+  if (typeof choice === "string") {
+    if (!(choice in BORDER_PRESETS)) return { doc, selection: sel };
+    border = BORDER_PRESETS[choice];
+  } else if (choice && (choice.style === "solid" || choice.style === "dashed" || choice.style === "dotted")) {
+    const width = Math.round(choice.width ?? 1);
+    const color = (choice.color ?? "currentcolor").trim().toLowerCase();
+    if (!(width >= 1 && width <= 8) || !COLOR_VALUE.test(color)) return { doc, selection: sel };
+    border = { style: choice.style, width, color };
+  } else return { doc, selection: sel };
+  return styled(doc, sel, ({ border: _old, ...rest }) => (border ? { ...rest, border } : rest));
+}
+
+/** The height asked for the row the caret's cell starts in, or "" for automatic. */
+export function rowHeight(doc: Doc, path: Path): string {
+  const here = locate(doc, path);
+  const table = here && getBlock(doc, here.table);
+  return table?.type === "table" ? (toGrid(table).heights[here!.placed.row] ?? "") : "";
+}
+
+/**
+ * Sets the least height of the rows the selection covers: a number of pixels (`40`, `40px`), or nothing for automatic. Anything else
+ * changes nothing.
+ */
+export function setRowHeight(doc: Doc, sel: Selection, height: string | null | undefined): EditResult {
+  const raw = (height ?? "").trim().toLowerCase();
+  const value = raw === "" ? null : /^\d+(\.\d+)?$/.test(raw) ? `${raw}px` : raw;
+  if (value !== null && !ROW_HEIGHT.test(value)) return { doc, selection: sel };
+  const found = selectedCells(doc, sel);
+  if (!found) return { doc, selection: sel };
+  const { grid, rect, where } = found;
+  const heights = grid.heights.map((h, r) => (r >= rect.top && r <= rect.bottom ? value : h));
+  return { doc: replaceTable(doc, where.table, fromGrid({ ...grid, heights })), selection: sel };
 }
 
 // ---- the table as a whole ---------------------------------------------------------------------------------

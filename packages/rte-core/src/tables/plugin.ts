@@ -1,12 +1,19 @@
 // Tables as a plugin: insert, add and remove rows and columns, the header row, and Tab to move between cells. It uses only what any
 // plugin gets from the host.
 import type { Plugin } from "../plugin.ts";
+import type { UiItem } from "../ui.ts";
 import { tableCommands, tableKeys } from "./commands.ts";
 
 export interface TablesOptions {
   /** Tab and Shift+Tab move between cells. Off: the browser keeps Tab for moving focus. Default on. */
   readonly tabBetweenCells?: boolean;
 }
+
+/** Light tints for the background of a cell: dark text reads on every one. */
+const TINTS: readonly (readonly [string, string])[] = [
+  ["Yellow", "#fff3bf"], ["Orange", "#ffe0b2"], ["Red", "#ffcdd2"], ["Green", "#c8e6c9"], ["Blue", "#bbdefb"], ["Purple", "#e1bee7"], ["Gray", "#e0e0e0"],
+];
+const LINES: readonly (readonly [string, string])[] = [["none", "No border"], ["thin", "Thin line"], ["thick", "Thick line"], ["dashed", "Dashed line"], ["dotted", "Dotted line"]];
 
 export function tables(options: TablesOptions = {}): Plugin {
   return {
@@ -33,6 +40,18 @@ export function tables(options: TablesOptions = {}): Plugin {
           { kind: "separator", id: "table-sep-table" },
           { kind: "toggle", id: "table-header", command: "table.header" },
           { kind: "button", id: "table-delete", command: "table.delete" },
+        ],
+      });
+      // How the selected cells look: the color behind, the line round, and the height of their rows.
+      host.ui("toolbar.main", {
+        kind: "menu", id: "cell-style", label: "Cell style", icon: "cell-style", group: "insert", order: 2,
+        items: [
+          ...TINTS.map(([name, value]): UiItem => ({ kind: "toggle", id: `cell-fill-${name.toLowerCase()}`, command: "table.cellBackground", arg: value, label: `${name} fill`, swatch: value })),
+          { kind: "button", id: "cell-fill-none", command: "table.cellBackground", arg: "", label: "No fill" },
+          { kind: "separator", id: "cell-sep-lines" },
+          ...LINES.map(([key, label]): UiItem => ({ kind: "toggle", id: `cell-border-${key}`, command: "table.cellBorder", arg: key, label })),
+          { kind: "separator", id: "cell-sep-height" },
+          { kind: "dialog", id: "cell-row-height", command: "table.rowHeight", label: "Row height…", fields: [{ name: "height", type: "text", label: "Least height in px (empty for automatic)" }] },
         ],
       });
       if (options.tabBetweenCells ?? true) for (const key of tableKeys) host.keybinding(key);

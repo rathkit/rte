@@ -23,6 +23,7 @@ export const defaultIcons: Readonly<Record<string, string>> = {
   "indent": icons.indent,
   "outdent": icons.outdent,
   "table": icons.table,
+  "cell-style": icons.cellStyle,
   "quote": icons.quote,
   "code-block": icons.codeBlock,
   "rule": icons.rule,

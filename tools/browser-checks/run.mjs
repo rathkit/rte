@@ -871,6 +871,28 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(100);
   check(`${name} (ui) submitting it sets the width of the column`, await page.evaluate(() => window.__one.editor.getHtml().includes('<col style="width: 30%">') || window.__one.editor.getHtml().includes("<col><col style=\"width: 30%\">")), await page.evaluate(() => window.__one.editor.getHtml()));
   check(`${name} (ui) and the column is drawn at that width`, await page.evaluate(() => { const col = document.querySelector("#root [data-rk-part=content] col"); return !!col && col.style.width === "30%"; }), "col");
+  // The Cell style menu: color behind, line round, row height.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="cell-style"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) the cell style menu has tinted swatches, line choices and a row height entry`, await page.evaluate(() => { const m = document.querySelector('#root [data-rk-item="cell-style"] + [data-rk-part=menu]'); const sw = m.querySelector('[data-rk-menu-item="cell-fill-green"] [data-rk-part=swatch]'); return !!sw && getComputedStyle(sw).backgroundColor === "rgb(200, 230, 201)" && !!m.querySelector('[data-rk-menu-item="cell-border-dashed"]') && m.querySelector('[data-rk-menu-item="cell-border-none"]').getAttribute("aria-checked") === "true" && !!m.querySelector('[data-rk-menu-item="cell-row-height"]'); }), "menu");
+  await page.click('#root [data-rk-menu-item="cell-fill-green"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) choosing a fill colors the cell, in the document and on the page`, await page.evaluate(() => window.__one.editor.getHtml().includes('<td style="background-color: #c8e6c9;">a</td>') && getComputedStyle(document.querySelector("#root [data-rk-part=content] td")).backgroundColor === "rgb(200, 230, 201)"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="cell-style"]');
+  await page.waitForTimeout(80);
+  await page.click('#root [data-rk-menu-item="cell-border-thick"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) choosing a line draws it round the cell`, await page.evaluate(() => { const td = document.querySelector("#root [data-rk-part=content] td"); const c = getComputedStyle(td); return window.__one.editor.getHtml().includes("border: 3px solid currentcolor") && c.borderTopWidth === "3px" && c.borderTopStyle === "solid"; }), "border");
+  await page.click('#root [data-rk-item="cell-style"]');
+  await page.waitForTimeout(80);
+  await page.click('#root [data-rk-menu-item="cell-row-height"]');
+  await page.waitForTimeout(100);
+  await page.keyboard.type("80");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the row height dialog sets the least height of the row`, await page.evaluate(() => window.__one.editor.getHtml().includes('<tr style="height: 80px">') && document.querySelector("#root [data-rk-part=content] tr").getBoundingClientRect().height >= 79), await page.evaluate(() => window.__one.editor.getHtml()));
   // Cleaning up.
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");
