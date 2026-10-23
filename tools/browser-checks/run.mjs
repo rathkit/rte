@@ -868,6 +868,47 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
+// --- an audit of the styled interface for the things automated checks catch: names, ids, references and roles
+for (const [name, type] of engines) {
+  const t = await open(type, {}, "", "ui");
+  const { page } = t;
+  // Open everything that can be opened, so the audit sees it all.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table><p>text</p>"); e.focus(); });
+  await page.click('#root [data-rk-item="find"]');
+  await page.click('#root [data-rk-item="source"]');
+  await page.click('#root [data-rk-item="source"]');
+  const audit = await page.evaluate(() => {
+    const root = document.getElementById("root");
+    const problems = [];
+    const nameOf = (el) => {
+      const labelledby = el.getAttribute("aria-labelledby");
+      // A referenced element is named the same way: by its own aria-label first, then its text.
+      if (labelledby) return labelledby.split(/\s+/).map((id) => { const r = document.getElementById(id); return r ? (r.getAttribute("aria-label") || r.textContent || "") : ""; }).join(" ").trim();
+      return (el.getAttribute("aria-label") || (el.labels && [...el.labels].map((l) => l.textContent).join(" ")) || el.textContent || el.getAttribute("title") || "").trim();
+    };
+    for (const el of root.querySelectorAll("button, input, select, textarea, dialog, [role=menu], [role=toolbar], [role=search], [role=textbox]")) {
+      if (el.type === "hidden") continue;
+      if (!nameOf(el)) problems.push(`no name: ${el.tagName.toLowerCase()}[${el.getAttribute("data-rk-item") ?? el.getAttribute("data-rk-part") ?? el.getAttribute("role")}]`);
+    }
+    const ids = new Map();
+    for (const el of root.querySelectorAll("[id]")) ids.set(el.id, (ids.get(el.id) ?? 0) + 1);
+    for (const [id, n] of ids) if (n > 1) problems.push(`duplicate id ${id}`);
+    for (const attr of ["aria-controls", "aria-labelledby", "aria-describedby"]) {
+      for (const el of root.querySelectorAll(`[${attr}]`)) for (const id of el.getAttribute(attr).split(/\s+/)) if (id && !document.getElementById(id)) problems.push(`${attr} points at a missing id ${id}`);
+    }
+    // Roving focus: exactly one tab stop in the toolbar.
+    const stops = [...root.querySelectorAll("[data-rk-part=toolbar] [data-rk-item]")].filter((e) => e.tabIndex === 0).length;
+    if (stops !== 1) problems.push(`toolbar has ${stops} tab stops`);
+    for (const el of root.querySelectorAll("[role=menuitem], [role=menuitemcheckbox]")) if (!el.closest("[role=menu]")) problems.push("a menu item outside a menu");
+    for (const el of root.querySelectorAll("[aria-pressed]")) if (!["true", "false", "mixed"].includes(el.getAttribute("aria-pressed"))) problems.push("bad aria-pressed");
+    if (!root.querySelector("[role=status]")) problems.push("no live region");
+    if (!document.querySelector("#root [role=textbox][aria-multiline=true]")) problems.push("the writing area is not a multiline textbox");
+    return problems;
+  });
+  check(`${name} (audit) names, ids, references and roles are in order`, audit.length === 0, audit);
+  await t.browser.close();
+}
+
 // --- a narrow screen (a phone): nothing sticks out sideways, menus and dialogs stay on the screen, and a tap leaves no tooltip behind
 for (const [name, type] of engines) {
   const touch = name !== "firefox";
