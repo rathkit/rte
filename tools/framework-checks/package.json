@@ -1,0 +1,13 @@
+{
+  "name": "rte-framework-checks",
+  "private": true,
+  "description": "Real copies of the frameworks, for checking the wrappers in a browser. Its own project with its own lockfile: nothing here is part of the main workspace or ships.",
+  "type": "module",
+  "devDependencies": {
+    "jquery": "4.0.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "svelte": "5.57.2",
+    "vue": "3.5.44"
+  }
+}

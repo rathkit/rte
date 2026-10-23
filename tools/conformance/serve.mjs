@@ -1,12 +1,12 @@
 // Serves the editor's conformance page and its built files on 127.0.0.1, for a conformance runner to drive.
 //   node tools/conformance/serve.mjs [port]      (default: a free port, printed on the first line)
-// Only files under packages/rte-core/conformance and packages/rte-core/dist are served, and, under /headless/ /element/, /ui/, /themes/ and /icons/, the dist, demo and css folders of the other packages.
+// Only files under packages/rte-core/conformance and packages/rte-core/dist are served, and, under /headless/ /element/, /ui/, /themes/, /icons/ and /frameworks/ (the framework check apps), the dist, demo and css folders of the other packages.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../../packages/rte-core");
-const packages = { "/headless/": resolve(import.meta.dirname, "../../packages/rte-headless"), "/element/": resolve(import.meta.dirname, "../../packages/rte-element"), "/ui/": resolve(import.meta.dirname, "../../packages/rte-ui"), "/themes/": resolve(import.meta.dirname, "../../packages/rte-themes"), "/icons/": resolve(import.meta.dirname, "../../packages/rte-icons") };
+const packages = { "/headless/": resolve(import.meta.dirname, "../../packages/rte-headless"), "/element/": resolve(import.meta.dirname, "../../packages/rte-element"), "/ui/": resolve(import.meta.dirname, "../../packages/rte-ui"), "/themes/": resolve(import.meta.dirname, "../../packages/rte-themes"), "/icons/": resolve(import.meta.dirname, "../../packages/rte-icons"), "/frameworks/": resolve(import.meta.dirname, "../framework-checks") };
 const allowed = ["conformance", "dist"];
 const allowedOther = ["dist", "demo", "css"];
 const types = { ".css": "text/css; charset=utf-8", ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".map": "application/json" };

@@ -1,0 +1,31 @@
+// A small app using the React wrapper, in StrictMode (development), so the double run of effects is part of what is checked.
+import { createElement as h, StrictMode, useEffect, useState } from "react";
+import { createRoot } from "react-dom/client";
+import { RteEditor, useCommand } from "@rathkit/rte-react";
+
+const fw = (window.__fw = { ready: false, changes: [], readies: 0, commitCount: 0 });
+fw.commits = () => fw.commitCount;
+
+function Bold({ editor }) {
+  const state = useCommand(editor, "format.bold");
+  // Counts commits, not renders: StrictMode renders twice by design, and one commit is one change on screen.
+  useEffect(() => { fw.commitCount++; });
+  return h("button", { id: "bold", "aria-pressed": String(state.active), disabled: !state.enabled, onClick: () => editor.commands.run("format.bold") }, "Bold");
+}
+
+function App() {
+  const [editor, setEditor] = useState(undefined);
+  return h("div", null,
+    h(Bold, { editor }),
+    h(RteEditor, {
+      label: "Body",
+      defaultValue: "<p>one two three</p>",
+      onChange: (html) => fw.changes.push(html),
+      onReady: (e) => { fw.readies++; fw.editor = e; setEditor(e); },
+    }));
+}
+
+const root = createRoot(document.getElementById("app"));
+root.render(h(StrictMode, null, h(App)));
+fw.destroy = () => root.unmount();
+setTimeout(() => { fw.ready = true; }, 50);

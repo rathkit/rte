@@ -56,6 +56,15 @@ for (const [name, type] of engines) {
   await reset("");
   await page.keyboard.type("Hello world");
   check(`${name} typing`, (await html()) === "<p>Hello world</p>", await html());
+
+  // Select all with the keyboard, then type: the typing replaces everything. Firefox reports select-all as points on the surface itself.
+  await reset("<p>one two</p><p>three</p>");
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("X");
+  check(`${name} select all by keyboard, then type`, (await html()) === "<p>X</p>", await html());
+  // Back to where the checks that follow expect to be.
+  await reset("");
+  await page.keyboard.type("Hello world");
   await page.keyboard.press("Enter");
   await page.keyboard.type("Second");
   check(`${name} Enter`, (await html()) === "<p>Hello world</p><p>Second</p>", await html());
