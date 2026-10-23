@@ -2,7 +2,7 @@
 import { takeOutOfList } from "./lists.ts";
 import { normalizeInline, type Block, type DefinitionEntry, type DefinitionList, type Doc, type Inline } from "./model.ts";
 import {
-  caret, clampPos, comparePath, containerPaths, fixup, getBlock, getContent, kindAt, mapBlockList, pathKey,
+  caret, clampPos, containerPaths, selectedContainers, fixup, getBlock, getContent, kindAt, mapBlockList, pathKey,
   type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -37,11 +37,6 @@ export function takeOutOfDefinitionList(doc: Doc, entryPath: Path): Doc {
   const before = i > 0 ? [{ ...dl, entries: dl.entries.slice(0, i) }] : [];
   const after = i < dl.entries.length - 1 ? [{ ...dl, entries: dl.entries.slice(i + 1) }] : [];
   return replaceBlock(doc, blockPathOf(entryPath), [...before, { type: "p", content: (dl.entries[i] as DefinitionEntry).content }, ...after]);
-}
-
-function selectedContainers(doc: Doc, sel: Selection): Path[] {
-  const [a, b] = comparePath(sel.anchor.path, sel.focus.path) <= 0 ? [sel.anchor, sel.focus] : [sel.focus, sel.anchor];
-  return containerPaths(doc).filter((p) => comparePath(p, a.path) >= 0 && comparePath(p, b.path) <= 0);
 }
 
 /** Carries a selection across an edit that keeps text content objects, finding containers again by what they held. */

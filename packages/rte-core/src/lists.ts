@@ -2,7 +2,7 @@
 // Pure functions over the document, like the rest of the edit operations.
 import { inlineText, type Block, type Doc, type Inline, type List, type ListItem } from "./model.ts";
 import {
-  caret, clampPos, comparePath, containerPaths, fixup, getBlock, getContent, isCollapsed, kindAt, mapBlockList, pathKey, setContent,
+  caret, clampPos, containerPaths, selectedContainers, fixup, getBlock, getContent, isCollapsed, kindAt, mapBlockList, pathKey, setContent,
   type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -62,11 +62,6 @@ const replaceBlock = (doc: Doc, path: Path, blocks: readonly Block[]): Doc =>
 function sameContainer(doc: Doc, content: readonly Inline[], fallback: Path): Path {
   const paths = containerPaths(doc);
   return paths.find((p) => getContent(doc, p) === content) ?? (paths.find((p) => pathKey(p) === pathKey(fallback)) ?? paths[0] ?? [0]);
-}
-
-function selectedContainers(doc: Doc, sel: Selection): Path[] {
-  const [a, b] = comparePath(sel.anchor.path, sel.focus.path) <= 0 ? [sel.anchor, sel.focus] : [sel.focus, sel.anchor];
-  return containerPaths(doc).filter((p) => comparePath(p, a.path) >= 0 && comparePath(p, b.path) <= 0);
 }
 
 /** Carries a selection across an edit by finding its containers again through the content they held. */

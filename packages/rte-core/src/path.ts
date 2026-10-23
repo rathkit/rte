@@ -66,10 +66,18 @@ function blockPaths(block: Block, prefix: readonly number[], out: Path[]): void 
   }
 }
 
-/** Every container in the document, in reading order. */
+const containerCache = new WeakMap<Doc, Path[]>();
+
+/**
+ * Every container in the document, in reading order. Documents are never changed once made, so the answer is remembered
+ * per document. The array is shared: do not change it.
+ */
 export function containerPaths(doc: Doc): Path[] {
+  const hit = containerCache.get(doc);
+  if (hit) return hit;
   const out: Path[] = [];
   doc.blocks.forEach((block, b) => blockPaths(block, [b], out));
+  containerCache.set(doc, out);
   return out;
 }
 
@@ -273,4 +281,10 @@ export function fixup(doc: Doc): Doc {
 export function clampPos(doc: Doc, pos: Pos): Pos {
   const path = hasContainer(doc, pos.path) ? pos.path : (containerPaths(doc).at(-1) ?? [0]);
   return { path, offset: Math.max(0, Math.min(pos.offset, inlineLength(getContent(doc, path)))) };
+}
+
+/** The containers from the start of a selection to its end, in reading order. */
+export function selectedContainers(doc: Doc, sel: Selection): Path[] {
+  const [a, b] = comparePath(sel.anchor.path, sel.focus.path) <= 0 ? [sel.anchor, sel.focus] : [sel.focus, sel.anchor];
+  return containerPaths(doc).filter((p) => comparePath(p, a.path) >= 0 && comparePath(p, b.path) <= 0);
 }
