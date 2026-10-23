@@ -84,6 +84,7 @@ again from the model the next time anything is drawn. Until then the page keeps 
 - Some input types are blocked and reported through `onUnhandledInput`: justification, indent and outdent outside
   lists, subscript and superscript, remove formatting, text direction, colors and font names, insert link, transpose and
   yank. They wait for the commands behind them. Soft-line deletion deletes to the edge of the block, not the visual line.
+- With a caret, a mark command (bold, italic and the rest) chooses the mark for the text typed next; the choice is forgotten when the caret moves, a range is selected, or the document is replaced or undone. It applies to typed text, not to input-method composition or to pasted text.
 - Lists and definition lists work (see `LISTS.md`). Multi-block items and numbering styles beyond what import reads are not built.
 - WebKit rewrites copied HTML and turns some spaces next to inline tags into non-breaking spaces. The editor
   keeps them as written, so text pasted in WebKit can carry `&nbsp;` where Chromium has a plain space.

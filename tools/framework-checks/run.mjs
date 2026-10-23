@@ -53,15 +53,14 @@ for (const [engine, type] of engines) {
     check(`${name} onChange reports edits`, changes >= 1, changes);
     check(`${name} typing does not redraw the bold button`, (await page.evaluate(() => window.__fw.commits())) === before, { before, after: await page.evaluate(() => window.__fw.commits()) });
 
-    // A selection makes bold available (one redraw); running it turns it on (one more).
+    // Selecting text does not change what bold reports, so nothing redraws; running bold turns it on, which redraws once.
     await page.keyboard.press("ControlOrMeta+a");
-    await page.waitForFunction(() => !document.getElementById("bold").disabled, null, { timeout: 3000 }).catch(() => undefined);
-    await page.waitForTimeout(50);
-    check(`${name} a selection enables bold`, await page.locator("#bold").isEnabled(), null);
-    check(`${name} one redraw for that`, (await page.evaluate(() => window.__fw.commits())) === before + 1, await page.evaluate(() => window.__fw.commits()));
+    await page.waitForTimeout(100);
+    check(`${name} bold is available`, await page.locator("#bold").isEnabled(), null);
+    check(`${name} selecting does not redraw the bold button`, (await page.evaluate(() => window.__fw.commits())) === before, await page.evaluate(() => window.__fw.commits()));
     await page.locator("#bold").click();
     check(`${name} bold shows as on`, (await page.locator("#bold").getAttribute("aria-pressed")) === "true", null);
-    check(`${name} one more redraw`, (await page.evaluate(() => window.__fw.commits())) === before + 2, await page.evaluate(() => window.__fw.commits()));
+    check(`${name} one redraw for turning it on`, (await page.evaluate(() => window.__fw.commits())) === before + 1, await page.evaluate(() => window.__fw.commits()));
     check(`${name} bold reached the document`, (await page.evaluate(() => window.__fw.editor.getHtml())).includes("<strong>"), null);
     if (app === "svelte") check(`${name} Svelte's own derived store agrees`, await page.evaluate(() => window.__fw.extra.active() === true && window.__fw.extra.blocks() === 1), null);
 

@@ -16,13 +16,13 @@ test("a command store is called at once, then once per change of the command's s
   const seen: string[] = [];
   const stop = command(editor, "format.bold").subscribe((s) => seen.push(`${s.enabled}/${s.active}`));
   for (let i = 0; i < 20; i++) { engine.apply("type", (doc, sel) => insertText(doc, sel, "x")); await tick(); }
-  assert.deepEqual(seen, ["false/false"]);
+  assert.deepEqual(seen, ["true/false"]);
   engine.setSelection(select(0, 3)); await tick();
   engine.commands.run("format.bold"); await tick();
-  assert.deepEqual(seen, ["false/false", "true/false", "true/true"]);
+  assert.deepEqual(seen, ["true/false", "true/true"]);
   stop();
   engine.commands.run("format.bold"); await tick();
-  assert.equal(seen.length, 3);
+  assert.equal(seen.length, 2);
 });
 
 test("a selector store hears only about changes in the selected value", async () => {

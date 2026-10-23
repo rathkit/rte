@@ -317,7 +317,7 @@ export class Editor {
             this.apply("pattern", () => taken);
             return true;
           }
-          this.apply("type", (doc, sel) => insertText(doc, sel, data));
+          this.apply("type", (doc, sel) => insertText(doc, sel, data, this.engine.storedMarks));
           return true;
         }
         case "insertParagraph": this.apply("split", (doc, sel) => splitBlock(doc, sel, this.engine.behaviors)); return true;

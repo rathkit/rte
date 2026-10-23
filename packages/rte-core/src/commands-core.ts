@@ -6,7 +6,7 @@ import type { EditorSnapshot } from "./engine.ts";
 import type { KeyBinding } from "./keymap.ts";
 import type { UiItem, UiSlot } from "./ui.ts";
 import { linkAt, setLink } from "./links.ts";
-import type { Align, MarkType } from "./model.ts";
+import type { Align, Mark, MarkType } from "./model.ts";
 import { getContent, isCollapsed } from "./path.ts";
 
 type Def = CommandDef<never, unknown>;
@@ -15,16 +15,23 @@ const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
 /** True when the text at the selection has the mark: all of the selected text, or the text the caret would type into. */
 function hasMark(snap: EditorSnapshot, type: MarkType): boolean {
   const { doc, selection } = snap;
-  if (isCollapsed(selection)) return marksAt(getContent(doc, selection.focus.path), selection.focus.offset).some((m) => m.type === type);
+  if (isCollapsed(selection)) return caretMarks(snap).some((m) => m.type === type);
   return rangeHasMark(doc, selection, type);
 }
+
+/** The marks text typed at the caret takes: the ones chosen for it, else those of the text around it. */
+const caretMarks = (snap: EditorSnapshot): readonly Mark[] => snap.storedMarks ?? marksAt(getContent(snap.doc, snap.selection.focus.path), snap.selection.focus.offset);
 
 function mark(name: string, label: string, type: MarkType): Def {
   return def<void, never>({
     name, label,
-    // With nothing selected there is no text to change. (Typing with a mark switched on is not built yet.)
-    run: (ctx) => ctx.apply("format", (doc, sel) => toggleMark(doc, sel, { type } as never)),
-    state: (snap) => ({ enabled: !isCollapsed(snap.selection), active: hasMark(snap, type) }),
+    // With a range selected the mark is put on (or taken off) that text; with a caret it is chosen for the text typed next.
+    run: (ctx) => {
+      if (!isCollapsed(ctx.snapshot.selection)) return ctx.apply("format", (doc, sel) => toggleMark(doc, sel, { type } as never));
+      const now = caretMarks(ctx.snapshot);
+      return ctx.setStoredMarks(now.some((m) => m.type === type) ? now.filter((m) => m.type !== type) : [...now, { type } as Mark]);
+    },
+    state: (snap) => ({ active: hasMark(snap, type) }),
   });
 }
 

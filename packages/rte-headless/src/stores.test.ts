@@ -22,6 +22,9 @@ test("a command store gives the same state object until the state changes, and w
   assert.equal(store.getSnapshot(), first);
   engine.setSelection({ anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 3 } });
   await tick();
+  assert.equal(woke, 0, "selecting text does not change what bold reports");
+  engine.commands.run("format.bold");
+  await tick();
   assert.equal(woke, 1);
   assert.notEqual(store.getSnapshot(), first);
   stop();
@@ -63,9 +66,10 @@ test("the snapshot store follows the editor", async () => {
 test("a readable follows the Svelte store contract: now, on each change, and not after it stops", async () => {
   const { engine, editor } = setup("<p>one two</p>");
   const seen: boolean[] = [];
-  const stop = toReadable(commandStore(editor, "format.bold")).subscribe((s) => seen.push(s.enabled));
+  const stop = toReadable(commandStore(editor, "format.bold")).subscribe((s) => seen.push(s.active));
   assert.deepEqual(seen, [false], "called at once");
   engine.setSelection({ anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 3 } });
+  engine.commands.run("format.bold");
   await tick();
   assert.deepEqual(seen, [false, true]);
   stop();

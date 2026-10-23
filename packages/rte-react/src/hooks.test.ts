@@ -20,14 +20,14 @@ test("after many edits the bold button has rendered once for each change of its 
   for (let i = 0; i < 25; i++) { engine.apply("type", (doc, sel) => insertText(doc, sel, "x")); await tick(); view.flush(); }
   assert.equal(view.renders, 1, "typing does not touch bold");
   engine.setSelection(select(0, 3)); await tick(); view.flush();
-  assert.equal(view.renders, 2, "a selection makes bold available");
+  assert.equal(view.renders, 1, "a selection does not change what bold reports");
   engine.commands.run("format.bold"); await tick(); view.flush();
-  assert.equal(view.renders, 3, "turning it on");
+  assert.equal(view.renders, 2, "turning it on");
   engine.setSelection(select(0, 2)); await tick(); view.flush();
-  assert.equal(view.renders, 3, "a different selection with the same state");
+  assert.equal(view.renders, 2, "a different selection with the same state");
   view.unmount();
   engine.commands.run("format.bold"); await tick();
-  assert.equal(view.renders, 3, "nothing after unmount");
+  assert.equal(view.renders, 2, "nothing after unmount");
 });
 
 test("a command hook before the editor exists is off, then follows the editor", async () => {

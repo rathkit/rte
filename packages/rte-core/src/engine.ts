@@ -3,9 +3,9 @@
 import type { Behaviors, ContainerBehavior, ContainerKind, TextTrigger } from "./behaviors.ts";
 import { CommandRegistry, type CommandDef, type Unsubscribe } from "./commands.ts";
 import { detectPlatform, Keymap, type KeyBinding, type KeyEventLike, type Platform } from "./keymap.ts";
-import { emptyDoc, type Doc } from "./model.ts";
+import { emptyDoc, type Doc, type Mark } from "./model.ts";
 import type { PasteHandler } from "./paste.ts";
-import { caret, pathKey, type EditResult, type Selection } from "./path.ts";
+import { caret, isCollapsed, pathKey, type EditResult, type Path, type Selection } from "./path.ts";
 import { startOf } from "./edit.ts";
 import type { ImportOptions } from "./import.ts";
 import { UiRegistry } from "./ui.ts";
@@ -21,6 +21,8 @@ export interface EditorSnapshot {
   readonly focused: boolean;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  /** Marks the next typed text takes, chosen with the caret in place (bold switched on before typing). Undefined when none are chosen here. */
+  readonly storedMarks: readonly Mark[] | undefined;
 }
 
 export interface EngineOptions {
@@ -71,6 +73,7 @@ export class Engine {
   private undoStack: Level[] = [];
   private redoStack: Level[] = [];
   private lastKind = "";
+  private stored: { readonly path: Path; readonly offset: number; readonly marks: readonly Mark[] } | undefined;
   private readOnlyMode: boolean;
   private focusedState = false;
   private version = 0;
@@ -110,10 +113,18 @@ export class Engine {
   get canUndo(): boolean { return this.undoStack.length > 0; }
   get canRedo(): boolean { return this.redoStack.length > 0; }
 
+  /** The marks chosen for the next typed text, while the caret is still where they were chosen. */
+  get storedMarks(): readonly Mark[] | undefined { return this.current.storedMarks; }
+
   private makeSnapshot(): EditorSnapshot {
+    // Marks chosen at a caret are good only for that caret: once it moves, or a range is selected, they are forgotten.
+    const at = this.stored;
+    let storedMarks: readonly Mark[] | undefined;
+    if (at && isCollapsed(this.sel) && this.sel.focus.offset === at.offset && pathKey(this.sel.focus.path) === pathKey(at.path)) storedMarks = at.marks;
+    else this.stored = undefined;
     return {
       version: this.version, doc: this.doc, selection: this.sel, readOnly: this.readOnlyMode, focused: this.focusedState,
-      canUndo: this.undoStack.length > 0, canRedo: this.redoStack.length > 0,
+      canUndo: this.undoStack.length > 0, canRedo: this.redoStack.length > 0, storedMarks,
     };
   }
 
@@ -191,6 +202,16 @@ export class Engine {
     this.commit({ docChanged: false, selectionChanged: true });
   }
 
+  /** Chooses the marks for the text typed next at the caret. False when a range is selected or the editor is read-only. */
+  setStoredMarks(marks: readonly Mark[]): boolean {
+    if (this.readOnlyMode) return false;
+    this.refresh();
+    if (!isCollapsed(this.sel)) return false;
+    this.stored = { path: this.sel.focus.path, offset: this.sel.focus.offset, marks };
+    this.commit({ docChanged: false, selectionChanged: false });
+    return true;
+  }
+
   setFocused(focused: boolean): void {
     if (focused === this.focusedState) return;
     this.focusedState = focused;
@@ -210,6 +231,7 @@ export class Engine {
     this.undoStack = [];
     this.redoStack = [];
     this.lastKind = "";
+    this.stored = undefined;
     this.commit({ docChanged: true, selectionChanged: true });
   }
 
@@ -238,6 +260,7 @@ export class Engine {
     this.doc = level.doc;
     this.sel = level.selection;
     this.lastKind = "";
+    this.stored = undefined;
     this.commit({ docChanged, selectionChanged: true });
     return true;
   }

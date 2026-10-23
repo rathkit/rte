@@ -26,9 +26,9 @@ test("items come in display order, each with a name, an icon and the key that ru
   assert.equal(toolbar.state("nope"), undefined);
 });
 
-test("a toggle is disabled with nothing selected, on when the selected text has the mark, and its state object only changes when the state does", async () => {
+test("a toggle is available at a caret, on when the selected text has the mark, and its state object only changes when the state does", async () => {
   const { engine, toolbar } = setup("<p>one two three</p>");
-  assert.equal(toolbar.state("bold")?.disabled, true);
+  assert.equal(toolbar.state("bold")?.disabled, false, "a caret can choose bold for the text typed next");
   engine.setSelection(range(4, 7));
   assert.equal(toolbar.state("bold")?.disabled, false);
   assert.equal(toolbar.state("bold")?.pressed, false);

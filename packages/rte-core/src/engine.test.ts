@@ -73,7 +73,7 @@ test("a command's state is the same object until it changes, and its subscribers
   const calls: boolean[] = [];
   e.commands.subscribe("format.bold", (s) => calls.push(s.active));
   const before = e.commands.state("format.bold");
-  assert.deepEqual([before.enabled, before.active], [false, false]);
+  assert.deepEqual([before.enabled, before.active], [true, false]);
   // Typing moves the caret and changes the document on every key, but bold's state is the same each time.
   for (let i = 0; i < 20; i++) {
     e.apply("type", (doc, sel) => insertText(doc, sel, "x"));
@@ -81,14 +81,55 @@ test("a command's state is the same object until it changes, and its subscribers
   }
   assert.deepEqual(calls, [], "bold was never woken");
   assert.equal(e.commands.state("format.bold"), before, "and its state is the very same object");
-  // Selecting text turns bold on as a command: one notification. Making it bold: one more.
+  // Selecting text does not change what bold reports; making the text bold does: one notification.
   e.setSelection(range(0, 3));
   await tick();
-  assert.equal(calls.length, 1);
+  assert.deepEqual(calls, []);
   e.commands.run("format.bold");
   await tick();
-  assert.deepEqual(calls, [false, true]);
+  assert.deepEqual(calls, [true]);
   assert.equal(e.commands.state("format.bold").active, true);
+});
+
+test("stored marks: bold chosen at a caret is what the next typed text takes, and only there", async () => {
+  const e = engine("<p>one two</p>");
+  e.setSelection(caret({ path: [0], offset: 3 }));
+  assert.equal(e.commands.run("format.bold"), true);
+  assert.equal(e.commands.state("format.bold").active, true, "reported as on at once");
+  e.apply("type", (doc, sel) => insertText(doc, sel, "X", e.storedMarks));
+  e.apply("type", (doc, sel) => insertText(doc, sel, "Y", e.storedMarks));
+  assert.equal(exportHtml(e.document), "<p>one<strong>XY</strong> two</p>", "both letters, because the second follows the first");
+  // Choosing and then moving away forgets the choice.
+  e.setSelection(caret({ path: [0], offset: 0 }));
+  e.commands.run("format.italic");
+  e.setSelection(caret({ path: [0], offset: 1 }));
+  e.setSelection(caret({ path: [0], offset: 0 }));
+  assert.equal(e.commands.state("format.italic").active, false);
+  // Choosing twice undoes the choice; and bold in bold text can be switched off for the next letter.
+  e.commands.run("format.italic");
+  e.commands.run("format.italic");
+  assert.equal(e.storedMarks?.length, 0);
+  e.setSelection(caret({ path: [0], offset: 5 }));
+  assert.equal(e.commands.state("format.bold").active, true);
+  e.commands.run("format.bold");
+  e.apply("type", (doc, sel) => insertText(doc, sel, "z", e.storedMarks));
+  assert.equal(exportHtml(e.document), "<p>one<strong>XY</strong>z two</p>", "bold switched off for the next letter");
+});
+
+test("stored marks are forgotten by undo, by a new document and by read-only, and need a caret", () => {
+  const e = engine("<p>one two</p>");
+  e.setSelection(range(0, 3));
+  e.commands.run("format.bold");
+  assert.equal(e.storedMarks, undefined, "a range is made bold, nothing is stored");
+  e.setSelection(caret({ path: [0], offset: 3 }));
+  e.commands.run("format.italic");
+  e.undo();
+  assert.equal(e.storedMarks, undefined);
+  e.commands.run("format.italic");
+  e.setDocument(importHtml("<p>x</p>"));
+  assert.equal(e.storedMarks, undefined);
+  e.setReadOnly(true);
+  assert.equal(e.commands.run("format.bold"), false);
 });
 
 test("read-only: every editing command is disabled and does nothing, undo included; copy-like commands stay on", () => {

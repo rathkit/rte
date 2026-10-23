@@ -1,7 +1,7 @@
 // Named commands, their state, and subscriptions to that state.
 import type { Engine, EditorSnapshot } from "./engine.ts";
 import type { EditResult } from "./path.ts";
-import type { Doc } from "./model.ts";
+import type { Doc, Mark } from "./model.ts";
 import type { Selection } from "./path.ts";
 
 export type Unsubscribe = () => void;
@@ -21,6 +21,8 @@ export interface CommandContext {
   /** Moves back or forward one history step. False when there is none. */
   undo(): boolean;
   redo(): boolean;
+  /** Chooses the marks for the text typed next at the caret. False when a range is selected or the editor is read-only. */
+  setStoredMarks(marks: readonly Mark[]): boolean;
   focus(): void;
 }
 
@@ -95,6 +97,7 @@ export class CommandRegistry {
     const ctx: CommandContext = {
       get snapshot() { return engine.snapshot; },
       apply: (kind, op) => engine.apply(kind, op),
+      setStoredMarks: (marks) => engine.setStoredMarks(marks),
       undo: () => engine.undo(),
       redo: () => engine.redo(),
       focus: () => engine.requestFocus(),

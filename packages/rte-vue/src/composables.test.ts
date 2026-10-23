@@ -20,13 +20,13 @@ test("a command ref wakes its watchers once per change of the command's state, n
   for (let i = 0; i < 25; i++) { engine.apply("type", (doc, sel) => insertText(doc, sel, "x")); await tick(); }
   assert.equal(woke, 0);
   engine.setSelection(select(0, 3)); await tick();
-  assert.equal(woke, 1);
+  assert.equal(woke, 0, "a selection does not change what bold reports");
   engine.commands.run("format.bold"); await tick();
-  assert.equal(woke, 2);
+  assert.equal(woke, 1);
   assert.equal(bold.value.active, true);
   dispose();
   engine.commands.run("format.bold"); await tick();
-  assert.equal(woke, 2, "stopped with the scope");
+  assert.equal(woke, 1, "stopped with the scope");
 });
 
 test("an editor that arrives later through a ref is picked up, and one that leaves is let go", async () => {

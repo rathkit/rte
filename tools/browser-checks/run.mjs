@@ -57,6 +57,15 @@ for (const [name, type] of engines) {
   await page.keyboard.type("Hello world");
   check(`${name} typing`, (await html()) === "<p>Hello world</p>", await html());
 
+  // Bold chosen at the caret with the keyboard is what the next letters take; choosing it again stops it.
+  await reset("<p>ab</p>");
+  await page.keyboard.press("ControlOrMeta+ArrowRight").catch(() => undefined);
+  await page.keyboard.press("End");
+  await page.keyboard.press("ControlOrMeta+b");
+  await page.keyboard.type("XY");
+  await page.keyboard.press("ControlOrMeta+b");
+  await page.keyboard.type("z");
+  check(`${name} bold chosen at the caret applies to what is typed next`, (await html()) === "<p>ab<strong>XY</strong>z</p>", await html());
   // Select all with the keyboard, then type: the typing replaces everything. Firefox reports select-all as points on the surface itself.
   await reset("<p>one two</p><p>three</p>");
   await page.keyboard.press("ControlOrMeta+a");
@@ -316,7 +325,8 @@ for (const [name, type] of engines) {
   await t.reset("<p>one two three</p>");
   await page.evaluate(() => window.__demo.editor.focus());
   await page.waitForTimeout(60);
-  const off = await q("#rk-bold");
+  // Redo is unavailable until something has been undone.
+  const off = await q("#rk-redo");
   check(`${name} (headless) an unavailable control is aria-disabled, not disabled, so it can still be found`, off?.ariaDisabled === "true" && off?.disabled === false, off);
   // Select "two", press Bold with the mouse: the editor keeps the focus and the selection, and the button shows it is on.
   await t.select({ start: "p", so: 4, eo: 7 });
