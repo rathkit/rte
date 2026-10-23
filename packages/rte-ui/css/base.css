@@ -88,7 +88,7 @@
     position: absolute; z-index: 10; inset-block-start: calc(100% + var(--rk-space-1)); inset-inline-start: 0;
     min-width: 14rem; padding: var(--rk-space-1);
     background: var(--rk-surface-raised); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-m);
-    box-shadow: var(--rk-shadow-popover);
+    box-shadow: var(--rk-shadow-popover); max-height: min(22rem, 60vh); overflow-y: auto;
   }
   [data-rk-part="menu"][hidden] { display: none; }
   [data-rk-part="menu-item"] {
@@ -170,6 +170,11 @@
     background: var(--rk-bg); border: 0; outline: none; resize: vertical; tab-size: 2;
   }
   [data-rk-part="source"][hidden] { display: none; }
+
+  /* ---- keyboard shortcuts list ---- */
+  [data-rk-part="shortcuts"] { width: 100%; border-collapse: collapse; margin-bottom: var(--rk-space-2); }
+  [data-rk-part="shortcuts"] :is(th, td) { padding: var(--rk-space-1) var(--rk-space-2); text-align: start; border-bottom: var(--rk-border-width) solid var(--rk-border-subtle); }
+  [data-rk-part="shortcuts"] kbd { font: 0.9em var(--rk-font-mono); padding: 0.1em 0.4em; background: var(--rk-surface); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-s); }
 
   /* ---- find and replace ---- */
   [data-rk-part="findbar"] { padding: var(--rk-space-2); background: var(--rk-surface); border-bottom: var(--rk-border-width) solid var(--rk-border); }

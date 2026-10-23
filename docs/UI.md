@@ -84,3 +84,7 @@ A status line (`data-rk-part="status"`) under the writing area shows the words a
 ## HTML source
 
 When the editor can give its HTML, a toolbar button (`source`) swaps the writing area for a text box with the document's HTML, one block to a line. Closing it with the button applies what was typed through `document.setHtml`, so it is read like anything pasted (what is not allowed is dropped) and is one undo step. Escape closes it and throws the changes away. While it is open the other buttons do nothing.
+
+## Special characters and keyboard shortcuts
+
+A Special characters menu inserts common symbols (currency, dashes, arrows, comparison signs) through `text.insert`. A Keyboard shortcuts button opens a dialog listing every command that has a key, read from the editor's own key map, so it follows whatever the host has rebound.

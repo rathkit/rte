@@ -20,6 +20,7 @@ changes the document is disabled.
 | `block.rule` | | A horizontal rule after the block (in place of an empty paragraph), with the caret in a paragraph after it |
 | `block.direction` | `ltr`, `rtl`, or `""` | Which way the selected paragraphs and headings read (the `dir` attribute); `""` puts them back to following their surroundings. `value` is the current one. Sets, does not toggle |
 | `block.align` | `left`, `center`, `right`, `justify` | Aligns the selected paragraphs and headings |
+| `text.insert` | `{ text }` | Types the text at the caret, in place of a selection (a symbol from the Special characters menu). Control characters are refused |
 | `document.setHtml` | `{ html }` | Replaces the whole document with this HTML as one undo step; it is read like anything pasted or loaded. The source view uses it |
 | `link.set`, `link.remove` | `{ href }` | Sets or removes the link on the selection or the link under the caret |
 

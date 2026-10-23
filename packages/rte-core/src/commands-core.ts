@@ -1,7 +1,7 @@
 // The commands every editor has, and the keys that run them. Each one is a thin wrapper over a pure editing operation.
 import { alignAt, blockKindAt, directionAt, setDirection, inCodeBlock, inQuote, insertRule, setAlign, setBlockType, toggleCodeBlock, toggleQuote } from "./blocks.ts";
 import type { CommandDef } from "./commands.ts";
-import { marksAt, rangeHasMark, removeMarks, setMark, startOf, toggleMark } from "./edit.ts";
+import { insertText, marksAt, rangeHasMark, removeMarks, setMark, startOf, toggleMark } from "./edit.ts";
 import type { EditorSnapshot } from "./engine.ts";
 import type { KeyBinding } from "./keymap.ts";
 import type { UiItem, UiSlot } from "./ui.ts";
@@ -115,6 +115,15 @@ export function coreCommands(): readonly Def[] {
         return ctx.setStoredMarks(caretMarks(ctx.snapshot).filter((m) => !FORMATTING.includes(m.type)));
       },
     }),
+    // Types text at the caret, in place of a selection, as if it had been typed (a symbol from a menu, say).
+    def<{ readonly text?: string } | string | undefined, never>({
+      name: "text.insert", label: "Insert text",
+      run: (ctx, arg) => {
+        const text = typeof arg === "string" ? arg : typeof arg?.text === "string" ? arg.text : "";
+        if (text === "" || /[\u0000-\u0008\u000b-\u001f\u007f]/.test(text)) return false;
+        return ctx.apply("insert", (doc, sel) => insertText(doc, sel, text, ctx.snapshot.storedMarks));
+      },
+    }),
     // Replaces the whole document with this HTML as one undo step (the source view uses it). The HTML is read like anything pasted or loaded.
     def<{ readonly html?: string } | undefined, never>({
       name: "document.setHtml", label: "Set HTML",
@@ -189,6 +198,14 @@ function colorMenu(id: string, label: string, command: string, icon: string, ord
   }];
 }
 
+/** Symbols people look for and cannot easily type: [name, character]. */
+const SYMBOLS: readonly (readonly [string, string])[] = [
+  ["Copyright", "©"], ["Registered", "®"], ["Trademark", "™"], ["Euro", "€"], ["Pound", "£"], ["Yen", "¥"], ["Cent", "¢"], ["Section", "§"], ["Paragraph mark", "¶"],
+  ["Em dash", "—"], ["En dash", "–"], ["Ellipsis", "…"], ["Bullet", "•"], ["Degree", "°"], ["Micro", "µ"], ["Multiplication", "×"], ["Division", "÷"],
+  ["Plus or minus", "±"], ["Not equal", "≠"], ["Less or equal", "≤"], ["Greater or equal", "≥"], ["Left arrow", "←"], ["Right arrow", "→"], ["Up arrow", "↑"], ["Down arrow", "↓"],
+  ["Check mark", "✓"], ["Non-breaking space", "\u00a0"],
+];
+
 /** Where the editor's own commands appear in a toolbar. Items name commands; they hold no markup. */
 export const coreItems: readonly (readonly [UiSlot, UiItem])[] = [
   ["toolbar.main", { kind: "button", id: "undo", command: "history.undo", icon: "undo", group: "history", order: 1 }],
@@ -216,6 +233,10 @@ export const coreItems: readonly (readonly [UiSlot, UiItem])[] = [
   ...(["ltr", "rtl"] as const).map((dir, i): readonly [UiSlot, UiItem] => ["toolbar.main", {
     kind: "toggle", id: `direction-${dir}`, command: "block.direction", arg: dir, icon: `direction-${dir}`, label: dir === "ltr" ? "Left to right" : "Right to left", group: "direction", order: i,
   }]),
+  ["toolbar.main", {
+    kind: "menu", id: "symbols", label: "Special characters", icon: "symbols", group: "insert", order: 6,
+    items: SYMBOLS.map(([name, char]): UiItem => ({ kind: "button", id: `symbol-${name.toLowerCase().replace(/[^a-z]+/g, "-")}`, command: "text.insert", arg: { text: char }, label: char === "\u00a0" ? name : `${char}  ${name}` })),
+  }],
   ["toolbar.main", { kind: "dialog", id: "link", command: "link.set", label: "Link", icon: "link", group: "insert", order: 1, fields: [{ name: "href", type: "url", label: "Address", required: true }] }],
   ["toolbar.main", { kind: "button", id: "unlink", command: "link.remove", icon: "unlink", group: "insert", order: 2 }],
 ];

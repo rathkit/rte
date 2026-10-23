@@ -34,6 +34,8 @@ export const defaultIcons: Readonly<Record<string, string>> = {
   "chevron-up": icons.chevronUp,
   "search": icons.search,
   "source": icons.source,
+  "symbols": icons.symbols,
+  "keyboard": icons.keyboard,
   "direction-ltr": icons.directionLtr,
   "direction-rtl": icons.directionRtl,
   "check": icons.check,

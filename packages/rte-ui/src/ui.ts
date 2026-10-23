@@ -4,6 +4,7 @@ import type { UiItem } from "@rathkit/rte-core";
 import { checkFields, createAnnouncer, createDialog, createMenu, createToolbar, createTooltip, type Dialog, type Menu } from "@rathkit/rte-headless";
 import { createFindBar, type FindBar } from "./findbar.ts";
 import { setIcon } from "./icon.ts";
+import { createShortcuts } from "./shortcuts.ts";
 import { createSourceView } from "./source.ts";
 import { text } from "./messages.ts";
 import type { PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
@@ -76,7 +77,9 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   });
   // The HTML source view, when the editor can give its HTML: a button for it joins the toolbar.
   const removeSourceItem = editor.getHtml ? editor.ui.add(slot, { kind: "panel", id: "source", name: "source", label: "HTML source", icon: "source", group: "tools", order: 1 }) : undefined;
+  const removeShortcutsItem = editor.ui.add(slot, { kind: "panel", id: "shortcuts", name: "shortcuts", label: "Keyboard shortcuts", icon: "keyboard", group: "tools", order: 2 });
   const toolbar = createToolbar(editor, { slot, label: message("toolbar.label") });
+  const shortcuts = createShortcuts({ editor, root, part: (el, name) => part(el, name as PartName), message: (key) => message(key as never) });
   const sourceView = editor.getHtml ? createSourceView({ editor, content: contentEl, toolbar: toolbarEl, part: (el, name) => part(el, name as PartName), message: (key) => message(key as never), announce: (m) => announcer.announce(m) }) : undefined;
 
   // ---- look: theme attributes, tokens, classes, icons, words --------------------------------------------------
@@ -106,7 +109,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       appliedClasses.set(name, classes);
       for (const el of parts.get(name) ?? []) el.classList.add(...classes);
     }
-    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) { draw(); findBar?.refresh(); }
+    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) { draw(); findBar?.refresh(); shortcuts.refresh(); }
     syncDialogs();
   }
 
@@ -123,7 +126,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   function control(item: UiItem): HTMLElement | undefined {
     if (item.kind === "separator") return part(document.createElement("span"), "separator");
-    if (item.kind === "panel" && item.name !== "source") return undefined;
+    if (item.kind === "panel" && item.name !== "source" && item.name !== "shortcuts") return undefined;
     const state = toolbar.state(item.id);
     if (!state) return undefined;
     if (item.kind === "select") {
@@ -276,7 +279,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     }
     toolbarEl.replaceChildren(...controls);
     // A menu opens itself (the headless menu listens on its own button), so only dialogs are opened from here.
-    unbind = toolbar.bind(toolbarEl, { onOpen: (item, opener) => { if (item.kind === "dialog") openDialog(item, opener); else if (item.kind === "panel" && item.name === "source") sourceView?.toggle(opener); } });
+    unbind = toolbar.bind(toolbarEl, { onOpen: (item, opener) => { if (item.kind === "dialog") openDialog(item, opener); else if (item.kind === "panel" && item.name === "source") sourceView?.toggle(opener); else if (item.kind === "panel" && item.name === "shortcuts") shortcuts.open(opener); } });
     // Our click listener goes after the headless layer's, so by the time it runs the command has run and the state is the new one.
     toolbarEl.removeEventListener("click", onToolbarClick);
     toolbarEl.addEventListener("click", onToolbarClick);
@@ -417,6 +420,8 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       findBar?.destroy();
       sourceView?.destroy();
       removeSourceItem?.();
+      shortcuts.destroy();
+      removeShortcutsItem();
       if (statusTimer) clearTimeout(statusTimer);
       statusEl.remove();
       stopRedraw();

@@ -5,7 +5,7 @@ import type { TokenName } from "@rathkit/rte-themes";
 /** The parts the interface is made of. Selectors and `classes` address them by these names (as `data-rk-part`). */
 export type PartName =
   | "root" | "toolbar" | "button" | "select" | "separator" | "icon" | "label" | "content"
-  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status" | "source" | "findbar" | "find-line" | "find-row" | "find-label" | "find-field" | "find-count"
+  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status" | "source" | "shortcuts" | "findbar" | "find-line" | "find-row" | "find-label" | "find-field" | "find-count"
   | "dialog" | "dialog-title" | "field-label" | "field" | "field-error" | "actions" | "action";
 
 /** Words the interface says. Each has a default in English; this table is also the way to translate it. */
@@ -13,7 +13,7 @@ export type MessageKey =
   | "toolbar.label" | "dialog.ok" | "dialog.cancel" | "field.required" | "field.url"
   | "toggle.on" | "toggle.off"
   | "status.word" | "status.words" | "status.characters" | "status.selection"
-  | "source.label"
+  | "source.label" | "shortcuts.title" | "shortcuts.action" | "shortcuts.keys" | "shortcuts.close"
   | "find.find" | "find.replaceWith" | "find.previous" | "find.next" | "find.close" | "find.matchCase" | "find.wholeWord" | "find.replace" | "find.replaceAll" | "find.none" | "find.count" | "find.total"
   /** Rename any item: `item.bold`, `item.link`, and so on. */
   | `item.${string}`;

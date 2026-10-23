@@ -628,15 +628,15 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(60);
   await page.click('#root [data-rk-item="link"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) the link dialog opens with its title, a labelled field, and focus in the field`, await page.evaluate(() => { const d = document.querySelector("#root [data-rk-part=dialog]"); const f = d.querySelector("[data-rk-part=field]"); return d.open && d.querySelector("[data-rk-part=dialog-title]").textContent === "Link" && f.labels[0].textContent === "Address" && document.activeElement === f; }), await active());
+  check(`${name} (ui) the link dialog opens with its title, a labelled field, and focus in the field`, await page.evaluate(() => { const d = document.querySelector("#root [data-rk-part=dialog]:not([data-rk-shortcuts])"); const f = d.querySelector("[data-rk-part=field]"); return d.open && d.querySelector("[data-rk-part=dialog-title]").textContent === "Link" && f.labels[0].textContent === "Address" && document.activeElement === f; }), await active());
   await page.keyboard.type("javascript:alert(1)");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(60);
-  check(`${name} (ui) an unsafe address is refused with a message tied to the field`, await page.evaluate(() => { const f = document.querySelector("#root [data-rk-part=field]"); const e = document.querySelector("#root [data-rk-part=field-error]"); return f.getAttribute("aria-invalid") === "true" && f.getAttribute("aria-describedby") === e.id && e.textContent.length > 0 && document.querySelector("#root [data-rk-part=dialog]").open; }), "unsafe");
+  check(`${name} (ui) an unsafe address is refused with a message tied to the field`, await page.evaluate(() => { const f = document.querySelector("#root [data-rk-part=field]"); const e = document.querySelector("#root [data-rk-part=field-error]"); return f.getAttribute("aria-invalid") === "true" && f.getAttribute("aria-describedby") === e.id && e.textContent.length > 0 && document.querySelector("#root [data-rk-part=dialog]:not([data-rk-shortcuts])").open; }), "unsafe");
   await page.fill("#root [data-rk-part=field]", "https://x.test");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(80);
-  check(`${name} (ui) a good address closes the dialog and links the selected text`, (await page.evaluate(() => window.__one.editor.getHtml())) === '<p>one <a href="https://x.test">two</a> three</p>' && !(await page.evaluate(() => document.querySelector("#root [data-rk-part=dialog]").open)), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) a good address closes the dialog and links the selected text`, (await page.evaluate(() => window.__one.editor.getHtml())) === '<p>one <a href="https://x.test">two</a> three</p>' && !(await page.evaluate(() => document.querySelector("#root [data-rk-part=dialog]:not([data-rk-shortcuts])").open)), await page.evaluate(() => window.__one.editor.getHtml()));
   check(`${name} (ui) focus goes back to the control that opened it`, (await active()) === "rk-link" || (await page.evaluate(() => document.activeElement.getAttribute("data-rk-item"))) === "link", await active());
   await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rk-part=content] a").firstChild; e.selectDom(n, 1, n, 1); });
   await page.waitForTimeout(60);
@@ -645,6 +645,21 @@ for (const [name, type] of engines) {
   check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
+  // Special characters and the shortcuts list.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>price 5</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 7, n, 7); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="symbols"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) the special characters menu lists each symbol with its name`, await page.evaluate(() => { const e = document.querySelector('#root [data-rk-menu-item="symbol-euro"]'); return !!e && e.textContent.includes("€") && e.textContent.includes("Euro"); }), "menu");
+  await page.click('#root [data-rk-menu-item="symbol-euro"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) choosing one types it at the caret`, await page.evaluate(() => window.__one.editor.getHtml() === "<p>price 5€</p>"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="shortcuts"]');
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the shortcuts dialog lists the editor's keys from its key map`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root dialog")].find((x) => x.open); const rows = d && [...d.querySelectorAll("tbody tr")].map((r) => r.textContent); return !!d && d.querySelector("[data-rk-part=dialog-title]").textContent === "Keyboard shortcuts" && rows.some((r) => r.startsWith("Bold") && r.includes("Ctrl+B")) && rows.some((r) => r.startsWith("Find and replace")) && d.querySelector("th").scope === "col"; }), "dialog");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(80);
+  check(`${name} (ui) Escape closes it and focus goes back to its button`, await page.evaluate(() => ![...document.querySelectorAll("#root dialog")].some((x) => x.open) && document.activeElement === document.querySelector('#root [data-rk-item="shortcuts"]')), await active());
   // Text direction.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>مرحبا</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 1, n, 1); });
   await page.waitForTimeout(60);
