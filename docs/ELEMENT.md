@@ -38,3 +38,20 @@ keys, `aria-pressed`, focus kept in the editor). It is unstyled and uses text la
 dispatches `rk-open` with the item and the control, and the page, or the styled interface, answers.
 
 `for` names the editor (default: the nearest `<rk-editor>`), `label` names the toolbar, `slot-name` picks which set of items.
+
+## Angular
+
+The Angular wrapper (a standalone component with the forms `ControlValueAccessor`) is not built yet. Until it is, the custom element works in Angular as it is. Add `CUSTOM_ELEMENTS_SCHEMA` to the component that uses it, import `@rathkit/rte-element/define` once, and bind the element's `value` property and `rk-change` event:
+
+```ts
+@Component({
+  standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  template: `<rk-editor label="Body" [value]="html" (rk-change)="html = $event.detail.html"></rk-editor>`,
+})
+export class BodyField {
+  html = "";
+}
+```
+
+Because the element is form-associated, it also takes part in a native `<form>` without any Angular forms code. `ngModel` and reactive forms need the wrapper.
