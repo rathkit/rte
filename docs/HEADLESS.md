@@ -270,7 +270,7 @@ Visible focus ring and 3:1 contrast tokens, minimum target size, forced-colors r
 7. `rte-ui` with base CSS and the `light` preset; token docs page; forced-colors and reduced-motion checks.
 8. `rte-icons`, `rte-themes` remaining presets, `StyleProvider` and `setStyle`.
 9. `rte-element` first, because the jQuery wrapper and any server-rendered integration sit on it, then `rte-react` (it exercises the external-store requirement hardest), then Vue, Svelte and Angular, then jQuery.
-10. Integrations that come after v1: Blazor and AngularJS wrappers, and platform packages for WordPress, Laravel, Django, Ruby on Rails and similar, plus a Bootstrap-matched theme. The goal is to match the integrations that the leading commercial rich text editors offer; the list of those is kept in the private research notes, not in this repo.
+10. Integrations that come after v1: Blazor and AngularJS wrappers, and platform packages for WordPress, Laravel, Django, Ruby on Rails and similar, plus a Bootstrap-matched theme. The goal is to match the integrations that the leading commercial rich text editors offer. The list of integrations to match has not been compiled yet; it will be built in the private research area, not in this repo.
 
 ## Decisions
 
@@ -289,4 +289,4 @@ Decided by the owner on 2026-10-22. Where this differs from the default that was
 | API stability label | `experimental` until the external-plugin test passes against both UIs |
 | Plugin panels (rich UI from plugins) | Named `panel` items with per-UI renderers |
 | Does the styled UI default to English labels only | Yes; `messages` table is the i18n path, translations are later |
-| Later integrations | Blazor, AngularJS, and platform packages (WordPress, Laravel, Django, Ruby on Rails and the like), a Bootstrap-matched theme. The aim is to match the integrations of the leading commercial editors |
+| Later integrations | Blazor, AngularJS, and platform packages (WordPress, Laravel, Django, Ruby on Rails and the like), a Bootstrap-matched theme. The aim is to match the integrations of the leading commercial editors; the list is still to be compiled |
