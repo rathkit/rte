@@ -1,17 +1,19 @@
 // The editing surface. The document model is the source of truth: the view intercepts the browser's
 // input events, applies each one to the model, then draws the model back. The browser never edits the
 // document itself, so Chromium, Firefox and WebKit all end up with the same result.
+import { createEngine } from "../core.ts";
 import {
   caret, clampPos, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, extractSelection, insertBlocks, insertLineBreak,
-  insertText, isCollapsed, moveSelection, selectedText, splitBlock, startOf, toggleMark, type EditResult,
+  insertText, isCollapsed, moveSelection, selectedText, splitBlock, type EditResult,
 } from "../edit.ts";
-import { inDefinitionList, setEntryKind, toggleDefinitionList } from "../definitions.ts";
+import type { Engine } from "../engine.ts";
 import { exportHtml } from "../export.ts";
-import { indentItems, inList, listShortcut, outdentItems, toggleList, type ListOptions } from "../lists.ts";
+import { inDefinitionList } from "../definitions.ts";
+import { inList, listShortcut, type ListOptions } from "../lists.ts";
 import { collectImages, isDataImage, mapImages, readDataImage, rewriteImages } from "../images.ts";
 import { checkImageSrc, importBlocks, importHtml } from "../import.ts";
 import { encodeBase64, sanitizeSvg } from "../svg.ts";
-import { emptyDoc, type Block, type Doc, type MarkType } from "../model.ts";
+import type { Block, Doc, MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
 import { getContent, setContent, type Pos, type Selection } from "../path.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
@@ -44,22 +46,14 @@ export interface EditorOptions {
   readonly onImageRejected?: (info: { readonly reason: "too-large" | "unsupported" | "upload-failed"; readonly type: string; readonly size: number }) => void;
 }
 
-interface Level {
-  readonly doc: Doc;
-  readonly selection: Selection;
-}
-
 type Listener = (editor: Editor) => void;
 
 export class Editor {
   readonly element: HTMLElement;
-  private current: Doc = emptyDoc;
-  private sel: Selection = caret(startOf(emptyDoc));
-  private undoStack: Level[] = [];
-  private redoStack: Level[] = [];
-  private lastKind = "";
+  /** The editor's state, commands, keys and plugins. It has no DOM, so everything it does can be driven without a page. */
+  readonly engine: Engine;
   private composing = false;
-  private readOnlyMode: boolean;
+  private reading = false;
   private readonly loadRemoteImages: boolean;
   private readonly unhandled: ((inputType: string) => void) | undefined;
   private readonly maxImageBytes: number;
@@ -67,8 +61,6 @@ export class Editor {
   private readonly upload: EditorOptions["uploadImage"];
   private readonly rejected: EditorOptions["onImageRejected"];
   private dragSource: Selection | null = null;
-  private readonly indentOnTab: boolean;
-  private readonly maxListDepth: number;
   private readonly listShortcuts: boolean;
   private readonly renderCache = createRenderCache();
   /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
@@ -79,30 +71,40 @@ export class Editor {
       if (node) this.renderCache.dirty.add(node);
     }
   });
-  private readonly handlers: readonly PasteHandler[];
-  private readonly listeners = new Set<Listener>();
   private readonly cleanups: (() => void)[] = [];
 
   constructor(options: EditorOptions) {
     this.element = options.element;
-    this.handlers = options.pasteHandlers ?? [];
-    this.readOnlyMode = options.readOnly ?? false;
     this.loadRemoteImages = options.loadRemoteImages ?? false;
     this.unhandled = options.onUnhandledInput;
-    this.indentOnTab = options.indentOnTab ?? true;
-    this.maxListDepth = options.maxListDepth ?? Number.POSITIVE_INFINITY;
     this.listShortcuts = options.listShortcuts ?? true;
+    this.engine = createEngine({
+      doc: importHtml(options.html ?? ""),
+      readOnly: options.readOnly ?? false,
+      ...(options.maxListDepth !== undefined ? { maxListDepth: options.maxListDepth } : {}),
+      indentOnTab: options.indentOnTab ?? true,
+      // Before the engine reads the selection, bring it up to date from the page; asked to focus, focus the page.
+      beforeAccess: () => this.readSelection(),
+      focus: () => this.element.focus(),
+    });
+    this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
     this.maxImageBytes = options.maxImageFileBytes ?? 20_000_000;
     this.maxInlineBytes = options.maxInlineImageBytes ?? 512 * 1024;
     this.upload = options.uploadImage;
     this.rejected = options.onImageRejected;
-    this.element.setAttribute("contenteditable", this.readOnlyMode ? "false" : "true");
+    this.element.setAttribute("contenteditable", this.engine.readOnly ? "false" : "true");
     this.element.setAttribute("role", "textbox");
     this.element.setAttribute("aria-multiline", "true");
     this.element.style.whiteSpace = "pre-wrap";
-    this.current = importHtml(options.html ?? "");
-    this.sel = caret(startOf(this.current));
     this.draw();
+    // The page follows the model: after every change to the document it is drawn again, and a selection the editor set (not one
+    // the page reported) is written to the page.
+    this.cleanups.push(this.engine.onTransaction((_snapshot, _previous, change) => {
+      if (change.docChanged) this.draw();
+      else if (change.selectionChanged && !this.reading) this.writeSelection();
+    }));
+    this.listen(this.element, "focusin", () => this.engine.setFocused(true));
+    this.listen(this.element, "focusout", () => this.engine.setFocused(false));
     this.listen(this.element, "beforeinput", (e) => this.onBeforeInput(e as InputEvent));
     this.listen(this.element, "paste", (e) => this.onPaste(e as ClipboardEvent));
     this.listen(this.element, "keydown", (e) => this.onKeyDown(e as KeyboardEvent));
@@ -120,13 +122,24 @@ export class Editor {
 
   // ---- state ----------------------------------------------------------------------------------------------
 
-  get doc(): Doc { return this.current; }
-  get selection(): Selection { return this.sel; }
-  get canUndo(): boolean { return this.undoStack.length > 0; }
-  get canRedo(): boolean { return this.redoStack.length > 0; }
-  get readOnly(): boolean { return this.readOnlyMode; }
+  get doc(): Doc { return this.engine.document; }
+  get selection(): Selection { return this.engine.selection; }
+  get canUndo(): boolean { return this.engine.canUndo; }
+  get canRedo(): boolean { return this.engine.canRedo; }
+  get readOnly(): boolean { return this.engine.readOnly; }
 
-  getHtml(): string { return exportHtml(this.current); }
+  /** Named commands and their state: `editor.commands.run("format.bold")`, `editor.commands.state("format.bold")`. */
+  get commands(): Engine["commands"] { return this.engine.commands; }
+  /** Key chords and the commands they run. */
+  get keymap(): Engine["keymap"] { return this.engine.keymap; }
+  /** The current immutable state. */
+  get snapshot(): Engine["snapshot"] { return this.engine.snapshot; }
+  subscribe: Engine["subscribe"] = (listener) => this.engine.subscribe(listener);
+  select: Engine["select"] = (selector, onChange, equals) => this.engine.select(selector, onChange, equals);
+  /** Adds a plugin. Returns a function that removes it. */
+  use: Engine["use"] = (plugin) => this.engine.use(plugin);
+
+  getHtml(): string { return exportHtml(this.engine.document); }
 
   /** Addresses of remote images in the document, so the host can decide whether to show them. */
   remoteImages(): string[] {
@@ -139,35 +152,28 @@ export class Editor {
         Object.values(value).forEach(visit);
       }
     };
-    visit(this.current.blocks);
+    visit(this.engine.document.blocks);
     return found;
   }
 
   /** Replaces the whole document and empties the history. */
   setHtml(html: string): void {
-    this.current = importHtml(html);
-    this.sel = caret(startOf(this.current));
-    this.undoStack = [];
-    this.redoStack = [];
-    this.lastKind = "";
-    this.draw();
-    this.emit();
+    this.engine.setDocument(importHtml(html));
   }
 
   setReadOnly(value: boolean): void {
-    this.readOnlyMode = value;
+    this.engine.setReadOnly(value);
     this.element.setAttribute("contenteditable", value ? "false" : "true");
   }
 
+  /** Calls back after the document or selection changed, once per turn. Same as `subscribe`, kept for older callers. */
   onChange(listener: Listener): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return this.engine.subscribe(() => listener(this));
   }
 
   destroy(): void {
     for (const cleanup of this.cleanups) cleanup();
     this.cleanups.length = 0;
-    this.listeners.clear();
     this.observer.disconnect();
   }
 
@@ -194,65 +200,39 @@ export class Editor {
   // ---- commands -------------------------------------------------------------------------------------------
 
   toggle(mark: MarkType): void {
-    this.apply("format", (doc, sel) => toggleMark(doc, sel, { type: mark } as never));
+    const names = { bold: "format.bold", italic: "format.italic", underline: "format.underline", strike: "format.strike", code: "format.code", sup: "format.superscript", sub: "format.subscript" } as const;
+    if (mark in names) this.engine.commands.run(names[mark as keyof typeof names]);
   }
 
   /** Makes the selected blocks a bulleted or numbered list, or takes them out of it. */
   toggleList(type: "ul" | "ol", options?: ListOptions): void {
-    this.apply("list", (doc, sel) => toggleList(doc, sel, type, options));
+    this.engine.commands.run(type === "ul" ? "list.bulleted" : "list.numbered", options);
   }
   /** Makes the selected blocks terms of a definition list, or takes them out of it. */
-  toggleDefinitionList(): void { this.apply("list", toggleDefinitionList); }
+  toggleDefinitionList(): void { this.engine.commands.run("list.definition"); }
   /** In a list, nests the selected items. In a definition list, makes the selected terms details. */
-  indent(): void {
-    this.readSelection();
-    if (inDefinitionList(this.current, this.sel.focus.path)) this.apply("list", (doc, sel) => setEntryKind(doc, sel, "detail"));
-    else this.apply("list", (doc, sel) => indentItems(doc, sel, this.maxListDepth));
-  }
+  indent(): void { this.engine.commands.run("list.indent"); }
   /** In a list, moves the selected items out. In a definition list, makes the selected details terms. */
-  outdent(): void {
-    this.readSelection();
-    if (inDefinitionList(this.current, this.sel.focus.path)) this.apply("list", (doc, sel) => setEntryKind(doc, sel, "term"));
-    else this.apply("list", outdentItems);
-  }
+  outdent(): void { this.engine.commands.run("list.outdent"); }
 
   /** True when the caret is in a definition list. */
   isInDefinitionList(): boolean {
     this.readSelection();
-    return inDefinitionList(this.current, this.sel.focus.path);
+    return inDefinitionList(this.engine.document, this.engine.selection.focus.path);
   }
 
   /** True when the caret is in a list item, of the given type if one is given. */
   isInList(type?: "ul" | "ol"): boolean {
     this.readSelection();
-    return inList(this.current, this.sel.focus.path, type);
+    return inList(this.engine.document, this.engine.selection.focus.path, type);
   }
 
-  undo(): void {
-    const level = this.undoStack.pop();
-    if (!level) return;
-    this.redoStack.push({ doc: this.current, selection: this.sel });
-    this.current = level.doc;
-    this.sel = level.selection;
-    this.lastKind = "";
-    this.draw();
-    this.emit();
-  }
-
-  redo(): void {
-    const level = this.redoStack.pop();
-    if (!level) return;
-    this.undoStack.push({ doc: this.current, selection: this.sel });
-    this.current = level.doc;
-    this.sel = level.selection;
-    this.lastKind = "";
-    this.draw();
-    this.emit();
-  }
+  undo(): void { this.engine.undo(); }
+  redo(): void { this.engine.redo(); }
 
   /** Pastes raw clipboard data through the same pipeline a paste event uses. */
   paste(data: ClipboardData): void {
-    const blocks = pasteBlocks(data, this.handlers);
+    const blocks = pasteBlocks(data, this.engine.pasteHandlers);
     if (blocks.length === 0) return;
     this.insertSettled(blocks);
   }
@@ -267,7 +247,7 @@ export class Editor {
       this.apply("paste", (doc, sel) => insertBlocks(doc, sel, blocks));
     } else if (this.upload) {
       this.readSelection();
-      const at = this.sel;
+      const at = this.engine.selection;
       void rewriteImages(blocks, async (image) => this.uploadEmbedded(image)).then((settled) => {
         this.apply("paste", (doc) => insertBlocks(doc, { anchor: clampPos(doc, at.anchor), focus: clampPos(doc, at.focus) }, settled));
       });
@@ -309,20 +289,15 @@ export class Editor {
     this.cleanups.push(() => target.removeEventListener(type, handler));
   }
 
-  private emit(): void {
-    for (const listener of this.listeners) listener(this);
-  }
-
   private draw(): void {
-    renderDoc(this.current, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
+    renderDoc(this.engine.document, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
     // Changes drawing just made are not disturbances; throw their records away.
     this.observer.takeRecords();
     this.writeSelection();
   }
 
   private setSelection(sel: Selection): void {
-    this.sel = { anchor: clampPos(this.current, sel.anchor), focus: clampPos(this.current, sel.focus) };
-    this.writeSelection();
+    this.engine.setSelection({ anchor: clampPos(this.engine.document, sel.anchor), focus: clampPos(this.engine.document, sel.focus) });
   }
 
   private readSelection(): void {
@@ -331,60 +306,53 @@ export class Editor {
     if (!this.element.contains(domSel.anchorNode) || !this.element.contains(domSel.focusNode)) return;
     const anchor = posFromDom(this.element, domSel.anchorNode, domSel.anchorOffset);
     const focus = posFromDom(this.element, domSel.focusNode, domSel.focusOffset);
-    if (anchor && focus) this.sel = { anchor: clampPos(this.current, anchor), focus: clampPos(this.current, focus) };
+    if (!anchor || !focus) return;
+    const doc = this.engine.document;
+    // What the page reports is already on the page, so it must not be written back to it.
+    this.reading = true;
+    try {
+      this.engine.setSelection({ anchor: clampPos(doc, anchor), focus: clampPos(doc, focus) });
+    } finally {
+      this.reading = false;
+    }
   }
 
   private writeSelection(): void {
     const domSel = document.getSelection();
     if (!domSel || (document.activeElement !== this.element && !this.element.contains(document.activeElement))) return;
-    const a = domFromPos(this.element, this.sel.anchor);
-    const f = domFromPos(this.element, this.sel.focus);
+    const a = domFromPos(this.element, this.engine.selection.anchor);
+    const f = domFromPos(this.element, this.engine.selection.focus);
     if (a && f) domSel.setBaseAndExtent(a.node, a.offset, f.node, f.offset);
   }
 
-  /** Runs one edit. Neighbouring edits of the same kind share one undo level, so a burst of typing undoes at once. */
-  private apply(kind: string, op: (doc: Doc, sel: Selection) => EditResult): void {
-    if (this.readOnlyMode) return;
-    this.readSelection();
-    const before: Level = { doc: this.current, selection: this.sel };
-    const result = op(this.current, this.sel);
-    if (result.doc === this.current && result.selection === this.sel) return;
-    const groups = kind === "type" || kind === "delete";
-    if (!(groups && this.lastKind === kind)) {
-      this.undoStack.push(before);
-      if (this.undoStack.length > 200) this.undoStack.shift();
-    }
-    this.lastKind = kind;
-    this.redoStack = [];
-    this.current = result.doc;
-    this.sel = result.selection;
-    this.draw();
-    this.emit();
+  /** Runs one edit as a history step. Edits of one kind in a row (typing, deleting) share a step. */
+  private apply(kind: string, op: (doc: Doc, sel: Selection) => EditResult): boolean {
+    return this.engine.apply(kind, op);
   }
 
   /** After an input method finishes, take the text it produced, and where it left the caret, from the DOM. */
   private reconcileFromDom(): void {
     this.readSelection();
-    const path = this.sel.focus.path;
+    const path = this.engine.selection.focus.path;
     const container = containerAt(this.element, path);
     if (!container) return;
     const clone = container.cloneNode(true) as Element;
     clone.querySelectorAll("ul, ol, [data-rte-ph]").forEach((n) => n.remove());
     const first = importBlocks(`<p>${clone.innerHTML}</p>`, { styles: "allowlist", keepEmptyBlocks: true })[0];
     if (!first || (first.type !== "p" && first.type !== "h")) return;
-    if (JSON.stringify(first.content) === JSON.stringify(getContent(this.current, path))) return;
+    if (JSON.stringify(first.content) === JSON.stringify(getContent(this.engine.document, path))) return;
     // The browser has already changed the DOM, so the caret is read from it before the model catches up.
     const domSel = document.getSelection();
     const raw = domSel?.focusNode && this.element.contains(domSel.focusNode) ? posFromDom(this.element, domSel.focusNode, domSel.focusOffset) : null;
     this.apply("type", (doc) => {
       const next = setContent(doc, path, first.content);
-      return { doc: next, selection: raw ? caret(clampPos(next, raw)) : caret(clampPos(next, this.sel.focus)) };
+      return { doc: next, selection: raw ? caret(clampPos(next, raw)) : caret(clampPos(next, this.engine.selection.focus)) };
     });
   }
 
   private onBeforeInput(event: InputEvent): void {
     if (this.composing || event.isComposing) return;
-    if (this.readOnlyMode) { event.preventDefault(); return; }
+    if (this.engine.readOnly) { event.preventDefault(); return; }
     const type = event.inputType;
     const handled = ((): boolean => {
       switch (type) {
@@ -394,7 +362,7 @@ export class Editor {
           if (data === " " && this.listShortcuts) {
             // A shortcut such as "* " starts a list; its conversion is an undo step of its own.
             this.readSelection();
-            const converted = listShortcut(this.current, this.sel);
+            const converted = listShortcut(this.engine.document, this.engine.selection);
             if (converted) {
               this.apply("pattern", () => converted);
               return true;
@@ -446,7 +414,7 @@ export class Editor {
 
   private onPaste(event: ClipboardEvent): void {
     event.preventDefault();
-    if (this.readOnlyMode) return;
+    if (this.engine.readOnly) return;
     const clipboard = event.clipboardData;
     if (!clipboard) return;
     const html = clipboard.getData("text/html");
@@ -465,24 +433,24 @@ export class Editor {
   /** Copy and cut write the model's own HTML and text, not the page's markup. */
   private onCopy(event: ClipboardEvent, cut: boolean): void {
     this.readSelection();
-    if (isCollapsed(this.sel) || !event.clipboardData) return;
+    if (isCollapsed(this.engine.selection) || !event.clipboardData) return;
     event.preventDefault();
-    event.clipboardData.setData("text/html", exportHtml({ blocks: extractSelection(this.current, this.sel) }));
-    event.clipboardData.setData("text/plain", selectedText(this.current, this.sel));
-    if (cut && !this.readOnlyMode) this.apply("cut", deleteSelection);
+    event.clipboardData.setData("text/html", exportHtml({ blocks: extractSelection(this.engine.document, this.engine.selection) }));
+    event.clipboardData.setData("text/plain", selectedText(this.engine.document, this.engine.selection));
+    if (cut && !this.engine.readOnly) this.apply("cut", deleteSelection);
   }
 
   private onDragStart(event: DragEvent): void {
     this.readSelection();
-    if (isCollapsed(this.sel) || !event.dataTransfer) return;
-    event.dataTransfer.setData("text/html", exportHtml({ blocks: extractSelection(this.current, this.sel) }));
-    event.dataTransfer.setData("text/plain", selectedText(this.current, this.sel));
-    event.dataTransfer.effectAllowed = this.readOnlyMode ? "copy" : "copyMove";
-    this.dragSource = this.sel;
+    if (isCollapsed(this.engine.selection) || !event.dataTransfer) return;
+    event.dataTransfer.setData("text/html", exportHtml({ blocks: extractSelection(this.engine.document, this.engine.selection) }));
+    event.dataTransfer.setData("text/plain", selectedText(this.engine.document, this.engine.selection));
+    event.dataTransfer.effectAllowed = this.engine.readOnly ? "copy" : "copyMove";
+    this.dragSource = this.engine.selection;
   }
 
   private onDragOver(event: DragEvent): void {
-    if (this.readOnlyMode) return;
+    if (this.engine.readOnly) return;
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = this.dragSource && !(event.ctrlKey || event.altKey) ? "move" : "copy";
   }
@@ -491,7 +459,7 @@ export class Editor {
     event.preventDefault();
     const source = this.dragSource;
     this.dragSource = null;
-    if (this.readOnlyMode || !event.dataTransfer) return;
+    if (this.engine.readOnly || !event.dataTransfer) return;
     const target = this.positionAt(event.clientX, event.clientY);
     if (!target) return;
     if (source) {
@@ -518,7 +486,7 @@ export class Editor {
     const offset = point?.offset ?? range?.startOffset;
     if (!node || offset === undefined || !this.element.contains(node)) return null;
     const pos = posFromDom(this.element, node, offset);
-    return pos ? clampPos(this.current, pos) : null;
+    return pos ? clampPos(this.engine.document, pos) : null;
   }
 
   /**
@@ -557,25 +525,9 @@ export class Editor {
     return src ? { type: "image", src } : reject("unsupported");
   }
 
+  /** Keys go through the key map: a chord bound to a command runs it, and the event is stopped if the command changed something. */
   private onKeyDown(event: KeyboardEvent): void {
     if (this.composing || event.isComposing) return;
-    if (event.key === "Tab" && this.indentOnTab && !event.ctrlKey && !event.metaKey && !event.altKey && !this.readOnlyMode) {
-      this.readSelection();
-      if (inList(this.current, this.sel.focus.path) || inDefinitionList(this.current, this.sel.focus.path)) {
-        event.preventDefault();
-        if (event.shiftKey) this.outdent();
-        else this.indent();
-        return;
-      }
-    }
-    const mod = event.ctrlKey || event.metaKey;
-    if (!mod || event.altKey) return;
-    const key = event.key.toLowerCase();
-    const run = (fn: () => void): void => { event.preventDefault(); fn(); };
-    if (key === "b") run(() => this.toggle("bold"));
-    else if (key === "i") run(() => this.toggle("italic"));
-    else if (key === "u") run(() => this.toggle("underline"));
-    else if (key === "z" && !event.shiftKey) run(() => this.undo());
-    else if ((key === "z" && event.shiftKey) || key === "y") run(() => this.redo());
+    if (this.engine.handleKey(event)) event.preventDefault();
   }
 }
