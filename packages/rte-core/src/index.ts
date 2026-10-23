@@ -9,3 +9,11 @@ export { sanitizeSvg, sanitizeSvgDataUrl, decodeBase64, encodeBase64, DEFAULT_SV
 export { collectImages, dataImageBytes, isDataImage, mapImages, readDataImage, rewriteImages } from "./images.ts";
 export { indentItems, inList, listDepth, listShortcut, outdentItems, takeOutOfList, toggleList, type ListOptions } from "./lists.ts";
 export { backspaceAtEntryStart, inDefinitionList, setEntryKind, splitEntry, takeOutOfDefinitionList, toggleDefinitionList } from "./definitions.ts";
+export { createEngine, type CoreOptions } from "./core.ts";
+export { Engine, type EditorSnapshot, type EngineOptions } from "./engine.ts";
+export { CommandRegistry, type CommandContext, type CommandDef, type CommandState, type Unsubscribe } from "./commands.ts";
+export { Keymap, detectPlatform, type KeyBinding, type KeyEventLike, type Platform } from "./keymap.ts";
+export { PLUGIN_API_VERSION, satisfiesApi, type EditorHandle, type Plugin, type PluginHost } from "./plugin.ts";
+export { ops, type Ops } from "./ops.ts";
+export { alignAt, blockKindAt, setAlign, setBlockType, type BlockKind } from "./blocks.ts";
+export { linkAt, setLink } from "./links.ts";
