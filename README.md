@@ -69,6 +69,11 @@ tools/        repo checks run locally and in CI
 docs/         design notes
 ```
 
+## Community
+
+Questions and discussion happen on [Discord](https://discord.gg/A5VBxgPaex). It is best-effort and
+not a support commitment.
+
 ## Contributing
 
 The project is not ready for outside contributions yet. Issues are welcome once the first alpha is out.
