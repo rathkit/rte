@@ -8,6 +8,9 @@ export interface HeadlessEditor {
   readonly commands: Engine["commands"];
   readonly keymap: Engine["keymap"];
   readonly ui: Engine["ui"];
+  readonly snapshot: Engine["snapshot"];
+  readonly subscribe: Engine["subscribe"];
+  readonly select: Engine["select"];
   /** Puts the keyboard focus back in the editing surface. */
   focus(): void;
 }

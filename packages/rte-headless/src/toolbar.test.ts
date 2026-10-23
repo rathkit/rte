@@ -7,7 +7,7 @@ import { createToolbar } from "./toolbar.ts";
 const setup = (html: string) => {
   const engine: Engine = createEngine({ doc: importHtml(html), platform: "other", onWarning: () => undefined });
   engine.use(lists());
-  const editor = { commands: engine.commands, keymap: engine.keymap, ui: engine.ui, focus: () => undefined };
+  const editor = { commands: engine.commands, keymap: engine.keymap, ui: engine.ui, get snapshot() { return engine.snapshot; }, subscribe: engine.subscribe.bind(engine), select: engine.select.bind(engine), focus: () => undefined };
   return { engine, toolbar: createToolbar(editor) };
 };
 const tick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
