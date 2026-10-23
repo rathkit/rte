@@ -8,6 +8,8 @@ export interface MenuOptions {
   readonly menu: HTMLElement;
   /** Called with the item that was chosen. The menu closes and the focus returns to the trigger afterwards. */
   readonly onSelect: (item: HTMLElement) => void;
+  /** Called when the menu has just opened and is showing, so it can be put where it fits on the screen. */
+  readonly onOpen?: () => void;
 }
 
 export interface Menu extends Pick<Disclosure, "isOpen" | "open" | "close" | "toggle"> {
@@ -25,7 +27,7 @@ export function createMenu(options: MenuOptions): Menu {
 
   const disclosure = createDisclosure({
     trigger, popup: menu, kind: "menu",
-    onToggle: (open) => { if (open) queueMicrotask(() => focusAt(0)); },
+    onToggle: (open) => { if (open) { options.onOpen?.(); queueMicrotask(() => focusAt(0)); } },
   });
   // Items are roving: only the focused one is in the tab order, and a disabled one stays reachable.
   const sync = (): void => items().forEach((item) => { item.setAttribute("role", "menuitem"); item.tabIndex = -1; });

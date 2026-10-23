@@ -14,11 +14,15 @@ RTE is a rich text editor for the web. The core is written in TypeScript around 
 
 "Zero dependencies" is enforced, not just claimed. Every published package must have no `dependencies`, `optionalDependencies` or bundled dependencies, no install scripts, and only optional peer dependencies. CI fails if any of that changes.
 
+## What it does today
+
+Text with bold, italic, underline, strikethrough, code, super- and subscript, text and highlight colors, links and images; headings, paragraphs, block quotes, code blocks and rules; bulleted, numbered and definition lists; tables with merged cells, column widths and a header row; alignment and reading direction; find and replace; an HTML source view; word and character counts; paste cleaned up from word processors and spreadsheets. Every action is a named command (`docs/COMMANDS.md`), so toolbars, keys and scripts share one path.
+
 ## Packages
 
 | Package | State |
 | --- | --- |
-| `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, an engine with named commands, keys and a plugin host, a model-driven browser view, and the free standard plugins (lists, tables, word-processor lists, SVG, images) as separate entry points. Not published. See `docs/PLUGINS.md` |
+| `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, an engine with named commands, keys and a plugin host, a model-driven browser view, and the free standard plugins (lists, tables, find and replace, word-processor lists, SVG, images) as separate entry points. Not published. See `docs/PLUGINS.md` |
 | `@rathkit/rte-headless` | Early. How a toolbar behaves for keyboard and assistive technology (roving focus, ARIA state, focus kept in the editor) a live-region announcer, menus, popovers and dialogs, with no markup or CSS. Not published |
 | `@rathkit/rte-element` | Early. `<rk-editor>` and `<rk-toolbar>` custom elements: form-associated, with properties, attributes and events. Not published. See `docs/ELEMENT.md` |
 | `@rathkit/rte-ui` | Early. The styled interface: toolbar and link dialog on the headless layer, themeable by preset, tokens, icons, classes and messages. Not published. See `docs/UI.md` |

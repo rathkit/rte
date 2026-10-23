@@ -218,6 +218,14 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     host.append(trigger, popup);
     const menu = createMenu({
       trigger, menu: popup,
+      // Kept on the screen: a menu opened from a button near the right edge of a narrow window slides back in.
+      onOpen: () => {
+        popup.style.translate = "";
+        const box = popup.getBoundingClientRect();
+        const width = document.documentElement.clientWidth;
+        const dx = box.right > width - 4 ? width - 4 - box.right : box.left < 4 ? 4 - box.left : 0;
+        if (dx !== 0) popup.style.translate = `${Math.round(dx)}px`;
+      },
       onSelect: (entry) => {
         const id = entry.getAttribute("data-rk-menu-item") ?? "";
         const child = menuItems.get(id);

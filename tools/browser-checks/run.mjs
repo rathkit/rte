@@ -868,6 +868,40 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
+// --- a narrow screen (a phone): nothing sticks out sideways, menus and dialogs stay on the screen, and a tap leaves no tooltip behind
+for (const [name, type] of engines) {
+  const touch = name !== "firefox";
+  const t = await open(type, { viewport: { width: 390, height: 844 }, ...(touch ? { hasTouch: true } : {}) }, "", "ui");
+  const { page } = t;
+  const tap = (sel) => (touch ? page.tap(sel) : page.click(sel));
+  check(`${name} (narrow) the page does not scroll sideways`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]));
+  check(`${name} (narrow) the toolbar wraps onto more rows and every control is on the screen`, await page.evaluate(() => { const bar = document.querySelector("#root [data-rk-part=toolbar]"); const items = [...bar.querySelectorAll("[data-rk-item]")]; return bar.getBoundingClientRect().height > 80 && items.every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }); }), "toolbar");
+  check(`${name} (narrow) every control is at least 24px square (the smallest target WCAG allows)`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=toolbar] button[data-rk-item]")].every((b) => { const r = b.getBoundingClientRect(); return r.width >= 24 && r.height >= 24; })), "targets");
+  for (const id of ["text-color", "highlight", "symbols", "table", "find"]) {
+    if (id === "find") {
+      await tap('#root [data-rk-item="find"]');
+      await page.waitForTimeout(150);
+      check(`${name} (narrow) the find bar fits the screen`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=findbar] *")].every((e) => e.getBoundingClientRect().right <= innerWidth + 1)), "findbar");
+      break;
+    }
+    await tap(`#root [data-rk-item="${id}"]`);
+    await page.waitForTimeout(150);
+    check(`${name} (narrow) the ${id} menu opens inside the screen`, await page.evaluate((id) => { const m = document.querySelector(`#root [data-rk-item="${id}"] + [data-rk-part=menu]`).getBoundingClientRect(); return !document.querySelector(`#root [data-rk-item="${id}"] + [data-rk-part=menu]`).hidden && m.left >= 0 && m.right <= innerWidth; }, id), await page.evaluate((id) => JSON.stringify(document.querySelector(`#root [data-rk-item="${id}"] + [data-rk-part=menu]`).getBoundingClientRect()), id));
+    await page.keyboard.press("Escape");
+  }
+  await tap('#root [data-rk-item="image"]');
+  await page.waitForTimeout(150);
+  check(`${name} (narrow) a dialog fits the screen`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root dialog")].find((x) => x.open); const r = d.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }), "dialog");
+  await page.keyboard.press("Escape");
+  if (touch) {
+    await tap('#root [data-rk-item="bold"]');
+    await page.waitForTimeout(800);
+    check(`${name} (narrow) tapping a button leaves no tooltip over it`, await page.evaluate(() => document.querySelector("#root [data-rk-part=tooltip]").hidden), "tip");
+  }
+  check(`${name} (narrow) no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
 // --- input-method composition (Chromium, through the debugging protocol; a simulation, not a real input method)
 {
   const t = await open(chromium);

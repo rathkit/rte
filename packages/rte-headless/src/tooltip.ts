@@ -66,6 +66,8 @@ export function createTooltip(options: TooltipOptions): Tooltip {
   };
 
   const onOver = (e: MouseEvent): void => {
+    // Where there is nothing to hover with (a touch screen), a tap would leave a tip hanging; keyboard focus still shows it.
+    if (typeof matchMedia === "function" && matchMedia("(hover: none)").matches) return;
     const target = tipOf(e.target);
     if (!target || target === shown) { if (target && hideTimer) { clearTimeout(hideTimer); hideTimer = undefined; } return; }
     clear();
