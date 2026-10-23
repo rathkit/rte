@@ -13,6 +13,7 @@ import { importBlocks, importHtml } from "../import.ts";
 import type { Block, Doc, MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
 import { getContent, setContent, type Pos, type Selection } from "../path.ts";
+import { CellMarks, installColumnResize } from "./tableview.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
 export interface EditorOptions {
@@ -53,6 +54,7 @@ export class Editor {
     }
   });
   private readonly cleanups: (() => void)[] = [];
+  private readonly cellMarks: CellMarks;
 
   constructor(options: EditorOptions) {
     this.element = options.element;
@@ -64,6 +66,7 @@ export class Editor {
       beforeAccess: () => this.readSelection(),
       focus: () => this.element.focus(),
     });
+    this.cellMarks = new CellMarks(this.element, this.engine, () => this.observer.takeRecords());
     this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
     for (const plugin of options.plugins ?? []) this.engine.use(plugin);
     // The document is read once the plugins are in, so what they teach the importer applies to it.
@@ -78,7 +81,9 @@ export class Editor {
     this.cleanups.push(this.engine.onTransaction((_snapshot, _previous, change) => {
       if (change.docChanged) this.draw();
       else if (change.selectionChanged && !this.reading) this.writeSelection();
+      if (change.docChanged || change.selectionChanged) this.cellMarks.update();
     }));
+    installColumnResize(this.element, this.engine, (target, type, handler) => this.listen(target, type, handler), () => this.observer.takeRecords());
     this.listen(this.element, "focusin", () => this.engine.setFocused(true));
     this.listen(this.element, "focusout", () => this.engine.setFocused(false));
     this.listen(this.element, "beforeinput", (e) => this.onBeforeInput(e as InputEvent));

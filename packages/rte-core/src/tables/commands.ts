@@ -29,9 +29,10 @@ export function tableCommands(): readonly Def[] {
     }),
     def<void, never>({ name: "table.mergeCells", label: "Merge cells", run: (ctx) => ctx.apply("table", mergeCells), state: (s) => ({ enabled: canMerge(s.doc, s.selection) }) }),
     def<void, never>({ name: "table.splitCell", label: "Split cell", run: (ctx) => ctx.apply("table", splitCell), state: (s) => ({ enabled: canSplit(s.doc, s.selection.focus.path) }) }),
-    def<{ readonly width?: string | null } | undefined, string>({
+    def<{ readonly width?: string | null; readonly cell?: readonly number[]; readonly edge?: boolean } | undefined, string>({
       name: "table.columnWidth", label: "Column width",
-      run: (ctx, arg) => ctx.apply("table", (doc, sel) => setColumnWidth(doc, sel, arg?.width)),
+      // `cell` and `edge` are for a dragged column edge: the cell whose right edge it is, rather than the caret's cell.
+      run: (ctx, arg) => ctx.apply("table", (doc, sel) => setColumnWidth(doc, sel, arg?.width, arg?.cell as number[] | undefined, arg?.edge)),
       state: (s) => ({ enabled: here(s), value: columnWidth(s.doc, s.selection.focus.path) }),
     }),
     // Moving only: they leave the document alone unless the caret passes the last cell, where a row is added.

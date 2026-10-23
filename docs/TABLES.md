@@ -42,8 +42,17 @@ These rules are in the core, so they hold without the plugin:
 Typing in a cell draws that cell. The table, the other rows and the other cells keep their elements, so the browser has nothing to lay
 out again (typing in a 500-cell table: about 5 ms, against 15 before).
 
+## Selecting cells and resizing columns
+
+When a selection starts in one cell and ends in another cell of the same table, the view puts `data-rk-cell-selected` on every cell of the
+rectangle between them (taken out to whole cells, as Merge does), so a theme can show what Merge would act on. The styled interface tints
+those cells and outlines them. The marks are attributes on the drawn cells, not part of the document.
+
+A pointer on a cell's right edge shows a resize cursor. Dragging draws a guide line and, on release, runs `table.columnWidth` for the column
+that edge belongs to (the last column a spanning cell covers), so the width is one undo step. Double-clicking an edge puts the column back to
+automatic. Where the tables plugin is not installed, or the editor is read-only, edges do nothing. Touch input has not been tried.
+
 ## Not built
 
-- A rectangular highlight for a selection across cells. The browser highlights the text in reading order; Merge uses the rectangle between the two cells the selection starts and ends in.
-- Dragging a column edge to resize. Widths are set with the command or the Column width dialog.
-- Row heights, cell borders and background colors, and pasting a table into a cell range.
+- Row heights, cell borders and background colors, and pasting a table into a range of cells.
+- Selecting a rectangle of cells by dragging across them as cells (the selection is still text, and the rectangle is worked out from its two ends).

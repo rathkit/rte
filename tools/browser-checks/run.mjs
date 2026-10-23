@@ -150,6 +150,38 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Shift+ArrowRight");
   await page.keyboard.press("Backspace");
   check(`${name} a selection across two cells deletes in each without joining them`, (await html()) === "<p>x</p><table><tbody><tr><td></td><td>cd</td></tr></tbody></table><p>y</p>" || (await html()) === "<p>x</p><table><tbody><tr><td></td><td>d</td></tr></tbody></table><p>y</p>", await html());
+  // Cells a selection runs across are marked; a caret marks none.
+  await reset("<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>");
+  const marked = () => page.evaluate(() => document.querySelectorAll("#ed [data-rk-cell-selected]").length);
+  await page.evaluate(() => { const a = document.querySelector("#ed tr:nth-child(1) td:nth-child(1) p").firstChild; const d = document.querySelector("#ed tr:nth-child(2) td:nth-child(2) p").firstChild; window.__editor.selectDom(a, 1, d, 1); });
+  await page.waitForTimeout(60);
+  check(`${name} a selection across cells marks the rectangle of cells`, (await marked()) === 4, await marked());
+  await page.evaluate(() => { const a = document.querySelector("#ed tr:nth-child(1) td:nth-child(1) p").firstChild; const b = document.querySelector("#ed tr:nth-child(1) td:nth-child(2) p").firstChild; window.__editor.selectDom(a, 1, b, 1); });
+  await page.waitForTimeout(60);
+  check(`${name} and only the cells the selection runs across`, (await marked()) === 2, await marked());
+  await page.evaluate(() => { const a = document.querySelector("#ed tr:nth-child(1) td:nth-child(1) p").firstChild; window.__editor.selectDom(a, 1, a, 1); });
+  await page.waitForTimeout(60);
+  check(`${name} a caret marks none`, (await marked()) === 0, await marked());
+  check(`${name} marking cells leaves the document as it was`, (await html()) === "<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>", await html());
+  // Dragging a column edge sets the width; one undo step; a double-click puts it back to automatic.
+  const cellBox = () => page.evaluate(() => { const b = document.querySelector("#ed tr:nth-child(1) td:nth-child(1)").getBoundingClientRect(); return { right: b.right, top: b.top, mid: b.top + b.height / 2, width: b.width }; });
+  let box = await cellBox();
+  await page.mouse.move(box.right - 2, box.mid);
+  check(`${name} the pointer on a column edge shows the resize cursor`, (await page.evaluate(() => document.getElementById("ed").style.cursor)) === "col-resize", "cursor");
+  await page.mouse.down();
+  await page.mouse.move(box.right + 40, box.mid, { steps: 4 });
+  check(`${name} dragging shows a guide line`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === true, "line");
+  await page.mouse.up();
+  await page.waitForTimeout(60);
+  const wide = await cellBox();
+  check(`${name} letting go sets the column width`, /<col style="width: \d+px"><col>/.test(await html()) && Math.abs(wide.width - (box.width + 42)) < 8, { html: await html(), before: box.width, after: wide.width });
+  check(`${name} and the guide line is gone`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === false, "line");
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} one undo takes the width back`, !(await html()).includes("<colgroup>"), await html());
+  await page.evaluate(() => window.__editor.commands.run("table.columnWidth", { width: "150px" }));
+  box = await cellBox();
+  await page.mouse.dblclick(box.right - 2, box.mid);
+  check(`${name} double-clicking an edge puts the column back to automatic`, !(await html()).includes("<colgroup>"), await html());
   await page.evaluate(() => window.__editor.commands.run("table.deleteRow"));
   check(`${name} the delete row command removes the row`, !(await html()).includes("<tr><td>c</td>"), await html());
   await reset("<ul><li>a</li><li>b</li></ul>");
