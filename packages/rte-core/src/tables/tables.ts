@@ -1,7 +1,7 @@
 // Table editing: adding and removing rows and columns, the header row, moving between cells, and inserting a table. Pure functions over
 // the document, like the other edit operations. A cell can span rows and columns, so every change works on a grid of placed cells (each
 // cell with the row and column where it starts) and is turned back into rows afterwards.
-import type { Block, Doc, Table, TableCell } from "../model.ts";
+import { COLUMN_WIDTH, type Block, type Doc, type Table, type TableCell } from "../model.ts";
 import { caret, containerPaths, fixup, getBlock, mapBlockList, pathKey, type EditResult, type Path, type Selection } from "../path.ts";
 
 interface Placed {
@@ -13,6 +13,8 @@ interface Grid {
   readonly cells: readonly Placed[];
   readonly rows: number;
   readonly cols: number;
+  /** The width of each column, or null where it is automatic. */
+  readonly widths: readonly (string | null)[];
 }
 
 /** A cell at a grid position: where it starts, and its place in the table's rows (for building a path to it). */
@@ -40,13 +42,14 @@ function toGrid(table: Table): Grid {
       rows = Math.max(rows, r + cell.rowspan);
     }
   });
-  return { cells, rows, cols };
+  return { cells, rows, cols, widths: Array.from({ length: cols }, (_, i) => table.widths?.[i] ?? null) };
 }
 
 const inRow = (cells: readonly Placed[], row: number): Placed[] => cells.filter((p) => p.row === row).sort((a, b) => a.col - b.col);
 
 function fromGrid(grid: Grid): Table {
-  return { type: "table", rows: Array.from({ length: grid.rows }, (_, r) => inRow(grid.cells, r).map((p) => p.cell)) };
+  const rows = Array.from({ length: grid.rows }, (_, r) => inRow(grid.cells, r).map((p) => p.cell));
+  return grid.widths.some((w) => w !== null) ? { type: "table", rows, widths: grid.widths } : { type: "table", rows };
 }
 
 /** The innermost table around a container, and the cell the container is in. */
@@ -92,13 +95,14 @@ function replaceTable(doc: Doc, table: Path, next: Table | undefined): Doc {
 }
 
 /** Runs a change to the grid of the table at the caret and puts the caret in the cell at `target` (a grid position) afterwards. */
-function edit(doc: Doc, sel: Selection, change: (grid: Grid, at: Placed) => { grid: Grid; target: { row: number; col: number } } | undefined): EditResult {
+function edit(doc: Doc, sel: Selection, change: (grid: Grid, at: Placed) => { grid: Grid; target: { row: number; col: number } } | undefined, keepSelection = false): EditResult {
   const here = locate(doc, sel.focus.path);
   const table = here && getBlock(doc, here.table);
   if (!here || table?.type !== "table") return { doc, selection: sel };
   const changed = change(toGrid(table), here.placed);
   if (!changed) return { doc, selection: sel };
   const next = replaceTable(doc, here.table, fromGrid(changed.grid));
+  if (keepSelection) return { doc: next, selection: sel };
   const cell = cellCovering(changed.grid, changed.target.row, changed.target.col);
   const path = cell && firstContainerIn(next, here.table, cell.row, cell.index);
   return { doc: next, selection: path ? caret({ path, offset: 0 }) : sel };
@@ -111,7 +115,7 @@ function insertRowAt(grid: Grid, k: number): Grid {
   const cells: Placed[] = grid.cells.map((p) => (p.row >= k ? { ...p, row: p.row + 1 } : p.row + p.cell.rowspan > k ? { ...p, cell: { ...p.cell, rowspan: p.cell.rowspan + 1 } } : p));
   const covered = (col: number): boolean => grid.cells.some((p) => p.row < k && k < p.row + p.cell.rowspan && p.col <= col && col < p.col + p.cell.colspan);
   for (let col = 0; col < grid.cols; col++) if (!covered(col)) cells.push({ cell: blankCell(), row: k, col });
-  return { cells, rows: grid.rows + 1, cols: grid.cols };
+  return { ...grid, cells, rows: grid.rows + 1 };
 }
 
 export function insertRow(doc: Doc, sel: Selection, where: "before" | "after"): EditResult {
@@ -136,7 +140,7 @@ export function deleteRow(doc: Doc, sel: Selection): EditResult {
       } else if (p.row < r && r < p.row + p.cell.rowspan) cells.push({ ...p, cell: { ...p.cell, rowspan: p.cell.rowspan - 1 } });
       else cells.push(p.row > r ? { ...p, row: p.row - 1 } : p);
     }
-    return { grid: { cells, rows: grid.rows - 1, cols: grid.cols }, target: { row: Math.min(r, grid.rows - 2), col: at.col } };
+    return { grid: { ...grid, cells, rows: grid.rows - 1 }, target: { row: Math.min(r, grid.rows - 2), col: at.col } };
   });
 }
 
@@ -151,7 +155,7 @@ function insertColumnAt(grid: Grid, k: number): Grid {
     const rowCells = grid.cells.filter((p) => p.row === row);
     cells.push({ cell: blankCell(rowCells.length > 0 && rowCells.every((p) => p.cell.header)), row, col: k });
   }
-  return { cells, rows: grid.rows, cols: grid.cols + 1 };
+  return { ...grid, cells, cols: grid.cols + 1, widths: [...grid.widths.slice(0, k), null, ...grid.widths.slice(k)] };
 }
 
 export function insertColumn(doc: Doc, sel: Selection, where: "before" | "after"): EditResult {
@@ -175,7 +179,7 @@ export function deleteColumn(doc: Doc, sel: Selection): EditResult {
       if (reaches) cells.push({ ...p, cell: { ...p.cell, colspan: p.cell.colspan - 1 } });
       else cells.push(p.col > c ? { ...p, col: p.col - 1 } : p);
     }
-    return { grid: { cells, rows: grid.rows, cols: grid.cols - 1 }, target: { row: at.row, col: Math.min(c, grid.cols - 2) } };
+    return { grid: { ...grid, cells, cols: grid.cols - 1, widths: grid.widths.filter((_, i) => i !== c) }, target: { row: at.row, col: Math.min(c, grid.cols - 2) } };
   });
 }
 
@@ -292,6 +296,26 @@ export function toggleHeaderRow(doc: Doc, sel: Selection): EditResult {
     grid: { ...grid, cells: grid.cells.map((p) => (p.row === 0 ? { ...p, cell: { ...p.cell, header: on } } : p)) },
     target: { row: at.row, col: at.col },
   }));
+}
+
+// ---- column width -------------------------------------------------------------------------------------------
+
+/** The width of the column the caret's cell starts in, as a CSS length, or "" when it is automatic. */
+export function columnWidth(doc: Doc, path: Path): string {
+  const here = locate(doc, path);
+  const table = here && getBlock(doc, here.table);
+  return table?.type === "table" ? (toGrid(table).widths[here!.placed.col] ?? "") : "";
+}
+
+/**
+ * Sets the width of the column the caret's cell starts in: a number with `px` or `%` (a bare number is pixels), or nothing for automatic.
+ * Anything else changes nothing.
+ */
+export function setColumnWidth(doc: Doc, sel: Selection, width: string | null | undefined): EditResult {
+  const raw = (width ?? "").trim().toLowerCase();
+  const value = raw === "" ? null : /^\d+(\.\d+)?$/.test(raw) ? `${raw}px` : raw;
+  if (value !== null && !COLUMN_WIDTH.test(value)) return { doc, selection: sel };
+  return edit(doc, sel, (grid, at) => ({ grid: { ...grid, widths: grid.widths.map((w, i) => (i === at.col ? value : w)) }, target: { row: at.row, col: at.col } }), true);
 }
 
 /** A table of blank cells. */

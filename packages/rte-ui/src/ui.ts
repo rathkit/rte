@@ -170,7 +170,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
         popup.appendChild(rule);
         continue;
       }
-      if (child.kind !== "button" && child.kind !== "toggle") continue;
+      if (child.kind !== "button" && child.kind !== "toggle" && child.kind !== "dialog") continue;
       menuItems.set(child.id, child);
       const entry = part(document.createElement("button"), "menu-item");
       entry.type = "button";
@@ -187,6 +187,8 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       onSelect: (entry) => {
         const id = entry.getAttribute("data-rk-menu-item") ?? "";
         const child = menuItems.get(id);
+        // An entry that asks for something opens its dialog; focus comes back to the menu button when the dialog closes.
+        if (child?.kind === "dialog") { openDialog(child, trigger); return; }
         if (toolbar.activate(id) && child?.kind === "toggle") {
           const now = toolbar.state(id);
           announcer.announce(message(now?.pressed ? "toggle.on" : "toggle.off", "", { label: labelOf(child) }));
@@ -291,7 +293,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   // ---- dialogs -------------------------------------------------------------------------------------------------
   function syncDialogs(): void {
     for (const [id, d] of dialogs) {
-      const item = toolbar.items.find((i) => i.id === id);
+      const item = toolbar.items.find((i) => i.id === id) ?? menuItems.get(id);
       if (!item || item.kind !== "dialog") continue;
       d.title.textContent = labelOf(item);
       d.ok.textContent = message("dialog.ok");

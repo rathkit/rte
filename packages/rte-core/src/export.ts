@@ -65,7 +65,8 @@ function exportCell(cell: TableCell, scope: "col" | "row" | undefined): string {
 
 function exportTable(table: Table): string {
   const rows = table.rows.map((row, r) => `<tr>${row.map((cell, c) => exportCell(cell, r === 0 ? "col" : c === 0 ? "row" : undefined)).join("")}</tr>`);
-  return `<table><tbody>${rows.join("")}</tbody></table>`;
+  const cols = table.widths ? `<colgroup>${table.widths.map((w) => (w ? `<col style="width: ${w}">` : "<col>")).join("")}</colgroup>` : "";
+  return `<table>${cols}<tbody>${rows.join("")}</tbody></table>`;
 }
 
 export function exportBlock(block: Block): string {

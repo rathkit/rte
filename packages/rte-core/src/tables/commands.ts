@@ -2,7 +2,7 @@
 import type { CommandDef } from "../commands.ts";
 import type { EditorSnapshot } from "../engine.ts";
 import type { KeyBinding } from "../keymap.ts";
-import { canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
+import { columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, setColumnWidth, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -29,6 +29,11 @@ export function tableCommands(): readonly Def[] {
     }),
     def<void, never>({ name: "table.mergeCells", label: "Merge cells", run: (ctx) => ctx.apply("table", mergeCells), state: (s) => ({ enabled: canMerge(s.doc, s.selection) }) }),
     def<void, never>({ name: "table.splitCell", label: "Split cell", run: (ctx) => ctx.apply("table", splitCell), state: (s) => ({ enabled: canSplit(s.doc, s.selection.focus.path) }) }),
+    def<{ readonly width?: string | null } | undefined, string>({
+      name: "table.columnWidth", label: "Column width",
+      run: (ctx, arg) => ctx.apply("table", (doc, sel) => setColumnWidth(doc, sel, arg?.width)),
+      state: (s) => ({ enabled: here(s), value: columnWidth(s.doc, s.selection.focus.path) }),
+    }),
     // Moving only: they leave the document alone unless the caret passes the last cell, where a row is added.
     def<void, never>({
       name: "table.nextCell", label: "Next cell",

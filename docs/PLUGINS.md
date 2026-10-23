@@ -11,7 +11,7 @@ the styled one (see `HEADLESS.md`).
 | `@rathkit/rte-core` | Model, import and export, edit operations, the engine, commands, keys, the plugin host, paste | 17 KB |
 | `@rathkit/rte-core/dom` | The browser view (`Editor`) | 3.5 KB more |
 | `@rathkit/rte-core/lists` | Bulleted, numbered and definition lists: commands, Tab, Enter and Backspace in items, typed shortcuts | 3.5 KB |
-| `@rathkit/rte-core/tables` | Insert a table; add and remove rows and columns (merged cells grow and shrink correctly); header row; Tab and Shift+Tab between cells, and a new row past the last cell | 3.5 KB |
+| `@rathkit/rte-core/tables` | Insert a table; add and remove rows and columns; merge and split cells; column widths; header row; Tab and Shift+Tab between cells. See `TABLES.md` | 5 KB |
 | `@rathkit/rte-core/word` | Reads lists the way word processors write them | 1.1 KB |
 | `@rathkit/rte-core/svg` | The SVG cleaner; lets content carry SVG images once cleaned | 2.5 KB |
 | `@rathkit/rte-core/images` | The image policy: upload hook, inline limit, reports | 1.2 KB |

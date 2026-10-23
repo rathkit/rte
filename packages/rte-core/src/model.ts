@@ -67,7 +67,12 @@ export interface TableCell {
 export interface Table {
   readonly type: "table";
   readonly rows: readonly (readonly TableCell[])[];
+  /** The width of each column of the grid as a CSS length in `px` or `%`, or null for automatic. Absent when every column is automatic. */
+  readonly widths?: readonly (string | null)[];
 }
+
+/** A column width the model accepts: a plain number with `px` or `%`. Anything else is not a width. */
+export const COLUMN_WIDTH = /^\d{1,5}(\.\d{1,2})?(px|%)$/;
 export interface Quote {
   readonly type: "quote";
   readonly blocks: readonly Block[];

@@ -665,6 +665,17 @@ for (const [name, type] of engines) {
   await page.mouse.click(5, 5);
   await page.waitForTimeout(60);
   check(`${name} (ui) a click elsewhere closes the menu`, await page.evaluate((m) => document.querySelector(m).hidden, menu), "outside click");
+  // A menu entry that asks for something opens a dialog.
+  await page.click(trigger);
+  await page.waitForTimeout(80);
+  await page.click('#root [data-rk-menu-item="table-column-width"]');
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the column width entry opens a dialog with its field focused`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); return !!d && d.querySelector("[data-rk-part=dialog-title]").textContent === "Column width…" && document.activeElement === d.querySelector("[data-rk-part=field]"); }), await active());
+  await page.keyboard.type("30%");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+  check(`${name} (ui) submitting it sets the width of the column`, await page.evaluate(() => window.__one.editor.getHtml().includes('<col style="width: 30%">') || window.__one.editor.getHtml().includes("<col><col style=\"width: 30%\">")), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) and the column is drawn at that width`, await page.evaluate(() => { const col = document.querySelector("#root [data-rk-part=content] col"); return !!col && col.style.width === "30%"; }), "col");
   // Cleaning up.
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");

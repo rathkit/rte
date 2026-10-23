@@ -3,7 +3,7 @@
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import {
-  normalizeInline, type Align, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
+  COLUMN_WIDTH, normalizeInline, type Align, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 
@@ -554,7 +554,43 @@ function convertTable(el: HElement, ctx: Ctx, settings: Settings): Block {
     }
     if (cells.length > 0) rows.push(cells);
   }
-  return { type: "table", rows: padRows(rows) };
+  const padded = padRows(rows);
+  const widths = columnWidths(el, padded);
+  return widths ? { type: "table", rows: padded, widths } : { type: "table", rows: padded };
+}
+
+/** A width from an attribute or a style, in the forms the model accepts (a bare number is pixels). */
+function widthOf(el: HElement): string | null {
+  const raw = (parseStyle(el.attrs.style).get("width") ?? el.attrs.width ?? "").trim().toLowerCase();
+  const value = /^\d+(\.\d+)?$/.test(raw) ? `${raw}px` : raw;
+  return COLUMN_WIDTH.test(value) ? value : null;
+}
+
+/** Column widths from `<colgroup>`, else from the cells of the first row that span one column. Undefined when none is given. */
+function columnWidths(table: HElement, rows: readonly (readonly TableCell[])[]): string[] | undefined {
+  const cols = Math.max(0, ...rows.map((row) => row.reduce((sum, cell) => sum + cell.colspan, 0)));
+  const widths: (string | null)[] = [];
+  const visit = (nodes: readonly HNode[]): void => {
+    for (const n of nodes) {
+      if (n.type !== "el") continue;
+      if (n.tag === "colgroup") visit(n.children);
+      else if (n.tag === "col") {
+        const span = Math.min(Math.max(Number.parseInt(n.attrs.span ?? "1", 10) || 1, 1), 100);
+        for (let k = 0; k < span; k++) widths.push(widthOf(n));
+      }
+    }
+  };
+  visit(table.children);
+  if (widths.length === 0) {
+    // No column elements: the widths the first row's cells ask for, where each cell is one column wide.
+    const firstRow = [...table.children].flatMap((n) => (n.type === "el" && n.tag === "tr" ? [n] : n.type === "el" && /^(thead|tbody|tfoot)$/.test(n.tag) ? n.children.filter((c): c is HElement => c.type === "el" && c.tag === "tr") : []))[0];
+    if (firstRow) for (const cell of firstRow.children) if (cell.type === "el" && (cell.tag === "td" || cell.tag === "th")) {
+      const span = Math.max(Number.parseInt(cell.attrs.colspan ?? "1", 10) || 1, 1);
+      if (span === 1) widths.push(widthOf(cell)); else for (let k = 0; k < span; k++) widths.push(null);
+    }
+  }
+  const out = Array.from({ length: cols }, (_, i) => widths[i] ?? null);
+  return out.some((w) => w !== null) ? out as string[] : undefined;
 }
 
 /** Makes every row the same logical width, counting column spans and cells that rows above reach down into. */

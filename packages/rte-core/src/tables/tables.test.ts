@@ -193,3 +193,40 @@ test("merge needs a selection across cells of one table; with a caret it is off"
   two.setSelection({ anchor: { path: paths[0] as number[], offset: 0 }, focus: { path: paths[1] as number[], offset: 0 } });
   assert.equal(two.commands.state("table.mergeCells").enabled, false, "two different tables");
 });
+
+test("column widths are read from colgroup or the first row, only in forms the model accepts, and written back as a colgroup", () => {
+  const e = make(`<table><colgroup><col style="width: 30%"><col width="120"><col style="width: 9em"></colgroup><tbody><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>`);
+  assert.equal(html(e), `<table><colgroup><col style="width: 30%"><col style="width: 120px"><col></colgroup><tbody><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>`);
+  const fromCells = make(`<table><tbody><tr><td width="50">a</td><td style="width:40%">b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>`);
+  assert.equal(html(fromCells), `<table><colgroup><col style="width: 50px"><col style="width: 40%"></colgroup><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>`);
+  assert.equal(html(make(cells([["a"]]))), cells([["a"]]), "no colgroup when nothing sets a width");
+});
+
+test("the column width command sets, reports and clears the width of the caret's column, and keeps the caret where it is", () => {
+  const e = make(cells([["a", "b"], ["c", "d"]]));
+  inCell(e, 1, 1);
+  const before = e.selection;
+  assert.equal(e.commands.state("table.columnWidth").value, "");
+  assert.equal(e.commands.run("table.columnWidth", { width: "25%" }), true);
+  assert.equal(html(e), `<table><colgroup><col><col style="width: 25%"></colgroup><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>`);
+  assert.equal(e.commands.state("table.columnWidth").value, "25%");
+  assert.deepEqual(e.selection, before);
+  e.commands.run("table.columnWidth", { width: "80" });
+  assert.equal(e.commands.state("table.columnWidth").value, "80px", "a bare number is pixels");
+  assert.equal(e.commands.run("table.columnWidth", { width: "wide" }), false, "not a width");
+  assert.equal(e.commands.run("table.columnWidth", { width: "" }), true);
+  assert.equal(html(e), cells([["a", "b"], ["c", "d"]]), "automatic again, so no colgroup");
+});
+
+test("widths follow their columns when columns are added or removed", () => {
+  const e = make(cells([["a", "b"], ["c", "d"]]));
+  inCell(e, 0, 0);
+  e.commands.run("table.columnWidth", { width: "100px" });
+  e.commands.run("table.columnBefore");
+  assert.match(html(e), /<colgroup><col><col style="width: 100px"><col><\/colgroup>/);
+  e.commands.run("table.deleteColumn");
+  assert.match(html(e), /<colgroup><col style="width: 100px"><col><\/colgroup>/);
+  inCell(e, 0, 0);
+  e.commands.run("table.deleteColumn");
+  assert.equal(html(e), cells([["b"], ["d"]]), "the width went with its column");
+});

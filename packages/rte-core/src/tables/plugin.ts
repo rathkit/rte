@@ -26,6 +26,7 @@ export function tables(options: TablesOptions = {}): Plugin {
           { kind: "button", id: "table-column-before", command: "table.columnBefore" },
           { kind: "button", id: "table-column-after", command: "table.columnAfter" },
           { kind: "button", id: "table-column-delete", command: "table.deleteColumn" },
+          { kind: "dialog", id: "table-column-width", command: "table.columnWidth", label: "Column width…", fields: [{ name: "width", type: "text", label: "Width in px or % (empty for automatic)" }] },
           { kind: "separator", id: "table-sep-cells" },
           { kind: "button", id: "table-merge", command: "table.mergeCells" },
           { kind: "button", id: "table-split", command: "table.splitCell" },

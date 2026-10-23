@@ -130,6 +130,20 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
       }
       table ??= document.createElement("table");
       claimed?.add(table);
+      // Column widths: a colgroup in front of the body, present only when some column has a width.
+      let group = table.querySelector(":scope > colgroup");
+      if (block.widths) {
+        if (!group) table.insertBefore((group = document.createElement("colgroup")), table.firstChild);
+        // Only touched when a width changed: redrawing identical columns would make the browser lay the table out again.
+        const drawn = [...group.children].map((c) => (c as HTMLElement).style.width);
+        if (drawn.length !== block.widths.length || block.widths.some((w, i) => (w ?? "") !== drawn[i])) {
+          group.replaceChildren(...block.widths.map((w) => {
+            const col = document.createElement("col");
+            if (w) col.style.width = w;
+            return col;
+          }));
+        }
+      } else group?.remove();
       let body = table.querySelector(":scope > tbody") as HTMLElement | null;
       if (!body) table.appendChild((body = document.createElement("tbody")));
       const trs = block.rows.map((row, r) => {
