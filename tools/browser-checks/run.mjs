@@ -311,8 +311,29 @@ for (const [name, type] of engines) {
     run("pasteTop", () => at(2, 3), () => ed.paste({ text: "one\n\ntwo\n\nthree" }));
     return out;
   }, count);
+  // Moving the caret with every command's button subscribed (about twenty of them), as a toolbar would be.
+  const caretMoves = (count) => t.page.evaluate(async (n) => {
+    const ed = window.__editor;
+    ed.setHtml(Array.from({ length: n }, (_, i) => `<p>Paragraph ${i} has <strong>bold words</strong> and a <a href="https://example.com/${i}">link</a>.</p>`).join(""));
+    const names = ed.commands.list().map((c) => c.name);
+    let woken = 0;
+    for (const name of names) ed.commands.subscribe(name, () => { woken++; });
+    const times = [];
+    for (let i = 0; i < 20; i++) {
+      const s = performance.now();
+      ed.engine.setSelection({ anchor: { path: [100 + i * 7], offset: 3 }, focus: { path: [100 + i * 7], offset: 3 } });
+      await Promise.resolve();
+      await new Promise((resolve) => queueMicrotask(resolve));
+      times.push(performance.now() - s);
+    }
+    times.sort((a, b) => a - b);
+    return { p95: times[Math.ceil(times.length * 0.95) - 1], subscribed: names.length, woken };
+  }, count);
   for (const [label, rate] of [["", 1], [" (CPU 4x slower)", 4]]) {
     await client.send("Emulation.setCPUThrottlingRate", { rate });
+    const caret = await caretMoves(5000);
+    console.log(`speed${label} 5000 paragraphs, caret move with ${caret.subscribed} subscribed commands: p95 ${caret.p95.toFixed(2)} ms (${caret.woken} notifications)`);
+    if (rate === 1) check("speed: a caret move with every command subscribed, 5000 paragraphs, within 30 ms (p95)", caret.p95 <= 30, caret);
     for (const [n, commandBudget, setBudget] of [[1000, 10, 40], [5000, 30, Infinity]]) {
       const r = await measure(n);
       const worst = Math.max(r.typeMiddle, r.typeTop, r.enterTop, r.joinTop, r.pasteTop);
