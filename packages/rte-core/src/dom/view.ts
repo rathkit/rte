@@ -24,6 +24,7 @@ const INPUT_COMMANDS: Readonly<Record<string, readonly [string, unknown?]>> = {
   formatFontColor: ["format.color", "data"], formatBackColor: ["format.background", "data"],
   formatIndent: ["list.indent"], formatOutdent: ["list.outdent"],
   insertLink: ["link.set", "href"],
+  formatSetBlockTextDirection: ["block.direction", "data"],
 };
 
 export interface EditorOptions {

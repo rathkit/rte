@@ -1,5 +1,5 @@
 // The commands every editor has, and the keys that run them. Each one is a thin wrapper over a pure editing operation.
-import { alignAt, blockKindAt, inCodeBlock, inQuote, insertRule, setAlign, setBlockType, toggleCodeBlock, toggleQuote } from "./blocks.ts";
+import { alignAt, blockKindAt, directionAt, setDirection, inCodeBlock, inQuote, insertRule, setAlign, setBlockType, toggleCodeBlock, toggleQuote } from "./blocks.ts";
 import type { CommandDef } from "./commands.ts";
 import { marksAt, rangeHasMark, removeMarks, setMark, startOf, toggleMark } from "./edit.ts";
 import type { EditorSnapshot } from "./engine.ts";
@@ -139,6 +139,15 @@ export function coreCommands(): readonly Def[] {
       },
     }),
 
+    def<"ltr" | "rtl" | "" | undefined, string>({
+      name: "block.direction", label: "Text direction",
+      run: (ctx, dir) => ctx.apply("block", (doc, sel) => setDirection(doc, sel, dir === "ltr" || dir === "rtl" ? dir : undefined)),
+      state: (s) => {
+        const kind = blockKindAt(s.doc, s.selection);
+        return { enabled: kind?.type === "p" || kind?.type === "h", value: directionAt(s.doc, s.selection) ?? "" };
+      },
+    }),
+
     def<{ readonly href: string }, string>({
       name: "link.set", label: "Link",
       run: (ctx, arg) => ctx.apply("link", (doc, sel) => setLink(doc, sel, arg?.href)),
@@ -203,6 +212,9 @@ export const coreItems: readonly (readonly [UiSlot, UiItem])[] = [
   colorMenu("highlight", "Highlight", "format.background", "highlight", 2),
   ...(["left", "center", "right", "justify"] as const).map((align, i): readonly [UiSlot, UiItem] => ["toolbar.main", {
     kind: "toggle", id: `align-${align}`, command: "block.align", arg: align, icon: `align-${align}`, label: `Align ${align}`, group: "align", order: i,
+  }]),
+  ...(["ltr", "rtl"] as const).map((dir, i): readonly [UiSlot, UiItem] => ["toolbar.main", {
+    kind: "toggle", id: `direction-${dir}`, command: "block.direction", arg: dir, icon: `direction-${dir}`, label: dir === "ltr" ? "Left to right" : "Right to left", group: "direction", order: i,
   }]),
   ["toolbar.main", { kind: "dialog", id: "link", command: "link.set", label: "Link", icon: "link", group: "insert", order: 1, fields: [{ name: "href", type: "url", label: "Address", required: true }] }],
   ["toolbar.main", { kind: "button", id: "unlink", command: "link.remove", icon: "unlink", group: "insert", order: 2 }],

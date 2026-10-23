@@ -91,6 +91,7 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
     case "p": case "h": {
       const el = tag(block.type === "p" ? "p" : `h${block.level}`, path);
       if (block.align) el.style.textAlign = block.align;
+      if (block.dir) el.dir = block.dir;
       renderInline(el, block.content, options);
       return el;
     }

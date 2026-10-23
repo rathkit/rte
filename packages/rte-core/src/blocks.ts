@@ -1,5 +1,5 @@
 // Block-level commands that are not about lists: paragraph and heading type, and alignment.
-import { inlineText, type Align, type Block, type Doc, type Inline } from "./model.ts";
+import { inlineText, type Align, type Block, type Direction, type Doc, type Inline } from "./model.ts";
 import { caret, clampPos, containerPaths, fixup, getBlock, kindAt, mapBlockList, pathKey, selectedContainers, type EditResult, type Path, type Pos, type Selection } from "./path.ts";
 
 export type BlockKind = { readonly type: "p" } | { readonly type: "h"; readonly level: 1 | 2 | 3 | 4 | 5 | 6 };
@@ -48,9 +48,10 @@ export function setBlockType(doc: Doc, sel: Selection, kind: BlockKind): EditRes
       const content = textOf(block);
       if (!content) return blocks;
       const align = block.type === "p" || block.type === "h" ? block.align : undefined;
+      const dir = block.type === "p" || block.type === "h" ? block.dir : undefined;
       const replacement: Block = target.type === "p"
-        ? { type: "p", content, ...(align ? { align } : {}) }
-        : { type: "h", level: target.level, content, ...(align ? { align } : {}) };
+        ? { type: "p", content, ...(align ? { align } : {}), ...(dir ? { dir } : {}) }
+        : { type: "h", level: target.level, content, ...(align ? { align } : {}), ...(dir ? { dir } : {}) };
       return [...blocks.slice(0, index), replacement, ...blocks.slice(index + 1)];
     }));
   }
@@ -198,4 +199,34 @@ export function insertRule(doc: Doc, sel: Selection): EditResult {
   // The new paragraph is the next container after the one the caret was in (or, in place of an empty one, that very container).
   const target = paths[empty ? ordinal : ordinal + 1] ?? paths.at(-1) ?? [0];
   return { doc: next, selection: caret({ path: target, offset: 0 }) };
+}
+
+// ---- reading direction ------------------------------------------------------------------------------------
+
+/** The direction of the block where the selection starts. Undefined means it follows its surroundings. */
+export function directionAt(doc: Doc, sel: Selection): Direction | undefined {
+  const first = selectedContainers(doc, sel)[0];
+  const block = first ? getBlock(doc, first) : undefined;
+  return block?.type === "p" || block?.type === "h" ? block.dir : undefined;
+}
+
+/** Sets which way every selected paragraph and heading reads; undefined puts it back to following its surroundings. */
+export function setDirection(doc: Doc, sel: Selection, dir: Direction | undefined): EditResult {
+  const paths = retypable(doc, sel).filter((p) => {
+    const block = getBlock(doc, p);
+    return block?.type === "p" || block?.type === "h";
+  });
+  if (paths.length === 0) return { doc, selection: sel };
+  let next = doc;
+  for (const path of paths) {
+    next = mapBlockList(next, path, (blocks, index) => {
+      const block = blocks[index] as Block;
+      if (block.type !== "p" && block.type !== "h") return blocks;
+      const { dir: _old, ...rest } = block;
+      void _old;
+      const updated = (dir ? { ...rest, dir } : rest) as Block;
+      return [...blocks.slice(0, index), updated, ...blocks.slice(index + 1)];
+    });
+  }
+  return { doc: next, selection: sel };
 }

@@ -26,17 +26,21 @@ export interface Image {
 export type Inline = TextRun | LineBreak | Image;
 
 export type Align = "left" | "center" | "right" | "justify";
+/** Which way a block reads. Absent means it follows its surroundings. */
+export type Direction = "ltr" | "rtl";
 
 export interface Paragraph {
   readonly type: "p";
   readonly content: readonly Inline[];
   readonly align?: Align;
+  readonly dir?: Direction;
 }
 export interface Heading {
   readonly type: "h";
   readonly level: 1 | 2 | 3 | 4 | 5 | 6;
   readonly content: readonly Inline[];
   readonly align?: Align;
+  readonly dir?: Direction;
 }
 export interface ListItem {
   readonly content: readonly Inline[];

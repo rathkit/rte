@@ -44,6 +44,7 @@ export function exportInline(content: readonly Inline[]): string {
 }
 
 const alignAttr = (align: string | undefined): string => (align ? ` style="text-align: ${align};"` : "");
+const dirAttr = (dir: string | undefined): string => (dir ? ` dir="${dir}"` : "");
 
 const DEFAULT_MARKER = (type: "ul" | "ol", depth: number): string => (type === "ol" ? "decimal" : (["disc", "circle", "square"] as const)[Math.min(depth, 2)] as string);
 
@@ -59,7 +60,7 @@ function exportCell(cell: TableCell, scope: "col" | "row" | undefined): string {
   const tag = cell.header ? "th" : "td";
   const attrs = `${cell.header && scope ? ` scope="${scope}"` : ""}${cell.colspan > 1 ? ` colspan="${cell.colspan}"` : ""}${cell.rowspan > 1 ? ` rowspan="${cell.rowspan}"` : ""}`;
   const only = cell.blocks.length === 1 ? cell.blocks[0] : undefined;
-  const body = only?.type === "p" && !only.align ? exportInline(only.content) : cell.blocks.map(exportBlock).join("");
+  const body = only?.type === "p" && !only.align && !only.dir ? exportInline(only.content) : cell.blocks.map(exportBlock).join("");
   return `<${tag}${attrs}>${body}</${tag}>`;
 }
 
@@ -71,8 +72,8 @@ function exportTable(table: Table): string {
 
 export function exportBlock(block: Block): string {
   switch (block.type) {
-    case "p": return `<p${alignAttr(block.align)}>${exportInline(block.content)}</p>`;
-    case "h": return `<h${block.level}${alignAttr(block.align)}>${exportInline(block.content)}</h${block.level}>`;
+    case "p": return `<p${dirAttr(block.dir)}${alignAttr(block.align)}>${exportInline(block.content)}</p>`;
+    case "h": return `<h${block.level}${dirAttr(block.dir)}${alignAttr(block.align)}>${exportInline(block.content)}</h${block.level}>`;
     case "ul": case "ol": return exportList(block, 0);
     case "dl": return `<dl>${block.entries.map((entry) => { const tag = entry.kind === "term" ? "dt" : "dd"; return `<${tag}>${exportInline(entry.content)}</${tag}>`; }).join("")}</dl>`;
     case "table": return exportTable(block);

@@ -3,7 +3,7 @@
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import {
-  COLOR_VALUE, COLUMN_WIDTH, normalizeInline, type Align, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
+  COLOR_VALUE, COLUMN_WIDTH, normalizeInline, type Align, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 
@@ -229,6 +229,12 @@ function alignOf(el: HElement, settings: Settings): Align | undefined {
   return ALIGNS.has(value) && value !== "left" ? (value as Align) : undefined;
 }
 
+/** The reading direction an element declares with its `dir` attribute. (`auto` and anything else mean "not said".) */
+function dirOf(el: HElement): Direction | undefined {
+  const value = (el.attrs.dir ?? "").toLowerCase();
+  return value === "ltr" || value === "rtl" ? value : undefined;
+}
+
 interface MarkChange {
   readonly add: Mark[];
   /** Mark types the element explicitly turns off, such as `font-weight: normal` on a bold wrapper. */
@@ -378,7 +384,8 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       sink.flush();
       convertNodes(el.children, sink, ctx, settings);
       const align = alignOf(el, settings);
-      sink.flush((content) => ({ type: "p", content, ...(align ? { align } : {}) }), true);
+      const dir = dirOf(el);
+      sink.flush((content) => ({ type: "p", content, ...(align ? { align } : {}), ...(dir ? { dir } : {}) }), true);
       return;
     }
     case "h1": case "h2": case "h3": case "h4": case "h5": case "h6": {
@@ -386,7 +393,8 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       convertNodes(el.children, sink, ctx, settings);
       const level = Number(tag[1]) as 1 | 2 | 3 | 4 | 5 | 6;
       const align = alignOf(el, settings);
-      sink.flush((content) => ({ type: "h", level, content: withoutBold(content), ...(align ? { align } : {}) }), true);
+      const dir = dirOf(el);
+      sink.flush((content) => ({ type: "h", level, content: withoutBold(content), ...(align ? { align } : {}), ...(dir ? { dir } : {}) }), true);
       return;
     }
     case "ul": case "ol":

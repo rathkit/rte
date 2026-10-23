@@ -226,7 +226,7 @@ export function splitBlock(doc: Doc, sel: Selection, behaviors?: Behaviors): Edi
   const continueAsParagraph = kind === "h" && after.length === 0;
   const next = mapBlockList(setContent(d, pos.path, before), pos.path, (blocks, index) => {
     const current = blocks[index] as Block;
-    const second: Block = continueAsParagraph || current.type !== "h" ? { type: "p", content: after, ...(current.type === "p" && current.align ? { align: current.align } : {}) } : { ...current, content: after };
+    const second: Block = continueAsParagraph || current.type !== "h" ? { type: "p", content: after, ...(current.type === "p" && current.align ? { align: current.align } : {}), ...((current.type === "p" || current.type === "h") && current.dir ? { dir: current.dir } : {}) } : { ...current, content: after };
     return [...blocks.slice(0, index + 1), second, ...blocks.slice(index + 1)];
   });
   return { doc: next, selection: caret({ path: ordinalToPath(next, ordinal + 1), offset: 0 }) };

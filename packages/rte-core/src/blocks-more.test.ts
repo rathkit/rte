@@ -112,3 +112,30 @@ test("document.setHtml replaces the document as one undo step and reads the HTML
   const readOnly = createEngine({ doc: importHtml("<p>x</p>"), platform: "other", readOnly: true });
   assert.equal(readOnly.commands.run("document.setHtml", { html: "<p>y</p>" }), false);
 });
+
+test("text direction: read from dir, written back, set per paragraph and heading, kept when the block is retyped or split", () => {
+  const e = make('<p dir="rtl">مرحبا</p><h2 dir="LTR">Title</h2><p dir="auto">auto</p><p>plain</p>');
+  assert.equal(html(e), '<p dir="rtl">مرحبا</p><h2 dir="ltr">Title</h2><p>auto</p><p>plain</p>', "auto and absent are not said");
+  sel(e, [[3], 2]);
+  assert.equal(e.commands.state("block.direction").value, "");
+  e.commands.run("block.direction", "rtl");
+  assert.equal(html(e).endsWith('<p dir="rtl">plain</p>'), true);
+  assert.equal(e.commands.state("block.direction").value, "rtl");
+  e.commands.run("block.heading", 2);
+  assert.match(html(e), /<h2 dir="rtl">plain<\/h2>/, "retyping keeps the direction");
+  sel(e, [[3], 2]);
+  e.commands.run("block.direction", "ltr");
+  e.commands.run("block.direction", "");
+  assert.match(html(e), /<h2>plain<\/h2>/, "back to following its surroundings");
+  sel(e, [[0], 2]);
+  const split = make('<p dir="rtl">abcd</p>');
+  sel(split, [[0], 2]);
+  assert.equal(split.commands.run("block.direction", "bogus"), true, "an unknown value means no direction");
+  assert.equal(html(split), "<p>abcd</p>");
+});
+
+test("Enter in a right-to-left paragraph makes the next one right-to-left too", async () => {
+  const { splitBlock } = await import("./edit.ts");
+  const result = splitBlock(importHtml('<p dir="rtl" style="text-align: center;">abcd</p>'), caret({ path: [0], offset: 2 }));
+  assert.equal(exportHtml(result.doc), '<p dir="rtl" style="text-align: center;">ab</p><p dir="rtl" style="text-align: center;">cd</p>');
+});

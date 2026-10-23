@@ -18,6 +18,7 @@ changes the document is disabled.
 | `block.code` | | Code block on or off for the selected paragraphs and headings. Marks and alignment do not exist in code and are dropped |
 | `block.quote` | | Wraps the selected blocks (paragraphs, headings, code blocks, lists) in a quote, or takes them out of it |
 | `block.rule` | | A horizontal rule after the block (in place of an empty paragraph), with the caret in a paragraph after it |
+| `block.direction` | `ltr`, `rtl`, or `""` | Which way the selected paragraphs and headings read (the `dir` attribute); `""` puts them back to following their surroundings. `value` is the current one. Sets, does not toggle |
 | `block.align` | `left`, `center`, `right`, `justify` | Aligns the selected paragraphs and headings |
 | `document.setHtml` | `{ html }` | Replaces the whole document with this HTML as one undo step; it is read like anything pasted or loaded. The source view uses it |
 | `link.set`, `link.remove` | `{ href }` | Sets or removes the link on the selection or the link under the caret |

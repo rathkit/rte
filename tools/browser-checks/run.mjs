@@ -645,6 +645,15 @@ for (const [name, type] of engines) {
   check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
+  // Text direction.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>مرحبا</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 1, n, 1); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="direction-rtl"]');
+  await page.waitForTimeout(60);
+  check(`${name} (ui) the right-to-left button sets the paragraph's direction and shows as on`, await page.evaluate(() => window.__one.editor.getHtml() === '<p dir="rtl">مرحبا</p>' && document.querySelector("#root [data-rk-part=content] p").dir === "rtl" && document.querySelector('#root [data-rk-item="direction-rtl"]').getAttribute("aria-pressed") === "true" && document.querySelector('#root [data-rk-item="direction-ltr"]').getAttribute("aria-pressed") === "false"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="direction-rtl"]');
+  await page.waitForTimeout(60);
+  check(`${name} (ui) pressing it again does not toggle it off (it sets it); left to right sets that`, await page.evaluate(() => window.__one.editor.getHtml() === '<p dir="rtl">مرحبا</p>'), await page.evaluate(() => window.__one.editor.getHtml()));
   // The HTML source view.
   const src = '#root [data-rk-part="source"]';
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<h2>Title</h2><p>Some <strong>bold</strong> text</p>"); e.focus(); });
