@@ -16,7 +16,7 @@ const range = (a: number, b: number) => ({ anchor: { path: [0], offset: a }, foc
 test("items come in display order, each with a name, an icon and the key that runs it", () => {
   const { toolbar } = setup("<p>hello</p>");
   const ids = toolbar.items.map((i) => i.id);
-  assert.deepEqual(ids.slice(0, 5), ["undo", "redo", "block", "bold", "italic"]);
+  assert.deepEqual(ids.slice(0, 8), ["undo", "redo", "block", "quote", "code-block", "rule", "bold", "italic"]);
   const bold = toolbar.state("bold");
   assert.equal(bold?.label, "Bold");
   assert.equal(bold?.icon, "bold");
