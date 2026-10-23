@@ -149,6 +149,8 @@
   [data-rk-part="content"] a { color: var(--rk-accent); text-decoration: underline; text-underline-offset: 0.15em; }
   [data-rk-part="content"] hr { border: 0; border-top: var(--rk-border-width) solid var(--rk-border); margin: 1em 0; }
   [data-rk-part="content"] img { max-width: 100%; height: auto; }
+  /* An image from another site that the host has not allowed to load: a dashed box in its place, so it is plain that something is there. */
+  [data-rk-part="content"] img[data-rte-remote-src] { display: inline-block; min-width: 6em; min-height: 3em; vertical-align: middle; border: 2px dashed var(--rk-border); border-radius: var(--rk-radius-s); background: var(--rk-surface); }
   [data-rk-part="content"] table { border-collapse: collapse; margin: 0 0 0.75em; }
   [data-rk-part="content"] :is(td, th) { padding: var(--rk-space-1) var(--rk-space-2); border: var(--rk-border-width) solid var(--rk-border); vertical-align: top; min-width: 2em; }
   [data-rk-part="content"] :is(td, th) > p { margin: 0; }

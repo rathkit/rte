@@ -732,6 +732,24 @@ for (const [name, type] of engines) {
   await page.click('#root [data-rk-menu-item="text-color-none"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) Automatic takes the color away`, await page.evaluate(() => !window.__one.editor.getHtml().includes("color")), await page.evaluate(() => window.__one.editor.getHtml()));
+  // The image dialog: an address and a description; a bad address is refused with a message, a good one inserts the image without loading it.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 3, n, 3); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="image"]');
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the image dialog has an address field and a description field, and focus is in the first`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rk-part=field]")]; return !!d && f.length === 2 && d.querySelector("[data-rk-part=dialog-title]").textContent === "Image" && document.activeElement === f[0]; }), await active());
+  await page.keyboard.type("javascript:alert(1)");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(80);
+  check(`${name} (ui) a script address is not accepted`, await page.evaluate(() => !window.__one.editor.getHtml().includes("<img")), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("https://example.test/cat.png");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("A cat");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+  check(`${name} (ui) a good address inserts the image with its description`, await page.evaluate(() => window.__one.editor.getHtml() === '<p>one<img src="https://example.test/cat.png" alt="A cat"> two</p>'), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) and nothing was fetched: the image is held back until the host allows it`, t.outside.length === 0 && (await page.evaluate(() => document.querySelectorAll("#root img[data-rte-remote-src]").length)) === 1 && (await page.evaluate(() => document.querySelectorAll("#root img[src]").length)) === 0, t.outside);
   // A menu entry that asks for something opens a dialog.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
   await page.waitForTimeout(60);

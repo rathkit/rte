@@ -3,7 +3,7 @@
 // bytes of a file must match the type it claims. (SVG is cleaned by the svg plugin, if the editor has it.)
 import { encodeBase64 } from "../base64.ts";
 import { checkImageSrc } from "../import.ts";
-import type { Block } from "../model.ts";
+import type { Block, Inline } from "../model.ts";
 import type { FileLike, Plugin } from "../plugin.ts";
 import { collectImages, isDataImage, mapImages, readDataImage, rewriteImages } from "./images.ts";
 
@@ -88,6 +88,34 @@ export function images(options: ImagesOptions = {}): Plugin {
         const src = checkImageSrc(`data:${file.type};base64,${encodeBase64(new Uint8Array(await file.arrayBuffer()))}`);
         return src ? { type: "p", content: [{ type: "image", src }] } : reject("unsupported", file.type, file.size);
       };
+      // Inserting an image by address: the same check as anything that arrives by paste, so a script address or a bad data address is refused.
+      host.command({
+        name: "image.insert", label: "Image",
+        run: (ctx, arg: { readonly src?: string; readonly alt?: string } | undefined) => {
+          const src = typeof arg?.src === "string" ? host.ops.checkImageSrc(arg.src.trim(), undefined, sanitizeSvg()) : undefined;
+          if (!src) return false;
+          const alt = typeof arg?.alt === "string" && arg.alt.trim() !== "" ? arg.alt.trim() : undefined;
+          const image: Inline = { type: "image", src, ...(alt !== undefined ? { alt } : {}) };
+          const { ops } = host;
+          return ctx.apply("image", (doc, sel) => {
+            if (ops.kindAt(doc, ops.isCollapsed(sel) ? sel.focus.path : sel.anchor.path) === "pre") return { doc, selection: sel };
+            const cleared = ops.deleteSelection(doc, sel);
+            const pos = cleared.selection.anchor;
+            if (ops.kindAt(cleared.doc, pos.path) === "pre") return { doc, selection: sel };
+            const content = ops.getContent(cleared.doc, pos.path);
+            const next = ops.normalizeInline([...ops.sliceInline(content, 0, pos.offset), image, ...ops.sliceInline(content, pos.offset)]);
+            return { doc: ops.setContent(cleared.doc, pos.path, next), selection: ops.caret({ path: pos.path, offset: pos.offset + 1 }) };
+          });
+        },
+        state: (snap) => ({ enabled: host.ops.kindAt(snap.doc, snap.selection.focus.path) !== "pre" }),
+      });
+      host.ui("toolbar.main", {
+        kind: "dialog", id: "image", command: "image.insert", label: "Image", icon: "image", group: "insert", order: 3,
+        fields: [
+          { name: "src", type: "url", label: "Address", required: true },
+          { name: "alt", type: "text", label: "Description for people who cannot see the image" },
+        ],
+      });
       host.fileHandler(async (files) => {
         const blocks = (await Promise.all(files.map(imageFromFile))).filter((b): b is Block => b !== undefined);
         return blocks.length > 0 ? blocks : undefined;

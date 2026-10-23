@@ -111,3 +111,33 @@ test("removing the plugin takes its hooks away", () => {
   remove();
   assert.equal(e.pasteTransforms.length + e.fileHandlers.length, 0);
 });
+
+test("image.insert puts an image at the caret, replaces a selection, takes a description, and refuses what the paste check refuses", async () => {
+  const { importHtml } = await import("../import.ts");
+  const { caret } = await import("../path.ts");
+  const engine = setup();
+  engine.setDocument(importHtml("<p>one two</p>"));
+  engine.setSelection(caret({ path: [0], offset: 3 }));
+  assert.equal(engine.commands.run("image.insert", { src: "https://example.test/a.png", alt: "  A cat " }), true);
+  assert.equal(exportHtml(engine.document), '<p>one<img src="https://example.test/a.png" alt="A cat"> two</p>');
+  assert.deepEqual(engine.selection.focus, { path: [0], offset: 4 }, "the caret is after the image");
+  engine.setSelection({ anchor: { path: [0], offset: 5 }, focus: { path: [0], offset: 8 } });
+  engine.commands.run("image.insert", { src: "https://example.test/b.png" });
+  assert.equal(exportHtml(engine.document), '<p>one<img src="https://example.test/a.png" alt="A cat"> <img src="https://example.test/b.png"></p>');
+  for (const bad of ["javascript:alert(1)", "", "data:text/html;base64,PHA+", "  "]) {
+    assert.equal(engine.commands.run("image.insert", { src: bad }), false, bad);
+  }
+  assert.equal(engine.commands.run("image.insert", {}), false);
+  engine.undo();
+  assert.match(exportHtml(engine.document), /a\.png.* two/);
+});
+
+test("image.insert is off in a code block", async () => {
+  const { importHtml } = await import("../import.ts");
+  const { caret } = await import("../path.ts");
+  const engine = setup();
+  engine.setDocument(importHtml("<pre>code</pre>"));
+  engine.setSelection(caret({ path: [0], offset: 2 }));
+  assert.equal(engine.commands.state("image.insert").enabled, false);
+  assert.equal(engine.commands.run("image.insert", { src: "https://example.test/a.png" }), false);
+});

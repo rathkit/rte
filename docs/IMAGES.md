@@ -34,3 +34,10 @@ Embedding an image as base64 makes it a third larger and puts it in every save. 
 - `maxImageFileBytes` (20 MB by default) is the largest file the editor will read at all.
 
 The editor ships no upload service. The function is the host's.
+
+## Inserting by address
+
+`image.insert` (`{ src, alt }`, and an Image button with a dialog in the styled interface) puts an image at the caret, replacing any selection.
+The address goes through the same check as a pasted image: scripts, malformed data addresses and anything else the paste check refuses
+are refused, and nothing changes. It is off in a code block. An address on another site is kept but not loaded unless the host passes
+`loadRemoteImages: true`; the styled interface draws a dashed box in its place.
