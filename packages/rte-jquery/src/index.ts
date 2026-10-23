@@ -1,0 +1,71 @@
+// $(selector).rkEditor(options) for pages that use jQuery. The work is done by <rk-editor>; this only makes it reachable the jQuery way.
+// jQuery is not imported: pass it to `install`, or let `install()` find the global one.
+import type { Editor } from "@rathkit/rte-core/dom";
+import type { RkEditor, RkEditorOptions } from "@rathkit/rte-element";
+
+export interface RkJqueryOptions extends RkEditorOptions {
+  /** The starting HTML. */
+  html?: string;
+  readOnly?: boolean;
+  /** The name screen readers announce for the editing surface. */
+  label: string;
+}
+
+interface JQueryLike {
+  fn: Record<string, unknown>;
+}
+interface Collection {
+  each(fn: (this: HTMLElement) => void): Collection;
+  length: number;
+  [index: number]: HTMLElement | undefined;
+}
+
+const KEY = "rkEditor";
+
+/**
+ * Adds `.rkEditor()` to jQuery:
+ * - `$(el).rkEditor({ label, html, ... })` turns the element into an editor, once;
+ * - `$(el).rkEditor("html")` reads the HTML of the first element, `$(el).rkEditor("html", "<p>x</p>")` replaces it;
+ * - `$(el).rkEditor("editor")` gives the editor of the first element (a promise, because it is built when the element connects);
+ * - `$(el).rkEditor("destroy")` removes it.
+ * Changes arrive as `rk:change` events with the HTML as the second argument to the handler.
+ */
+export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQueryLike }).jQuery): void {
+  $.fn[KEY] = function (this: Collection, arg?: string | RkJqueryOptions, value?: string): unknown {
+    if (typeof arg === "string") {
+      const first = this[0] as RkEditor | undefined;
+      switch (arg) {
+        case "html":
+          if (value === undefined) return first?.value;
+          this.each(function () { (this as RkEditor).value = value; });
+          return this;
+        case "editor":
+          return first?.whenReady() as Promise<Editor> | undefined;
+        case "destroy":
+          this.each(function () { (this as HTMLElement & { __rk?: HTMLElement }).__rk?.remove(); delete (this as { __rk?: HTMLElement }).__rk; });
+          return this;
+        default:
+          throw new Error(`rkEditor: unknown method "${arg}"`);
+      }
+    }
+    const options = arg as RkJqueryOptions;
+    return this.each(function () {
+      const host = this as HTMLElement & { __rk?: RkEditor };
+      if (host.__rk) return;
+      const { html, readOnly, label, ...rest } = options;
+      const el = document.createElement("rk-editor") as RkEditor;
+      el.setAttribute("label", label);
+      if (html !== undefined) el.setAttribute("value", html);
+      if (readOnly) el.setAttribute("readonly", "");
+      el.options = rest;
+      el.addEventListener("rk-change", (event) => {
+        const detail = (event as CustomEvent<{ html: string }>).detail;
+        const jq = (globalThis as unknown as { jQuery?: (el: Element) => { trigger(name: string, data: unknown[]): void } }).jQuery;
+        if (jq) jq(host).trigger("rk:change", [detail.html]);
+        else host.dispatchEvent(new CustomEvent("rk:change", { bubbles: true, detail }));
+      });
+      host.__rk = el;
+      host.appendChild(el);
+    });
+  };
+}

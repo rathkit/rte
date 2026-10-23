@@ -25,8 +25,11 @@ RTE is a rich text editor for the web. The core is written in TypeScript around 
 | `@rathkit/rte-themes` | Early. Preset themes (light, dark, auto, high contrast) and density as token files, with tests for contrast. Not published |
 | `@rathkit/rte-icons` | Early. The icon set, one SVG string each. Not published |
 | `@rathkit/rte-react` | Early. `RteEditor`, `useRteEditor`, and the hooks `useCommand` and `useSelector`, over the headless layer; a component re-renders only when the value it reads changes. Not published |
+| `@rathkit/rte-vue` | Early. `RteEditor` and the composables `useCommand` and `useSelector`, over the headless layer. Not published |
+| `@rathkit/rte-svelte` | Early. Stores (`command`, `selector`) and the `use:rteEditor` action. Needs nothing from Svelte itself. Not published |
+| `@rathkit/rte-jquery` | Early. `$(el).rkEditor(options)` over the custom element, with `rk:change` events. Not published |
 
-More packages (the Vue, Svelte, Angular and jQuery wrappers, server) will appear here as they are built.
+More packages (the Angular wrapper, server) will appear here as they are built.
 
 ## Development
 

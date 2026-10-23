@@ -195,7 +195,25 @@ importers:
 
   packages/rte-icons: {}
 
+  packages/rte-jquery:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+      '@rathkit/rte-element':
+        specifier: workspace:*
+        version: link:../rte-element
+
   packages/rte-react:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+      '@rathkit/rte-headless':
+        specifier: workspace:*
+        version: link:../rte-headless
+
+  packages/rte-svelte:
     devDependencies:
       '@rathkit/rte-core':
         specifier: workspace:*
@@ -220,6 +238,15 @@ importers:
       '@rathkit/rte-themes':
         specifier: workspace:*
         version: link:../rte-themes
+
+  packages/rte-vue:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+      '@rathkit/rte-headless':
+        specifier: workspace:*
+        version: link:../rte-headless
 
 packages:
 
