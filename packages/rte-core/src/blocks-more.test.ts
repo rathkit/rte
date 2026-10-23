@@ -139,3 +139,35 @@ test("Enter in a right-to-left paragraph makes the next one right-to-left too", 
   const result = splitBlock(importHtml('<p dir="rtl" style="text-align: center;">abcd</p>'), caret({ path: [0], offset: 2 }));
   assert.equal(exportHtml(result.doc), '<p dir="rtl" style="text-align: center;">ab</p><p dir="rtl" style="text-align: center;">cd</p>');
 });
+
+test("indent: read from margins in the units word processors use, written as steps of 2em, moved by the commands up to a limit", () => {
+  const e = make('<p style="margin-left: 0.5in">a</p><p style="margin-left: 36pt">b</p><p style="margin-left: 40px">c</p><p style="margin-left: 8px">d</p><p dir="rtl" style="margin-right: 64px">e</p><p style="margin-right: 64px">f</p>');
+  assert.equal(html(e), '<p style="margin-left: 4em;">a</p><p style="margin-left: 4em;">b</p><p style="margin-left: 2em;">c</p><p>d</p><p dir="rtl" style="margin-right: 4em;">e</p><p>f</p>', "a start margin only; under a step is none; a right-to-left block indents from the right");
+  const p = make("<p>one</p>");
+  sel(p, [[0], 1]);
+  assert.equal(p.commands.state("block.outdent").enabled, false, "nothing to take back");
+  for (let i = 0; i < 12; i++) p.commands.run("block.indent");
+  assert.equal(html(p), '<p style="margin-left: 16em;">one</p>', "stops at eight steps");
+  assert.equal(p.commands.state("block.indent").enabled, false);
+  p.commands.run("block.outdent");
+  assert.equal(p.commands.state("block.indent").value, 7);
+  const aligned = make('<h2 style="text-align: center">t</h2>');
+  sel(aligned, [[0], 0]);
+  aligned.commands.run("block.indent");
+  assert.equal(html(aligned), '<h2 style="text-align: center; margin-left: 2em;">t</h2>');
+  aligned.commands.run("block.heading", 0);
+  assert.match(html(aligned), /<p style="text-align: center; margin-left: 2em;">t<\/p>/, "retyping keeps it");
+});
+
+test("indent: Enter keeps it, and in a list the same commands move the item", async () => {
+  const { splitBlock } = await import("./edit.ts");
+  const result = splitBlock(importHtml('<p style="margin-left: 4em">abcd</p>'), caret({ path: [0], offset: 2 }));
+  assert.equal(exportHtml(result.doc), '<p style="margin-left: 4em;">ab</p><p style="margin-left: 4em;">cd</p>');
+  const list = make("<ul><li>one</li><li>two</li></ul>");
+  sel(list, [[0, 1], 0]);
+  assert.equal(list.commands.state("block.indent").enabled, true);
+  list.commands.run("block.indent");
+  assert.equal(html(list), "<ul><li>one<ul><li>two</li></ul></li></ul>");
+  list.commands.run("block.outdent");
+  assert.equal(html(list), "<ul><li>one</li><li>two</li></ul>");
+});

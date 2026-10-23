@@ -3,7 +3,7 @@
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import {
-  COLOR_VALUE, COLUMN_WIDTH, normalizeInline, type Align, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
+  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, normalizeInline, type Align, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 
@@ -229,6 +229,32 @@ function alignOf(el: HElement, settings: Settings): Align | undefined {
   return ALIGNS.has(value) && value !== "left" ? (value as Align) : undefined;
 }
 
+/** A length in pixels, for the units word processors write indents in. NaN for anything else. */
+function lengthToPx(value: string): number {
+  const m = /^(-?\d*\.?\d+)(px|pt|in|cm|mm|em|rem|pc)?$/.exec(value.trim().toLowerCase());
+  if (!m) return Number.NaN;
+  const n = Number(m[1]);
+  switch (m[2]) {
+    case "pt": return (n * 96) / 72;
+    case "in": return n * 96;
+    case "cm": return (n * 96) / 2.54;
+    case "mm": return (n * 96) / 25.4;
+    case "pc": return n * 16;
+    case "em": case "rem": return n * 16;
+    default: return n;
+  }
+}
+
+/** How far in a block is moved from its start edge, in steps of 2em (32px): from `margin-left`, or `margin-right` for a right-to-left block. */
+function indentOf(el: HElement, settings: Settings): number | undefined {
+  if (!settings.allowStyles) return undefined;
+  const style = parseStyle(el.attrs.style);
+  const value = style.get(dirOf(el) === "rtl" ? "margin-right" : "margin-left") ?? style.get("padding-left");
+  if (!value) return undefined;
+  const steps = Math.round(lengthToPx(value) / 32);
+  return Number.isFinite(steps) && steps >= 1 ? Math.min(steps, MAX_INDENT) : undefined;
+}
+
 /** The reading direction an element declares with its `dir` attribute. (`auto` and anything else mean "not said".) */
 function dirOf(el: HElement): Direction | undefined {
   const value = (el.attrs.dir ?? "").toLowerCase();
@@ -385,7 +411,8 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       convertNodes(el.children, sink, ctx, settings);
       const align = alignOf(el, settings);
       const dir = dirOf(el);
-      sink.flush((content) => ({ type: "p", content, ...(align ? { align } : {}), ...(dir ? { dir } : {}) }), true);
+      const indent = indentOf(el, settings);
+      sink.flush((content) => ({ type: "p", content, ...(align ? { align } : {}), ...(dir ? { dir } : {}), ...(indent ? { indent } : {}) }), true);
       return;
     }
     case "h1": case "h2": case "h3": case "h4": case "h5": case "h6": {
@@ -394,7 +421,8 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       const level = Number(tag[1]) as 1 | 2 | 3 | 4 | 5 | 6;
       const align = alignOf(el, settings);
       const dir = dirOf(el);
-      sink.flush((content) => ({ type: "h", level, content: withoutBold(content), ...(align ? { align } : {}), ...(dir ? { dir } : {}) }), true);
+      const indent = indentOf(el, settings);
+      sink.flush((content) => ({ type: "h", level, content: withoutBold(content), ...(align ? { align } : {}), ...(dir ? { dir } : {}), ...(indent ? { indent } : {}) }), true);
       return;
     }
     case "ul": case "ol":

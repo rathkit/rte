@@ -1,5 +1,5 @@
 // Block-level commands that are not about lists: paragraph and heading type, and alignment.
-import { inlineText, type Align, type Block, type Direction, type Doc, type Inline } from "./model.ts";
+import { inlineText, MAX_INDENT, type Align, type Block, type Direction, type Doc, type Inline } from "./model.ts";
 import { caret, clampPos, containerPaths, fixup, getBlock, kindAt, mapBlockList, pathKey, selectedContainers, type EditResult, type Path, type Pos, type Selection } from "./path.ts";
 
 export type BlockKind = { readonly type: "p" } | { readonly type: "h"; readonly level: 1 | 2 | 3 | 4 | 5 | 6 };
@@ -49,9 +49,10 @@ export function setBlockType(doc: Doc, sel: Selection, kind: BlockKind): EditRes
       if (!content) return blocks;
       const align = block.type === "p" || block.type === "h" ? block.align : undefined;
       const dir = block.type === "p" || block.type === "h" ? block.dir : undefined;
+      const indent = block.type === "p" || block.type === "h" ? block.indent : undefined;
       const replacement: Block = target.type === "p"
-        ? { type: "p", content, ...(align ? { align } : {}), ...(dir ? { dir } : {}) }
-        : { type: "h", level: target.level, content, ...(align ? { align } : {}), ...(dir ? { dir } : {}) };
+        ? { type: "p", content, ...(align ? { align } : {}), ...(dir ? { dir } : {}), ...(indent ? { indent } : {}) }
+        : { type: "h", level: target.level, content, ...(align ? { align } : {}), ...(dir ? { dir } : {}), ...(indent ? { indent } : {}) };
       return [...blocks.slice(0, index), replacement, ...blocks.slice(index + 1)];
     }));
   }
@@ -226,6 +227,36 @@ export function setDirection(doc: Doc, sel: Selection, dir: Direction | undefine
       void _old;
       const updated = (dir ? { ...rest, dir } : rest) as Block;
       return [...blocks.slice(0, index), updated, ...blocks.slice(index + 1)];
+    });
+  }
+  return { doc: next, selection: sel };
+}
+
+// ---- indent -----------------------------------------------------------------------------------------------
+
+/** How far in the block where the selection starts is moved, in steps (0 for not at all). */
+export function indentAt(doc: Doc, sel: Selection): number {
+  const first = selectedContainers(doc, sel)[0];
+  const block = first ? getBlock(doc, first) : undefined;
+  return block?.type === "p" || block?.type === "h" ? (block.indent ?? 0) : 0;
+}
+
+/** Moves every selected paragraph and heading in (or out, with a negative step) by whole steps, between none and the most. */
+export function changeIndent(doc: Doc, sel: Selection, step: number): EditResult {
+  const paths = retypable(doc, sel).filter((p) => {
+    const block = getBlock(doc, p);
+    return block?.type === "p" || block?.type === "h";
+  });
+  let next = doc;
+  for (const path of paths) {
+    next = mapBlockList(next, path, (blocks, index) => {
+      const block = blocks[index] as Block;
+      if (block.type !== "p" && block.type !== "h") return blocks;
+      const level = Math.max(0, Math.min(MAX_INDENT, (block.indent ?? 0) + step));
+      if (level === (block.indent ?? 0)) return blocks;
+      const { indent: _old, ...rest } = block;
+      void _old;
+      return [...blocks.slice(0, index), (level > 0 ? { ...rest, indent: level } : rest) as Block, ...blocks.slice(index + 1)];
     });
   }
   return { doc: next, selection: sel };

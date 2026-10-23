@@ -1,12 +1,12 @@
 // The commands every editor has, and the keys that run them. Each one is a thin wrapper over a pure editing operation.
-import { alignAt, blockKindAt, directionAt, setDirection, inCodeBlock, inQuote, insertRule, setAlign, setBlockType, toggleCodeBlock, toggleQuote } from "./blocks.ts";
+import { alignAt, blockKindAt, changeIndent, indentAt, directionAt, setDirection, inCodeBlock, inQuote, insertRule, setAlign, setBlockType, toggleCodeBlock, toggleQuote } from "./blocks.ts";
 import type { CommandDef } from "./commands.ts";
 import { insertText, marksAt, rangeHasMark, removeMarks, setMark, startOf, toggleMark } from "./edit.ts";
 import type { EditorSnapshot } from "./engine.ts";
 import type { KeyBinding } from "./keymap.ts";
 import type { UiItem, UiSlot } from "./ui.ts";
 import { linkAt, setLink } from "./links.ts";
-import { COLOR_VALUE, type Align, type Mark, type MarkType } from "./model.ts";
+import { COLOR_VALUE, MAX_INDENT, type Align, type Mark, type MarkType } from "./model.ts";
 import { caret, comparePath, getContent, isCollapsed } from "./path.ts";
 
 type Def = CommandDef<never, unknown>;
@@ -148,6 +148,20 @@ export function coreCommands(): readonly Def[] {
       },
     }),
 
+    // In a list this is the list's own indent (a plugin's); anywhere else a paragraph or heading moves in or out by a step.
+    ...([["block.indent", "Indent", 1], ["block.outdent", "Outdent", -1]] as const).map(([name, label, step]) => def<void, number>({
+      name, label,
+      run: (ctx) => {
+        const kind = blockKindAt(ctx.snapshot.doc, ctx.snapshot.selection)?.type;
+        if (kind === "li" || kind === "dt" || kind === "dd") return ctx.run(step > 0 ? "list.indent" : "list.outdent");
+        return ctx.apply("block", (doc, sel) => changeIndent(doc, sel, step));
+      },
+      state: (s) => {
+        const kind = blockKindAt(s.doc, s.selection)?.type;
+        const level = indentAt(s.doc, s.selection);
+        return { enabled: kind === "li" || kind === "dt" || kind === "dd" || ((kind === "p" || kind === "h") && (step > 0 ? level < MAX_INDENT : level > 0)), value: level };
+      },
+    })),
     def<"ltr" | "rtl" | "" | undefined, string>({
       name: "block.direction", label: "Text direction",
       run: (ctx, dir) => ctx.apply("block", (doc, sel) => setDirection(doc, sel, dir === "ltr" || dir === "rtl" ? dir : undefined)),
@@ -237,6 +251,8 @@ export const coreItems: readonly (readonly [UiSlot, UiItem])[] = [
     kind: "menu", id: "symbols", label: "Special characters", icon: "symbols", group: "insert", order: 6,
     items: SYMBOLS.map(([name, char]): UiItem => ({ kind: "button", id: `symbol-${name.toLowerCase().replace(/[^a-z]+/g, "-")}`, command: "text.insert", arg: { text: char }, label: char === "\u00a0" ? name : `${char}  ${name}` })),
   }],
+  ["toolbar.main", { kind: "button", id: "outdent", command: "block.outdent", icon: "outdent", group: "direction", order: 2 }],
+  ["toolbar.main", { kind: "button", id: "indent", command: "block.indent", icon: "indent", group: "direction", order: 3 }],
   ["toolbar.main", { kind: "dialog", id: "link", command: "link.set", label: "Link", icon: "link", group: "insert", order: 1, fields: [{ name: "href", type: "url", label: "Address", required: true }] }],
   ["toolbar.main", { kind: "button", id: "unlink", command: "link.remove", icon: "unlink", group: "insert", order: 2 }],
 ];

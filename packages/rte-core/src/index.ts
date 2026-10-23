@@ -13,7 +13,7 @@ export { CommandRegistry, type CommandContext, type CommandDef, type CommandStat
 export { Keymap, detectPlatform, type KeyBinding, type KeyEventLike, type Platform } from "./keymap.ts";
 export { PLUGIN_API_VERSION, satisfiesApi, type EditorHandle, type Plugin, type PluginHost } from "./plugin.ts";
 export { ops, type Ops } from "./ops.ts";
-export { alignAt, blockKindAt, directionAt, setDirection, setAlign, setBlockType, type BlockKind } from "./blocks.ts";
+export { alignAt, blockKindAt, changeIndent, indentAt, directionAt, setDirection, setAlign, setBlockType, type BlockKind } from "./blocks.ts";
 export { linkAt, setLink } from "./links.ts";
 export { countDocument, countSelection, countText, type Counts } from "./stats.ts";
 export { inCodeBlock, inQuote, insertRule, toggleCodeBlock, toggleQuote } from "./blocks.ts";

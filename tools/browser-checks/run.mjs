@@ -660,6 +660,16 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Escape");
   await page.waitForTimeout(80);
   check(`${name} (ui) Escape closes it and focus goes back to its button`, await page.evaluate(() => ![...document.querySelectorAll("#root dialog")].some((x) => x.open) && document.activeElement === document.querySelector('#root [data-rk-item="shortcuts"]')), await active());
+  // Indent.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>indent me</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 2, n, 2); });
+  await page.waitForTimeout(60);
+  check(`${name} (ui) outdent is off until something is indented`, (await page.getAttribute('#root [data-rk-item="outdent"]', "aria-disabled")) === "true", "outdent");
+  await page.click('#root [data-rk-item="indent"]');
+  await page.waitForTimeout(60);
+  check(`${name} (ui) the indent button moves the paragraph in by a step and draws it so`, await page.evaluate(() => window.__one.editor.getHtml() === '<p style="margin-left: 2em;">indent me</p>' && document.querySelector("#root [data-rk-part=content] p").style.marginLeft === "2em"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="outdent"]');
+  await page.waitForTimeout(60);
+  check(`${name} (ui) and outdent takes it back`, await page.evaluate(() => window.__one.editor.getHtml() === "<p>indent me</p>"), await page.evaluate(() => window.__one.editor.getHtml()));
   // Text direction.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>مرحبا</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 1, n, 1); });
   await page.waitForTimeout(60);

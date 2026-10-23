@@ -22,7 +22,7 @@ const INPUT_COMMANDS: Readonly<Record<string, readonly [string, unknown?]>> = {
   formatJustifyLeft: ["block.align", "left"], formatJustifyCenter: ["block.align", "center"], formatJustifyRight: ["block.align", "right"], formatJustifyFull: ["block.align", "justify"],
   insertHorizontalRule: ["block.rule"], formatRemove: ["format.clear"],
   formatFontColor: ["format.color", "data"], formatBackColor: ["format.background", "data"],
-  formatIndent: ["list.indent"], formatOutdent: ["list.outdent"],
+  formatIndent: ["block.indent"], formatOutdent: ["block.outdent"],
   insertLink: ["link.set", "href"],
   formatSetBlockTextDirection: ["block.direction", "data"],
 };

@@ -37,7 +37,7 @@ test("the editor offers its own items, plugins add theirs, and removing a plugin
   assert.ok(ids().includes("bold") && ids().includes("block") && ids().includes("link"));
   assert.ok(!ids().includes("list-bulleted"));
   const remove = e.use(lists());
-  assert.ok(ids().includes("list-bulleted") && ids().includes("list-indent"));
+  assert.ok(ids().includes("list-bulleted") && ids().includes("indent"));
   remove();
   assert.ok(!ids().includes("list-bulleted"));
   // Every item that names a command names one that exists.

@@ -26,6 +26,8 @@ export interface Image {
 export type Inline = TextRun | LineBreak | Image;
 
 export type Align = "left" | "center" | "right" | "justify";
+/** The most a block can be indented, in steps. */
+export const MAX_INDENT = 8;
 /** Which way a block reads. Absent means it follows its surroundings. */
 export type Direction = "ltr" | "rtl";
 
@@ -34,6 +36,8 @@ export interface Paragraph {
   readonly content: readonly Inline[];
   readonly align?: Align;
   readonly dir?: Direction;
+  /** How far the block is moved in from its start edge: whole steps of 2em, 1 to 8. Absent means not at all. */
+  readonly indent?: number;
 }
 export interface Heading {
   readonly type: "h";
@@ -41,6 +45,8 @@ export interface Heading {
   readonly content: readonly Inline[];
   readonly align?: Align;
   readonly dir?: Direction;
+  /** How far the block is moved in from its start edge: whole steps of 2em, 1 to 8. Absent means not at all. */
+  readonly indent?: number;
 }
 export interface ListItem {
   readonly content: readonly Inline[];

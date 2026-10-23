@@ -24,6 +24,8 @@ export interface CommandContext {
   redo(): boolean;
   /** Chooses the marks for the text typed next at the caret. False when a range is selected or the editor is read-only. */
   setStoredMarks(marks: readonly Mark[]): boolean;
+  /** Runs another command (one that falls back to a plugin's, say). False if there is none or it does nothing. */
+  run(name: string, arg?: unknown): boolean;
   /** Reads HTML the way the editor does (with what its plugins taught the importer). */
   parseHtml(html: string): Doc;
   /** Keeps a plugin's own state with the editor (read it from `snapshot.plugins[id]`). Not an undo step. */
@@ -105,6 +107,7 @@ export class CommandRegistry {
       setStoredMarks: (marks) => engine.setStoredMarks(marks),
       setPluginState: (id, value) => engine.setPluginState(id, value),
       parseHtml: (html) => importHtml(html, engine.importOptions),
+      run: (other, otherArg) => this.run(other, otherArg),
       undo: () => engine.undo(),
       redo: () => engine.redo(),
       focus: () => engine.requestFocus(),

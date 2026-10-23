@@ -92,6 +92,7 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
       const el = tag(block.type === "p" ? "p" : `h${block.level}`, path);
       if (block.align) el.style.textAlign = block.align;
       if (block.dir) el.dir = block.dir;
+      if (block.indent) el.style[block.dir === "rtl" ? "marginRight" : "marginLeft"] = `${block.indent * 2}em`;
       renderInline(el, block.content, options);
       return el;
     }

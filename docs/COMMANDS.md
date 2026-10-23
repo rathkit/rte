@@ -18,6 +18,7 @@ changes the document is disabled.
 | `block.code` | | Code block on or off for the selected paragraphs and headings. Marks and alignment do not exist in code and are dropped |
 | `block.quote` | | Wraps the selected blocks (paragraphs, headings, code blocks, lists) in a quote, or takes them out of it |
 | `block.rule` | | A horizontal rule after the block (in place of an empty paragraph), with the caret in a paragraph after it |
+| `block.indent`, `block.outdent` | | Moves the selected paragraphs and headings in or out by a step of 2em, up to 8 steps (from the right for a right-to-left block). In a list they are `list.indent` and `list.outdent`. `value` is the current step. Read from `margin-left` (or `margin-right` for right-to-left) in px, pt, in, cm, mm or em, rounded to steps |
 | `block.direction` | `ltr`, `rtl`, or `""` | Which way the selected paragraphs and headings read (the `dir` attribute); `""` puts them back to following their surroundings. `value` is the current one. Sets, does not toggle |
 | `block.align` | `left`, `center`, `right`, `justify` | Aligns the selected paragraphs and headings |
 | `text.insert` | `{ text }` | Types the text at the caret, in place of a selection (a symbol from the Special characters menu). Control characters are refused |
