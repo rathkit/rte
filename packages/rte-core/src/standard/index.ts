@@ -5,12 +5,15 @@ import { images, type ImagesOptions } from "../images/plugin.ts";
 import { lists, type ListsOptions } from "../lists/plugin.ts";
 import type { Plugin } from "../plugin.ts";
 import { svg } from "../svg/plugin.ts";
+import { tables, type TablesOptions } from "../tables/plugin.ts";
 import { word } from "../word/plugin.ts";
 
 /** Which standard plugins to use, and how. */
 export interface StandardPluginOptions extends ImagesOptions {
   /** Options for lists, or `false` to leave lists out. */
   readonly lists?: ListsOptions | false;
+  /** Options for tables, or `false` to leave tables out. */
+  readonly tables?: TablesOptions | false;
   /** More plugins, added after the standard ones. */
   readonly plugins?: readonly Plugin[];
 }
@@ -22,6 +25,7 @@ export function standardPlugins(options: StandardPluginOptions = {}): Plugin[] {
   const { uploadImage, maxInlineImageBytes, maxImageFileBytes, onImageRejected } = options;
   return [
     ...(options.lists === false ? [] : [lists(options.lists)]),
+    ...(options.tables === false ? [] : [tables(options.tables)]),
     word(),
     svg(),
     images({
@@ -35,8 +39,8 @@ export function standardPlugins(options: StandardPluginOptions = {}): Plugin[] {
 }
 
 export function createEditor(options: StandardOptions): Editor {
-  const { lists: _lists, plugins: _plugins, uploadImage: _u, maxInlineImageBytes: _m, maxImageFileBytes: _f, onImageRejected: _r, ...editorOptions } = options;
-  void [_lists, _plugins, _u, _m, _f, _r];
+  const { lists: _lists, tables: _tables, plugins: _plugins, uploadImage: _u, maxInlineImageBytes: _m, maxImageFileBytes: _f, onImageRejected: _r, ...editorOptions } = options;
+  void [_lists, _tables, _plugins, _u, _m, _f, _r];
   return new Editor({ ...editorOptions, plugins: standardPlugins(options) });
 }
 

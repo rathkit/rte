@@ -23,6 +23,10 @@
       "types": "./dist/lists/index.d.ts",
       "default": "./dist/lists/index.js"
     },
+    "./tables": {
+      "types": "./dist/tables/index.d.ts",
+      "default": "./dist/tables/index.js"
+    },
     "./word": {
       "types": "./dist/word/index.d.ts",
       "default": "./dist/word/index.js"
@@ -48,6 +52,7 @@
   "rathkit": {
     "plugins": [
       "lists",
+      "tables",
       "word",
       "svg",
       "images"
@@ -69,6 +74,12 @@
       {
         "name": "lists plugin",
         "entry": "dist/lists/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "tables plugin",
+        "entry": "dist/tables/index.js",
         "gzipKB": 15,
         "plugin": true
       },

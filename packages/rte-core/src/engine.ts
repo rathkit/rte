@@ -290,8 +290,8 @@ export class Engine {
 
   /** Runs the command bound to a key event. True when a command ran and changed something, so the event should be stopped. */
   handleKey(event: KeyEventLike): boolean {
-    const binding = this.keymap.find(event);
-    return binding ? this.commands.run(binding.command, binding.arg) : false;
+    for (const binding of this.keymap.findAll(event)) if (this.commands.run(binding.command, binding.arg)) return true;
+    return false;
   }
 
   /**

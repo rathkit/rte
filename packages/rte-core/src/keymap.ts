@@ -5,6 +5,11 @@ export interface KeyBinding {
   readonly key: string;
   readonly command: string;
   readonly arg?: unknown;
+  /**
+   * The chord may be shared. Bindings that all say so are tried in the order they were added, until one of their commands does something;
+   * Tab is shared this way by lists and tables.
+   */
+  readonly stack?: boolean;
 }
 
 export interface KeyEventLike {
@@ -66,6 +71,10 @@ export class Keymap {
     const chord = this.normalize(binding.key);
     const taken = this.bindings.find((b) => this.normalize(b.key) === chord);
     if (taken) {
+      if (taken.stack && binding.stack) {
+        this.bindings.push(binding);
+        return;
+      }
       if (taken.command !== binding.command) this.warn(`Key ${binding.key} (from ${source}) is already bound to ${taken.command}; ${binding.command} was not bound.`);
       return;
     }
@@ -110,6 +119,12 @@ export class Keymap {
     const order = ["Meta", "Control", "Alt", "Shift"];
     const mods = parts.map((m) => (m === "Ctrl" ? "Control" : m)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
     return [...mods, label].join("+");
+  }
+
+  /** Every binding for the chord of an event, in the order added: more than one only when they share it. */
+  findAll(event: KeyEventLike): KeyBinding[] {
+    const chord = this.chordOf(event);
+    return this.bindings.filter((b) => this.normalize(b.key) === chord);
   }
 
   find(event: KeyEventLike): KeyBinding | undefined {

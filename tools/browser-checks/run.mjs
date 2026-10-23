@@ -120,6 +120,22 @@ for (const [name, type] of engines) {
   await reset("");
   await page.keyboard.type("2. ");
   check(`${name} "2. " is just text`, (await html()) === "<p>2.&nbsp;</p>" || (await html()) === "<p>2. </p>", await html());
+  // --- tables: Tab between cells, a row added past the last cell, and the commands
+  await reset("<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>");
+  await page.click("td");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("X");
+  check(`${name} Tab moves to the next cell`, (await html()).startsWith("<table><tbody><tr><td>a</td><td>Xb</td></tr>"), await html());
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.type("Y");
+  check(`${name} Tab past the last cell adds a row`, (await html()) === "<table><tbody><tr><td>a</td><td>Xb</td></tr><tr><td>c</td><td>d</td></tr><tr><td>Y</td><td></td></tr></tbody></table><p></p>" || (await html()).includes("<tr><td>Y</td><td></td></tr>"), await html());
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.type("Z");
+  check(`${name} Shift+Tab goes back`, (await html()).includes("<tr><td>c</td><td>dZ</td></tr>") || (await html()).includes("<tr><td>c</td><td>Zd</td></tr>"), await html());
+  await page.evaluate(() => window.__editor.commands.run("table.deleteRow"));
+  check(`${name} the delete row command removes the row`, !(await html()).includes("<tr><td>c</td>"), await html());
   await reset("<ul><li>a</li><li>b</li></ul>");
   await select({ start: "li:nth-child(2)", so: 1, eo: 1 });
   await page.keyboard.press("Enter");

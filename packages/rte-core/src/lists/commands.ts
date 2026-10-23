@@ -48,6 +48,6 @@ export function listCommands(maxDepth: number): readonly Def[] {
 }
 
 export const listKeys: readonly KeyBinding[] = [
-  { key: "Tab", command: "list.indent" },
-  { key: "Shift-Tab", command: "list.outdent" },
+  { key: "Tab", command: "list.indent", stack: true },
+  { key: "Shift-Tab", command: "list.outdent", stack: true },
 ];
