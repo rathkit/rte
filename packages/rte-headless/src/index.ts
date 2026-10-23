@@ -2,4 +2,7 @@
 // markup or CSS of its own. Whoever draws the interface (the styled one, or a custom one) draws the elements; this makes them behave.
 export { createToolbar, type BindOptions, type ItemState, type Toolbar, type ToolbarOptions } from "./toolbar.ts";
 export { createAnnouncer, type Announcer } from "./announcer.ts";
+export { createDisclosure, type Disclosure, type DisclosureOptions } from "./disclosure.ts";
+export { createMenu, type Menu, type MenuOptions } from "./menu.ts";
+export { checkFields, createDialog, type Dialog, type DialogOptions, type FormCheck } from "./dialog.ts";
 export type { HeadlessEditor, Unsubscribe } from "./types.ts";

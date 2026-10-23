@@ -19,7 +19,7 @@ RTE is a rich text editor for the web. The core is written in TypeScript around 
 | Package | State |
 | --- | --- |
 | `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, an engine with named commands, keys and a plugin host, a model-driven browser view, and the free standard plugins (lists, word-processor lists, SVG, images) as separate entry points. Not published. See `docs/PLUGINS.md` |
-| `@rathkit/rte-headless` | Early. How a toolbar behaves for keyboard and assistive technology (roving focus, ARIA state, focus kept in the editor) and a live-region announcer, with no markup or CSS. Menus, popovers and dialogs are next. Not published |
+| `@rathkit/rte-headless` | Early. How a toolbar behaves for keyboard and assistive technology (roving focus, ARIA state, focus kept in the editor) a live-region announcer, menus, popovers and dialogs, with no markup or CSS. Not published |
 
 More packages (the styled interface, themes, icons, framework wrappers, server) will appear here as they are built.
 

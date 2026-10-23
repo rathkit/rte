@@ -4,9 +4,24 @@
 <!-- A deliberately bare consumer of the headless layer: no styles, no icons, just elements drawn from the items. -->
 <div id="bar"></div>
 <div id="ed"></div>
+<button id="more" type="button">More</button>
+<div id="more-menu">
+  <button type="button" data-rk-menuitem id="mi-a">Alpha</button>
+  <button type="button" data-rk-menuitem id="mi-b" aria-disabled="true">Beta</button>
+  <button type="button" data-rk-menuitem id="mi-c">Charlie</button>
+</div>
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <h2 id="dlg-title">Link</h2>
+  <form id="dlg-form">
+    <input name="href" aria-label="Address"><span data-rk-error="href"></span>
+    <button type="submit" id="dlg-ok">OK</button><button type="button" id="dlg-cancel">Cancel</button>
+  </form>
+</dialog>
+<button id="plain-open" type="button">Open plain</button>
+<div id="plain" aria-label="Plain" hidden><button type="button" id="p1">One</button><button type="button" id="p2">Two</button><button type="button" id="p3">Three</button></div>
 <script type="module">
 import { createEditor } from "/dist/standard/index.js";
-import { createAnnouncer, createToolbar } from "/headless/dist/index.js";
+import { checkFields, createAnnouncer, createDialog, createMenu, createToolbar } from "/headless/dist/index.js";
 
 const editor = createEditor({ element: document.getElementById("ed") });
 const toolbar = createToolbar(editor, { label: "Formatting" });
@@ -21,9 +36,24 @@ for (const item of toolbar.items) {
   } else el.type = "button"; // no text: the toolbar must name icon-only controls itself
   bar.appendChild(el);
 }
-window.__opened = [];
-toolbar.bind(bar, { onOpen: (item) => window.__opened.push(item.id) });
 const announcer = createAnnouncer();
-window.__demo = { editor, toolbar, announcer };
+window.__opened = [];
+window.__chosen = [];
+window.__closed = [];
+createMenu({ trigger: document.getElementById("more"), menu: document.getElementById("more-menu"), onSelect: (item) => window.__chosen.push(item.id) });
+let opener = null;
+const dialog = createDialog({ dialog: document.getElementById("dlg"), editor, get opener() { return opener; }, onClose: (r) => window.__closed.push(r) });
+const fields = [{ name: "href", type: "url", label: "Address", required: true }];
+document.getElementById("dlg-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const check = checkFields(e.currentTarget, fields, {}, (m) => announcer.announce(m));
+  if (check.ok) dialog.close("submit");
+});
+document.getElementById("dlg-cancel").addEventListener("click", () => dialog.close("cancel"));
+toolbar.bind(bar, { onOpen: (item, control) => { window.__opened.push(item.id); if (item.kind === "dialog") { opener = control; dialog.open(); } } });
+const plainOpen = document.getElementById("plain-open");
+const plain = createDialog({ dialog: document.getElementById("plain"), opener: plainOpen, editor, warn: (m) => (window.__warned = m), onClose: (r) => window.__closed.push("plain:" + r) });
+plainOpen.addEventListener("click", () => plain.open());
+window.__demo = { editor, toolbar, announcer, dialog, plain };
 window.__demoReady = true;
 </script>

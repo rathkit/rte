@@ -151,13 +151,17 @@ export class Editor {
     this.observer.disconnect();
   }
 
-  focus(): void { this.element.focus(); }
+  /** Puts the keyboard focus in the editor and the caret or selection back where the editor has it. */
+  focus(): void {
+    this.element.focus();
+    this.writeSelection();
+  }
 
   /** Sets the selection from two DOM points (used by hosts and tests). */
   selectDom(anchorNode: Node, anchorOffset: number, focusNode: Node, focusOffset: number): void {
     const domSel = document.getSelection();
     domSel?.setBaseAndExtent(anchorNode, anchorOffset, focusNode, focusOffset);
-    this.readSelection();
+    this.readSelection(true);
   }
 
   selectAll(): void {
@@ -225,7 +229,12 @@ export class Editor {
     this.engine.setSelection({ anchor: clampPos(this.engine.document, sel.anchor), focus: clampPos(this.engine.document, sel.focus) });
   }
 
-  private readSelection(): void {
+  /**
+   * Brings the editor's selection up to date from the page. Only while the editor has the focus: when focus is somewhere else (a dialog,
+   * a toolbar button) the page's selection is not the editor's business, and the editor keeps the selection it had.
+   */
+  private readSelection(force = false): void {
+    if (!force && !this.element.contains(document.activeElement)) return;
     const domSel = document.getSelection();
     if (!domSel || domSel.rangeCount === 0 || !domSel.anchorNode || !domSel.focusNode) return;
     if (!this.element.contains(domSel.anchorNode) || !this.element.contains(domSel.focusNode)) return;

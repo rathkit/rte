@@ -2,7 +2,8 @@
 
 Status: PROPOSAL, with the owner's decisions of 2026-10-22 applied (see "Decisions" at the end). Built so far (2026-10-23): the engine,
 commands, key map and plugin host; the interface-item registry (`engine.ui`, in the core, filled by the editor and by plugins);
-and `@rathkit/rte-headless` with the toolbar behavior and the announcer. Not built yet: menu, popover and dialog behavior, the
+and `@rathkit/rte-headless` with the toolbar behavior, the announcer, disclosure/menu behavior (arrows, type-ahead, Escape, dismissal) and
+the dialog behavior (native `<dialog>` or a focus-trapped fallback, field checks that link errors by `aria-describedby`). Not built yet: the
 styled interface, themes, icons and the framework wrappers. The item descriptors live in the core, not in `rte-headless`, so that
 a plugin can add items without depending on a user-interface package. Basis: the repo as it stands (`rte-core` model, edit, import, export, paste, `dom/view.ts`, `dom/render.ts`; `docs/DISTRIBUTION.md`), plus general web-platform and accessibility standards.
 

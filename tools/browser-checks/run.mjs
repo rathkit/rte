@@ -338,6 +338,9 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(60);
   await page.click("#rk-link");
   check(`${name} (headless) a dialog item asks the page to open its dialog`, JSON.stringify(await page.evaluate(() => window.__opened)) === '["link"]', await page.evaluate(() => window.__opened));
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(60);
+  await page.evaluate(() => { window.__closed.length = 0; });
   // The announcer is a polite live region, and says the same message twice.
   await page.evaluate(() => window.__demo.announcer.announce("Bold on"));
   await page.waitForTimeout(150);
@@ -346,6 +349,66 @@ for (const [name, type] of engines) {
   await page.evaluate(() => window.__demo.announcer.announce("Bold on"));
   const cleared = await page.evaluate(() => document.querySelector("[role=status]").textContent);
   check(`${name} (headless) a repeated message is cleared first, so it is said again`, cleared === "", cleared);
+  // --- menu
+  const attr = (sel, a) => page.evaluate(([s, n]) => document.querySelector(s)?.getAttribute(n), [sel, a]);
+  const hidden = (sel) => page.evaluate((s) => document.querySelector(s).hidden, sel);
+  check(`${name} (headless) a menu button says what it opens`, (await attr("#more", "aria-haspopup")) === "menu" && (await attr("#more", "aria-expanded")) === "false" && (await attr("#more", "aria-controls")) === "more-menu" && (await hidden("#more-menu")), "closed menu");
+  await page.click("#more");
+  await page.waitForTimeout(40);
+  check(`${name} (headless) clicking it opens the menu and focuses the first item`, (await attr("#more", "aria-expanded")) === "true" && (await active()) === "mi-a" && (await attr("#more-menu", "role")) === "menu" && (await attr("#mi-a", "role")) === "menuitem", await active());
+  const walk = async (keys) => { const seen = []; for (const k of keys) { await page.keyboard.press(k); seen.push(await active()); } return seen; };
+  check(`${name} (headless) arrows move through the items, a disabled one stays reachable, and the ends wrap`, JSON.stringify(await walk(["ArrowDown", "ArrowDown", "ArrowDown", "ArrowUp", "Home", "End"])) === JSON.stringify(["mi-b", "mi-c", "mi-a", "mi-c", "mi-a", "mi-c"]), "walk");
+  await page.keyboard.press("Home");
+  await page.keyboard.press("c");
+  check(`${name} (headless) typing a letter jumps to the item that starts with it`, (await active()) === "mi-c", await active());
+  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  check(`${name} (headless) a disabled item cannot be chosen`, (await attr("#more", "aria-expanded")) === "true" && (await page.evaluate(() => window.__chosen.length)) === 0, "disabled");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  check(`${name} (headless) choosing an item reports it, closes the menu and returns to the button`, JSON.stringify(await page.evaluate(() => window.__chosen)) === '["mi-c"]' && (await attr("#more", "aria-expanded")) === "false" && (await active()) === "more", [await page.evaluate(() => window.__chosen), await active()]);
+  await page.focus("#more");
+  await page.keyboard.press("ArrowUp");
+  await page.waitForTimeout(40);
+  check(`${name} (headless) ArrowUp on the button opens the menu at the last item`, (await active()) === "mi-c", await active());
+  await page.keyboard.press("Escape");
+  check(`${name} (headless) Escape closes it and returns to the button`, (await attr("#more", "aria-expanded")) === "false" && (await active()) === "more", await active());
+  await page.click("#more");
+  await page.waitForTimeout(40);
+  await page.click("#ed");
+  check(`${name} (headless) clicking elsewhere closes it without taking the focus back`, (await attr("#more", "aria-expanded")) === "false" && (await active()) === "ed", await active());
+  // --- dialog (the browser's own <dialog>)
+  await t.reset("<p>one two</p>");
+  await t.select({ start: "p", so: 0, eo: 3 });
+  await page.waitForTimeout(60);
+  await page.click("#rk-link");
+  await page.waitForTimeout(60);
+  check(`${name} (headless) a dialog opens, is modal, named, and takes the focus`, await page.evaluate(() => { const d = document.getElementById("dlg"); return d.open && d.getAttribute("aria-modal") === "true" && d.getAttribute("aria-labelledby") === "dlg-title" && document.activeElement.name === "href"; }), await active());
+  await page.click("#dlg-ok");
+  await page.waitForTimeout(60);
+  const bad = await page.evaluate(() => { const i = document.querySelector("[name=href]"); const e = document.querySelector("[data-rk-error=href]"); return { invalid: i.getAttribute("aria-invalid"), by: i.getAttribute("aria-describedby") === e.id, text: e.textContent, focused: document.activeElement === i, open: document.getElementById("dlg").open }; });
+  check(`${name} (headless) an empty required field is flagged, explained, focused, and the dialog stays open`, bad.invalid === "true" && bad.by && bad.text === "Address is required." && bad.focused && bad.open, bad);
+  await page.waitForTimeout(120);
+  check(`${name} (headless) and the problem is announced`, (await page.evaluate(() => document.querySelector("[role=status]").textContent)) === "Address is required.", "announce");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(60);
+  check(`${name} (headless) Escape cancels and focus returns to the control that opened it`, JSON.stringify(await page.evaluate(() => window.__closed)) === '["cancel"]' && (await active()) === "rk-link", [await page.evaluate(() => window.__closed), await active()]);
+  await page.evaluate(() => { window.__closed.length = 0; });
+  await page.click("#rk-link");
+  await page.waitForTimeout(60);
+  await page.fill("[name=href]", "https://x.test");
+  await page.click("#dlg-ok");
+  await page.waitForTimeout(60);
+  check(`${name} (headless) a good value submits and closes`, JSON.stringify(await page.evaluate(() => window.__closed)) === '["submit"]' && !(await page.evaluate(() => document.getElementById("dlg").open)), await page.evaluate(() => window.__closed));
+  // --- a dialog that is not the native element: the machine traps focus and handles Escape itself
+  await page.click("#plain-open");
+  await page.waitForTimeout(40);
+  check(`${name} (headless) a plain dialog takes the focus`, (await active()) === "p1", await active());
+  check(`${name} (headless) Tab wraps from the last control to the first`, JSON.stringify(await walk(["Tab", "Tab", "Tab"])) === JSON.stringify(["p2", "p3", "p1"]), "tab");
+  check(`${name} (headless) and Shift+Tab from the first goes to the last`, JSON.stringify(await walk(["Shift+Tab"])) === JSON.stringify(["p3"]), "shift tab");
+  await page.keyboard.press("Escape");
+  check(`${name} (headless) Escape closes it and focus returns to what opened it`, (await page.evaluate(() => document.getElementById("plain").hidden)) && (await active()) === "plain-open", await active());
   check(`${name} (headless) no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
