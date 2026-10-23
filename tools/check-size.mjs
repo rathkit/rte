@@ -26,11 +26,20 @@ function reachable(entry) {
   return [...seen];
 }
 
+const BARE = /(?:import|export)\s[^;]*?from\s*["']([^."'/][^"']*)["']|import\s*["']([^."'/][^"']*)["']/g;
+
+/** Packages a built entry imports by name (its peers). They are left out of its size: the app already has them. */
+function externalsOf(entryFile) {
+  const names = new Set();
+  for (const file of reachable(entryFile)) for (const m of readFileSync(file, "utf8").matchAll(BARE)) names.add(m[1] ?? m[2]);
+  return [...names].flatMap((n) => ["--external", n]);
+}
+
 function minified(entryFile) {
   const dir = mkdtempSync(join(tmpdir(), "rte-size-"));
   try {
     const out = join(dir, "out.mjs");
-    execFileSync(pack, ["bundle", entryFile, "--outfile", out, "--minify"], { stdio: ["ignore", "ignore", "pipe"] });
+    execFileSync(pack, ["bundle", entryFile, "--outfile", out, "--minify", ...externalsOf(entryFile)], { stdio: ["ignore", "ignore", "pipe"] });
     return gz(readFileSync(out));
   } finally {
     rmSync(dir, { recursive: true, force: true });
