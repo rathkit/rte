@@ -4,6 +4,7 @@ import type { CommandDef } from "./commands.ts";
 import { marksAt, rangeHasMark, toggleMark } from "./edit.ts";
 import type { EditorSnapshot } from "./engine.ts";
 import type { KeyBinding } from "./keymap.ts";
+import type { UiItem, UiSlot } from "./ui.ts";
 import { linkAt, setLink } from "./links.ts";
 import type { Align, MarkType } from "./model.ts";
 import { getContent, isCollapsed } from "./path.ts";
@@ -40,9 +41,14 @@ export function coreCommands(): readonly Def[] {
     mark("format.superscript", "Superscript", "sup"),
     mark("format.subscript", "Subscript", "sub"),
 
-    def<1 | 2 | 3 | 4 | 5 | 6, number>({
+    def<0 | 1 | 2 | 3 | 4 | 5 | 6, number>({
       name: "block.heading", label: "Heading",
-      run: (ctx, level) => ctx.apply("block", (doc, sel) => setBlockType(doc, sel, { type: "h", level })),
+      // Sets exactly this level (0 is a paragraph), so choosing the level you are already in changes nothing.
+      run: (ctx, level) => ctx.apply("block", (doc, sel) => {
+        const now = blockKindAt(doc, sel);
+        if (level === 0 ? now?.type === "p" : now?.type === "h" && now.level === level) return { doc, selection: sel };
+        return setBlockType(doc, sel, level === 0 ? { type: "p" } : { type: "h", level });
+      }),
       state: (s) => {
         const kind = blockKindAt(s.doc, s.selection);
         return { enabled: kind?.type === "p" || kind?.type === "h" || kind?.type === "pre", active: kind?.type === "h", value: kind?.type === "h" ? (kind.level as number) : 0 };
@@ -86,4 +92,26 @@ export const coreKeys: readonly KeyBinding[] = [
   { key: "Mod-z", command: "history.undo" },
   { key: "Mod-Shift-z", command: "history.redo" },
   { key: "Ctrl-y", command: "history.redo" },
+];
+
+/** Where the editor's own commands appear in a toolbar. Items name commands; they hold no markup. */
+export const coreItems: readonly (readonly [UiSlot, UiItem])[] = [
+  ["toolbar.main", { kind: "button", id: "undo", command: "history.undo", icon: "undo", group: "history", order: 1 }],
+  ["toolbar.main", { kind: "button", id: "redo", command: "history.redo", icon: "redo", group: "history", order: 2 }],
+  ["toolbar.main", {
+    kind: "select", id: "block", command: "block.heading", label: "Block type", group: "block",
+    options: [{ value: 0, label: "Paragraph" }, ...([1, 2, 3, 4, 5, 6] as const).map((level) => ({ value: level, label: `Heading ${level}` }))],
+  }],
+  ["toolbar.main", { kind: "toggle", id: "bold", command: "format.bold", icon: "bold", group: "text", order: 1 }],
+  ["toolbar.main", { kind: "toggle", id: "italic", command: "format.italic", icon: "italic", group: "text", order: 2 }],
+  ["toolbar.main", { kind: "toggle", id: "underline", command: "format.underline", icon: "underline", group: "text", order: 3 }],
+  ["toolbar.main", { kind: "toggle", id: "strike", command: "format.strike", icon: "strikethrough", group: "text", order: 4 }],
+  ["toolbar.main", { kind: "toggle", id: "code", command: "format.code", icon: "code", group: "text", order: 5 }],
+  ["toolbar.main", { kind: "toggle", id: "superscript", command: "format.superscript", icon: "superscript", group: "text", order: 6 }],
+  ["toolbar.main", { kind: "toggle", id: "subscript", command: "format.subscript", icon: "subscript", group: "text", order: 7 }],
+  ...(["left", "center", "right", "justify"] as const).map((align, i): readonly [UiSlot, UiItem] => ["toolbar.main", {
+    kind: "toggle", id: `align-${align}`, command: "block.align", arg: align, icon: `align-${align}`, label: `Align ${align}`, group: "align", order: i,
+  }]),
+  ["toolbar.main", { kind: "dialog", id: "link", command: "link.set", label: "Link", icon: "link", group: "insert", order: 1, fields: [{ name: "href", type: "url", label: "Address", required: true }] }],
+  ["toolbar.main", { kind: "button", id: "unlink", command: "link.remove", icon: "unlink", group: "insert", order: 2 }],
 ];

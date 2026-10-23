@@ -8,6 +8,7 @@ import type { PasteHandler } from "./paste.ts";
 import { caret, pathKey, type EditResult, type Selection } from "./path.ts";
 import { startOf } from "./edit.ts";
 import type { ImportOptions } from "./import.ts";
+import { UiRegistry } from "./ui.ts";
 import { PLUGIN_API_VERSION, satisfiesApi, type FileHandler, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
 import { ops } from "./ops.ts";
 
@@ -51,6 +52,8 @@ const MAX_HISTORY = 200;
 export class Engine {
   readonly commands: CommandRegistry;
   readonly keymap: Keymap;
+  /** Interface items that plugins and the editor offer, by place. Read by a user interface; the engine never draws them. */
+  readonly ui = new UiRegistry();
   /** Handlers that see the raw clipboard before the built-in paste handling does. */
   readonly pasteHandlers: PasteHandler[] = [];
   /** How plugins want Enter, Backspace and paste to work in the containers they own. Empty without plugins. */
@@ -322,6 +325,7 @@ export class Engine {
         this.pasteTransforms.push(transform);
         undo.push(() => { const i = this.pasteTransforms.indexOf(transform); if (i !== -1) this.pasteTransforms.splice(i, 1); });
       },
+      ui: (slot, item) => { undo.push(this.ui.add(slot, item)); },
       fileHandler: (handler: FileHandler) => {
         this.fileHandlers.push(handler);
         undo.push(() => { const i = this.fileHandlers.indexOf(handler); if (i !== -1) this.fileHandlers.splice(i, 1); });

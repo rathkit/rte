@@ -20,6 +20,11 @@ export function lists(options: ListsOptions = {}): Plugin {
     api: "1",
     setup(host) {
       for (const command of listCommands(options.maxDepth ?? Number.POSITIVE_INFINITY)) host.command(command);
+      host.ui("toolbar.main", { kind: "toggle", id: "list-bulleted", command: "list.bulleted", icon: "list-bulleted", group: "lists", order: 1 });
+      host.ui("toolbar.main", { kind: "toggle", id: "list-numbered", command: "list.numbered", icon: "list-numbered", group: "lists", order: 2 });
+      host.ui("toolbar.main", { kind: "toggle", id: "list-definition", command: "list.definition", icon: "list-definition", group: "lists", order: 3 });
+      host.ui("toolbar.main", { kind: "button", id: "list-outdent", command: "list.outdent", icon: "outdent", group: "lists", order: 4 });
+      host.ui("toolbar.main", { kind: "button", id: "list-indent", command: "list.indent", icon: "indent", group: "lists", order: 5 });
       if (options.indentOnTab ?? true) for (const key of listKeys) host.keybinding(key);
       host.behavior("li", listBehavior);
       host.behavior("dt", definitionBehavior);

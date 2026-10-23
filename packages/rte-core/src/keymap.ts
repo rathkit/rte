@@ -100,6 +100,18 @@ export class Keymap {
     return this.platform === "apple" ? `${mods.join("")}${label}` : [...mods, label].join("+");
   }
 
+  /** The first chord bound to a command, written for `aria-keyshortcuts`: "Control+B", "Meta+Shift+Z". */
+  ariaShortcut(command: string): string | undefined {
+    const binding = this.bindings.find((b) => b.command === command);
+    if (!binding) return undefined;
+    const parts = this.normalize(binding.key).split("-");
+    const key = parts.pop() as string;
+    const label = key.length === 1 ? key.toUpperCase() : key;
+    const order = ["Meta", "Control", "Alt", "Shift"];
+    const mods = parts.map((m) => (m === "Ctrl" ? "Control" : m)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    return [...mods, label].join("+");
+  }
+
   find(event: KeyEventLike): KeyBinding | undefined {
     const chord = this.chordOf(event);
     return this.bindings.find((b) => this.normalize(b.key) === chord);

@@ -212,3 +212,9 @@ test("removing a plugin takes away only what it added to the importer", () => {
   removeS();
   assert.equal(e.importOptions.sanitizeSvg, undefined);
 });
+
+test("shortcuts for aria-keyshortcuts use the names assistive technology expects", () => {
+  assert.equal(engine("<p>a</p>", { platform: "other" }).keymap.ariaShortcut("format.bold"), "Control+B");
+  assert.equal(engine("<p>a</p>", { platform: "apple" }).keymap.ariaShortcut("history.redo"), "Meta+Shift+Z");
+  assert.equal(engine("<p>a</p>").keymap.ariaShortcut("nope"), undefined);
+});

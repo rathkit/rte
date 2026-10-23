@@ -7,6 +7,7 @@ import type { Engine } from "./engine.ts";
 import type { ImportOptions } from "./import.ts";
 import type { KeyBinding } from "./keymap.ts";
 import type { Block } from "./model.ts";
+import type { UiItem, UiSlot } from "./ui.ts";
 import type { Ops } from "./ops.ts";
 import type { PasteHandler } from "./paste.ts";
 
@@ -31,7 +32,7 @@ export interface FileLike extends BlobLike {
 export type FileHandler = (files: readonly FileLike[]) => readonly Block[] | undefined | Promise<readonly Block[] | undefined>;
 
 /** What a plugin sees of the editor: the same object a host gets, nothing more. */
-export type EditorHandle = Pick<Engine, "snapshot" | "apply" | "commands" | "subscribe" | "select" | "keymap" | "warn" | "importOptions">;
+export type EditorHandle = Pick<Engine, "snapshot" | "apply" | "commands" | "subscribe" | "select" | "keymap" | "warn" | "importOptions" | "ui">;
 
 export interface PluginHost {
   readonly editor: EditorHandle;
@@ -50,6 +51,8 @@ export interface PluginHost {
   pasteTransform(transform: PasteTransform): void;
   /** Handles pasted and dropped files. */
   fileHandler(handler: FileHandler): void;
+  /** Puts an item in a place a user interface can read, such as the main toolbar. The item names a command; it holds no markup. */
+  ui(slot: UiSlot, item: UiItem): void;
 }
 
 export interface Plugin {

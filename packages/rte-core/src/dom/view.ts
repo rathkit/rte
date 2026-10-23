@@ -102,6 +102,8 @@ export class Editor {
 
   /** Named commands and their state: `editor.commands.run("format.bold")`, `editor.commands.state("format.bold")`. */
   get commands(): Engine["commands"] { return this.engine.commands; }
+  /** Interface items (toolbar buttons and the like) that the editor and its plugins offer. */
+  get ui(): Engine["ui"] { return this.engine.ui; }
   /** Key chords and the commands they run. */
   get keymap(): Engine["keymap"] { return this.engine.keymap; }
   /** The current immutable state. */

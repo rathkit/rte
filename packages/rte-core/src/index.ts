@@ -15,3 +15,4 @@ export { PLUGIN_API_VERSION, satisfiesApi, type EditorHandle, type Plugin, type 
 export { ops, type Ops } from "./ops.ts";
 export { alignAt, blockKindAt, setAlign, setBlockType, type BlockKind } from "./blocks.ts";
 export { linkAt, setLink } from "./links.ts";
+export { SLOTS, UiRegistry, type Field, type IconName, type UiItem, type UiSlot } from "./ui.ts";
