@@ -56,8 +56,11 @@
     },
     "version": {
       "versionActions": "./tools/release/version-actions.cjs",
-      "currentVersionResolver": "disk",
-      "updateDependents": "auto"
+      "currentVersionResolver": "git-tag",
+      "updateDependents": "auto",
+      "specifierSource": "conventional-commits",
+      "fallbackCurrentVersionResolver": "disk",
+      "adjustSemverBumpsForZeroMajorVersion": false
     },
     "conventionalCommits": {
       "types": {
@@ -86,37 +89,37 @@
           }
         },
         "docs": {
-          "semverBump": "none",
+          "semverBump": "patch",
           "changelog": {
             "title": "Documentation"
           }
         },
         "test": {
-          "semverBump": "none",
+          "semverBump": "patch",
           "changelog": {
             "title": "Tests"
           }
         },
         "build": {
-          "semverBump": "none",
+          "semverBump": "patch",
           "changelog": {
             "title": "Build"
           }
         },
         "ci": {
-          "semverBump": "none",
+          "semverBump": "patch",
           "changelog": {
             "title": "Continuous integration"
           }
         },
         "chore": {
-          "semverBump": "none",
+          "semverBump": "patch",
           "changelog": {
             "title": "Chores"
           }
         },
         "style": {
-          "semverBump": "none",
+          "semverBump": "patch",
           "changelog": {
             "title": "Style"
           }
@@ -127,7 +130,8 @@
             "title": "Reverts"
           }
         }
-      }
+      },
+      "useCommitScope": false
     },
     "changelog": {
       "workspaceChangelog": {

@@ -23,8 +23,8 @@
     "sbom": "node tools/make-sbom.mjs sbom",
     "check:secrets": "node tools/scan-secrets.mjs",
     "check:history": "node tools/scan-secrets.mjs --history && node tools/check-denylist.mjs --history",
-    "release:dry": "nx release prerelease --preid alpha --skip-publish --dry-run",
-    "release:alpha": "nx release prerelease --preid alpha --skip-publish"
+    "release:dry": "nx release --skip-publish --dry-run",
+    "release": "nx release --skip-publish"
   },
   "devDependencies": {
     "@types/node": "26.6.5",
