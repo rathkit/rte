@@ -21,12 +21,22 @@ It promises that the packages install with nothing else (no runtime dependencies
 
 ## Making a release
 
-1. `node tools/set-version.mjs <version>` sets the version on every package and the ranges between them.
-2. Write the changelog section for the version in `CHANGELOG.md` (the release notes are cut from it).
-3. `pnpm check:release v<version>` (tag, packages and changelog agree), then the usual checks.
-4. Commit, tag (`git tag -s v<version>`) and push the tag.
-5. The `release` workflow runs on the tag: the full set of checks (including the check of what would be published, with the oldest supported Node), then it packs the ten tarballs, writes `SHA256SUMS` and a software bill of materials for each package (CycloneDX, zero runtime components, made by `tools/make-sbom.mjs`), signs `SHA256SUMS` with Sigstore (keyless), and creates a GitHub pre-release with all of it and the notes.
+Versions, the changelog, the release commit and the tag are made by [Nx Release](https://nx.dev/features/manage-releases), configured under `release` in `nx.json`: all ten packages in one fixed group, tags like `v0.1.0-alpha.1`, a changelog written from the Conventional Commits since the last tag. Nx's own version code for npm packages comes from the `@nx/js` plugin, which brings a large dependency tree and does not work with the TypeScript 7 this repository uses, so `tools/release/version-actions.cjs` (about 60 lines, tested) does the same for plain npm packages: it writes `version`, and keeps the range each package asks of its siblings at "this release or later, below the next minor". Nx is a development tool and does not touch the shipped packages.
+
+**Every release after the first:**
+
+1. `pnpm release:dry` shows what would change: the new version in each package, the peer ranges, the changelog entry. Nothing is written.
+2. `pnpm release:alpha` (that is, `nx release prerelease --preid alpha --skip-publish`) bumps every package to the next alpha (`0.1.0-alpha.1` to `0.1.0-alpha.2`), adds the entry to `CHANGELOG.md`, makes one commit (`chore(release): <version>`) and the tag `v<version>`. For a beta, use `nx release prerelease --preid beta --skip-publish`; for a particular version, `nx release <version> --skip-publish`. It never publishes (`--skip-publish`): publishing is the workflow's.
+3. Read the entry and the diff; edit `CHANGELOG.md` and amend the release commit if the notes need words that commit subjects do not give.
+4. `pnpm check:release v<version>` (tag, packages and changelog agree; refuses a tag that is not an alpha, beta or rc), then push the commit and the tag: `git push --follow-tags`.
+5. The `release` workflow runs on the tag: the full set of checks (including the check of what would be published, with the oldest supported Node), then it packs the ten tarballs, writes `SHA256SUMS` and a software bill of materials for each package (CycloneDX, zero runtime components, made by `tools/make-sbom.mjs`), signs `SHA256SUMS` with Sigstore (keyless), and creates a GitHub pre-release with all of it and the notes (the changelog entry for the version).
 6. The `publish` job (only when `NPM_PUBLISH` is `true`) checks the downloaded files against `SHA256SUMS` and publishes exactly those tarballs with provenance, access public and the `next` tag, through npm trusted publishing: no npm token is stored anywhere, and the job asks for `id-token: write` only.
+
+Signed commits and tags: Nx runs plain `git commit` and `git tag`, so signing follows your git configuration (`commit.gpgSign` and `tag.gpgSign` set to true).
+
+**The very first release (`0.1.0-alpha.0`)** has no earlier tag and a written changelog entry, so Nx is not used for it: the versions are already `0.1.0-alpha.0`, `CHANGELOG.md` already has the entry. Run `pnpm check:release v0.1.0-alpha.0`, then `git tag -s v0.1.0-alpha.0` and push the tag. Nx Release takes over from the tag after it.
+
+The changelog lists features, fixes, speed changes and internal changes (commit types `feat`, `fix`, `perf`, `refactor`); `docs`, `test`, `build`, `ci`, `chore` and `style` commits do not appear. A breaking change (`!` or a `BREAKING CHANGE:` footer) gets its own heading.
 
 A dry run needs no tag: run the `release` workflow by hand with a tag name as input. It builds and checks everything and uploads the files as a workflow artifact, and creates and publishes nothing.
 

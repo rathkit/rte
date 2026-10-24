@@ -45,5 +45,85 @@
         "^build"
       ]
     }
+  },
+  "release": {
+    "projects": [
+      "packages/*"
+    ],
+    "projectsRelationship": "fixed",
+    "releaseTag": {
+      "pattern": "v{version}"
+    },
+    "version": {
+      "versionActions": "./tools/release/version-actions.cjs",
+      "currentVersionResolver": "disk",
+      "updateDependents": "auto"
+    },
+    "conventionalCommits": {
+      "types": {
+        "feat": {
+          "semverBump": "minor",
+          "changelog": {
+            "title": "Features"
+          }
+        },
+        "fix": {
+          "semverBump": "patch",
+          "changelog": {
+            "title": "Fixes"
+          }
+        },
+        "perf": {
+          "semverBump": "patch",
+          "changelog": {
+            "title": "Speed"
+          }
+        },
+        "refactor": {
+          "semverBump": "patch",
+          "changelog": {
+            "title": "Internal changes"
+          }
+        },
+        "docs": {
+          "semverBump": "none",
+          "changelog": false
+        },
+        "test": {
+          "semverBump": "none",
+          "changelog": false
+        },
+        "build": {
+          "semverBump": "none",
+          "changelog": false
+        },
+        "ci": {
+          "semverBump": "none",
+          "changelog": false
+        },
+        "chore": {
+          "semverBump": "none",
+          "changelog": false
+        },
+        "style": {
+          "semverBump": "none",
+          "changelog": false
+        }
+      }
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "file": "CHANGELOG.md",
+        "createRelease": false
+      },
+      "projectChangelogs": false,
+      "automaticFromRef": true
+    },
+    "git": {
+      "commit": true,
+      "tag": true,
+      "push": false,
+      "commitMessage": "chore(release): {version}"
+    }
   }
 }
