@@ -1199,8 +1199,10 @@ for (const [name, type] of engines) {
     const caret = await caretMoves(5000);
     console.log(`speed${label} 5000 paragraphs, caret move with ${caret.subscribed} subscribed commands: p95 ${caret.p95.toFixed(2)} ms (${caret.woken} notifications)`);
     if (rate === 1) check("speed: a caret move with every command subscribed, 5000 paragraphs, within 30 ms (p95)", caret.p95 <= 30 * scale, caret);
+    let paragraphType = 0;
     for (const [n, commandBudget, setBudget] of [[1000, 10, 40], [5000, 30, Infinity]]) {
       const r = await measure(n);
+      if (n === 1000) paragraphType = r.typeMiddle;
       const worst = Math.max(r.typeMiddle, r.typeTop, r.enterTop, r.joinTop, r.pasteTop);
       console.log(`speed${label} ${n} paragraphs: set ${r.set.toFixed(1)} ms warm, ${r.setCold.toFixed(1)} ms cold; p95 per command: type ${r.typeMiddle.toFixed(1)} (top ${r.typeTop.toFixed(1)}), Enter ${r.enterTop.toFixed(1)}, join ${r.joinTop.toFixed(1)}, paste ${r.pasteTop.toFixed(1)} ms`);
       if (rate === 1) {
@@ -1210,7 +1212,9 @@ for (const [name, type] of engines) {
     }
     const table = await measureTable(50, 10);
     console.log(`speed${label} table of 500 cells: set ${table.set.toFixed(1)} ms, type in one cell p95 ${table.type.toFixed(1)} ms`);
-    if (rate === 1) check("speed: typing in a cell of a 500-cell table within 12 ms (p95)", table.type <= 12 * scale, table);
+    // Against typing in an ordinary document measured a moment ago on the same machine, so a slow runner does not fail it: drawing the whole
+    // table again made this about nine times typing in a paragraph, and drawing one cell about three times.
+    if (rate === 1) check("speed: typing in a cell of a 500-cell table within 12 ms, or 7 times typing in a paragraph (p95)", table.type <= Math.max(12 * scale, 7 * paragraphType), { ...table, paragraphType });
     if (rate === 1) check("speed: typing in a cell keeps the table and every other cell as drawn", table.sameTable && table.redrawn === 1, table);
   }
   await t.browser.close();
