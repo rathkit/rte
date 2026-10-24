@@ -31,6 +31,7 @@ dropped. Cell styles are read when a document is loaded, not from a paste, like 
 | `table.cellBackground` | a color, or `""` | The color behind the selected cells (the rectangle a selection runs across, or the caret's cell). Value: the first cell's color |
 | `table.cellBorder` | `default`, `none`, `thin`, `thick`, `dashed`, `dotted`, or `{ style, width, color }`; with `sides: ["top", ...]` (and `line: <preset>` in place of the style) only those edges of the selection | The lines of the selected cells. `default` says nothing; `none` says there are none. The presets use the text color, so they read on any theme. Value: the preset name of the first cell, `""` for sides that differ or a custom line |
 | `table.borderTop`, `table.borderRight`, `table.borderBottom`, `table.borderLeft` | | A thin line along that edge of the selection (the cells on that edge, that side only), on or off; off is `none`. `active` says whether the edge has a line |
+| `table.border` | the same choices as `table.cellBorder` | Lines for the whole table from any cell in it: every cell, or with `sides` only the table's outline. The styled interface has a Table lines menu. |
 | `table.rowHeight` | `{ height }` | The least height of the rows the selection covers: `40`, `40px`, or empty for automatic |
 | `table.nextCell`, `table.previousCell` | Tab and Shift+Tab. Tab past the last cell adds a row; Shift+Tab in the first cell is left to the browser. Lists inside a cell get Tab first |
 

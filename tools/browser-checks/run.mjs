@@ -950,6 +950,16 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
   check(`${name} (ui) the dialog sets the description and width`, await page.evaluate(() => /<img [^>]*alt="A dot"[^>]*width="40"/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
+  // The keyboard: Shift+Right from just before an image selects it; moving on with the arrow alone does not.
+  await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>one<img src="${src}" alt="dot" width="20"> two</p>`); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 3, n, 3); }, tiny);
+  await page.waitForTimeout(60);
+  check(`${name} (ui) a caret beside an image does not select it`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 0));
+  await page.keyboard.press("Shift+ArrowRight");
+  await page.waitForTimeout(80);
+  check(`${name} (ui) Shift+Right over an image selects it and shows the handle`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 1) && (await page.locator("[data-rk-resize-handle]").count()) === 1, await page.evaluate(() => JSON.stringify(window.__one.editor.engine.selection)));
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(80);
+  check(`${name} (ui) the arrow key alone moves past it and drops the selection`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 0) && (await page.locator("[data-rk-resize-handle]").count()) === 0);
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>plain text</p>"); e.focus(); });
   await page.waitForTimeout(80);
   check(`${name} (ui) the handle goes when no image is selected`, (await page.locator("[data-rk-resize-handle]").count()) === 0);
@@ -1132,6 +1142,10 @@ for (const [name, type] of engines) {
   check(`${name} (narrow) every control is at least 24px square (the smallest target WCAG allows)`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=toolbar] button[data-rk-item]")].every((b) => { const r = b.getBoundingClientRect(); return r.width >= 24 && r.height >= 24; })), "targets");
   for (const id of ["text-color", "highlight", "symbols", "table", "find"]) {
     if (id === "find") {
+      // A mouse or focus left on the last button would keep its tooltip up, which can sit over the next row.
+      await page.mouse.move(0, 0);
+      await page.evaluate(() => document.activeElement?.blur());
+      await page.waitForTimeout(100);
       await tap('#root [data-rk-item="find"]');
       await page.waitForTimeout(150);
       check(`${name} (narrow) the find bar fits the screen`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=findbar] *")].every((e) => e.getBoundingClientRect().right <= innerWidth + 1)), "findbar");

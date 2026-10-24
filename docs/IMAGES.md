@@ -44,7 +44,7 @@ are refused, and nothing changes. It is off in a code block. An address on anoth
 
 ## Selecting, resizing and describing
 
-A click on an image selects it and the styled interface outlines it. With the `images` plugin
+A click on an image selects it, as does Shift+Right or Shift+Left over it (covered by the browser checks), and the styled interface outlines it. With the `images` plugin
 installed, a handle appears on its bottom right corner; dragging it sets the width, shows a dashed guide while you drag, and changes the
 document once, on release (one undo step). The handle is not part of the document and is absent in a read-only editor.
 

@@ -232,11 +232,21 @@ function lineFrom(choice: unknown): CellBorder | null | undefined | false {
  * of the cells along its top edge, and so on, as a table editor draws the outline of a selected block.
  */
 export function setCellBorder(doc: Doc, sel: Selection, choice: unknown, sides?: readonly Side[]): EditResult {
+  return drawBorder(doc, sel, choice, sides, false);
+}
+
+/** The same for the whole table whatever is selected: every cell, or with `sides` the outline of the table. */
+export function setTableBorder(doc: Doc, sel: Selection, choice: unknown, sides?: readonly Side[]): EditResult {
+  return drawBorder(doc, sel, choice, sides, true);
+}
+
+function drawBorder(doc: Doc, sel: Selection, choice: unknown, sides: readonly Side[] | undefined, whole: boolean): EditResult {
   const line = lineFrom(choice);
   if (line === false) return { doc, selection: sel };
   const found = selectedCells(doc, sel);
   if (!found) return { doc, selection: sel };
-  const { grid, rect, where } = found;
+  const { grid, where } = found;
+  const rect = whole ? { top: 0, left: 0, bottom: grid.rows - 1, right: grid.cols - 1 } : found.rect;
   const cells = grid.cells.map((p) => {
     if (!meets(rect, extent(p))) return p;
     const e = extent(p);

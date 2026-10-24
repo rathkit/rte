@@ -327,3 +327,23 @@ test("all four sides set one after another become one line, and a preset over di
   e.commands.run("table.cellBorder", { line: "thick", sides: ["left", "right"] });
   assert.equal(html(e), '<table><tbody><tr><td style="border-top: 1px dashed currentcolor; border-right: 3px solid currentcolor; border-bottom: 1px dashed currentcolor; border-left: 3px solid currentcolor;">a</td></tr></tbody></table>');
 });
+
+test("table.border draws lines on the whole table from any cell; with sides it draws only the outline", () => {
+  const e = make(cells([["a", "b"], ["c", "d"]]));
+  inCell(e, 0, 0);
+  assert.equal(e.commands.state("table.border").enabled, true);
+  assert.equal(e.commands.run("table.border", "thick"), true);
+  const all = html(e);
+  assert.equal((all.match(/border: 3px solid/g) ?? []).length, 4, "every cell");
+  assert.equal(e.commands.run("table.border", "none"), true);
+  assert.equal((html(e).match(/border: none/g) ?? []).length, 4);
+  e.commands.run("table.border", { line: "thin", sides: ["top", "right", "bottom", "left"] });
+  const outline = html(e);
+  assert.match(outline, /<td style="[^"]*border-top: 1px solid[^"]*border-left: 1px solid/, "the top left cell has its top and left");
+  assert.doesNotMatch(outline.split("</tr>")[0] ?? "", /<td style="[^"]*border-bottom: 1px solid/, "no outline on an inside edge");
+  assert.equal(e.commands.run("table.border", "wavy"), false);
+  e.undo();
+  assert.equal((html(e).match(/border: none/g) ?? []).length, 4, "one undo step");
+  const outside = make("<p>x</p>");
+  assert.equal(outside.commands.state("table.border").enabled, false);
+});

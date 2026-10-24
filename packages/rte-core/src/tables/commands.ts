@@ -3,7 +3,7 @@ import type { CommandDef } from "../commands.ts";
 import type { EditorSnapshot } from "../engine.ts";
 import { SIDES, type Side } from "../cellborder.ts";
 import type { KeyBinding } from "../keymap.ts";
-import { cellBackground, cellBorderPreset, hasEdgeLine, toggleEdgeLine, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
+import { cellBackground, cellBorderPreset, hasEdgeLine, toggleEdgeLine, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setTableBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -45,6 +45,12 @@ export function tableCommands(): readonly Def[] {
       name: "table.cellBorder", label: "Cell border",
       run: (ctx, choice) => ctx.apply("table", (doc, sel) => setCellBorder(doc, sel, choice, typeof choice === "object" ? choice.sides?.filter((s) => SIDES.includes(s)) : undefined)),
       state: (s) => ({ enabled: here(s), value: cellBorderPreset(s.doc, s.selection) }),
+    }),
+    // Lines for the whole table: the same choices as a cell's, from anywhere inside it. With `sides` it draws the table's outline.
+    def<string | { readonly style?: string; readonly width?: number; readonly color?: string; readonly line?: string; readonly sides?: readonly Side[] } | undefined, never>({
+      name: "table.border", label: "Table lines",
+      run: (ctx, choice) => ctx.apply("table", (doc, sel) => setTableBorder(doc, sel, choice, typeof choice === "object" ? choice.sides?.filter((s) => SIDES.includes(s)) : undefined)),
+      state: (s) => ({ enabled: here(s) }),
     }),
     // A line along one edge of the selection, on or off.
     ...SIDES.map((side) => def<void, never>({
