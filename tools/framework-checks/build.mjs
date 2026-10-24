@@ -2,6 +2,7 @@
 // app's install would. Bundling uses rathkit-pack:  RTE_PACK=<binary> node tools/framework-checks/build.mjs
 import { cpSync, copyFileSync, mkdirSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { buildReadmeExamples } from "./readme.mjs";
 import { join } from "node:path";
 
 const here = import.meta.dirname;
@@ -10,7 +11,7 @@ const pack = process.env.RTE_PACK;
 if (!pack) throw new Error("set RTE_PACK to a rathkit-pack binary");
 
 rmSync(join(here, "node_modules/@rathkit"), { recursive: true, force: true });
-for (const name of ["core", "headless", "element", "react", "vue", "svelte", "jquery"]) {
+for (const name of ["core", "headless", "element", "react", "vue", "svelte", "jquery", "ui", "themes", "icons"]) {
   const to = join(here, "node_modules/@rathkit", `rte-${name}`);
   mkdirSync(to, { recursive: true });
   copyFileSync(join(packages, `rte-${name}`, "package.json"), join(to, "package.json"));
@@ -27,3 +28,4 @@ for (const app of ["react", "vue", "svelte", "jquery"]) {
   copyFileSync(join(here, `apps/${app}.html`), join(here, `dist/${app}.html`));
   console.log(`built ${app}`);
 }
+console.log(`built the README examples: ${buildReadmeExamples(pack).join(", ")}`);

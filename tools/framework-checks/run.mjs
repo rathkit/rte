@@ -51,6 +51,7 @@ for (const [engine, type] of engines) {
     check(`${name} typing reaches the document`, html === "<p>one two threeabcdefghijklmnopqrstuvwxy</p>", html);
     const changes = await page.evaluate(() => window.__fw.changes.length);
     check(`${name} onChange reports edits`, changes >= 1, changes);
+    check(`${name} and what it reports is the html`, await page.evaluate(() => window.__fw.changes.every((c) => typeof c === "string" && c.startsWith("<p>")) && window.__fw.changes.at(-1).includes("abcdefghijklmnopqrstuvwxy")), await page.evaluate(() => window.__fw.changes.slice(-2)));
     check(`${name} typing does not redraw the bold button`, (await page.evaluate(() => window.__fw.commits())) === before, { before, after: await page.evaluate(() => window.__fw.commits()) });
 
     // Selecting text does not change what bold reports, so nothing redraws; running bold turns it on, which redraws once.
@@ -75,5 +76,92 @@ for (const [engine, type] of engines) {
   }
   await browser.close();
 }
+// --- the examples in the READMEs, run as written (see readme.mjs)
+const watchLogs = `window.__logs = []; for (const k of ["log", "error", "warn"]) { const o = console[k]; console[k] = (...a) => { window.__logs.push(k + ": " + a.map(String).join(" ")); o.apply(console, a); }; }`;
+const examples = {
+  "rte-core": async (page, name) => {
+    await typeAtEnd(page, name, "[contenteditable=true]", "x");
+    check(`${name} the surface is named Body and typing reaches the subscriber`, (await page.getAttribute("[contenteditable=true]", "aria-label")) === "Body" && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("x")), await logs(page));
+  },
+  "rte-headless": async (page, name) => {
+    check(`${name} the toolbar is named, has one tab stop, and has the buttons`, await page.evaluate(() => { const bar = document.querySelector("[role=toolbar]"); return bar.getAttribute("aria-label") === "Formatting" && [...bar.querySelectorAll("button")].filter((b) => b.tabIndex === 0).length === 1 && bar.querySelectorAll("button").length > 5; }), "toolbar");
+    await boldSelection(page, name, '[data-rk-item="bold"]');
+  },
+  "rte-element": async (page, name) => {
+    await typeAtEnd(page, name, "rk-editor [contenteditable=true]", "x");
+    check(`${name} the element is defined and its change event carries the html`, (await page.evaluate(() => !!customElements.get("rk-editor"))) && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("<p>") && l.includes("x")), await logs(page));
+  },
+  "rte-icons": async (page, name) => {
+    check(`${name} the button shows the icon and the count of icons is logged`, (await page.evaluate(() => !!document.querySelector("button svg"))) && (await logs(page)).some((l) => /^log: \d+ icons/.test(l) && Number(l.split(" ")[1]) >= 20), await logs(page));
+  },
+  "rte-ui": async (page, name) => {
+    await styledInterface(page, name, "rgb(255, 255, 255)", "light");
+  },
+  "rte-themes": async (page, name) => {
+    await styledInterface(page, name, "rgb(16, 21, 29)", "dark");
+  },
+  "rte-react": async (page, name) => { await framework(page, name); },
+  "rte-vue": async (page, name) => { await framework(page, name); },
+  "rte-svelte": async (page, name) => { await framework(page, name); },
+  "rte-jquery": async (page, name) => {
+    await typeAtEnd(page, name, "rk-editor [contenteditable=true]", "x");
+    check(`${name} the plugin builds the editor and rk:change hands over the html`, (await logs(page)).some((l) => l.startsWith("log:") && l.includes("<p>Hello") && l.includes("x")), await logs(page));
+  },
+};
+const logs = (page) => page.evaluate(() => window.__logs);
+async function typeAtEnd(page, name, selector, text) {
+  await page.locator(selector).first().click();
+  await page.keyboard.press("ControlOrMeta+End");
+  await page.keyboard.type(text);
+  await page.waitForTimeout(100);
+}
+async function boldSelection(page, name, button) {
+  await page.locator("[contenteditable=true]").first().click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.waitForTimeout(80);
+  await page.click(button);
+  await page.waitForTimeout(100);
+  check(`${name} the Bold button bolds the selection`, await page.evaluate(() => document.querySelector("[contenteditable=true]").innerHTML.includes("<strong>")), await page.evaluate(() => document.querySelector("[contenteditable=true]").innerHTML));
+}
+async function styledInterface(page, name, background, theme) {
+  await typeAtEnd(page, name, "[contenteditable=true]", "x");
+  check(`${name} the interface is built with the ${theme} theme and typing is reported`, await page.evaluate(([bg, t]) => { const root = document.querySelector(".rk-root"); return !!root && root.getAttribute("data-rk-theme") === t && getComputedStyle(root).backgroundColor === bg && !!root.querySelector("[role=toolbar]"); }, [background, theme]) && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("x")), await logs(page));
+}
+async function framework(page, name) {
+  await typeAtEnd(page, name, "[contenteditable=true]", "x");
+  check(`${name} the editor is named Body and typing is reported`, (await page.getAttribute("[contenteditable=true]", "aria-label")) === "Body" && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("Hello") && l.includes("x")), await logs(page));
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.waitForTimeout(80);
+  await page.locator("button", { hasText: "Bold" }).click();
+  await page.waitForTimeout(100);
+  check(`${name} the Bold button runs the command and shows it on`, (await page.locator("button", { hasText: "Bold" }).getAttribute("aria-pressed")) === "true" && (await page.evaluate(() => document.querySelector("[contenteditable=true]").innerHTML.includes("<strong>"))), await page.evaluate(() => document.querySelector("[contenteditable=true]").innerHTML));
+}
+for (const [engine, type] of engines) {
+  const browser = await type.launch();
+  for (const [pkg, test] of Object.entries(examples)) {
+    const name = `${engine} README ${pkg}`;
+    const context = await browser.newContext({ permissions: [] });
+    await context.addInitScript(watchLogs);
+    const outside = [];
+    await context.route("**/*", (route) => {
+      const url = route.request().url();
+      if (/^(http:\/\/127\.0\.0\.1|data:|blob:|about:)/.test(url)) return route.continue();
+      outside.push(url.slice(0, 80));
+      return route.abort();
+    });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
+    await page.goto(new URL(`/frameworks/dist/readme-${pkg}.html`, base).href);
+    await page.waitForTimeout(400);
+    await test(page, name);
+    const problems = [...errors, ...(await logs(page)).filter((l) => l.startsWith("error:"))];
+    check(`${name} runs without an error`, problems.length === 0, problems);
+    check(`${name} asks for nothing from outside`, outside.length === 0, outside);
+    await context.close();
+  }
+  await browser.close();
+}
+
 console.log(`framework checks: ${passes} passed, ${failures} failed`);
 process.exit(failures ? 1 : 0);

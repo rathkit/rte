@@ -20,6 +20,7 @@ import "@rathkit/rte-element/define";
 import { install } from "@rathkit/rte-jquery";
 
 install($);
+// in a page with <div id="editor"></div>
 $("#editor").rkEditor({ label: "Body", html: "<p>Hello</p>" });
 $("#editor").on("rk:change", (event, html) => console.log(html));
 $("#editor").rkEditor("html");               // read it; rkEditor("html", "<p>x</p>") replaces it

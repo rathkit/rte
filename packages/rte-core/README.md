@@ -24,13 +24,14 @@ No dependencies, and nothing runs when it is installed.
 ```js
 import { createEditor } from "@rathkit/rte-core/standard";
 
-const editor = createEditor({
-  element: document.querySelector("#editor"), // an empty <div> with an aria-label
-  html: "<p>Hello</p>",
-});
+const surface = document.createElement("div");
+surface.setAttribute("aria-label", "Body");   // an unnamed editor is announced as just "text box"
+document.body.append(surface);
 
-editor.commands.run("format.bold");       // every action is a named command
-editor.subscribe(() => save(editor.getHtml()));
+const editor = createEditor({ element: surface, html: "<p>Hello</p>" });
+
+editor.commands.run("format.bold");           // every action is a named command
+editor.subscribe(() => console.log(editor.getHtml()));
 ```
 
 Give the element an `aria-label` (or `aria-labelledby`): an unnamed editor is announced as just "text box".

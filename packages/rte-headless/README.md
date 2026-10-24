@@ -15,11 +15,25 @@ This package has no dependencies of its own. It works with `@rathkit/rte-core` (
 ## Example
 
 ```js
+import { createEditor } from "@rathkit/rte-core/standard";
 import { createToolbar } from "@rathkit/rte-headless";
 
+const surface = document.createElement("div");
+surface.setAttribute("aria-label", "Body");
+document.body.append(surface);
+const editor = createEditor({ element: surface, html: "<p>Hello</p>" });
+
+// Draw the controls yourself and mark each with data-rk-item="<id>"; the toolbar makes them behave.
+const bar = document.createElement("div");
 const toolbar = createToolbar(editor, { label: "Formatting" });
-// Mark each control you draw with data-rk-item="<id>" (ids are in toolbar.items), then:
-toolbar.bind(document.querySelector("#my-toolbar"));
+for (const item of toolbar.items.filter((i) => i.kind === "button" || i.kind === "toggle")) {
+  const button = document.createElement("button");
+  button.setAttribute("data-rk-item", item.id);
+  button.textContent = toolbar.state(item.id).label;
+  bar.append(button);
+}
+document.body.prepend(bar);
+toolbar.bind(bar);                            // roving focus, aria-pressed, focus kept in the editor
 ```
 
 ## More

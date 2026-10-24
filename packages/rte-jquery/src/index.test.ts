@@ -43,3 +43,14 @@ test("reads and replaces html, hands out the editor, and removes it", async () =
   assert.equal(el.removed, true);
   assert.throws(() => jq.fn.rkEditor!.call(c, "nope"), /unknown method/);
 });
+
+test("a change reaches handlers on the jQuery that was installed into, with the html as the second argument", () => {
+  const triggered: unknown[][] = [];
+  const $ = Object.assign((el: unknown) => ({ trigger: (name: string, data: unknown[]) => triggered.push([el, name, data]) }), { fn: {} as Record<string, (this: unknown, ...a: unknown[]) => unknown> });
+  install($ as never);
+  const host = new FakeEl();
+  $.fn.rkEditor!.call(collection(host), { label: "Body" });
+  const el = host.children[0]!;
+  el.listeners.get("rk-change")!({ detail: { html: "<p>x</p>" } });
+  assert.deepEqual(triggered, [[host, "rk:change", ["<p>x</p>"]]]);
+});

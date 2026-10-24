@@ -20,10 +20,14 @@ import { createStandardUi } from "@rathkit/rte-ui/standard";
 import "@rathkit/rte-ui/base.css";
 import "@rathkit/rte-themes/light.css";
 
+const root = document.createElement("div");
+document.body.append(root);
 const surface = document.createElement("div");
-const editor = createEditor({ element: surface, html: "<p>Hello</p>" });
 surface.setAttribute("aria-label", "Body");
-createStandardUi(editor, { root: document.querySelector("#editor"), style: { theme: "light" } });
+
+const editor = createEditor({ element: surface, html: "<p>Hello</p>" });
+editor.subscribe(() => console.log(editor.getHtml()));
+createStandardUi(editor, { root, style: { theme: "light" } });
 ```
 
 ## More

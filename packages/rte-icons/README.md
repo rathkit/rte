@@ -17,8 +17,12 @@ No dependencies, and nothing runs when it is installed.
 ```js
 import { bold, defaultIcons } from "@rathkit/rte-icons";
 
-button.innerHTML = bold;            // one icon, so a bundler keeps only what you import
-const all = defaultIcons;           // every icon, by the names interface items use
+const button = document.createElement("button");
+button.setAttribute("aria-label", "Bold");
+button.innerHTML = bold;                      // one icon, so a bundler keeps only what you import
+document.body.append(button);
+
+console.log(Object.keys(defaultIcons).length, "icons by the names interface items use");
 ```
 
 ## More

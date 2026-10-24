@@ -13,6 +13,7 @@ export interface RkJqueryOptions extends RkEditorOptions {
 
 interface JQueryLike {
   fn: Record<string, unknown>;
+  (element: Element): { trigger(name: string, data: unknown[]): void };
 }
 interface Collection {
   each(fn: (this: HTMLElement) => void): Collection;
@@ -63,8 +64,8 @@ export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQue
       el.options = rest;
       el.addEventListener("rk-change", (event) => {
         const detail = (event as CustomEvent<{ html: string }>).detail;
-        const jq = (globalThis as unknown as { jQuery?: (el: Element) => { trigger(name: string, data: unknown[]): void } }).jQuery;
-        if (jq) jq(host).trigger("rk:change", [detail.html]);
+        // Through the jQuery that was installed into (not a global one), so handlers get the html as their second argument.
+        if (typeof $ === "function") $(host).trigger("rk:change", [detail.html]);
         else host.dispatchEvent(new CustomEvent("rk:change", { bubbles: true, detail }));
       });
       host.__rk = el;
