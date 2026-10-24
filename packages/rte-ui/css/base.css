@@ -129,6 +129,8 @@
   }
   [data-rk-part="content"] > :first-child { outline: none; min-height: 8em; }
   [data-rk-part="content"] ::selection { background: var(--rk-selection-bg); color: var(--rk-fg); }
+  /* The hint shown while the document is empty (the editor sets data-rk-empty and --rk-placeholder). */
+  [data-rk-part="content"] > [data-rk-empty] > :first-child::before { content: var(--rk-placeholder, none); color: var(--rk-fg-muted); pointer-events: none; }
   [data-rk-part="content"] > :first-child > :first-child { margin-top: 0; }
   [data-rk-part="content"] > :first-child > :last-child { margin-bottom: 0; }
   [data-rk-part="content"] p { margin: 0 0 0.75em; }

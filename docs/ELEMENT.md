@@ -30,6 +30,10 @@ It draws the editing surface only (a `div` inside it, in the light DOM, so the p
 
 Moving the element keeps its content; removing it takes the editor down.
 
+### Options as attributes
+
+`placeholder` (a hint shown while empty; changing it takes effect), `maxlength` (the most characters; typing and pasting past it are refused), `spellcheck` (`true` or `false`), `autofocus`, as well as `label`, `value`, `readonly`, `disabled` and `required`. The same options are `placeholder`, `maxLength`, `onMaxLength`, `spellcheck` and `autofocus` on `createEditor`, and pass through the wrappers. The empty editor is marked `data-rk-empty` and carries `aria-placeholder`; the styled interface draws the hint, and a custom look can draw it from the custom property `--rk-placeholder` on that same element.
+
 ## `<rk-toolbar>`
 
 A plain toolbar for an editor, built from the editor's interface items and made to behave by the headless layer (one tab stop, arrow

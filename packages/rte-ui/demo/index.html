@@ -15,9 +15,10 @@
 <link rel="stylesheet" href="/themes/css/auto.css">
 <link rel="stylesheet" href="/themes/css/high-contrast.css">
 <link rel="stylesheet" href="/themes/css/density.css">
-<style>body { margin: 24px; font-family: system-ui, sans-serif; background: #e9edf2; } #second { margin-top: 24px; }</style>
+<style>body { margin: 24px; font-family: system-ui, sans-serif; background: #e9edf2; } #second, #third { margin-top: 24px; }</style>
 <div id="root"></div>
 <div id="second"></div>
+<div id="third"></div>
 <script type="module">
 import { createEditor } from "@rathkit/rte-core/standard";
 import { createStandardUi } from "/ui/dist/standard.js";
@@ -27,14 +28,15 @@ const sample = `<h1>Rathkit RTE</h1><p>A rich text editor <strong>built from scr
 <blockquote><p>A quotation sits in the margin.</p></blockquote><pre>const editor = "code blocks keep their spacing";</pre>
 <table><tr><th>Part</th><th>Size</th></tr><tr><td>Core</td><td>17 KB</td></tr><tr><td>Lists</td><td>3.5 KB</td></tr></table><dl><dt>Term</dt><dd>What it means.</dd></dl>`;
 
-function make(rootId, style, html) {
+function make(rootId, style, html, options = {}) {
   const root = document.getElementById(rootId);
   const surface = document.createElement("div");
-  const editor = createEditor({ element: surface, html });
+  const editor = createEditor({ element: surface, html, ...options });
   const ui = createStandardUi(editor, { root, style });
   return { editor, ui };
 }
 window.__one = make("root", { theme: "light" }, sample);
 window.__two = make("second", { theme: "dark" }, "<p>A second editor on the same page, in another theme.</p>");
+window.__three = make("third", { theme: "light" }, "", { placeholder: "Type here", maxLength: 12, spellcheck: false });
 window.__uiReady = true;
 </script>

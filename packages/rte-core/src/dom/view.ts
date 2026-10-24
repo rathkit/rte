@@ -38,6 +38,19 @@ export interface EditorOptions {
   readonly onUnhandledInput?: (inputType: string) => void;
   /** Plugins to add: lists, for one (`@rathkit/rte-core/lists`). With none, the editor has only what is built in. */
   readonly plugins?: readonly Plugin[];
+  /**
+   * A hint shown while the document is empty. The editor marks itself `data-rk-empty` when empty, says the hint to assistive
+   * technology (`aria-placeholder`) and puts it in the custom property `--rk-placeholder`; the styled interface draws it.
+   */
+  readonly placeholder?: string;
+  /** The most text the document may hold, in characters. Typing and pasting past it are refused (see `onMaxLength`). */
+  readonly maxLength?: number;
+  /** Called when an edit is refused for being past `maxLength`, with the limit and what the length would have been. */
+  readonly onMaxLength?: (info: { readonly limit: number; readonly wouldBe: number }) => void;
+  /** Whether the browser checks spelling here. Default: the browser's own setting for the page. */
+  readonly spellcheck?: boolean;
+  /** Put the caret in the editor when it is made. */
+  readonly autofocus?: boolean;
 }
 
 type Listener = (editor: Editor) => void;
@@ -76,6 +89,8 @@ export class Editor {
       // Before the engine reads the selection, bring it up to date from the page; asked to focus, focus the page.
       beforeAccess: () => this.readSelection(),
       focus: () => this.element.focus(),
+      ...(options.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
+      ...(options.onMaxLength ? { onMaxLength: options.onMaxLength } : {}),
     });
     this.cellMarks = new CellMarks(this.element, this.engine, () => this.observer.takeRecords());
     this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
@@ -86,6 +101,8 @@ export class Editor {
     this.element.setAttribute("role", "textbox");
     this.element.setAttribute("aria-multiline", "true");
     this.element.style.whiteSpace = "pre-wrap";
+    if (options.spellcheck !== undefined) this.element.spellcheck = options.spellcheck;
+    this.setPlaceholder(options.placeholder ?? "");
     this.draw();
     // The page follows the model: after every change to the document it is drawn again, and a selection the editor set (not one
     // the page reported) is written to the page.
@@ -119,6 +136,7 @@ export class Editor {
     this.listen(this.element, "compositionend", () => { this.composing = false; this.reconcileFromDom(); });
     this.listen(document, "selectionchange", () => this.readSelection());
     this.observer.observe(this.element, { subtree: true, childList: true, characterData: true, attributes: true });
+    if (options.autofocus) this.focus();
   }
 
   // ---- state ----------------------------------------------------------------------------------------------
@@ -170,6 +188,18 @@ export class Editor {
     };
     visit(this.engine.document.blocks);
     return found;
+  }
+
+  /** Sets the hint shown while the document is empty ("" for none). */
+  setPlaceholder(text: string): void {
+    if (text === "") {
+      this.element.removeAttribute("aria-placeholder");
+      this.element.style.removeProperty("--rk-placeholder");
+    } else {
+      this.element.setAttribute("aria-placeholder", text);
+      // A CSS string: quoted, with quotes and backslashes escaped, and a line break as a line break.
+      this.element.style.setProperty("--rk-placeholder", `"${text.replace(/[\\"]/g, "\\$&").replace(/\n/g, "\\A ")}"`);
+    }
   }
 
   /** Replaces the whole document and empties the history. */
@@ -265,6 +295,8 @@ export class Editor {
 
   private draw(): void {
     renderDoc(this.engine.document, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
+    const blocks = this.engine.document.blocks;
+    this.element.toggleAttribute("data-rk-empty", blocks.length === 1 && blocks[0]?.type === "p" && blocks[0].content.length === 0);
     // Changes drawing just made are not disturbances; throw their records away.
     this.observer.takeRecords();
     this.writeSelection();

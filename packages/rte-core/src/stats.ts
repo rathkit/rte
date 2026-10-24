@@ -34,3 +34,10 @@ export function countDocument(doc: Doc): Counts {
 export function countSelection(doc: Doc, sel: Selection): Counts {
   return countText(selectedText(doc, sel));
 }
+
+/** How much text the document holds, counting every character (spaces and line breaks too) and an image as one. Used for length limits. */
+export function textLength(doc: Doc): number {
+  let total = 0;
+  for (const path of containerPaths(doc)) total += inlineText(getContent(doc, path)).length;
+  return total;
+}

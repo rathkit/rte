@@ -15,6 +15,6 @@ export { PLUGIN_API_VERSION, satisfiesApi, type EditorHandle, type Plugin, type 
 export { ops, type Ops } from "./ops.ts";
 export { alignAt, blockKindAt, changeIndent, indentAt, directionAt, setDirection, setAlign, setBlockType, type BlockKind } from "./blocks.ts";
 export { linkAt, setLink } from "./links.ts";
-export { countDocument, countSelection, countText, type Counts } from "./stats.ts";
+export { countDocument, countSelection, countText, textLength, type Counts } from "./stats.ts";
 export { inCodeBlock, inQuote, insertRule, toggleCodeBlock, toggleQuote } from "./blocks.ts";
 export { SLOTS, UiRegistry, type Field, type IconName, type UiItem, type UiSlot } from "./ui.ts";

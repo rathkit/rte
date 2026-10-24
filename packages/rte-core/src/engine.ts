@@ -8,7 +8,7 @@ import type { PasteHandler } from "./paste.ts";
 import { caret, isCollapsed, pathKey, type EditResult, type Path, type Selection } from "./path.ts";
 import { startOf } from "./edit.ts";
 import type { ImportOptions } from "./import.ts";
-import { countDocument, countSelection, type Counts } from "./stats.ts";
+import { countDocument, countSelection, textLength, type Counts } from "./stats.ts";
 import { UiRegistry } from "./ui.ts";
 import { PLUGIN_API_VERSION, satisfiesApi, type FileHandler, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
 import { ops } from "./ops.ts";
@@ -39,6 +39,13 @@ export interface EngineOptions {
   readonly beforeAccess?: () => void;
   /** Asked to put the keyboard focus in the editor. */
   readonly focus?: () => void;
+  /**
+   * The most text the document may hold, in characters (spaces and line breaks count, an image counts as one). An edit that would
+   * make it longer than this is not done; one that does not make it longer always is, so a document that already is over the limit
+   * can still be cut down. `onMaxLength` is told when an edit is refused.
+   */
+  readonly maxLength?: number;
+  readonly onMaxLength?: (info: { readonly limit: number; readonly wouldBe: number }) => void;
 }
 
 type Listener = (snapshot: EditorSnapshot, previous: EditorSnapshot) => void;
@@ -90,6 +97,8 @@ export class Engine {
   private readonly plugins = new Map<string, () => void>();
   private readonly beforeAccess: (() => void) | undefined;
   private readonly focusRequest: (() => void) | undefined;
+  private readonly maxLength: number | undefined;
+  private readonly onMaxLength: EngineOptions["onMaxLength"];
   readonly warn: (message: string) => void;
 
   constructor(options: EngineOptions = {}) {
@@ -98,6 +107,8 @@ export class Engine {
     this.readOnlyMode = options.readOnly ?? false;
     this.beforeAccess = options.beforeAccess;
     this.focusRequest = options.focus;
+    this.maxLength = options.maxLength;
+    this.onMaxLength = options.onMaxLength;
     this.warn = options.onWarning ?? ((message) => console.warn(`[rte] ${message}`));
     this.keymap = new Keymap(options.platform ?? detectPlatform(), this.warn);
     this.commands = new CommandRegistry(this);
@@ -192,6 +203,13 @@ export class Engine {
     const result = op(this.doc, this.sel);
     if (result.doc === this.doc && sameSelection(result.selection, this.sel)) return false;
     const docChanged = result.doc !== this.doc;
+    if (docChanged && this.maxLength !== undefined) {
+      const wouldBe = textLength(result.doc);
+      if (wouldBe > this.maxLength && wouldBe > textLength(this.doc)) {
+        this.onMaxLength?.({ limit: this.maxLength, wouldBe });
+        return false;
+      }
+    }
     if (docChanged) {
       const groups = kind === "type" || kind === "delete";
       if (!(groups && this.lastKind === kind)) {

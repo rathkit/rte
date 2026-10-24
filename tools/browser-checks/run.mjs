@@ -548,7 +548,7 @@ for (const [name, type] of engines) {
   const val = (id) => page.evaluate((i) => document.getElementById(i).value, id);
   const form = () => page.evaluate(() => Object.fromEntries(new FormData(document.getElementById("f"))));
   const events = () => page.evaluate(() => window.__events.splice(0).map((e) => e.join(":")));
-  check(`${name} (element) both elements are defined and the editors are ready`, await page.evaluate(() => !!customElements.get("rk-editor") && !!customElements.get("rk-toolbar") && window.__events.filter((e) => e[0] === "rk-ready").length === 3), "defined");
+  check(`${name} (element) both elements are defined and the editors are ready`, await page.evaluate(() => !!customElements.get("rk-editor") && !!customElements.get("rk-toolbar") && window.__events.filter((e) => e[0] === "rk-ready").length === 4), "defined");
   check(`${name} (element) the value attribute and the element's own children are the starting content`, (await val("body")) === "<p>Hello</p>" && (await val("second")) === "<p>from children</p>", [await val("body"), await val("second")]);
   check(`${name} (element) the editing surface is named from the label attribute`, await page.evaluate(() => document.querySelector("#body [data-rk-surface]").getAttribute("aria-label") === "Body"), "label");
   const f0 = await form();
@@ -592,6 +592,13 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(50);
   check(`${name} (element) moving the element keeps its content and it still works`, (await val("body")) === "<p><strong>one</strong> two</p>" && (await page.evaluate(() => !!document.getElementById("body").editor)), await val("body"));
   await page.evaluate(() => document.getElementById("second").remove());
+  // Attributes: placeholder, maxlength, spellcheck.
+  check(`${name} (element) placeholder and spellcheck attributes reach the editor`, await page.evaluate(() => { const s = document.querySelector("#limited [contenteditable=true]"); return s.getAttribute("aria-placeholder") === "Write something" && s.hasAttribute("data-rk-empty") && s.spellcheck === false; }), "attributes");
+  await page.click("#limited [contenteditable=true]");
+  await page.keyboard.type("0123456789abcdef");
+  check(`${name} (element) maxlength stops typing at the limit`, (await val("limited")) === "<p>0123456789</p>", await val("limited"));
+  await page.evaluate(() => document.getElementById("limited").setAttribute("placeholder", "Changed"));
+  check(`${name} (element) changing the placeholder attribute takes effect`, await page.evaluate(() => document.querySelector("#limited [contenteditable=true]").getAttribute("aria-placeholder") === "Changed"), "changed");
   check(`${name} (element) removing an element leaves no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
@@ -927,6 +934,17 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
   check(`${name} (ui) the row height dialog sets the least height of the row`, await page.evaluate(() => window.__one.editor.getHtml().includes('<tr style="height: 80px">') && document.querySelector("#root [data-rk-part=content] tr").getBoundingClientRect().height >= 79), await page.evaluate(() => window.__one.editor.getHtml()));
+  // The placeholder and the length limit, on a third editor made with those options.
+  const third = '#third [data-rk-part=content] > :first-child';
+  check(`${name} (ui) an empty editor shows its placeholder: marked empty, said to assistive technology, and drawn`, await page.evaluate((q) => { const e = document.querySelector(q); return e.hasAttribute("data-rk-empty") && e.getAttribute("aria-placeholder") === "Type here" && getComputedStyle(e.firstElementChild, "::before").content === '"Type here"'; }, third), "placeholder");
+  await page.click(third);
+  await page.keyboard.type("abcdefghijklmnop");
+  check(`${name} (ui) typing past maxLength is refused at the limit`, (await page.evaluate(() => window.__three.editor.getHtml())) === "<p>abcdefghijkl</p>", await page.evaluate(() => window.__three.editor.getHtml()));
+  check(`${name} (ui) once there is text the placeholder is gone`, await page.evaluate((q) => { const e = document.querySelector(q); return !e.hasAttribute("data-rk-empty") && getComputedStyle(e.firstElementChild, "::before").content === "none"; }, third), "gone");
+  check(`${name} (ui) spellcheck can be switched off`, (await page.evaluate((q) => document.querySelector(q).spellcheck, third)) === false, "spellcheck");
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.press("Delete");
+  check(`${name} (ui) deleting everything brings the placeholder back`, await page.evaluate((q) => document.querySelector(q).hasAttribute("data-rk-empty"), third), "back");
   // Cleaning up.
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");

@@ -9,7 +9,7 @@ export type RkEditorOptions = Omit<StandardOptions, "element" | "html" | "readOn
 
 export class RkEditor extends HTMLElement {
   static formAssociated = true;
-  static observedAttributes = ["value", "readonly", "disabled", "label", "required"];
+  static observedAttributes = ["value", "readonly", "disabled", "label", "required", "placeholder"];
 
   private internals: ElementInternals | undefined;
   private surface: HTMLElement | undefined;
@@ -43,7 +43,15 @@ export class RkEditor extends HTMLElement {
     const label = this.getAttribute("label");
     if (label) surface.setAttribute("aria-label", label);
     else if (!this.hasAttribute("aria-label") && !this.hasAttribute("aria-labelledby")) console.warn("[rte] <rk-editor> has no name: give it a label attribute.");
-    const editor = createEditor({ ...this.opts, element: surface, html: this.html, readOnly: this.hasAttribute("readonly") || this.hasAttribute("disabled") });
+    const maxLength = Number.parseInt(this.getAttribute("maxlength") ?? "", 10);
+    const spellcheck = this.getAttribute("spellcheck");
+    const editor = createEditor({
+      ...this.opts, element: surface, html: this.html, readOnly: this.hasAttribute("readonly") || this.hasAttribute("disabled"),
+      ...(this.hasAttribute("placeholder") ? { placeholder: this.getAttribute("placeholder") ?? "" } : {}),
+      ...(Number.isFinite(maxLength) && maxLength >= 0 ? { maxLength } : {}),
+      ...(spellcheck === "true" || spellcheck === "false" ? { spellcheck: spellcheck === "true" } : {}),
+      ...(this.hasAttribute("autofocus") ? { autofocus: true } : {}),
+    });
     this.current = editor;
     this.stop = editor.subscribe(() => this.changed());
     surface.addEventListener("focusin", this.onFocusIn);
@@ -71,6 +79,8 @@ export class RkEditor extends HTMLElement {
       if (value !== null && value !== this.value) this.value = value;
     } else if (name === "readonly" || name === "disabled") {
       this.current?.setReadOnly(this.hasAttribute("readonly") || this.hasAttribute("disabled"));
+    } else if (name === "placeholder") {
+      this.current?.setPlaceholder(value ?? "");
     } else if (name === "label") {
       if (value) this.surface?.setAttribute("aria-label", value);
     } else if (name === "required") {

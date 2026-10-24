@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { createEngine } from "./core.ts";
-import { insertText } from "./edit.ts";
+import { deleteSelection, insertText } from "./edit.ts";
 import { Engine } from "./engine.ts";
 import { exportHtml } from "./export.ts";
 import { importBlocks, importHtml } from "./import.ts";
@@ -258,4 +258,17 @@ test("shortcuts for aria-keyshortcuts use the names assistive technology expects
   assert.equal(engine("<p>a</p>", { platform: "other" }).keymap.ariaShortcut("format.bold"), "Control+B");
   assert.equal(engine("<p>a</p>", { platform: "apple" }).keymap.ariaShortcut("history.redo"), "Meta+Shift+Z");
   assert.equal(engine("<p>a</p>").keymap.ariaShortcut("nope"), undefined);
+});
+
+test("maxLength: an edit that would make the document longer than the limit is refused and reported; one that does not make it longer is not", () => {
+  const seen: { limit: number; wouldBe: number }[] = [];
+  const e = createEngine({ doc: importHtml("<p>abc</p>"), maxLength: 5, platform: "other", onMaxLength: (info) => seen.push(info), onWarning: () => undefined });
+  e.setSelection(caret({ path: [0], offset: 3 }));
+  assert.equal(e.apply("type", (doc, sel) => insertText(doc, sel, "de")), true, "exactly at the limit");
+  assert.equal(e.apply("type", (doc, sel) => insertText(doc, sel, "f")), false, "one past it");
+  assert.deepEqual(seen, [{ limit: 5, wouldBe: 6 }]);
+  assert.equal(exportHtml(e.document), "<p>abcde</p>");
+  assert.equal(e.apply("split", (doc, sel) => ({ doc: importHtml("<p>abc</p><p>de</p>"), selection: sel })), true, "splitting a paragraph adds no text");
+  const over = createEngine({ doc: importHtml("<p>abcdefgh</p>"), maxLength: 5, platform: "other", onWarning: () => undefined });
+  assert.equal(over.apply("delete", (doc, sel) => deleteSelection(doc, { anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 2 } })), true, "a document already over the limit can still be cut down");
 });

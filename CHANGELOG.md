@@ -20,6 +20,7 @@ The first alpha. Published to the `next` dist-tag only, never `latest`. Ten pack
 - Blocks: paragraphs, headings, block quotes, code blocks, horizontal rules, alignment, reading direction, indent.
 - Lists: bulleted, numbered, definition and task lists with nesting, Tab and Shift+Tab, and typed shortcuts.
 - Tables: insert, rows and columns, merge and split cells, header row, column widths (including dragging an edge), cell fill and borders, row heights, Tab between cells.
+- Options: placeholder, maximum length, spellcheck, autofocus.
 - Find and replace, an HTML source view, word and character counts, undo and redo, keyboard shortcuts list.
 - Paste cleaned up from word processors and spreadsheets (80 scrubbed captures are the tests); the spreadsheet style-class case is a paid feature and not included.
 
