@@ -1,8 +1,9 @@
 // The table commands and the keys that run them.
 import type { CommandDef } from "../commands.ts";
 import type { EditorSnapshot } from "../engine.ts";
+import { SIDES, type Side } from "../cellborder.ts";
 import type { KeyBinding } from "../keymap.ts";
-import { cellBackground, cellBorderPreset, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
+import { cellBackground, cellBorderPreset, hasEdgeLine, toggleEdgeLine, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -40,11 +41,17 @@ export function tableCommands(): readonly Def[] {
       run: (ctx, color) => ctx.apply("table", (doc, sel) => setCellBackground(doc, sel, color)),
       state: (s) => ({ enabled: here(s), value: cellBackground(s.doc, s.selection) }),
     }),
-    def<string | { readonly style?: string; readonly width?: number; readonly color?: string } | undefined, string>({
+    def<string | { readonly style?: string; readonly width?: number; readonly color?: string; readonly line?: string; readonly sides?: readonly Side[] } | undefined, string>({
       name: "table.cellBorder", label: "Cell border",
-      run: (ctx, choice) => ctx.apply("table", (doc, sel) => setCellBorder(doc, sel, choice)),
+      run: (ctx, choice) => ctx.apply("table", (doc, sel) => setCellBorder(doc, sel, choice, typeof choice === "object" ? choice.sides?.filter((s) => SIDES.includes(s)) : undefined)),
       state: (s) => ({ enabled: here(s), value: cellBorderPreset(s.doc, s.selection) }),
     }),
+    // A line along one edge of the selection, on or off.
+    ...SIDES.map((side) => def<void, never>({
+      name: `table.border${side[0]?.toUpperCase()}${side.slice(1)}`, label: `${side[0]?.toUpperCase()}${side.slice(1)} border`,
+      run: (ctx) => ctx.apply("table", (doc, sel) => toggleEdgeLine(doc, sel, side)),
+      state: (s) => ({ enabled: here(s), active: hasEdgeLine(s.doc, s.selection, side) }),
+    })),
     def<{ readonly height?: string | null } | undefined, string>({
       name: "table.rowHeight", label: "Row height",
       run: (ctx, arg) => ctx.apply("table", (doc, sel) => setRowHeight(doc, sel, arg?.height)),

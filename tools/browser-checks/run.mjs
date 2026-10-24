@@ -934,7 +934,7 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(60);
   await page.click('#root [data-rk-item="cell-style"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) the cell style menu has tinted swatches, line choices and a row height entry`, await page.evaluate(() => { const m = document.querySelector('#root [data-rk-item="cell-style"] + [data-rk-part=menu]'); const sw = m.querySelector('[data-rk-menu-item="cell-fill-green"] [data-rk-part=swatch]'); return !!sw && getComputedStyle(sw).backgroundColor === "rgb(200, 230, 201)" && !!m.querySelector('[data-rk-menu-item="cell-border-dashed"]') && m.querySelector('[data-rk-menu-item="cell-border-none"]').getAttribute("aria-checked") === "true" && !!m.querySelector('[data-rk-menu-item="cell-row-height"]'); }), "menu");
+  check(`${name} (ui) the cell style menu has tinted swatches, line choices and a row height entry`, await page.evaluate(() => { const m = document.querySelector('#root [data-rk-item="cell-style"] + [data-rk-part=menu]'); const sw = m.querySelector('[data-rk-menu-item="cell-fill-green"] [data-rk-part=swatch]'); return !!sw && getComputedStyle(sw).backgroundColor === "rgb(200, 230, 201)" && !!m.querySelector('[data-rk-menu-item="cell-border-dashed"]') && m.querySelector('[data-rk-menu-item="cell-border-default"]').getAttribute("aria-checked") === "true" && !!m.querySelector('[data-rk-menu-item="cell-row-height"]'); }), "menu");
   await page.click('#root [data-rk-menu-item="cell-fill-green"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) choosing a fill colors the cell, in the document and on the page`, await page.evaluate(() => window.__one.editor.getHtml().includes('<td style="background-color: #c8e6c9;">a</td>') && getComputedStyle(document.querySelector("#root [data-rk-part=content] td")).backgroundColor === "rgb(200, 230, 201)"), await page.evaluate(() => window.__one.editor.getHtml()));
@@ -945,6 +945,16 @@ for (const [name, type] of engines) {
   check(`${name} (ui) choosing a line draws it round the cell`, await page.evaluate(() => { const td = document.querySelector("#root [data-rk-part=content] td"); const c = getComputedStyle(td); return window.__one.editor.getHtml().includes("border: 3px solid currentcolor") && c.borderTopWidth === "3px" && c.borderTopStyle === "solid"; }), "border");
   await page.click('#root [data-rk-item="cell-style"]');
   await page.waitForTimeout(80);
+  await page.click('#root [data-rk-menu-item="cell-border-none"]');
+  await page.waitForTimeout(80);
+  await page.click('#root [data-rk-item="cell-style"]');
+  await page.waitForTimeout(80);
+  await page.click('#root [data-rk-menu-item="cell-edge-bottom"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) a line along one edge: no lines, then the bottom one, in the document and on the page`, await page.evaluate(() => { const td = document.querySelector("#root [data-rk-part=content] td"); const c = getComputedStyle(td); return window.__one.editor.getHtml().includes("border-top: none; border-right: none; border-bottom: 1px solid currentcolor; border-left: none") && c.borderBottomStyle === "solid" && c.borderTopStyle === "none"; }), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="cell-style"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) and the menu shows the bottom line as on and the top as off`, await page.evaluate(() => document.querySelector('#root [data-rk-menu-item="cell-edge-bottom"]').getAttribute("aria-checked") === "true" && document.querySelector('#root [data-rk-menu-item="cell-edge-top"]').getAttribute("aria-checked") === "false"), "edges");
   await page.click('#root [data-rk-menu-item="cell-row-height"]');
   await page.waitForTimeout(100);
   await page.keyboard.type("80");

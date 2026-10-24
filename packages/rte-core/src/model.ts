@@ -84,7 +84,12 @@ export interface TableCell {
   readonly blocks: readonly Block[];
   /** The color behind the cell. */
   readonly background?: string;
-  readonly border?: CellBorder;
+  /**
+   * The line round all four sides: a line, or null for explicitly none (which hides the lines a stylesheet would draw). Absent means
+   * not said. Where the sides differ, `borders` says which have a line instead and this is absent.
+   */
+  readonly border?: CellBorder | null;
+  readonly borders?: { readonly top?: CellBorder | null; readonly right?: CellBorder | null; readonly bottom?: CellBorder | null; readonly left?: CellBorder | null };
 }
 export interface Table {
   readonly type: "table";

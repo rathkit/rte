@@ -25,7 +25,8 @@ const filled = (target: TableCell, from: TableCell): TableCell => ({
   ...target,
   blocks: from.blocks,
   ...(from.background ? { background: from.background } : {}),
-  ...(from.border ? { border: from.border } : {}),
+  ...(from.border !== undefined ? { border: from.border } : {}),
+  ...(from.borders ? { borders: from.borders } : {}),
 });
 
 /** Puts `source` into the table the selection is in, or returns undefined when the selection is not in a table. */

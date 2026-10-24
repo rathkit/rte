@@ -1,7 +1,8 @@
 // Document model in, deterministic HTML out. Empty blocks are written without padding. Attribute
 // order is fixed. Marks nest in a fixed order so the same document always serializes the same way.
 import { escapeAttribute, escapeText } from "./html/entities.ts";
-import type { Block, Doc, Inline, List, Mark, Table, TableCell } from "./model.ts";
+import { lineCss, SIDES } from "./cellborder.ts";
+import type { Block, CellBorder, Doc, Inline, List, Mark, Table, TableCell } from "./model.ts";
 
 const MARK_ORDER = ["link", "bold", "italic", "underline", "strike", "code", "sup", "sub", "color", "background"] as const;
 const TAGS = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", sup: "sup", sub: "sub" } as const;
@@ -64,9 +65,12 @@ function exportList(list: List, depth: number): string {
   return `<${list.type}${start}${style}>${items}</${list.type}>`;
 }
 
-/** The style of a cell: the color behind it and the line round it. */
+/** The style of a cell: the color behind it and the lines round it. */
 function cellStyle(cell: TableCell): string {
-  const parts = [...(cell.background ? [`background-color: ${cell.background}`] : []), ...(cell.border ? [`border: ${cell.border.width}px ${cell.border.style} ${cell.border.color}`] : [])];
+  const parts: string[] = [];
+  if (cell.background) parts.push(`background-color: ${cell.background}`);
+  if (cell.border !== undefined && !cell.borders) parts.push(`border: ${lineCss(cell.border)}`);
+  else if (cell.borders) for (const side of SIDES) if (cell.borders[side] !== undefined) parts.push(`border-${side}: ${lineCss(cell.borders[side] as CellBorder | null)}`);
   return parts.length > 0 ? ` style="${escapeAttribute(parts.join("; "))};"` : "";
 }
 

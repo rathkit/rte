@@ -3,6 +3,7 @@
 // cell with the row and column where it starts) and is turned back into rows afterwards.
 import { COLOR_VALUE, COLUMN_WIDTH, ROW_HEIGHT, type Block, type CellBorder, type Doc, type Table, type TableCell } from "../model.ts";
 import { caret, containerPaths, fixup, getBlock, mapBlockList, type EditResult, type Path, type Selection } from "../path.ts";
+import { sameLine, SIDES, sidesOf, withSides, type Line, type Side } from "../cellborder.ts";
 import { extent, fromGrid, inRow, locateCell as locate, meets, selectedCells, toGrid, type Grid, type Placed, type Where } from "../tablegrid.ts";
 
 const blankCell = (header = false): TableCell => ({ header, colspan: 1, rowspan: 1, blocks: [{ type: "p", content: [] }] });
@@ -164,19 +165,27 @@ export function splitCell(doc: Doc, sel: Selection): EditResult {
 
 // ---- how cells look: color behind, line round, row height -----------------------------------------------------
 
-/** The line presets people choose from. The color follows the text color, so it reads on any theme. */
-export const BORDER_PRESETS: Readonly<Record<string, CellBorder | undefined>> = {
-  none: undefined,
+/**
+ * The line presets people choose from. The color follows the text color, so it reads on any theme. `default` says nothing (a stylesheet
+ * decides, and draws its grid); `none` says there is no line, whatever a stylesheet says.
+ */
+export const BORDER_PRESETS: Readonly<Record<string, CellBorder | null | undefined>> = {
+  default: undefined,
+  none: null,
   thin: { style: "solid", width: 1, color: "currentcolor" },
   thick: { style: "solid", width: 3, color: "currentcolor" },
   dashed: { style: "dashed", width: 1, color: "currentcolor" },
   dotted: { style: "dotted", width: 1, color: "currentcolor" },
 };
 
-/** Which preset a border is: "none" for no border, "" for one that is none of them. */
-export function borderPreset(border: CellBorder | undefined): string {
-  if (!border) return "none";
-  return Object.entries(BORDER_PRESETS).find(([, b]) => b && b.style === border.style && b.width === border.width && b.color === border.color)?.[0] ?? "";
+/** Which preset a cell's lines are: `default`, `none`, `thin` and so on, or "" when the sides differ or the line is none of them. */
+export function borderPreset(cell: TableCell): string {
+  const sides = sidesOf(cell);
+  if (!SIDES.every((side) => sameLine(sides[side], sides.top))) return "";
+  const line = sides.top;
+  if (line === undefined) return "default";
+  if (line === null) return "none";
+  return Object.entries(BORDER_PRESETS).find(([, b]) => b && sameLine(b, line))?.[0] ?? "";
 }
 
 /** The cells a change to appearance applies to: those the selection runs across (as a rectangle), or the caret's cell. */
@@ -195,7 +204,7 @@ function firstCell(doc: Doc, sel: Selection): TableCell | undefined {
 }
 
 export const cellBackground = (doc: Doc, sel: Selection): string => firstCell(doc, sel)?.background ?? "";
-export const cellBorderPreset = (doc: Doc, sel: Selection): string => { const c = firstCell(doc, sel); return c ? borderPreset(c.border) : ""; };
+export const cellBorderPreset = (doc: Doc, sel: Selection): string => { const c = firstCell(doc, sel); return c ? borderPreset(c) : ""; };
 
 /** Puts a color behind the selected cells, or takes it away (an empty color). A value that is not a color changes nothing. */
 export function setCellBackground(doc: Doc, sel: Selection, color: string | null | undefined): EditResult {
@@ -204,19 +213,57 @@ export function setCellBackground(doc: Doc, sel: Selection, color: string | null
   return styled(doc, sel, ({ background: _old, ...rest }) => (value === "" ? rest : { ...rest, background: value }));
 }
 
-/** Draws a line round the selected cells: a preset name (`thin`, `thick`, `dashed`, `dotted`, `none`) or `{ style, width, color }`. */
-export function setCellBorder(doc: Doc, sel: Selection, choice: string | { readonly style?: string; readonly width?: number; readonly color?: string } | undefined): EditResult {
-  let border: CellBorder | undefined;
-  if (typeof choice === "string") {
-    if (!(choice in BORDER_PRESETS)) return { doc, selection: sel };
-    border = BORDER_PRESETS[choice];
-  } else if (choice && (choice.style === "solid" || choice.style === "dashed" || choice.style === "dotted")) {
-    const width = Math.round(choice.width ?? 1);
-    const color = (choice.color ?? "currentcolor").trim().toLowerCase();
-    if (!(width >= 1 && width <= 8) || !COLOR_VALUE.test(color)) return { doc, selection: sel };
-    border = { style: choice.style, width, color };
-  } else return { doc, selection: sel };
-  return styled(doc, sel, ({ border: _old, ...rest }) => (border ? { ...rest, border } : rest));
+/** A line from what a command was given: a preset name, or `{ style, width, color }`. `false` if it is neither. */
+function lineFrom(choice: unknown): CellBorder | null | undefined | false {
+  if (typeof choice === "string") return choice in BORDER_PRESETS ? BORDER_PRESETS[choice] : false;
+  const given = choice as { style?: string; width?: number; color?: string; line?: string } | undefined;
+  if (given?.line !== undefined) return lineFrom(given.line);
+  if (given && (given.style === "solid" || given.style === "dashed" || given.style === "dotted")) {
+    const width = Math.round(given.width ?? 1);
+    const color = (given.color ?? "currentcolor").trim().toLowerCase();
+    return width >= 1 && width <= 8 && COLOR_VALUE.test(color) ? { style: given.style, width, color } : false;
+  }
+  return false;
+}
+
+/**
+ * Draws a line on the selected cells: a preset name (`default`, `none`, `thin`, `thick`, `dashed`, `dotted`) or `{ style, width, color }`
+ * (or `{ line: <preset> }`), on all four sides of each cell, or, with `sides`, on those sides of the selection as a whole: the top
+ * of the cells along its top edge, and so on, as a table editor draws the outline of a selected block.
+ */
+export function setCellBorder(doc: Doc, sel: Selection, choice: unknown, sides?: readonly Side[]): EditResult {
+  const line = lineFrom(choice);
+  if (line === false) return { doc, selection: sel };
+  const found = selectedCells(doc, sel);
+  if (!found) return { doc, selection: sel };
+  const { grid, rect, where } = found;
+  const cells = grid.cells.map((p) => {
+    if (!meets(rect, extent(p))) return p;
+    const e = extent(p);
+    const edges: Record<Side, boolean> = { top: e.top === rect.top, right: e.right === rect.right, bottom: e.bottom === rect.bottom, left: e.left === rect.left };
+    const change: Partial<Record<Side, Line>> = {};
+    for (const side of sides ?? SIDES) if (!sides || edges[side]) change[side] = line;
+    return { ...p, cell: withSides(p.cell, change) };
+  });
+  return { doc: replaceTable(doc, where.table, fromGrid({ ...grid, cells })), selection: sel };
+}
+
+/** Whether the selection has a line along this edge: every cell on that edge of it has one on that side. */
+export function hasEdgeLine(doc: Doc, sel: Selection, side: Side): boolean {
+  const found = selectedCells(doc, sel);
+  if (!found) return false;
+  const { grid, rect } = found;
+  const along = grid.cells.filter((p) => {
+    if (!meets(rect, extent(p))) return false;
+    const e = extent(p);
+    return side === "top" ? e.top === rect.top : side === "bottom" ? e.bottom === rect.bottom : side === "left" ? e.left === rect.left : e.right === rect.right;
+  });
+  return along.length > 0 && along.every((p) => { const line = sidesOf(p.cell)[side]; return line !== undefined && line !== null; });
+}
+
+/** Turns the line along one edge of the selection on (a thin line) or off, whichever it is not now. */
+export function toggleEdgeLine(doc: Doc, sel: Selection, side: Side): EditResult {
+  return setCellBorder(doc, sel, hasEdgeLine(doc, sel, side) ? "none" : "thin", [side]);
 }
 
 /** The height asked for the row the caret's cell starts in, or "" for automatic. */

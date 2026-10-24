@@ -10,7 +10,7 @@ table may carry `widths`: one entry per column of the grid, a CSS length in `px`
 column is automatic. HTML in: `<colgroup><col>` widths, else the widths the first row's single-column cells ask for (`width` attribute or
 style). Only plain numbers with `px` or `%` are widths; `9em`, `calc(...)` and the like are ignored. HTML out: a `<colgroup>`.
 
-A cell may have a `background` (a plain color) and a `border` (one line all round: solid, dashed or dotted, 1 to 8 px, a color). The table may carry
+A cell may have a `background` (a plain color) and lines: `border`, one line all round (solid, dashed or dotted, 1 to 8 px, a color), or `null` for none whatever a stylesheet says; or, where the sides differ, `borders` with a line (or `null`) for each side that has been said. A side that has not been said is left to the stylesheet (the styled interface draws a grid). The same four sides are always kept as one `border`. The table may carry
 `heights`, the least height of each row in `px`, like `widths` for columns. HTML in: a cell's `background-color`, `background` (when it is a plain color) or
 `bgcolor`, its `border` shorthand, and a row's (or its first cell's) `height`; anything else (images, gradients, double lines, a different line on each side) is
 dropped. Cell styles are read when a document is loaded, not from a paste, like text colors. HTML out: `style` on the cell and the row.
@@ -29,7 +29,8 @@ dropped. Cell styles are read when a document is loaded, not from a paste, like 
 | `table.splitCell` | Cuts a spanning cell back to single cells: content stays in the top left one |
 | `table.columnWidth` | `{ width }` for the caret's column: `120`, `120px`, `25%`, or empty for automatic. Anything else changes nothing |
 | `table.cellBackground` | a color, or `""` | The color behind the selected cells (the rectangle a selection runs across, or the caret's cell). Value: the first cell's color |
-| `table.cellBorder` | `none`, `thin`, `thick`, `dashed`, `dotted`, or `{ style, width, color }` | The line round the selected cells. The presets use the text color, so they read on any theme. Value: the preset name of the first cell, `""` for a custom line |
+| `table.cellBorder` | `default`, `none`, `thin`, `thick`, `dashed`, `dotted`, or `{ style, width, color }`; with `sides: ["top", ...]` (and `line: <preset>` in place of the style) only those edges of the selection | The lines of the selected cells. `default` says nothing; `none` says there are none. The presets use the text color, so they read on any theme. Value: the preset name of the first cell, `""` for sides that differ or a custom line |
+| `table.borderTop`, `table.borderRight`, `table.borderBottom`, `table.borderLeft` | | A thin line along that edge of the selection (the cells on that edge, that side only), on or off; off is `none`. `active` says whether the edge has a line |
 | `table.rowHeight` | `{ height }` | The least height of the rows the selection covers: `40`, `40px`, or empty for automatic |
 | `table.nextCell`, `table.previousCell` | Tab and Shift+Tab. Tab past the last cell adds a row; Shift+Tab in the first cell is left to the browser. Lists inside a cell get Tab first |
 
@@ -66,5 +67,5 @@ A table pasted with the caret (or a selection) in a table cell fills the cells, 
 
 ## Not built
 
-- A different line on each side of a cell, table-wide borders.
+- Table-wide borders (a command for every cell at once).
 - Selecting a rectangle of cells by dragging across them as cells (the selection is still text, and the rectangle is worked out from its two ends).

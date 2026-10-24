@@ -2,6 +2,7 @@
 // it parses without a DOM, applies the allow-lists, then builds the model, so nothing unsafe is ever created.
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
+import { parseLine, SIDES, withSides, type Line, type Side } from "./cellborder.ts";
 import {
   COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, ROW_HEIGHT, normalizeInline, type Align, type CellBorder, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
@@ -621,7 +622,7 @@ function convertTable(el: HElement, ctx: Ctx, settings: Settings): Block {
       inner.flush();
       let blocks = finishBlocks(inner.blocks);
       if (blocks.length === 0) blocks = [{ type: "p", content: [] }];
-      cells.push({ header: cell.tag === "th", colspan: span(cell.attrs.colspan, 100), rowspan: span(cell.attrs.rowspan, 100), blocks, ...(settings.allowStyles ? cellLook(cell) : {}) });
+      cells.push({ header: cell.tag === "th", colspan: span(cell.attrs.colspan, 100), rowspan: span(cell.attrs.rowspan, 100), blocks, ...(settings.allowStyles ? cellLook(cell) : {}) } as TableCell);
     }
     if (cells.length > 0) rows.push(cells);
   }
@@ -638,29 +639,21 @@ function widthOf(el: HElement): string | null {
   return COLUMN_WIDTH.test(value) ? value : null;
 }
 
-/** A cell's background color and border, from its style: only plain colors, and one border all round (`border: 1px solid #000`). */
-function cellLook(cell: HElement): { background?: string; border?: CellBorder } {
+/** A cell's background color and lines, from its style: only plain colors; the lines `parseLine` understands, all round or side by side. */
+function cellLook(cell: HElement): { background?: string; border?: CellBorder | null; borders?: TableCell["borders"] } {
   const style = parseStyle(cell.attrs.style);
-  const out: { background?: string; border?: CellBorder } = {};
+  const out: { background?: string; border?: CellBorder | null; borders?: TableCell["borders"] } = {};
   const bg = (style.get("background-color") ?? style.get("background") ?? cell.attrs.bgcolor ?? "").trim().toLowerCase();
   if (bg && COLOR_VALUE.test(bg) && bg !== "transparent" && bg !== "none") out.background = bg;
-  const shorthand = style.get("border");
-  if (shorthand) {
-    // Split on spaces that are not inside a color function.
-    const tokens = shorthand.trim().toLowerCase().split(/\s+(?![^(]*\))/);
-    let width = 1;
-    let line: CellBorder["style"] | undefined;
-    let color = "currentcolor";
-    for (const t of tokens) {
-      if (t === "solid" || t === "dashed" || t === "dotted") line = t;
-      else if (t === "thin") width = 1;
-      else if (t === "medium") width = 3;
-      else if (t === "thick") width = 5;
-      else if (/^\d+(\.\d+)?(px|pt)?$/.test(t)) width = Math.max(1, Math.min(8, Math.round(lengthToPx(t.replace(/^(\d+(\.\d+)?)$/, "$1px")))));
-      else if (COLOR_VALUE.test(t)) color = t;
-    }
-    if (line) out.border = { style: line, width, color };
-  }
+  const all = parseLine(style.get("border"));
+  const sides = Object.fromEntries(SIDES.map((side) => [side, parseLine(style.get(`border-${side}`))])) as Record<Side, Line>;
+  if (SIDES.some((side) => sides[side] !== undefined)) {
+    // Sides said one by one, over whatever was said for all of them.
+    const said = Object.fromEntries(SIDES.filter((side) => sides[side] !== undefined).map((side) => [side, sides[side]])) as Partial<Record<Side, Line>>;
+    const lines = withSides({ header: false, colspan: 1, rowspan: 1, blocks: [], ...(all !== undefined ? { border: all } : {}) }, said);
+    if (lines.border !== undefined) out.border = lines.border;
+    if (lines.borders) out.borders = lines.borders;
+  } else if (all !== undefined) out.border = all;
   return out;
 }
 

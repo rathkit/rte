@@ -237,7 +237,7 @@ test("how cells look: background and border are read from a cell's style, writte
   const f = make(cells([["a", "b"], ["c", "d"]]));
   inCell(f, 0, 0);
   assert.equal(f.commands.state("table.cellBackground").value, "");
-  assert.equal(f.commands.state("table.cellBorder").value, "none");
+  assert.equal(f.commands.state("table.cellBorder").value, "default");
   f.commands.run("table.cellBackground", "#C8E6C9");
   f.commands.run("table.cellBorder", "thick");
   assert.equal(html(f), '<table><tbody><tr><td style="background-color: #c8e6c9; border: 3px solid currentcolor;">a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>');
@@ -249,8 +249,8 @@ test("how cells look: background and border are read from a cell's style, writte
   f.commands.run("table.cellBorder", { style: "dotted", width: 2, color: "#336699" });
   assert.match(html(f), /border: 2px dotted #336699/);
   f.commands.run("table.cellBackground", "");
-  f.commands.run("table.cellBorder", "none");
-  assert.equal(html(f), cells([["a", "b"], ["c", "d"]]), "taken away again");
+  f.commands.run("table.cellBorder", "default");
+  assert.equal(html(f), cells([["a", "b"], ["c", "d"]]), "back to saying nothing");
 });
 
 test("the look is set on every cell of the selected rectangle, and stays with a cell that is merged or split", () => {
@@ -285,4 +285,45 @@ test("row height: read, set for the rows a selection covers, and carried with it
   assert.equal((html(e).match(/height: 30px/g) ?? []).length, 2, "two rows covered");
   e.commands.run("table.rowHeight", { height: "" });
   assert.doesNotMatch(html(e), /height/);
+});
+
+
+test("lines can differ from side to side: read from the sides, written side by side, and the same four sides collapse to one line", () => {
+  const e = make('<table><tbody><tr><td style="border-top: 2px solid red; border-bottom: 1px dashed #333; border-left: none">a</td><td style="border: 1px solid blue; border-right: none">b</td><td style="border: none">c</td></tr></tbody></table>');
+  assert.equal(html(e), '<table><tbody><tr><td style="border-top: 2px solid red; border-bottom: 1px dashed #333; border-left: none;">a</td><td style="border-top: 1px solid blue; border-right: none; border-bottom: 1px solid blue; border-left: 1px solid blue;">b</td><td style="border: none;">c</td></tr></tbody></table>');
+  const same = make('<table><tbody><tr><td style="border-top: 1px solid red; border-right: 1px solid red; border-bottom: 1px solid red; border-left: 1px solid red">a</td></tr></tbody></table>');
+  assert.equal(html(same), '<table><tbody><tr><td style="border: 1px solid red;">a</td></tr></tbody></table>');
+  const odd = make('<table><tbody><tr><td style="border-top: 3px double red">a</td></tr></tbody></table>');
+  assert.equal(html(odd), cells([["a"]]), "a line that is not solid, dashed or dotted is not kept");
+});
+
+test("a line on one edge of the selection goes on the cells along that edge, and off again; the other sides are left as they were", () => {
+  const e = make(cells([["a", "b"], ["c", "d"]]));
+  across(e, [0, 0], [1, 1]);
+  assert.equal(e.commands.state("table.borderTop").active, false);
+  e.commands.run("table.borderTop");
+  assert.equal(html(e), '<table><tbody><tr><td style="border-top: 1px solid currentcolor;">a</td><td style="border-top: 1px solid currentcolor;">b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>', "only the top row, only its top");
+  assert.equal(e.commands.state("table.borderTop").active, true);
+  e.commands.run("table.borderRight");
+  assert.match(html(e), /<td>c<\/td><td style="border-right: 1px solid currentcolor;">d<\/td>/, "the right edge is the right column; the bottom right cell has only that");
+  assert.match(html(e), /<td style="border-top: 1px solid currentcolor;">a<\/td><td style="border-top: 1px solid currentcolor; border-right: 1px solid currentcolor;">b<\/td>/);
+  e.commands.run("table.borderTop");
+  assert.match(html(e), /<td style="border-top: none;">a<\/td>/, "off means none, not the stylesheet's default");
+  assert.equal(e.commands.state("table.borderTop").active, false);
+  e.undo();
+  assert.equal(e.commands.state("table.borderTop").active, true, "one undo step");
+});
+
+test("all four sides set one after another become one line, and a preset over different sides sets them all", () => {
+  const e = make(cells([["a"]]));
+  inCell(e, 0, 0);
+  for (const name of ["table.borderTop", "table.borderRight", "table.borderBottom", "table.borderLeft"]) e.commands.run(name);
+  assert.equal(html(e), '<table><tbody><tr><td style="border: 1px solid currentcolor;">a</td></tr></tbody></table>');
+  assert.equal(e.commands.state("table.cellBorder").value, "thin");
+  e.commands.run("table.borderTop");
+  assert.equal(e.commands.state("table.cellBorder").value, "", "different sides are none of the presets");
+  e.commands.run("table.cellBorder", "dashed");
+  assert.equal(html(e), '<table><tbody><tr><td style="border: 1px dashed currentcolor;">a</td></tr></tbody></table>');
+  e.commands.run("table.cellBorder", { line: "thick", sides: ["left", "right"] });
+  assert.equal(html(e), '<table><tbody><tr><td style="border-top: 1px dashed currentcolor; border-right: 3px solid currentcolor; border-bottom: 1px dashed currentcolor; border-left: 3px solid currentcolor;">a</td></tr></tbody></table>');
 });

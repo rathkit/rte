@@ -11,6 +11,7 @@ import { setLink } from "./links.ts";
 import { decodeBase64, encodeBase64 } from "./base64.ts";
 import { escapeAttribute, escapeText } from "./html/entities.ts";
 import { checkImageSrc, parseStyle } from "./import.ts";
+import { sameLine, SIDES, sidesOf, withSides } from "./cellborder.ts";
 import { extent, fromGrid, inRow, locateCell, meets, selectedCells, selectedRect, toGrid } from "./tablegrid.ts";
 import { COLOR_VALUE, COLUMN_WIDTH, ROW_HEIGHT, inlineLength, inlineText, normalizeInline } from "./model.ts";
 import {
@@ -20,7 +21,7 @@ import {
 export const ops = {
   // Reading and changing the document by position.
   caret, clampPos, containerPaths, selectedContainers, getContent, setContent, getBlock, kindAt, mapBlockList, fixup, pathKey, isCollapsed,
-  inlineLength, inlineText, normalizeInline, sliceInline, COLUMN_WIDTH, COLOR_VALUE, ROW_HEIGHT,
+  inlineLength, inlineText, normalizeInline, sliceInline, COLUMN_WIDTH, COLOR_VALUE, ROW_HEIGHT, sameLine, SIDES, sidesOf, withSides,
   // The grid behind a table.
   toGrid, fromGrid, inRow, extent, meets, selectedRect, selectedCells, locateCell,
   // Importing, with the same address checks the editor uses.

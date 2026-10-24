@@ -13,7 +13,7 @@ export interface TablesOptions {
 const TINTS: readonly (readonly [string, string])[] = [
   ["Yellow", "#fff3bf"], ["Orange", "#ffe0b2"], ["Red", "#ffcdd2"], ["Green", "#c8e6c9"], ["Blue", "#bbdefb"], ["Purple", "#e1bee7"], ["Gray", "#e0e0e0"],
 ];
-const LINES: readonly (readonly [string, string])[] = [["none", "No border"], ["thin", "Thin line"], ["thick", "Thick line"], ["dashed", "Dashed line"], ["dotted", "Dotted line"]];
+const LINES: readonly (readonly [string, string])[] = [["default", "Default lines"], ["none", "No lines"], ["thin", "Thin line"], ["thick", "Thick line"], ["dashed", "Dashed line"], ["dotted", "Dotted line"]];
 
 export function tables(options: TablesOptions = {}): Plugin {
   return {
@@ -50,6 +50,8 @@ export function tables(options: TablesOptions = {}): Plugin {
           { kind: "button", id: "cell-fill-none", command: "table.cellBackground", arg: "", label: "No fill" },
           { kind: "separator", id: "cell-sep-lines" },
           ...LINES.map(([key, label]): UiItem => ({ kind: "toggle", id: `cell-border-${key}`, command: "table.cellBorder", arg: key, label })),
+          { kind: "separator", id: "cell-sep-sides" },
+          ...(["top", "bottom", "left", "right"] as const).map((side): UiItem => ({ kind: "toggle", id: `cell-edge-${side}`, command: `table.border${side[0]?.toUpperCase()}${side.slice(1)}`, label: `${side[0]?.toUpperCase()}${side.slice(1)} line` })),
           { kind: "separator", id: "cell-sep-height" },
           { kind: "dialog", id: "cell-row-height", command: "table.rowHeight", label: "Row height…", fields: [{ name: "height", type: "text", label: "Least height in px (empty for automatic)" }] },
         ],

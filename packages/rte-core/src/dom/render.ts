@@ -1,7 +1,8 @@
 // Draws a document into a DOM element, and maps between DOM selections and document positions.
 // Every container (paragraph, heading, code block, list item) carries `data-rte="<path>"`; that is how the
 // view finds a container again. The attributes live only in the editing surface, never in saved HTML.
-import type { Block, Doc, Inline, List, Mark, TableCell } from "../model.ts";
+import { lineCss, SIDES } from "../cellborder.ts";
+import type { Block, CellBorder, Doc, Inline, List, Mark, TableCell } from "../model.ts";
 import { pathKey, type Path, type Pos } from "../path.ts";
 
 const BLOCK_TAGS = new Set(["UL", "OL", "DL", "DT", "DD", "TABLE", "P", "DIV", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "PRE", "HR", "LI"]);
@@ -174,7 +175,8 @@ function renderBlock(block: Block, path: readonly number[], options: RenderOptio
           if (hit && hit.key === key && !claimed?.has(hit.el) && !cache?.dirty.has(hit.el)) { claimed?.add(hit.el); return hit.el; }
           const td = document.createElement(cell.header ? "th" : "td");
           if (cell.background) td.style.backgroundColor = cell.background;
-          if (cell.border) td.style.border = `${cell.border.width}px ${cell.border.style} ${cell.border.color}`;
+          if (cell.border !== undefined && !cell.borders) td.style.border = lineCss(cell.border);
+          else if (cell.borders) for (const side of SIDES) if (cell.borders[side] !== undefined) td.style.setProperty(`border-${side}`, lineCss(cell.borders[side] as CellBorder | null));
           if (cell.colspan > 1) td.setAttribute("colspan", String(cell.colspan));
           if (cell.rowspan > 1) td.setAttribute("rowspan", String(cell.rowspan));
           cell.blocks.forEach((inner, n) => td.appendChild(renderBlock(inner, [...path, r, c, n], options, cache)));
