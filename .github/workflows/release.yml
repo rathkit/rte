@@ -30,20 +30,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup-pnpm
       # The oldest Node that `engines` allows, kept for the import checks of the packages.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22.14.0"
       - name: Remember the oldest Node
         run: echo "RTE_SMOKE_NODES=$(command -v node)" >> "$GITHUB_ENV"
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      # pnpm, the Node in .node-version, and the install from the lockfile, in one step.
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4
         with:
-          node-version-file: .node-version
-          cache: pnpm
+          cache: true
+          require-lockfile: true
       - name: The tag, the packages and the changelog agree
         run: node tools/check-release.mjs "$TAG"
-      - run: pnpm install --frozen-lockfile
       - run: pnpm check:zero-deps
       - run: pnpm check:denylist
         env:

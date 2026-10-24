@@ -7,25 +7,27 @@ const dir = join(import.meta.dirname, "../.github/workflows");
 const files = readdirSync(dir).filter((f) => f.endsWith(".yml"));
 const text = (f) => readFileSync(join(dir, f), "utf8");
 
-test("every action in every workflow is pinned to a commit (or is one of this repository's own)", () => {
+test("every action in every workflow is pinned to a commit", () => {
   assert.ok(files.length >= 3);
   for (const f of files) {
     for (const line of text(f).split("\n").filter((l) => /^\s*-?\s*uses:/.test(l))) {
-      if (/uses:\s*\.\//.test(line)) continue;
       assert.match(line, /@[0-9a-f]{40}\b/, `${f}: ${line.trim()}`);
     }
   }
 });
 
-test("the pnpm the workflows install is the one package.json names", () => {
-  const action = readFileSync(join(dir, "../actions/setup-pnpm/action.yml"), "utf8");
-  const wanted = JSON.parse(readFileSync(join(dir, "../../package.json"), "utf8")).packageManager;
-  assert.match(action, new RegExp(`PNPM_VERSION: "${wanted.replace("pnpm@", "").replace(/\./g, "\\.")}"`));
-  assert.match(action, /sha256sum --check --strict/);
+test("pnpm and Node are set up by pnpm/setup at the commit the repository allows, and the install is from the lockfile", () => {
+  const pin = "pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4";
+  for (const f of ["ci.yml", "release.yml"]) {
+    assert.ok(text(f).includes(pin), `${f} does not use ${pin}`);
+    assert.match(text(f), /require-lockfile: true/, `${f} must install from the lockfile only`);
+    assert.doesNotMatch(text(f), /pnpm install --frozen-lockfile\n/, `${f} installs twice`);
+  }
+  assert.doesNotMatch(text("ci.yml") + text("release.yml"), /pnpm\/action-setup/);
 });
 
-test("workflows use only actions the repository allows: GitHub's own, or this repository's own", () => {
-  const allowed = /^(actions|github)\/|^\.\//;
+test("workflows use only actions the repository allows: GitHub's own, or the one pnpm action the repository allows", () => {
+  const allowed = /^(actions|github)\/|^pnpm\/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4$/;
   for (const f of files) {
     for (const line of text(f).split("\n").filter((l) => /^\s*-?\s*uses:/.test(l))) {
       const action = line.replace(/^\s*-?\s*uses:\s*/, "").trim();

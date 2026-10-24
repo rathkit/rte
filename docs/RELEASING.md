@@ -32,7 +32,7 @@ A dry run needs no tag: run the `release` workflow by hand with a tag name as in
 
 ## Actions policy
 
-The repository allows only GitHub's own actions and verified creators, and requires pinned commits. Workflows therefore use `actions/*` only, plus one local action (`.github/actions/setup-pnpm`), and install `pnpm` and `cosign` from their GitHub releases at pinned versions with recorded checksums. `tools/check-workflows.test.mjs` fails on any other action. Adding an action means adding it to the policy first (the owner's call); when `pnpm` is upgraded, change `packageManager` and the local action together (a test keeps them equal).
+The repository allows only GitHub's own actions, verified creators, and one more: `pnpm/setup` at one named commit, which sets up pnpm (the version in `packageManager`), the Node in `.node-version`, the pnpm cache and the install from the lockfile in one step. Workflows use those and nothing else, and install `cosign` from its GitHub release at a pinned version and checksum. `tools/check-workflows.test.mjs` fails on any other action, or on `pnpm/setup` at another commit. To move to a newer `pnpm/setup`, change the commit in the workflows and in the allowed-actions setting together. Only the oldest-Node import check (Node 22.14.0, set up with `actions/setup-node`) and the npm publishing job (Node only) set Node up separately.
 
 ## The first release is partly manual (owner)
 
