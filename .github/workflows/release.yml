@@ -96,7 +96,8 @@ jobs:
           echo "$COSIGN_SHA256  $RUNNER_TEMP/cosign-linux-amd64" | sha256sum --check --strict
           install -m 0755 "$RUNNER_TEMP/cosign-linux-amd64" "$RUNNER_TEMP/cosign"
       - name: Sign the checksums
-        run: "$RUNNER_TEMP/cosign" sign-blob --yes --bundle release/SHA256SUMS.sigstore.json release/SHA256SUMS
+        run: |
+          "$RUNNER_TEMP/cosign" sign-blob --yes --bundle release/SHA256SUMS.sigstore.json release/SHA256SUMS
       - name: Create the GitHub release (an alpha is always marked as a pre-release)
         env:
           GH_TOKEN: ${{ github.token }}
