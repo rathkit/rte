@@ -20,6 +20,7 @@ export const defaultIcons: Readonly<Record<string, string>> = {
   "list-bulleted": icons.listBulleted,
   "list-numbered": icons.listNumbered,
   "list-definition": icons.listDefinition,
+  "checklist": icons.checklist,
   "indent": icons.indent,
   "outdent": icons.outdent,
   "table": icons.table,

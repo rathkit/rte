@@ -154,6 +154,7 @@ interface Li {
   sublists: L[];
   level?: number;
   listId?: string;
+  checked?: boolean;
 }
 interface L {
   type: "ul" | "ol";
@@ -490,6 +491,36 @@ function listStyleOf(el: HElement): string | undefined {
   return style && /^[a-z-]+$/.test(style) && !/^(initial|inherit|unset|revert|none)$/.test(style) ? style : undefined;
 }
 
+/** Whether a node is the checkbox of a task: an `<input type="checkbox">`. */
+const isCheckbox = (n: HNode): boolean => n.type === "el" && n.tag === "input" && (n.attrs.type ?? "").toLowerCase() === "checkbox";
+const blankText = (n: HNode): boolean => n.type === "text" && n.text.trim() === "";
+
+/**
+ * Whether a list item is a task, and if so whether it is done, in the forms found in the wild:
+ *   - a checkbox first in the item, bare or inside the item's first wrapper (a label, paragraph or span): done when it has `checked`;
+ *   - `aria-checked` or `data-checked` on the item (true or false);
+ *   - a class of `checked` / `task-done` (done), or `unchecked` (not done).
+ * The checkbox is taken out of the nodes, since it is the item's state, not its text.
+ */
+function taskOf(li: HElement): { checked: boolean; children: HNode[] } | undefined {
+  const own = (li.attrs["aria-checked"] ?? li.attrs["data-checked"] ?? "").toLowerCase();
+  const classes = (li.attrs.class ?? "").toLowerCase().split(/\s+/);
+  const fromMarkup = own === "true" || classes.includes("checked") || classes.includes("task-done") ? true : own === "false" || classes.includes("unchecked") ? false : undefined;
+  const kids = li.children;
+  const at = kids.findIndex((n) => !blankText(n));
+  const first = at === -1 ? undefined : kids[at];
+  if (first && isCheckbox(first)) return { checked: "checked" in (first as HElement).attrs, children: [...kids.slice(0, at), ...kids.slice(at + 1)] };
+  if (first && first.type === "el" && /^(label|p|span|div)$/.test(first.tag)) {
+    const inner = first.children.findIndex((n) => !blankText(n));
+    const box = inner === -1 ? undefined : first.children[inner];
+    if (box && isCheckbox(box)) {
+      const wrapper: HElement = { ...first, children: [...first.children.slice(0, inner), ...first.children.slice(inner + 1)] };
+      return { checked: "checked" in (box as HElement).attrs, children: [...kids.slice(0, at), wrapper, ...kids.slice(at + 1)] };
+    }
+  }
+  return fromMarkup === undefined ? undefined : { checked: fromMarkup, children: kids };
+}
+
 function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
   const list: L = { type: el.tag === "ol" ? "ol" : "ul", items: [] };
   const start = el.tag === "ol" && el.attrs.start !== undefined ? Number.parseInt(el.attrs.start, 10) : NaN;
@@ -509,9 +540,11 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
     style ??= listStyleOf(child) ?? defn?.style;
     if (defn && list.items.length === 0 && el.tag !== (defn.type === "ol" ? "ol" : "ul")) list.type = defn.type;
     const inner = new Sink(settings);
-    convertNodes(child.children, inner, ctx, settings);
+    const task = taskOf(child);
+    convertNodes(task ? task.children : child.children, inner, ctx, settings);
     inner.flush();
     const item: Li = { content: [], sublists: [] };
+    if (task) item.checked = task.checked;
     for (const block of inner.blocks) {
       if (block.type === "ul" || block.type === "ol") item.sublists.push(block as L);
       else if (block.type === "p" || block.type === "h") {
@@ -759,14 +792,14 @@ function nestByLevel(lists: readonly L[]): List[] {
         stack.push(fresh);
         ids.push(item.listId);
       }
-      (stack[stack.length - 1] as L).items.push({ content: item.content, sublists: item.sublists });
+      (stack[stack.length - 1] as L).items.push({ content: item.content, sublists: item.sublists, ...(item.checked !== undefined ? { checked: item.checked } : {}) });
     }
   }
   return result.map((l) => freezeList(l, 0));
 }
 
 function freezeList(list: L, depth: number): List {
-  const items: ListItem[] = list.items.map((item) => ({ content: item.content, sublists: item.sublists.map((sub) => freezeList(sub, depth + 1)) }));
+  const items: ListItem[] = list.items.map((item) => ({ content: item.content, sublists: item.sublists.map((sub) => freezeList(sub, depth + 1)), ...(item.checked !== undefined ? { checked: item.checked } : {}) }));
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? list.style : undefined;
   return { type: list.type, ...(list.start !== undefined ? { start: list.start } : {}), ...(style !== undefined ? { style } : {}), items };
 }

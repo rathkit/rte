@@ -27,3 +27,11 @@ What the list commands do, in the terms of the requirements.
   entry joins the one before. Tab, Shift+Tab and the Enter alternation are our choices: the requirements leave them open. An entry
   that holds a list or table when imported is read as plain blocks so nothing is lost.
 - Not built: list numbering styles beyond what the import reads, and multi-block items.
+
+## Tasks
+
+A list item can be a task: it has a checkbox and is done or not (`checked` on the item in the model). `list.checklist` makes the selected paragraphs a list of tasks, or the selected items tasks, or (when the first is already one) ordinary items again; `list.toggleChecked` ticks the selected tasks, or clears them when all are ticked (key: Mod-Enter), or flips just one item (`{ path }`, which is how a click on a checkbox reaches it). Typing `[] `, `[ ] ` or `[x] ` at the start of a paragraph starts a task list. Enter in a task makes a task that is not done; Backspace at the start of a task first takes its checkbox away.
+
+HTML out: the item starts with `<input type="checkbox" disabled>` (with `checked` when done) followed by a space, and has `list-style-type: none`. This is plain HTML that shows correctly with no script. HTML in: the same, and also a checkbox inside the item's first label, paragraph or span (as GitHub writes them), `aria-checked` or `data-checked` on the item, and a class of `checked` or `task-done` (done) or `unchecked`. The checkbox is the item's state, not its text.
+
+In the editor the checkbox is a small element in front of the item's text that the page-to-model mapping skips; it has `role="checkbox"` and `aria-checked`, and is named "Done". A caret on it counts as the start of the text. It is not reachable with Tab (use the key); a click ticks it. The name is English; a host that needs another language can change it after drawing.

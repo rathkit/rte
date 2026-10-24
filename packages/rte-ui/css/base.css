@@ -140,6 +140,10 @@
   [data-rk-part="content"] :is(h5, h6) { font-size: 1em; }
   [data-rk-part="content"] :is(ul, ol) { margin: 0 0 0.75em; padding-inline-start: 1.6em; }
   [data-rk-part="content"] :is(ul, ol) :is(ul, ol) { margin-bottom: 0; }
+  /* A task's checkbox is a glyph in front of its text; clicking it ticks the task. */
+  [data-rk-part="content"] li[data-rk-task] { list-style: none; }
+  [data-rk-part="content"] [data-rte-check] { display: inline-block; margin-inline-end: 0.4em; cursor: pointer; user-select: none; font-size: 1.1em; line-height: 1; color: var(--rk-accent); }
+  [data-rk-part="content"] li[data-rk-task="open"] > [data-rte-check] { color: var(--rk-fg-muted); }
   [data-rk-part="content"] dt { font-weight: 700; }
   [data-rk-part="content"] dd { margin-inline-start: 1.6em; }
   [data-rk-part="content"] blockquote { margin: 0 0 0.75em; padding-inline-start: var(--rk-space-3); border-inline-start: 3px solid var(--rk-brand); color: var(--rk-fg-muted); }

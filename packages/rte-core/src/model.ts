@@ -51,6 +51,8 @@ export interface Heading {
 export interface ListItem {
   readonly content: readonly Inline[];
   readonly sublists: readonly List[];
+  /** Present when the item is a task: whether it is done. Absent for an ordinary item. */
+  readonly checked?: boolean;
 }
 export interface List {
   readonly type: "ul" | "ol";

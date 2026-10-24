@@ -79,6 +79,18 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
     const itemPath = [...path, i];
     const li = tag("li", itemPath);
     if (item.content.length === 0 && item.sublists.length > 0) li.style.listStyleType = "none";
+    if (item.checked !== undefined) {
+      // A task's checkbox: not text, so the mapping between page and model skips it (data-rte-check); it is a real checkbox to assistive technology.
+      li.style.listStyleType = "none";
+      li.setAttribute("data-rk-task", item.checked ? "done" : "open");
+      const box = document.createElement("span");
+      box.setAttribute("data-rte-check", "");
+      box.setAttribute("role", "checkbox");
+      box.setAttribute("aria-checked", String(item.checked));
+      box.setAttribute("aria-label", "Done");
+      box.textContent = item.checked ? "\u2611" : "\u2610";
+      li.appendChild(box);
+    }
     renderInline(li, item.content, options);
     item.sublists.forEach((sub, k) => li.appendChild(renderList(sub, [...itemPath, k], options)));
     el.appendChild(li);
@@ -257,7 +269,7 @@ function* inlineItems(container: Element): Generator<Node> {
     }
     if (node.nodeType === Node.TEXT_NODE) yield node;
     else if (node instanceof Element) {
-      if (node.hasAttribute("data-rte-ph") || BLOCK_TAGS.has(node.tagName)) continue;
+      if (node.hasAttribute("data-rte-ph") || node.hasAttribute("data-rte-check") || BLOCK_TAGS.has(node.tagName)) continue;
       if (node.tagName === "BR" || node.tagName === "IMG") yield node;
       else stack.push([...node.childNodes].reverse());
     }
@@ -298,6 +310,9 @@ export function posFromDom(root: HTMLElement, node: Node, offset: number): Pos |
   const top = container ? topLevel(root, container) : null;
   if (!container || !top) return null;
   const pathOf = (): Path => [top.index, ...parsePath(container.getAttribute("data-rte") as string)];
+  // A caret that lands on a task's checkbox is at the start of the item's text.
+  const box = (node instanceof Element ? node : node.parentElement)?.closest("[data-rte-check]");
+  if (box && container.contains(box)) return { path: pathOf(), offset: 0 };
   let count = 0;
   const isElement = node.nodeType !== Node.TEXT_NODE;
   const boundary = isElement ? node.childNodes[offset] : undefined;

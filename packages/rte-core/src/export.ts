@@ -55,8 +55,12 @@ const DEFAULT_MARKER = (type: "ul" | "ol", depth: number): string => (type === "
 function exportList(list: List, depth: number): string {
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? ` style="list-style-type: ${list.style};"` : "";
   const start = list.type === "ol" && list.start !== undefined ? ` start="${list.start}"` : "";
-  // An item with no text of its own that only holds a nested list shows no marker.
-  const items = list.items.map((item) => `<li${item.content.length === 0 && item.sublists.length > 0 ? ' style="list-style-type: none;"' : ""}>${exportInline(item.content)}${item.sublists.map((sub) => exportList(sub, depth + 1)).join("")}</li>`).join("");
+  // An item with no text of its own that only holds a nested list shows no marker, and neither does a task: it has its checkbox instead.
+  const items = list.items.map((item) => {
+    const noMarker = item.checked !== undefined || (item.content.length === 0 && item.sublists.length > 0);
+    const box = item.checked === undefined ? "" : `<input type="checkbox" disabled${item.checked ? " checked" : ""}> `;
+    return `<li${noMarker ? ' style="list-style-type: none;"' : ""}>${box}${exportInline(item.content)}${item.sublists.map((sub) => exportList(sub, depth + 1)).join("")}</li>`;
+  }).join("");
   return `<${list.type}${start}${style}>${items}</${list.type}>`;
 }
 

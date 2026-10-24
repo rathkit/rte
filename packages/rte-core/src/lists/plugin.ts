@@ -1,7 +1,7 @@
 // Lists as a plugin: bulleted, numbered and definition lists, Tab to move items, Enter and Backspace in items, and the typed
 // shortcuts. It uses only what any plugin gets from the host.
 import type { Plugin } from "../plugin.ts";
-import { listCommands, listKeys } from "./commands.ts";
+import { listCommands, listKeys, taskKeys } from "./commands.ts";
 import { definitionBehavior } from "./definitions.ts";
 import { listBehavior, listShortcut } from "./lists.ts";
 
@@ -22,8 +22,10 @@ export function lists(options: ListsOptions = {}): Plugin {
       for (const command of listCommands(options.maxDepth ?? Number.POSITIVE_INFINITY)) host.command(command);
       host.ui("toolbar.main", { kind: "toggle", id: "list-bulleted", command: "list.bulleted", icon: "list-bulleted", group: "lists", order: 1 });
       host.ui("toolbar.main", { kind: "toggle", id: "list-numbered", command: "list.numbered", icon: "list-numbered", group: "lists", order: 2 });
+      host.ui("toolbar.main", { kind: "toggle", id: "list-check", command: "list.checklist", icon: "checklist", group: "lists", order: 4 });
       host.ui("toolbar.main", { kind: "toggle", id: "list-definition", command: "list.definition", icon: "list-definition", group: "lists", order: 3 });
       if (options.indentOnTab ?? true) for (const key of listKeys) host.keybinding(key);
+      for (const key of taskKeys) host.keybinding(key);
       host.behavior("li", listBehavior);
       host.behavior("dt", definitionBehavior);
       host.behavior("dd", definitionBehavior);

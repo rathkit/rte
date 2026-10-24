@@ -16,6 +16,6 @@ test("every icon is a 24 by 24 svg drawn in the current color, hidden from assis
 
 test("there is an icon for every name the editor's own interface items use", async () => {
   // Names are written in the core's item list; keep this list in step with it.
-  const used = ["undo", "redo", "bold", "italic", "underline", "strikethrough", "code", "superscript", "subscript", "align-left", "align-center", "align-right", "align-justify", "link", "unlink", "list-bulleted", "list-numbered", "list-definition", "outdent", "indent", "table", "quote", "code-block", "rule", "clear-format", "text-color", "highlight", "image", "search", "source", "direction-ltr", "direction-rtl", "symbols", "keyboard", "cell-style"];
+  const used = ["undo", "redo", "bold", "italic", "underline", "strikethrough", "code", "superscript", "subscript", "align-left", "align-center", "align-right", "align-justify", "link", "unlink", "list-bulleted", "list-numbered", "list-definition", "outdent", "indent", "table", "quote", "code-block", "rule", "clear-format", "text-color", "highlight", "image", "search", "source", "direction-ltr", "direction-rtl", "symbols", "keyboard", "cell-style", "checklist"];
   for (const name of used) assert.ok(name in defaultIcons, name);
 });

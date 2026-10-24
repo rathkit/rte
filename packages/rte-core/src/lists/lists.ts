@@ -343,12 +343,15 @@ export function listShortcut(doc: Doc, sel: Selection): EditResult | undefined {
   const block = getBlock(doc, path);
   if (block?.type !== "p" || kindAt(doc, path) !== "p") return undefined;
   const text = inlineText(block.content);
-  const type = text === "*" || text === "-" ? "ul" : text === "1." ? "ol" : undefined;
+  // `[] `, `[ ] ` and `[x] ` start a task list, as `* ` starts a bulleted one.
+  const task = text === "[]" || text === "[ ]" ? false : text === "[x]" || text === "[X]" ? true : undefined;
+  const type = task !== undefined || text === "*" || text === "-" ? "ul" : text === "1." ? "ol" : undefined;
   if (!type || sel.anchor.offset !== text.length) return undefined;
   const emptied = setContent(doc, path, []);
   const result = toggleList(emptied, caret({ path, offset: 0 }), type);
   const target = containerPaths(result.doc).find((p) => getContent(result.doc, p) === getContent(emptied, path)) ?? path;
-  return { doc: result.doc, selection: caret({ path: target, offset: 0 }) };
+  const made = task === undefined ? result.doc : setChecked(result.doc, target, task);
+  return { doc: made, selection: caret({ path: target, offset: 0 }) };
 }
 
 // ---- Enter and Backspace in lists -------------------------------------------------------------------------
@@ -378,6 +381,8 @@ export function leaveListItem(doc: Doc, pos: Pos): EditResult {
 export function backspaceAtItemStart(doc: Doc, pos: Pos): EditResult | undefined {
   if (pos.offset !== 0 || kindAt(doc, pos.path) !== "li") return undefined;
   const held = listOfItem(doc, pos.path);
+  // Backspace at the start of a task first takes its checkbox away, leaving an ordinary item.
+  if (held?.list.items[held.index]?.checked !== undefined) return { doc: setChecked(doc, pos.path, undefined), selection: caret(pos) };
   if (!held || held.index !== 0) return undefined;
   return leaveListItem(doc, pos);
 }
@@ -395,7 +400,11 @@ export function splitListItem(doc: Doc, pos: Pos): EditResult | undefined {
   const ordinal = containerPaths(doc).findIndex((p) => pathKey(p) === pathKey(pos.path));
   const next = mapListAt(doc, pos.path, (list, index) => ({
     ...list,
-    items: list.items.flatMap((candidate, i) => (i !== index ? [candidate] : [{ content: before, sublists: [] }, { content: after, sublists: item.sublists }])),
+    items: list.items.flatMap((candidate, i) => (i !== index ? [candidate] : [
+      { content: before, sublists: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
+      // The new item is a task too, and not yet done.
+      { content: after, sublists: item.sublists, ...(item.checked !== undefined ? { checked: false } : {}) },
+    ])),
   }));
   // The new item follows the old one directly in reading order.
   return { doc: next, selection: caret({ path: containerPaths(next)[ordinal + 1] ?? pos.path, offset: 0 }) };
@@ -415,9 +424,9 @@ export function insertIntoList(doc: Doc, pos: Pos, blocks: readonly Block[], bef
     const rows = others.length === 0
       ? [{ content: normalizeInline([...before, ...first, ...after]), sublists: item.sublists }]
       : [
-          { content: normalizeInline([...before, ...first]), sublists: [] },
-          ...others.slice(0, -1).map((content) => ({ content, sublists: [] })),
-          { content: normalizeInline([...lastText, ...after]), sublists: item.sublists },
+          { content: normalizeInline([...before, ...first]), sublists: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
+          ...others.slice(0, -1).map((content) => ({ content, sublists: [], ...(item.checked !== undefined ? { checked: false } : {}) })),
+          { content: normalizeInline([...lastText, ...after]), sublists: item.sublists, ...(item.checked !== undefined ? { checked: false } : {}) },
         ];
     landing = rows.length - 1;
     return { ...list, items: [...list.items.slice(0, index), ...rows, ...list.items.slice(index + 1)] };
@@ -434,3 +443,64 @@ export const listBehavior: ContainerBehavior = {
   backspaceAtStart: backspaceAtItemStart,
   insertBlocks: insertIntoList,
 };
+
+// ---- tasks (items with a checkbox) ------------------------------------------------------------------------
+
+/** Whether the item at a path is done: undefined when it is not a task. */
+export function checkedAt(doc: Doc, path: Path): boolean | undefined {
+  const held = listOfItem(doc, path);
+  return held?.list.items[held.index]?.checked;
+}
+
+/** Makes one item a task (done or not), or an ordinary item again (undefined). */
+function setChecked(doc: Doc, path: Path, value: boolean | undefined): Doc {
+  return mapListAt(doc, path, (list, index) => ({
+    ...list,
+    items: list.items.map((item, i) => {
+      if (i !== index) return item;
+      const { checked: _old, ...rest } = item;
+      void _old;
+      return value === undefined ? rest : { ...rest, checked: value };
+    }),
+  }));
+}
+
+const selectedItems = (doc: Doc, sel: Selection): Path[] => selectedContainers(doc, sel).filter((p) => kindAt(doc, p) === "li");
+
+/** Whether the item where the selection starts is a task. */
+export function inChecklist(doc: Doc, sel: Selection): boolean {
+  const first = selectedItems(doc, sel)[0];
+  return first !== undefined && checkedAt(doc, first) !== undefined;
+}
+
+/**
+ * Task list on or off. Selected paragraphs become a list of tasks (not done); selected items become tasks, or, when the first already is
+ * one, ordinary items again.
+ */
+export function toggleChecklist(doc: Doc, sel: Selection): EditResult {
+  let base = doc;
+  let selection = sel;
+  if (selectedItems(doc, sel).length === 0) {
+    const made = toggleList(doc, sel, "ul");
+    if (made.doc === doc) return made;
+    base = made.doc;
+    selection = made.selection;
+  }
+  const items = selectedItems(base, selection);
+  const first = items[0];
+  if (!first) return { doc, selection: sel };
+  const on = checkedAt(base, first) === undefined;
+  let next = base;
+  for (const path of items) next = setChecked(next, path, on ? (checkedAt(next, path) ?? false) : undefined);
+  return { doc: next, selection };
+}
+
+/** Ticks the selected tasks, or, when all of them are ticked, clears them. With a path, flips just that item. */
+export function toggleChecked(doc: Doc, sel: Selection, only?: Path): EditResult {
+  const items = (only ? [only] : selectedItems(doc, sel)).filter((p) => checkedAt(doc, p) !== undefined);
+  if (items.length === 0) return { doc, selection: sel };
+  const allDone = items.every((p) => checkedAt(doc, p) === true);
+  let next = doc;
+  for (const path of items) next = setChecked(next, path, !allDone);
+  return { doc: next, selection: sel };
+}

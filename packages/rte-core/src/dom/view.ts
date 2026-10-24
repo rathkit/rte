@@ -99,6 +99,15 @@ export class Editor {
     this.listen(this.element, "focusout", () => this.engine.setFocused(false));
     this.listen(this.element, "beforeinput", (e) => this.onBeforeInput(e as InputEvent));
     this.listen(this.element, "paste", (e) => this.onPaste(e as ClipboardEvent));
+    // A click on a task's checkbox ticks it without moving the caret. (The checkbox is not text; the command is the lists plugin's.)
+    this.listen(this.element, "mousedown", (e) => {
+      const box = (e.target as Element | null)?.closest?.("[data-rte-check]");
+      if (!box || !this.element.contains(box)) return;
+      e.preventDefault();
+      const item = box.closest("li");
+      const path = item && posFromDom(this.element, item, 0)?.path;
+      if (path) this.engine.commands.run("list.toggleChecked", { path });
+    });
     this.listen(this.element, "keydown", (e) => this.onKeyDown(e as KeyboardEvent));
     this.listen(this.element, "copy", (e) => this.onCopy(e as ClipboardEvent, false));
     this.listen(this.element, "cut", (e) => this.onCopy(e as ClipboardEvent, true));
@@ -322,7 +331,7 @@ export class Editor {
     const container = containerAt(this.element, path);
     if (!container) return;
     const clone = container.cloneNode(true) as Element;
-    clone.querySelectorAll("ul, ol, [data-rte-ph]").forEach((n) => n.remove());
+    clone.querySelectorAll("ul, ol, [data-rte-ph], [data-rte-check]").forEach((n) => n.remove());
     const first = importBlocks(`<p>${clone.innerHTML}</p>`, { ...this.engine.importOptions, styles: "allowlist", keepEmptyBlocks: true })[0];
     if (!first || (first.type !== "p" && first.type !== "h")) return;
     if (JSON.stringify(first.content) === JSON.stringify(getContent(this.engine.document, path))) return;
