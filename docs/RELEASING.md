@@ -30,6 +30,10 @@ It promises that the packages install with nothing else (no runtime dependencies
 
 A dry run needs no tag: run the `release` workflow by hand with a tag name as input. It builds and checks everything and uploads the files as a workflow artifact, and creates and publishes nothing.
 
+## Actions policy
+
+The repository allows only GitHub's own actions and verified creators, and requires pinned commits. Workflows therefore use `actions/*` only, plus one local action (`.github/actions/setup-pnpm`), and install `pnpm` and `cosign` from their GitHub releases at pinned versions with recorded checksums. `tools/check-workflows.test.mjs` fails on any other action. Adding an action means adding it to the policy first (the owner's call); when `pnpm` is upgraded, change `packageManager` and the local action together (a test keeps them equal).
+
 ## The first release is partly manual (owner)
 
 A trusted publisher is configured on a package that already exists on npm, and npm has no way to set one up before a package's first publish (checked against the npm documentation and several guides on 2026-10-24; **verify again before the first release**, since this is the kind of thing npm may add). So, once:
