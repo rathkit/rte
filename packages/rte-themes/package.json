@@ -1,8 +1,17 @@
 {
   "name": "@rathkit/rte-themes",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
   "description": "Preset themes for the Rathkit RTE interface: design token values, as plain CSS.",
+  "keywords": [
+    "rich-text",
+    "editor",
+    "wysiwyg",
+    "contenteditable",
+    "zero-dependencies",
+    "typescript",
+    "themes",
+    "css-variables"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
   "repository": {
@@ -17,6 +26,14 @@
   "sideEffects": [
     "*.css"
   ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
+  },
   "files": [
     "dist",
     "css",

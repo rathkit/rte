@@ -65,6 +65,10 @@ RTE_PLAYWRIGHT=tools/browser-checks/node_modules RTE_PACK=<rathkit-pack binary> 
 
 The workspace is managed with Nx. The only development tools are `nx`, `typescript` and `@types/node`, pinned to exact versions. Tests use the built-in `node:test` runner on TypeScript files directly, with no test framework. Installs refuse packages published less than three days ago and refuse dependency build scripts unless they are explicitly allowed in `pnpm-workspace.yaml`.
 
+## Releases
+
+Nothing is published yet. How a release is made and verified, and what an alpha promises, is in [`docs/RELEASING.md`](docs/RELEASING.md) and [`docs/VERIFY.md`](docs/VERIFY.md); what is checked, in [`docs/SUPPORT.md`](docs/SUPPORT.md); measured sizes and speeds, in [`docs/MEASUREMENTS.md`](docs/MEASUREMENTS.md); the changes, in [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Repository layout
 
 ```

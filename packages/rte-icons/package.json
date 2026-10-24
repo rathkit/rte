@@ -1,8 +1,17 @@
 {
   "name": "@rathkit/rte-icons",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
   "description": "The icons the editor interface uses, one SVG string each.",
+  "keywords": [
+    "rich-text",
+    "editor",
+    "wysiwyg",
+    "contenteditable",
+    "zero-dependencies",
+    "typescript",
+    "icons",
+    "svg"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
   "repository": {
@@ -15,6 +24,14 @@
   },
   "type": "module",
   "sideEffects": false,
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
+  },
   "files": [
     "dist",
     "!dist/**/*.map"

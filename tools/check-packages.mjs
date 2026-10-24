@@ -4,6 +4,10 @@
 //   - every file `exports` points at is in it, and the license is the repository's;
 //   - the packages install together with nothing from a registry, and the ones that run in Node import;
 //   - the types resolve for someone who installed them.
+//   - the publishing fields are all there (not private, repository, bugs, engines, provenance, the `next` tag), nothing runs on install,
+//     and the install holds nothing but these packages (`npm ls --omit=dev` lists no one else);
+//   - with RTE_SMOKE_NODES=<node binary>,<node binary> the entry points are also imported with those Node versions (CI uses the oldest
+//     that `engines` allows).
 // Needs a build first (pnpm build), and npm.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -39,6 +43,22 @@ for (const dir of packages) {
   for (const needed of ["package.json", "README.md", "LICENSE"]) if (!files.includes(needed)) fail(`${pkg.name}: ${needed} is missing`);
   if (readFileSync(join(pkgDir, "LICENSE"), "utf8") !== license) fail(`${pkg.name}: LICENSE differs from the repository's`);
   if (pkg.license !== "Apache-2.0") fail(`${pkg.name}: license field is ${pkg.license}`);
+  if (pkg.private) fail(`${pkg.name}: still private`);
+  if (!/^\d+\.\d+\.\d+-alpha\.\d+$/.test(pkg.version)) fail(`${pkg.name}: version ${pkg.version} is not an alpha`);
+  const publish = pkg.publishConfig ?? {};
+  if (publish.access !== "public" || publish.provenance !== true) fail(`${pkg.name}: publishConfig needs access public and provenance true`);
+  if (publish.tag !== "next") fail(`${pkg.name}: publishConfig.tag is ${publish.tag}; an alpha must never take latest`);
+  if (!pkg.engines?.node) fail(`${pkg.name}: no engines.node`);
+  if (!pkg.bugs?.url || !pkg.repository?.directory || !Array.isArray(pkg.keywords) || pkg.keywords.length === 0) fail(`${pkg.name}: bugs, repository.directory or keywords is missing`);
+  if (!pkg.repository?.url?.includes("github.com/rathkit/rte")) fail(`${pkg.name}: repository url is ${pkg.repository?.url}`);
+  for (const script of ["preinstall", "install", "postinstall", "prepare", "prepublish", "prepublishOnly", "prepack", "postpack"]) {
+    if (pkg.scripts && script in pkg.scripts) fail(`${pkg.name}: has a ${script} script; nothing may run on install`);
+  }
+  if (pkg.dependencies || pkg.optionalDependencies || pkg.bundledDependencies || pkg.bundleDependencies) fail(`${pkg.name}: has runtime dependencies`);
+  for (const [dep, range] of Object.entries(pkg.peerDependencies ?? {})) {
+    if (dep.startsWith("@rathkit/") && !range.startsWith(`>=${pkg.version} <`)) fail(`${pkg.name}: peer ${dep} is "${range}"; it must start at this release (>=${pkg.version}) or npm will not match a prerelease`);
+  }
+  if (!/alpha/i.test(readFileSync(join(pkgDir, "README.md"), "utf8"))) fail(`${pkg.name}: the README does not say alpha`);
   if (!pkg.repository || !pkg.homepage) fail(`${pkg.name}: repository or homepage is missing`);
   const targets = (value) => (typeof value === "string" ? [value] : value && typeof value === "object" ? Object.values(value).flatMap(targets) : []);
   for (const target of targets(pkg.exports)) {
@@ -65,6 +85,19 @@ if (problems.length === 0) {
   if (installed.length !== packages.length) fail(`expected ${packages.length} packages installed, found ${installed.length}`);
   if (existsSync(join(project, "node_modules", "react")) || existsSync(join(project, "node_modules", "vue"))) fail("a framework was installed: peer dependencies must be optional");
 
+  // Nothing but these packages is in the install: the dependency tree of a user of any of them is only ours.
+  try {
+    const tree = JSON.parse(run("npm", ["ls", "--omit=dev", "--all", "--json"], { cwd: project }));
+    const names = new Set();
+    // An optional peer that is not installed is listed as missing; that is not a package in the tree.
+    const walk = (deps) => { for (const [name, info] of Object.entries(deps ?? {})) { if (info.missing || !info.version) continue; names.add(name); walk(info.dependencies); } };
+    walk(tree.dependencies);
+    const strangers = [...names].filter((n) => !n.startsWith("@rathkit/"));
+    if (strangers.length > 0) fail(`npm ls --omit=dev lists packages that are not ours: ${strangers.join(", ")}`);
+  } catch (error) {
+    fail(`npm ls --omit=dev failed: ${String(error.stdout ?? error.stderr ?? error).split("\n").slice(0, 4).join(" | ")}`);
+  }
+
   // The ones that run in Node import, entry point by entry point.
   const nodeSafe = {
     "@rathkit/rte-core": ["", "/lists", "/tables", "/find", "/word", "/svg", "/images"],
@@ -72,14 +105,17 @@ if (problems.length === 0) {
     "@rathkit/rte-icons": [""],
     "@rathkit/rte-themes": [""],
   };
+  const nodes = ["node", ...(process.env.RTE_SMOKE_NODES ?? "").split(",").filter(Boolean)];
   for (const [name, subs] of Object.entries(nodeSafe)) {
     for (const sub of subs) {
+     for (const node of nodes) {
       try {
-        const out = run("node", ["--input-type=module", "-e", `const m = await import(${JSON.stringify(name + sub)}); console.log(Object.keys(m).length)`], { cwd: project });
+        const out = run(node, ["--input-type=module", "-e", `const m = await import(${JSON.stringify(name + sub)}); console.log(Object.keys(m).length)`], { cwd: project });
         if (Number(out.trim()) === 0) fail(`${name}${sub} imports but exports nothing`);
       } catch (error) {
-        fail(`${name}${sub} does not import: ${String(error.stderr ?? error).split("\n").find((l) => /Error/.test(l)) ?? error}`);
+        fail(`${name}${sub} does not import with ${node}: ${String(error.stderr ?? error).split("\n").find((l) => /Error/.test(l)) ?? error}`);
       }
+     }
     }
   }
 

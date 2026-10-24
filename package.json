@@ -18,7 +18,11 @@
     "check": "pnpm check:zero-deps && pnpm check:graph && pnpm check:fixtures && pnpm test:tools && pnpm typecheck && pnpm test",
     "check:size": "node tools/check-size.mjs",
     "check:graph": "node tools/check-graph.mjs",
-    "check:packages": "node tools/check-packages.mjs"
+    "check:packages": "node tools/check-packages.mjs",
+    "check:release": "node tools/check-release.mjs",
+    "sbom": "node tools/make-sbom.mjs sbom",
+    "check:secrets": "node tools/scan-secrets.mjs",
+    "check:history": "node tools/scan-secrets.mjs --history && node tools/check-denylist.mjs --history"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

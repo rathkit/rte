@@ -1,8 +1,17 @@
 {
   "name": "@rathkit/rte-jquery",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
   "description": "The editor for jQuery: $(el).rkEditor(options) over the custom element, with rk:change events.",
+  "keywords": [
+    "rich-text",
+    "editor",
+    "wysiwyg",
+    "contenteditable",
+    "zero-dependencies",
+    "typescript",
+    "jquery",
+    "plugin"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
   "repository": {
@@ -15,6 +24,14 @@
   },
   "type": "module",
   "sideEffects": false,
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
+  },
   "files": [
     "dist",
     "!dist/**/*.map"
@@ -26,8 +43,8 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": "*",
-    "@rathkit/rte-element": "*"
+    "@rathkit/rte-core": ">=0.1.0-alpha.0 <0.2.0",
+    "@rathkit/rte-element": ">=0.1.0-alpha.0 <0.2.0"
   },
   "peerDependenciesMeta": {
     "@rathkit/rte-core": {

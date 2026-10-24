@@ -1,8 +1,17 @@
 {
   "name": "@rathkit/rte-vue",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
   "description": "The editor for Vue: a component and composables over the headless layer, with no editor or accessibility logic of its own.",
+  "keywords": [
+    "rich-text",
+    "editor",
+    "wysiwyg",
+    "contenteditable",
+    "zero-dependencies",
+    "typescript",
+    "vue",
+    "composables"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
   "repository": {
@@ -15,6 +24,14 @@
   },
   "type": "module",
   "sideEffects": false,
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
+  },
   "files": [
     "dist",
     "!dist/**/*.map"
@@ -26,8 +43,8 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": "*",
-    "@rathkit/rte-headless": "*",
+    "@rathkit/rte-core": ">=0.1.0-alpha.0 <0.2.0",
+    "@rathkit/rte-headless": ">=0.1.0-alpha.0 <0.2.0",
     "vue": ">=3.4"
   },
   "peerDependenciesMeta": {

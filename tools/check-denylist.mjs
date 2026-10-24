@@ -2,6 +2,9 @@
 // The word list is NOT stored in the repo. It comes from the RTE_DENYLIST environment variable
 // (comma or newline separated), set from CI secrets. Names that are allowed inside migration
 // packages (packages/compat-*) come from RTE_DENYLIST_COMPAT_ALLOW in the same format.
+//   node tools/check-denylist.mjs            the files now
+//   node tools/check-denylist.mjs --history  every commit on every branch and tag: messages, author names and every added line and path
+// (the second is for the day before a repository is made public, when history becomes public too).
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
@@ -20,6 +23,36 @@ if (denied.length === 0) {
     process.exit(1);
   }
   console.warn("denylist: RTE_DENYLIST is not set, skipping (CI will fail without it)");
+  process.exit(0);
+}
+
+if (process.argv.includes("--history")) {
+  const hits = [];
+  const git = (args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 1 << 30 });
+  const lowerAll = (text) => text.toLowerCase().replace(/sha\d+-[a-z0-9+/=]+/g, "");
+  // Messages and who wrote them.
+  for (const record of git(["log", "--all", "--format=%H%x00%an%x00%ae%x00%cn%x00%B%x01"]).split("\x01")) {
+    const [hash, ...rest] = record.trim().split("\x00");
+    if (hash && denied.some((word) => lowerAll(rest.join("\n")).includes(word))) hits.push(`${hash.slice(0, 10)} (message or author)`);
+  }
+  // Every line any commit added, and every path any commit touched.
+  let commit = "";
+  let file = "";
+  for (const line of git(["log", "--all", "-p", "-U0", "--no-color", "--no-renames", "--format=@@@%H"]).split("\n")) {
+    if (line.startsWith("@@@")) { commit = line.slice(3, 13); continue; }
+    if (line.startsWith("diff --git ")) {
+      file = line.slice(line.indexOf(" b/") + 3);
+      if (denied.some((word) => file.toLowerCase().includes(word))) hits.push(`${commit}:${file} (path)`);
+      continue;
+    }
+    if (line.startsWith("+") && !line.startsWith("+++") && denied.some((word) => lowerAll(line).includes(word))) hits.push(`${commit}:${file}`);
+  }
+  const unique = [...new Set(hits)];
+  if (unique.length > 0) {
+    console.error(`denylist (history): ${unique.length} hit(s). Words are not printed; see commits and files:\n${unique.join("\n")}`);
+    process.exit(1);
+  }
+  console.log("denylist (history): ok");
   process.exit(0);
 }
 

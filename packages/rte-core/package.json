@@ -1,8 +1,19 @@
 {
   "name": "@rathkit/rte-core",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
   "description": "Document model, transforms, commands, view layer and plugin API for Rathkit RTE.",
+  "keywords": [
+    "rich-text",
+    "editor",
+    "wysiwyg",
+    "contenteditable",
+    "zero-dependencies",
+    "typescript",
+    "document-model",
+    "plugins",
+    "tables",
+    "lists"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
   "repository": {
@@ -15,6 +26,14 @@
   },
   "type": "module",
   "sideEffects": false,
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
+  },
   "files": [
     "dist",
     "!dist/**/*.map"

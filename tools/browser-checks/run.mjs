@@ -22,11 +22,12 @@ const check = (name, ok, detail) => {
   }
 };
 
-async function open(type, options = {}, cfg = "", demo = false) {
+async function open(type, options = {}, cfg = "", demo = false, init = undefined) {
   const page_url = demo === "element" ? "/element/demo/" : demo === "ui" ? "/ui/demo/" : "/headless/demo/";
   const ready_flag = demo === "element" ? "window.__elementReady===true" : demo === "ui" ? "window.__uiReady===true" : "window.__demoReady===true";
   const browser = await type.launch();
   const context = await browser.newContext(options);
+  if (init) await context.addInitScript(init);
   const outside = [];
   // Anything that is not the local server is refused and logged, so a request that would leave the machine is seen.
   await context.route("**/*", (route) => {
@@ -897,6 +898,69 @@ for (const [name, type] of engines) {
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");
   check(`${name} (ui) no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
+// --- what the security page promises: no storage, no cookies, no network of its own, whatever a person does
+const WATCH = `
+  window.__touched = [];
+  const note = (what) => window.__touched.push(what);
+  for (const name of ["getItem", "setItem", "removeItem", "clear", "key"]) {
+    const original = Storage.prototype[name];
+    Storage.prototype[name] = function (...args) { note("Storage." + name); return original.apply(this, args); };
+  }
+  const cookie = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
+  Object.defineProperty(document, "cookie", { configurable: true, get() { note("document.cookie read"); return cookie.get.call(this); }, set(v) { note("document.cookie write"); cookie.set.call(this, v); } });
+  for (const name of ["open", "databases", "deleteDatabase"]) {
+    if (window.indexedDB) { const original = IDBFactory.prototype[name]; IDBFactory.prototype[name] = function (...args) { note("indexedDB." + name); return original.apply(this, args); }; }
+  }
+  const fetchOriginal = window.fetch; window.fetch = function (...args) { note("fetch " + String(args[0]).slice(0, 60)); return fetchOriginal.apply(this, args); };
+  const open = XMLHttpRequest.prototype.open; XMLHttpRequest.prototype.open = function (...args) { note("XMLHttpRequest " + String(args[1]).slice(0, 60)); return open.apply(this, args); };
+  if (navigator.sendBeacon) { const b = navigator.sendBeacon; navigator.sendBeacon = function (...args) { note("sendBeacon"); return b.apply(this, args); }; }
+  for (const name of ["WebSocket", "EventSource", "Worker", "SharedWorker"]) {
+    const Original = window[name];
+    if (Original) window[name] = new Proxy(Original, { construct(target, args) { note("new " + name); return Reflect.construct(target, args); } });
+  }
+  if (window.caches) { const o = CacheStorage.prototype.open; CacheStorage.prototype.open = function (...args) { note("caches.open"); return o.apply(this, args); }; }
+`;
+for (const [name, type] of engines) {
+  for (const demo of [false, "headless", "element", "ui"]) {
+    const t = await open(type, name === "chromium" ? { permissions: ["clipboard-read", "clipboard-write"] } : {}, "", demo === "headless" ? "headless" : demo, WATCH);
+    const { page } = t;
+    const label = `${name} (privacy, ${demo || "editor"})`;
+    // Use it the way a person would: type, format, undo, paste, find, view the source, open and close menus and dialogs.
+    const editable = demo === "element" ? "#body [contenteditable=true]" : demo === "ui" ? "#root [contenteditable=true]" : demo === "headless" ? "#ed" : "#ed";
+    await page.click(editable).catch(() => undefined);
+    await page.keyboard.type("Some words to work with");
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("ControlOrMeta+b");
+    await page.keyboard.press("ControlOrMeta+z");
+    await page.evaluate(() => navigator.clipboard?.writeText?.("pasted text").catch?.(() => undefined)).catch(() => undefined);
+    await page.keyboard.press("ControlOrMeta+v").catch(() => undefined);
+    if (demo === "ui") {
+      await page.keyboard.press("ControlOrMeta+f");
+      await page.keyboard.type("words");
+      await page.keyboard.press("Enter");
+      await page.keyboard.press("Escape");
+      for (const id of ["source", "table", "symbols", "text-color", "link", "image", "shortcuts"]) {
+        await page.click(`#root [data-rk-item="${id}"]`).catch(() => undefined);
+        await page.keyboard.press("Escape");
+      }
+    }
+    await page.waitForTimeout(300);
+    const touched = await page.evaluate(() => window.__touched);
+    check(`${label} uses no storage, cookies or network of its own`, touched.length === 0, touched);
+    check(`${label} makes no request beyond the page's own files`, t.outside.length === 0, t.outside);
+    await t.browser.close();
+  }
+}
+
+// --- the watch above must actually see these things, or the checks above would pass for nothing
+for (const [name, type] of engines) {
+  const t = await open(type, {}, "", false, WATCH);
+  await t.page.evaluate(() => { try { localStorage.setItem("a", "b"); } catch {} try { document.cookie = "a=b"; } catch {} try { indexedDB.open("x"); } catch {} fetch("data:text/plain,x").catch(() => undefined); });
+  const seen = await t.page.evaluate(() => window.__touched);
+  check(`${name} (privacy) the watch sees storage, cookie, database and fetch use`, ["Storage.setItem", "document.cookie write", "indexedDB.open", "fetch data:text/plain,x"].every((x) => seen.includes(x)), seen);
   await t.browser.close();
 }
 

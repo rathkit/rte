@@ -1,8 +1,18 @@
 {
   "name": "@rathkit/rte-headless",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-alpha.0",
   "description": "How a toolbar, menu, dialog or announcement should behave for keyboard and assistive technology, with no markup or CSS of its own.",
+  "keywords": [
+    "rich-text",
+    "editor",
+    "wysiwyg",
+    "contenteditable",
+    "zero-dependencies",
+    "typescript",
+    "accessibility",
+    "headless",
+    "aria"
+  ],
   "license": "Apache-2.0",
   "homepage": "https://rathkit.com",
   "repository": {
@@ -15,6 +25,14 @@
   },
   "type": "module",
   "sideEffects": false,
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
+  },
   "files": [
     "dist",
     "!dist/**/*.map"
@@ -26,7 +44,7 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": "*"
+    "@rathkit/rte-core": ">=0.1.0-alpha.0 <0.2.0"
   },
   "peerDependenciesMeta": {
     "@rathkit/rte-core": {
