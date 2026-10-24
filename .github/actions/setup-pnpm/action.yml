@@ -1,0 +1,18 @@
+name: Set up pnpm
+description: >-
+  Installs the pinned pnpm from its GitHub release, checked against a recorded checksum. (This repository allows only GitHub's own and
+  verified actions, so pnpm's setup action is not used.) The version must match "packageManager" in package.json; a test keeps them equal.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PNPM_VERSION: "12.14.0"
+        PNPM_SHA256: 3910c3852136bed5bc1511b9137a45fd4357ed6b3970d9d08893641e9005867e
+      run: |
+        gh release download "v$PNPM_VERSION" --repo pnpm/pnpm --pattern pnpm-linux-x64.tar.gz --dir "$RUNNER_TEMP"
+        echo "$PNPM_SHA256  $RUNNER_TEMP/pnpm-linux-x64.tar.gz" | sha256sum --check --strict
+        mkdir -p "$RUNNER_TEMP/pnpm-home"
+        tar xzf "$RUNNER_TEMP/pnpm-linux-x64.tar.gz" -C "$RUNNER_TEMP/pnpm-home"
+        echo "$RUNNER_TEMP/pnpm-home" >> "$GITHUB_PATH"

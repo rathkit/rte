@@ -1,0 +1,134 @@
+name: release
+
+# Builds, checks, signs and (when switched on) publishes a release. It runs when a version tag is pushed, or by hand as a dry run.
+# Nothing is published unless the repository variable NPM_PUBLISH is "true", which the owner sets only after the trusted publishers are
+# configured on npm (see docs/RELEASING.md). No npm token is stored anywhere: publishing uses npm trusted publishing (OIDC).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to build as a dry run, for example v0.1.0-alpha.0 (nothing is released or published)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-pnpm
+      # The oldest Node that `engines` allows, kept for the import checks of the packages.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.14.0"
+      - name: Remember the oldest Node
+        run: echo "RTE_SMOKE_NODES=$(command -v node)" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: The tag, the packages and the changelog agree
+        run: node tools/check-release.mjs "$TAG"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:zero-deps
+      - run: pnpm check:denylist
+        env:
+          RTE_DENYLIST: ${{ secrets.RTE_DENYLIST }}
+          RTE_DENYLIST_COMPAT_ALLOW: ${{ secrets.RTE_DENYLIST_COMPAT_ALLOW }}
+      - run: pnpm check:graph
+      - run: pnpm check:fixtures
+      - run: pnpm test:tools
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm check:size
+      - run: pnpm check:packages
+      - name: Pack, then list checksums and bills of materials
+        run: |
+          mkdir -p release
+          for dir in packages/*/; do (cd "$dir" && npm pack --ignore-scripts --pack-destination "$GITHUB_WORKSPACE/release" >/dev/null); done
+          node tools/make-sbom.mjs release release
+          (cd release && sha256sum -- *.tgz *.cdx.json > SHA256SUMS && cat SHA256SUMS)
+          node tools/check-release.mjs "$TAG" --notes > release/RELEASE_NOTES.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-files
+          path: release/
+          if-no-files-found: error
+          retention-days: 30
+
+  # The release page: the tarballs, the checksums, the bills of materials, and a Sigstore signature (keyless) on the checksums.
+  release:
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-files
+          path: release
+      # cosign comes straight from its release, at a pinned version and checksum (the repository allows only GitHub's own and verified actions).
+      - name: Install cosign
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COSIGN_VERSION: v3.1.4
+          COSIGN_SHA256: 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa
+        run: |
+          gh release download "$COSIGN_VERSION" --repo sigstore/cosign --pattern cosign-linux-amd64 --dir "$RUNNER_TEMP"
+          echo "$COSIGN_SHA256  $RUNNER_TEMP/cosign-linux-amd64" | sha256sum --check --strict
+          install -m 0755 "$RUNNER_TEMP/cosign-linux-amd64" "$RUNNER_TEMP/cosign"
+      - name: Sign the checksums
+        run: |
+          "$RUNNER_TEMP/cosign" sign-blob --yes --bundle release/SHA256SUMS.sigstore.json release/SHA256SUMS
+      - name: Create the GitHub release (an alpha is always marked as a pre-release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release/*.tgz release/*.cdx.json release/SHA256SUMS release/SHA256SUMS.sigstore.json \
+            --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file release/RELEASE_NOTES.md --prerelease --verify-tag
+
+  # Publishing to npm: the same tarballs that were checked and listed above, with provenance, to the `next` tag. Off until NPM_PUBLISH is set.
+  publish:
+    needs: release
+    if: github.event_name == 'push' && vars.NPM_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-files
+          path: release
+      - name: The files are the ones that were listed
+        run: cd release && sha256sum --check --strict SHA256SUMS
+      - name: Publish with provenance, to next and never to latest
+        run: |
+          npm --version
+          for file in release/*.tgz; do
+            npm publish "$file" --access public --tag next --provenance
+          done

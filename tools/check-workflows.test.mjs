@@ -7,17 +7,25 @@ const dir = join(import.meta.dirname, "../.github/workflows");
 const files = readdirSync(dir).filter((f) => f.endsWith(".yml"));
 const text = (f) => readFileSync(join(dir, f), "utf8");
 
-test("every action in every workflow is pinned to a commit", () => {
+test("every action in every workflow is pinned to a commit (or is one of this repository's own)", () => {
   assert.ok(files.length >= 3);
   for (const f of files) {
     for (const line of text(f).split("\n").filter((l) => /^\s*-?\s*uses:/.test(l))) {
+      if (/uses:\s*\.\//.test(line)) continue;
       assert.match(line, /@[0-9a-f]{40}\b/, `${f}: ${line.trim()}`);
     }
   }
 });
 
-test("workflows use only actions the repository allows: GitHub's own, or ones from verified creators already in use", () => {
-  const allowed = /^(actions|github)\/|^pnpm\/action-setup@/;
+test("the pnpm the workflows install is the one package.json names", () => {
+  const action = readFileSync(join(dir, "../actions/setup-pnpm/action.yml"), "utf8");
+  const wanted = JSON.parse(readFileSync(join(dir, "../../package.json"), "utf8")).packageManager;
+  assert.match(action, new RegExp(`PNPM_VERSION: "${wanted.replace("pnpm@", "").replace(/\./g, "\\.")}"`));
+  assert.match(action, /sha256sum --check --strict/);
+});
+
+test("workflows use only actions the repository allows: GitHub's own, or this repository's own", () => {
+  const allowed = /^(actions|github)\/|^\.\//;
   for (const f of files) {
     for (const line of text(f).split("\n").filter((l) => /^\s*-?\s*uses:/.test(l))) {
       const action = line.replace(/^\s*-?\s*uses:\s*/, "").trim();
