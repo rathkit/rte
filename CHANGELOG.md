@@ -16,7 +16,7 @@ The first alpha. Published to the `next` dist-tag only, never `latest`. Ten pack
 
 ### Editing
 
-- Text: bold, italic, underline, strikethrough, code, superscript, subscript, text and highlight colors, links, images (by address, paste or drop), special characters, clear formatting.
+- Text: links that can open in a new tab, bold, italic, underline, strikethrough, code, superscript, subscript, text and highlight colors, links, images (by address, paste or drop), special characters, clear formatting.
 - Blocks: paragraphs, headings, block quotes, code blocks, horizontal rules, alignment, reading direction, indent.
 - Lists: bulleted, numbered, definition and task lists with nesting, Tab and Shift+Tab, and typed shortcuts.
 - Tables: insert, rows and columns, merge and split cells, header row, column widths (including dragging an edge), cell fill and borders, row heights, Tab between cells.

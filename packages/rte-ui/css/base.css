@@ -222,6 +222,9 @@
     background: var(--rk-bg); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-s);
   }
   [data-rk-part="field"][aria-invalid="true"] { border-color: var(--rk-danger); border-width: 2px; }
+  [data-rk-part="field-check"] { display: flex; align-items: center; gap: var(--rk-space-2); margin-top: var(--rk-space-2); }
+  [data-rk-part="field-check"] [data-rk-part="field"] { width: 1.1em; height: 1.1em; padding: 0; accent-color: var(--rk-accent); }
+  [data-rk-part="field-check"] [data-rk-part="field-label"] { display: inline; margin: 0; font-weight: 400; }
   [data-rk-part="field-error"] { display: block; min-height: 1.4em; margin-top: var(--rk-space-1); color: var(--rk-danger); font-size: 0.9em; }
   [data-rk-part="actions"] { display: flex; justify-content: flex-end; gap: var(--rk-space-2); margin-top: var(--rk-space-3); }
   [data-rk-part="action"] {

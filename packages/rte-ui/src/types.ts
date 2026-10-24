@@ -6,7 +6,7 @@ import type { TokenName } from "@rathkit/rte-themes";
 export type PartName =
   | "root" | "toolbar" | "button" | "select" | "separator" | "icon" | "label" | "content"
   | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status" | "source" | "shortcuts" | "findbar" | "find-line" | "find-row" | "find-label" | "find-field" | "find-count"
-  | "dialog" | "dialog-title" | "field-label" | "field" | "field-error" | "actions" | "action";
+  | "dialog" | "dialog-title" | "field-label" | "field-check" | "field" | "field-error" | "actions" | "action";
 
 /** Words the interface says. Each has a default in English; this table is also the way to translate it. */
 export type MessageKey =

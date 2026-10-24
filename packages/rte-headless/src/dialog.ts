@@ -94,7 +94,7 @@ export function createDialog(options: DialogOptions): Dialog {
 
 export interface FormCheck {
   readonly ok: boolean;
-  readonly values: Record<string, string>;
+  readonly values: Record<string, string | boolean>;
 }
 
 /**
@@ -103,12 +103,17 @@ export interface FormCheck {
  * bad field takes the focus, and the messages are announced when an announcer is given.
  */
 export function checkFields(form: HTMLElement, fields: readonly Field[], messages: { readonly required?: string; readonly url?: string } = {}, announce?: (message: string) => void): FormCheck {
-  const values: Record<string, string> = {};
+  const values: Record<string, string | boolean> = {};
   const problems: string[] = [];
   let firstBad: HTMLElement | undefined;
   for (const field of fields) {
     const input = form.querySelector<HTMLInputElement>(`[name="${field.name}"]`);
     if (!input) continue;
+    // A checkbox is a yes or no; everything else is its trimmed text.
+    if (field.type === "checkbox") {
+      values[field.name] = input.checked;
+      continue;
+    }
     const value = input.value.trim();
     values[field.name] = value;
     let problem = "";

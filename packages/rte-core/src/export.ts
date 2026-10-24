@@ -8,7 +8,7 @@ const TAGS = { bold: "strong", italic: "em", underline: "u", strike: "s", code: 
 
 function openClose(mark: Mark): [string, string] {
   switch (mark.type) {
-    case "link": return [`<a href="${escapeAttribute(mark.href)}">`, "</a>"];
+    case "link": return [`<a href="${escapeAttribute(mark.href)}"${mark.newTab ? ' target="_blank" rel="noopener noreferrer"' : ""}>`, "</a>"];
     case "color": return [`<span style="color: ${escapeAttribute(mark.value)};">`, "</span>"];
     case "background": return [`<span style="background-color: ${escapeAttribute(mark.value)};">`, "</span>"];
     default: return [`<${TAGS[mark.type]}>`, `</${TAGS[mark.type]}>`];

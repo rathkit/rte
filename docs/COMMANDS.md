@@ -23,7 +23,7 @@ changes the document is disabled.
 | `block.align` | `left`, `center`, `right`, `justify` | Aligns the selected paragraphs and headings |
 | `text.insert` | `{ text }` | Types the text at the caret, in place of a selection (a symbol from the Special characters menu). Control characters are refused |
 | `document.setHtml` | `{ html }` | Replaces the whole document with this HTML as one undo step; it is read like anything pasted or loaded. The source view uses it |
-| `link.set`, `link.remove` | `{ href }` | Sets or removes the link on the selection or the link under the caret |
+| `link.set`, `link.remove` | `{ href, newTab }` | Sets or removes the link on the selection or the link under the caret. `newTab` makes it open in a new tab (written as `target="_blank" rel="noopener noreferrer"`; `target` is read the same way). `value` is `{ href, newTab }` for the link at the caret |
 
 ## Plugins
 

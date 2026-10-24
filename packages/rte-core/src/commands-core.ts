@@ -5,7 +5,7 @@ import { insertText, marksAt, rangeHasMark, removeMarks, setMark, startOf, toggl
 import type { EditorSnapshot } from "./engine.ts";
 import type { KeyBinding } from "./keymap.ts";
 import type { UiItem, UiSlot } from "./ui.ts";
-import { linkAt, setLink } from "./links.ts";
+import { linkAt, linkNewTabAt, setLink } from "./links.ts";
 import { COLOR_VALUE, MAX_INDENT, type Align, type Mark, type MarkType } from "./model.ts";
 import { caret, comparePath, getContent, isCollapsed } from "./path.ts";
 
@@ -63,6 +63,15 @@ function colorCommand(name: string, label: string, type: "color" | "background")
     },
     state: (snap) => ({ value: colorAt(snap, type), active: colorAt(snap, type) !== "" }),
   });
+}
+
+// The value `link.set` reports: the address, and whether the link opens in a new tab. A new object only when one of them changes.
+let lastLink: { readonly href: string; readonly newTab: boolean } | undefined;
+function linkValue(s: EditorSnapshot, href: string): { readonly href: string; readonly newTab: boolean } {
+  const newTab = linkNewTabAt(s.doc, s.selection);
+  if (lastLink?.href === href && lastLink.newTab === newTab) return lastLink;
+  lastLink = { href, newTab };
+  return lastLink;
 }
 
 export function coreCommands(): readonly Def[] {
@@ -171,10 +180,13 @@ export function coreCommands(): readonly Def[] {
       },
     }),
 
-    def<{ readonly href: string }, string>({
+    def<{ readonly href: string; readonly newTab?: boolean }, { readonly href: string; readonly newTab: boolean }>({
       name: "link.set", label: "Link",
-      run: (ctx, arg) => ctx.apply("link", (doc, sel) => setLink(doc, sel, arg?.href)),
-      state: (s) => ({ enabled: !isCollapsed(s.selection) || linkAt(s.doc, s.selection) !== undefined, active: linkAt(s.doc, s.selection) !== undefined, ...(linkAt(s.doc, s.selection) !== undefined ? { value: linkAt(s.doc, s.selection) as string } : {}) }),
+      run: (ctx, arg) => ctx.apply("link", (doc, sel) => setLink(doc, sel, arg?.href, arg?.newTab === true)),
+      state: (s) => {
+        const href = linkAt(s.doc, s.selection);
+        return { enabled: !isCollapsed(s.selection) || href !== undefined, active: href !== undefined, ...(href !== undefined ? { value: linkValue(s, href) } : {}) };
+      },
     }),
     def<void, never>({
       name: "link.remove", label: "Remove link",
@@ -253,6 +265,6 @@ export const coreItems: readonly (readonly [UiSlot, UiItem])[] = [
   }],
   ["toolbar.main", { kind: "button", id: "outdent", command: "block.outdent", icon: "outdent", group: "direction", order: 2 }],
   ["toolbar.main", { kind: "button", id: "indent", command: "block.indent", icon: "indent", group: "direction", order: 3 }],
-  ["toolbar.main", { kind: "dialog", id: "link", command: "link.set", label: "Link", icon: "link", group: "insert", order: 1, fields: [{ name: "href", type: "url", label: "Address", required: true }] }],
+  ["toolbar.main", { kind: "dialog", id: "link", command: "link.set", label: "Link", icon: "link", group: "insert", order: 1, fields: [{ name: "href", type: "url", label: "Address", required: true }, { name: "newTab", type: "checkbox", label: "Open in a new tab" }] }],
   ["toolbar.main", { kind: "button", id: "unlink", command: "link.remove", icon: "unlink", group: "insert", order: 2 }],
 ];

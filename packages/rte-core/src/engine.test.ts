@@ -155,7 +155,7 @@ test("commands: bold, headings, alignment, links, lists and history, through the
   assert.equal(e.commands.run("block.align", "center"), true);
   assert.equal(e.commands.state("block.align").value, "center");
   assert.equal(e.commands.run("link.set", { href: "https://x.test" }), true);
-  assert.equal(e.commands.state("link.set").value, "https://x.test");
+  assert.deepEqual(e.commands.state("link.set").value, { href: "https://x.test", newTab: false });
   assert.equal(e.commands.run("link.set", { href: "javascript:alert(1)" }), false);
   assert.equal(e.commands.run("link.remove"), true);
   assert.equal(e.commands.run("block.paragraph"), true);

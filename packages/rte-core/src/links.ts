@@ -10,6 +10,7 @@ const hrefOf = (marks: readonly Mark[]): string | undefined => {
   const link = marks.find((m) => m.type === "link");
   return link && link.type === "link" ? link.href : undefined;
 };
+const newTabOf = (marks: readonly Mark[]): boolean => marks.some((m) => m.type === "link" && m.newTab === true);
 
 /** The offsets of the link that covers a caret position, if any: the text before the caret decides, then the text after. */
 function linkRunAt(content: readonly Inline[], offset: number): { from: number; to: number; href: string } | undefined {
@@ -50,11 +51,24 @@ export function linkAt(doc: Doc, sel: Selection): string | undefined {
   return first !== undefined && hrefs.every((h) => h === first) ? first : undefined;
 }
 
+/** Whether the link at the selection opens in a new tab (false when there is no link). */
+export function linkNewTabAt(doc: Doc, sel: Selection): boolean {
+  const content = getContent(doc, sel.focus.path);
+  const offset = isCollapsed(sel) ? sel.focus.offset : Math.min(sel.anchor.offset, sel.focus.offset) + 1;
+  let pos = 0;
+  for (const node of content) {
+    const length = node.type === "text" ? node.text.length : 1;
+    if (node.type === "text" && hrefOf(node.marks) !== undefined && ((pos < offset && offset <= pos + length) || (offset === 0 && pos === 0))) return newTabOf(node.marks);
+    pos += length;
+  }
+  return false;
+}
+
 /**
  * Sets a link on the selected text, or removes it when `href` is undefined. With a caret inside a link, the whole link is
  * edited. An address the URL policy refuses (a script, a local path) is not set. Returns nothing changed in that case.
  */
-export function setLink(doc: Doc, sel: Selection, href: string | undefined): EditResult {
+export function setLink(doc: Doc, sel: Selection, href: string | undefined, newTab = false): EditResult {
   const safe = href === undefined ? undefined : safeUrl(href, DEFAULT_SCHEMES);
   if (href !== undefined && safe === undefined) return { doc, selection: sel };
   let next = doc;
@@ -64,7 +78,7 @@ export function setLink(doc: Doc, sel: Selection, href: string | undefined): Edi
     const middle = sliceInline(content, from, to).map((node): Inline => {
       if (node.type !== "text") return node;
       const marks = node.marks.filter((m) => m.type !== "link");
-      return { ...node, marks: safe === undefined ? marks : [{ type: "link", href: safe }, ...marks] };
+      return { ...node, marks: safe === undefined ? marks : [{ type: "link", href: safe, ...(newTab ? { newTab: true } : {}) }, ...marks] };
     });
     next = setContent(next, path, normalizeInline([...sliceInline(content, 0, from), ...middle, ...sliceInline(content, to)]));
   };

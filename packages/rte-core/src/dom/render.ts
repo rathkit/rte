@@ -15,6 +15,7 @@ function wrap(inner: Node, mark: Mark): Node {
       el = document.createElement("a");
       el.setAttribute("href", mark.href);
       el.setAttribute("rel", "noopener noreferrer");
+      if (mark.newTab) el.setAttribute("target", "_blank");
       break;
     case "color": el = document.createElement("span"); el.style.color = mark.value; break;
     case "background": el = document.createElement("span"); el.style.backgroundColor = mark.value; break;

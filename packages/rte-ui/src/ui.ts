@@ -362,13 +362,18 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
         const input = part(document.createElement("input"), "field");
         input.id = inputId;
         input.name = field.name;
-        input.type = "text";
+        input.type = field.type === "checkbox" ? "checkbox" : "text";
         if (field.type === "url") input.inputMode = "url";
         input.autocomplete = "off";
         if (field.required) input.required = true;
         const error = part(document.createElement("span"), "field-error");
         error.setAttribute("data-rk-error", field.name);
-        form.append(label, input, error);
+        // A checkbox has its label after it, on one line.
+        if (field.type === "checkbox") {
+          const row = part(document.createElement("div"), "field-check");
+          row.append(input, label);
+          form.append(row, error);
+        } else form.append(label, input, error);
       }
       const actions = part(document.createElement("div"), "actions");
       const ok = part(document.createElement("button"), "action");
@@ -395,11 +400,16 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       dialogs.set(item.id, entry);
       syncDialogs();
     }
-    // Fill a single-field dialog with what the command says is there now (the address of the link under the caret, say).
+    // Fill the dialog with what the command says is there now: the address of the link under the caret, say. A text value fills a
+    // single-field dialog; an object fills the fields it names.
     const current = editor.commands.state(item.command).value;
-    const only = item.fields.length === 1 ? item.fields[0] : undefined;
-    const input = only ? entry.form.querySelector<HTMLInputElement>(`[name="${only.name}"]`) : null;
-    if (input) input.value = typeof current === "string" ? current : "";
+    for (const f of item.fields) {
+      const input = entry.form.querySelector<HTMLInputElement>(`[name="${f.name}"]`);
+      if (!input) continue;
+      const given = current !== null && typeof current === "object" ? (current as Record<string, unknown>)[f.name] : item.fields.length === 1 ? current : undefined;
+      if (f.type === "checkbox") input.checked = given === true;
+      else input.value = typeof given === "string" ? given : "";
+    }
     for (const f of item.fields) {
       const bad = entry.form.querySelector<HTMLElement>(`[name="${f.name}"]`);
       bad?.removeAttribute("aria-invalid");

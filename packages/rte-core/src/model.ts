@@ -3,7 +3,7 @@
 
 export type Mark =
   | { readonly type: "bold" | "italic" | "underline" | "strike" | "code" | "sup" | "sub" }
-  | { readonly type: "link"; readonly href: string }
+  | { readonly type: "link"; readonly href: string; /** Opens in a new tab (written with `rel="noopener noreferrer"`). */ readonly newTab?: boolean }
   | { readonly type: "color" | "background"; readonly value: string };
 
 export type MarkType = Mark["type"];

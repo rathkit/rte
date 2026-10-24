@@ -171,3 +171,20 @@ test("indent: Enter keeps it, and in a list the same commands move the item", as
   list.commands.run("block.outdent");
   assert.equal(html(list), "<ul><li>one</li><li>two</li></ul>");
 });
+
+test("links can open in a new tab: read from target, written with rel, set and reported by the link command", () => {
+  const e = make('<p><a href="https://x.test" target="_blank">one</a> <a href="https://y.test" target="_self">two</a></p>');
+  assert.equal(html(e), '<p><a href="https://x.test" target="_blank" rel="noopener noreferrer">one</a> <a href="https://y.test">two</a></p>');
+  sel(e, [[0], 1]);
+  assert.deepEqual(e.commands.state("link.set").value, { href: "https://x.test", newTab: true });
+  sel(e, [[0], 5]);
+  assert.deepEqual(e.commands.state("link.set").value, { href: "https://y.test", newTab: false });
+  e.commands.run("link.set", { href: "https://y.test", newTab: true });
+  assert.match(html(e), /<a href="https:\/\/y\.test" target="_blank" rel="noopener noreferrer">two<\/a>/);
+  e.commands.run("link.set", { href: "https://y.test" });
+  assert.match(html(e), /<a href="https:\/\/y\.test">two<\/a>/, "without newTab it is a plain link again");
+  const plain = make("<p>text</p>");
+  sel(plain, [[0], 0], [[0], 4]);
+  plain.commands.run("link.set", { href: "https://z.test", newTab: true });
+  assert.equal(html(plain), '<p><a href="https://z.test" target="_blank" rel="noopener noreferrer">text</a></p>');
+});

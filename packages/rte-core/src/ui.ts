@@ -9,7 +9,7 @@ export type IconName = string;
 
 export interface Field {
   readonly name: string;
-  readonly type: "text" | "url" | "number" | "color" | "choice";
+  readonly type: "text" | "url" | "number" | "color" | "choice" | "checkbox";
   readonly label: string;
   readonly required?: boolean;
   readonly choices?: readonly { readonly value: string; readonly label: string }[];

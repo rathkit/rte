@@ -693,6 +693,14 @@ for (const [name, type] of engines) {
   await page.click('#root [data-rk-item="link"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
+  check(`${name} (ui) and the new-tab box is unticked for a link that opens in the same tab`, (await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]:not([data-rk-shortcuts])")].find((x) => x.open); const box = d.querySelector('input[name=newTab]'); return box.type === "checkbox" && box.checked === false && box.labels[0].textContent === "Open in a new tab"; })), "checkbox");
+  await page.click('#root dialog[open] input[name=newTab]');
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+  check(`${name} (ui) ticking it and submitting makes the link open in a new tab`, (await page.evaluate(() => window.__one.editor.getHtml())).includes('<a href="https://x.test" target="_blank" rel="noopener noreferrer">two</a>'), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="link"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) reopened, the box is ticked`, await page.evaluate(() => [...document.querySelectorAll("#root dialog")].find((x) => x.open).querySelector("input[name=newTab]").checked), "ticked");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
   // Special characters and the shortcuts list.

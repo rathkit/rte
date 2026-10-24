@@ -466,7 +466,7 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
     case "a": {
       const href = safeUrl(el.attrs.href, settings.schemes);
       const change = styleMarks(el, ctx, settings);
-      if (href !== undefined) change.add.push({ type: "link", href });
+      if (href !== undefined) change.add.push({ type: "link", href, ...((el.attrs.target ?? "").toLowerCase() === "_blank" ? { newTab: true } : {}) });
       // A link with no usable address is plain text, never an empty anchor. Its underline was the link's styling either way.
       convertNodes(el.children, sink, withMarks(ctx, change, { inLink: true }), settings);
       return;
