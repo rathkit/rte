@@ -184,6 +184,8 @@ for (const [name, type] of engines) {
   check(`${name} pasting a table with the caret in a cell fills cells and grows the table`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td><td>X</td><td>Y</td></tr><tr><td>c</td><td>Z</td><td>W</td></tr></table>", await html());
   await page.keyboard.press("ControlOrMeta+z");
   check(`${name} and one undo takes it all back`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>", await html());
+  await page.evaluate(() => window.__editor.paste({ text: "P\tQ\nR\tS\n" }));
+  check(`${name} tab-separated text pasted into a cell becomes cells filled from that cell`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td><td>P</td><td>Q</td></tr><tr><td>c</td><td>R</td><td>S</td></tr></table>", await html());
   // Cell edges: Backspace at the start of a cell and Delete at the end of one leave the table whole.
   await reset("<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>");
   await page.click("td:nth-child(2)");

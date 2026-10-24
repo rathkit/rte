@@ -62,9 +62,9 @@ automatic. Where the tables plugin is not installed, or the editor is read-only,
 
 ## Pasting a table into a table
 
-A table pasted with the caret (or a selection) in a table cell fills the cells, cell by cell, from the selected cell, as pasting copied spreadsheet cells into a spreadsheet does; the table grows by blank rows and columns for what does not fit. Each filled cell keeps its own kind (header or not) and size and takes the pasted cell's content, and its fill and line if the pasted cell has them. One pasted cell fills every selected cell. This is in the core, so it holds without the plugin. Tab-separated plain text is not turned into cells.
+A table pasted with the caret (or a selection) in a table cell fills the cells, cell by cell, from the selected cell, as pasting copied spreadsheet cells into a spreadsheet does; the table grows by blank rows and columns for what does not fit. Each filled cell keeps its own kind (header or not) and size and takes the pasted cell's content, and its fill and line if the pasted cell has them. One pasted cell fills every selected cell. This is in the core, so it holds without the plugin. Plain text with tabs between cells and a line to a row (as a spreadsheet or terminal copies it) pasted into a table is read as cells the same way.
 
 ## Not built
 
-- A different line on each side of a cell, table-wide borders, and turning tab-separated plain text into cells when pasted.
+- A different line on each side of a cell, table-wide borders.
 - Selecting a rectangle of cells by dragging across them as cells (the selection is still text, and the rectangle is worked out from its two ends).

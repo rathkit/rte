@@ -59,3 +59,16 @@ export function fillTable(doc: Doc, sel: Selection, source: Table): EditResult |
   const path = containerPaths(next).find((p) => p.length > prefix.length && prefix.every((v, i) => p[i] === v));
   return { doc: next, selection: path ? caret({ path, offset: 0 }) : sel };
 }
+
+/** Plain text with tabs between cells and a line to a row (what a spreadsheet or a terminal copies) as a table; undefined when it is not that. */
+export function tableFromText(text: string): Table | undefined {
+  if (!text.includes("\t")) return undefined;
+  const lines = text.replace(/\r\n?/g, "\n").replace(/\n+$/, "").split("\n");
+  const width = Math.max(...lines.map((line) => line.split("\t").length));
+  const rows = lines.map((line) => {
+    const cells = line.split("\t").map((value): TableCell => ({ header: false, colspan: 1, rowspan: 1, blocks: [{ type: "p", content: value === "" ? [] : [{ type: "text", text: value, marks: [] }] }] }));
+    while (cells.length < width) cells.push(blank());
+    return cells;
+  });
+  return { type: "table", rows };
+}

@@ -12,7 +12,8 @@ import { exportHtml } from "../export.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import type { Block, Doc, MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
-import { getContent, setContent, type Pos, type Selection } from "../path.ts";
+import { cellChain, getContent, setContent, type Pos, type Selection } from "../path.ts";
+import { tableFromText } from "../tablefill.ts";
 import { CellMarks, installColumnResize } from "./tableview.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
@@ -262,8 +263,14 @@ export class Editor {
 
   /** Pastes raw clipboard data through the same pipeline a paste event uses. */
   paste(data: ClipboardData): void {
-    const blocks = pasteBlocks(data, this.engine.pasteHandlers, this.engine.importOptions);
+    let blocks = pasteBlocks(data, this.engine.pasteHandlers, this.engine.importOptions);
     if (blocks.length === 0) return;
+    // Plain text with tabs, pasted into a table, is cells.
+    if (!data.html?.trim() && data.text) {
+      this.engine.refresh();
+      const table = cellChain(this.engine.document, this.engine.selection.focus.path).length > 0 ? tableFromText(data.text) : undefined;
+      if (table) blocks = [table];
+    }
     this.insertSettled(blocks);
   }
 
