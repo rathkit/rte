@@ -66,3 +66,41 @@ test("a table inside a cell is protected the same way", () => {
   assert.equal(exportHtml(deleteBackward(nested, caret(at(inner, 0))).doc), exportHtml(nested));
   assert.equal(exportHtml(deleteSelection(nested, { anchor: at([0, 0, 0, 0], 0), focus: at([0, 0, 0, 2], 1) }).doc), `<table><tbody><tr><td></td></tr></tbody></table>`);
 });
+
+// ---- pasting a table into a table ---------------------------------------------------------------------------
+
+import { insertBlocks } from "./edit.ts";
+import { importBlocks } from "./import.ts";
+
+const grid3 = `<table><tbody><tr><td>a1</td><td>a2</td><td>a3</td></tr><tr><td>b1</td><td>b2</td><td>b3</td></tr><tr><td>c1</td><td>c2</td><td>c3</td></tr></tbody></table>`;
+const paste = (html: string, sel: { path: Path; offset: number }, focus = sel) => {
+  const d = importHtml(grid3);
+  return insertBlocks(d, { anchor: sel, focus }, importBlocks(html));
+};
+const rows = (d: ReturnType<typeof importHtml>) => exportHtml(d).replace(/<\/?tbody>|<table>|<\/table>/g, "").replace(/<\/tr>/g, "|").replace(/<\/?t[dr]>/g, " ").replace(/\s+/g, " ").trim();
+
+test("a table pasted into a table fills the cells from the caret's cell, and leaves the rest as it was", () => {
+  const result = paste("<table><tbody><tr><td>X</td><td>Y</td></tr><tr><td>Z</td><td>W</td></tr></tbody></table>", at([0, 1, 1, 0], 0));
+  assert.equal(rows(result.doc), "a1 a2 a3 | b1 X Y | c1 Z W |");
+  assert.deepEqual(result.selection.focus, at([0, 1, 1, 0], 0), "the caret is in the first cell filled");
+});
+
+test("what does not fit makes the table bigger", () => {
+  const result = paste("<table><tbody><tr><td>X</td><td>Y</td></tr><tr><td>Z</td><td>W</td></tr></tbody></table>", at([0, 2, 2, 0], 0));
+  assert.equal(rows(result.doc), "a1 a2 a3 | b1 b2 b3 | c1 c2 X Y | Z W |");
+  const table = result.doc.blocks[0];
+  assert.ok(table?.type === "table" && table.rows.every((r) => r.length === 4) && table.rows.length === 4, "every row has four cells, and there are four rows");
+});
+
+test("one pasted cell fills every selected cell; a table pasted outside a table is a table as before", () => {
+  const filled = paste("<table><tbody><tr><td>X</td></tr></tbody></table>", at([0, 0, 0, 0], 0), at([0, 1, 1, 0], 0));
+  assert.equal(rows(filled.doc), "X X a3 | X X b3 | c1 c2 c3 |");
+  const outside = insertBlocks(importHtml("<p>text</p>"), caret(at([0], 2)), importBlocks("<table><tbody><tr><td>X</td><td>Y</td></tr></tbody></table>"));
+  assert.match(exportHtml(outside.doc), /<table>/);
+});
+
+test("pasted cells keep the header and size of the cells they land in, and bring their look", () => {
+  const d = importHtml(`<table><tbody><tr><th>h1</th><th>h2</th></tr><tr><td>a</td><td>b</td></tr></tbody></table>`);
+  const result = insertBlocks(d, caret(at([0, 0, 0, 0], 0)), importBlocks(`<table><tbody><tr><td style="background-color: yellow">X</td><td>Y</td></tr></tbody></table>`));
+  assert.equal(exportHtml(result.doc), `<table><tbody><tr><th scope="col" style="background-color: yellow;">X</th><th scope="col">Y</th></tr><tr><td>a</td><td>b</td></tr></tbody></table>`);
+});

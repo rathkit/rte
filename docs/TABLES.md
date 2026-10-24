@@ -60,7 +60,11 @@ A pointer on a cell's right edge shows a resize cursor. Dragging draws a guide l
 that edge belongs to (the last column a spanning cell covers), so the width is one undo step. Double-clicking an edge puts the column back to
 automatic. Where the tables plugin is not installed, or the editor is read-only, edges do nothing. Touch input has not been tried.
 
+## Pasting a table into a table
+
+A table pasted with the caret (or a selection) in a table cell fills the cells, cell by cell, from the selected cell, as pasting copied spreadsheet cells into a spreadsheet does; the table grows by blank rows and columns for what does not fit. Each filled cell keeps its own kind (header or not) and size and takes the pasted cell's content, and its fill and line if the pasted cell has them. One pasted cell fills every selected cell. This is in the core, so it holds without the plugin. Tab-separated plain text is not turned into cells.
+
 ## Not built
 
-- A different line on each side of a cell, table-wide borders, and pasting a table into a range of cells.
+- A different line on each side of a cell, table-wide borders, and turning tab-separated plain text into cells when pasted.
 - Selecting a rectangle of cells by dragging across them as cells (the selection is still text, and the rectangle is worked out from its two ends).

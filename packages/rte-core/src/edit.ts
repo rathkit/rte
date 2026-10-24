@@ -4,6 +4,7 @@ import {
   inlineLength, inlineText, normalizeInline, type Block, type TableCell, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
 } from "./model.ts";
 import type { Behaviors, ContainerKind } from "./behaviors.ts";
+import { fillTable } from "./tablefill.ts";
 import {
   blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, sameCells, setContent,
   type EditResult, type Path, type Pos, type Selection,
@@ -398,6 +399,12 @@ const textBlock = (block: Block): block is Extract<Block, { type: "p" | "h" }> =
  */
 export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[], behaviors?: Behaviors): EditResult {
   if (blocks.length === 0) return { doc, selection: sel };
+  // A table pasted into a table fills its cells.
+  const pasted = blocks.length === 1 ? blocks[0] : undefined;
+  if (pasted?.type === "table") {
+    const filled = fillTable(doc, sel, pasted);
+    if (filled) return filled;
+  }
   const cleared = deleteSelection(doc, sel);
   const pos = cleared.selection.anchor;
   const d = cleared.doc;

@@ -177,6 +177,13 @@ for (const [name, type] of engines) {
   check(`${name} and a justify request aligns the block`, (await html()).includes('text-align: center'), await html());
   await page.keyboard.press("ControlOrMeta+\\");
   check(`${name} Mod+\\ clears the formatting`, !(await html()).includes("<sup>"), await html());
+  // A table pasted into a table fills its cells.
+  await reset("<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>");
+  await page.click("tr:nth-child(1) td:nth-child(2)");
+  await page.evaluate(() => window.__editor.paste({ html: "<table><tr><td>X</td><td>Y</td></tr><tr><td>Z</td><td>W</td></tr></table>" }));
+  check(`${name} pasting a table with the caret in a cell fills cells and grows the table`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td><td>X</td><td>Y</td></tr><tr><td>c</td><td>Z</td><td>W</td></tr></table>", await html());
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} and one undo takes it all back`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>", await html());
   // Cell edges: Backspace at the start of a cell and Delete at the end of one leave the table whole.
   await reset("<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>");
   await page.click("td:nth-child(2)");
