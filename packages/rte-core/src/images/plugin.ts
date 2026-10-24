@@ -109,6 +109,59 @@ export function images(options: ImagesOptions = {}): Plugin {
         },
         state: (snap) => ({ enabled: host.ops.kindAt(snap.doc, snap.selection.focus.path) !== "pre" }),
       });
+      // Changing the image that is selected: its description, and its size (a drag on its corner runs this with a width).
+      type Update = { readonly alt?: string | null; readonly width?: number | string | null; readonly height?: number | string | null; readonly path?: readonly number[]; readonly offset?: number };
+      /** A size in pixels from a number or text like "300" or "300px": a whole number from 1 to 10000, else undefined; null and "" clear it. */
+      const sizeOf = (value: number | string | null | undefined): number | null | undefined => {
+        if (value === null || value === "") return null;
+        const n = typeof value === "number" ? value : /^\d{1,5}(px)?$/.test(String(value).trim()) ? Number.parseInt(String(value), 10) : Number.NaN;
+        return Number.isInteger(n) && n >= 1 && n <= 10000 ? n : undefined;
+      };
+      host.command({
+        name: "image.update", label: "Image properties",
+        run: (ctx, arg: Update | undefined) => {
+          const { ops } = host;
+          const width = arg?.width === undefined ? undefined : sizeOf(arg.width);
+          const height = arg?.height === undefined ? undefined : sizeOf(arg.height);
+          if (width === undefined && arg?.width !== undefined) return false;
+          if (height === undefined && arg?.height !== undefined) return false;
+          return ctx.apply("image", (doc, sel) => {
+            const target = arg?.path ? { path: [...arg.path], offset: arg.offset ?? 0 } : ops.selectedImage(doc, sel);
+            if (!target) return { doc, selection: sel };
+            const content = ops.getContent(doc, target.path);
+            const node = ops.sliceInline(content, target.offset, target.offset + 1)[0];
+            if (node?.type !== "image") return { doc, selection: sel };
+            const { alt: _a, width: _w, height: _h, ...rest } = node;
+            void [_a, _w, _h];
+            const alt = arg?.alt === undefined ? node.alt : arg.alt === null || arg.alt.trim() === "" ? undefined : arg.alt.trim();
+            // A width alone keeps the picture's proportions: the old height would not.
+            const newWidth = width === undefined ? node.width : width ?? undefined;
+            const newHeight = height === undefined ? (width === undefined ? node.height : undefined) : height ?? undefined;
+            const changed: Inline = { ...rest, ...(alt !== undefined ? { alt } : {}), ...(newWidth !== undefined ? { width: newWidth } : {}), ...(newHeight !== undefined ? { height: newHeight } : {}) };
+            const next = ops.normalizeInline([...ops.sliceInline(content, 0, target.offset), changed, ...ops.sliceInline(content, target.offset + 1)]);
+            return { doc: ops.setContent(doc, target.path, next), selection: sel };
+          });
+        },
+        state: (snap) => {
+          const picked = host.ops.selectedImage(snap.doc, snap.selection);
+          return picked ? { enabled: true, active: true, value: valueOf(picked.image) } : { enabled: false };
+        },
+      });
+      // What the properties dialog starts with: text, since that is what its fields hold. The same object while nothing about the image changed.
+      let lastImage: { image: Inline; value: Record<string, string> } | undefined;
+      const valueOf = (image: Extract<Inline, { type: "image" }>): Record<string, string> => {
+        if (lastImage?.image === image) return lastImage.value;
+        lastImage = { image, value: { alt: image.alt ?? "", width: image.width === undefined ? "" : String(image.width), height: image.height === undefined ? "" : String(image.height) } };
+        return lastImage.value;
+      };
+      host.ui("toolbar.main", {
+        kind: "dialog", id: "image-properties", command: "image.update", label: "Image properties", icon: "image-properties", group: "insert", order: 4,
+        fields: [
+          { name: "alt", type: "text", label: "Description for people who cannot see the image" },
+          { name: "width", type: "text", label: "Width in px (empty for the image's own)" },
+          { name: "height", type: "text", label: "Height in px (empty to keep the proportions)" },
+        ],
+      });
       host.ui("toolbar.main", {
         kind: "dialog", id: "image", command: "image.insert", label: "Image", icon: "image", group: "insert", order: 3,
         fields: [

@@ -18,3 +18,4 @@ export { linkAt, setLink } from "./links.ts";
 export { countDocument, countSelection, countText, textLength, type Counts } from "./stats.ts";
 export { inCodeBlock, inQuote, insertRule, toggleCodeBlock, toggleQuote } from "./blocks.ts";
 export { SLOTS, UiRegistry, type Field, type IconName, type UiItem, type UiSlot } from "./ui.ts";
+export { imageSelection, selectedImage, type SelectedImage } from "./imageselect.ts";

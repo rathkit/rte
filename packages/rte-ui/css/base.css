@@ -164,6 +164,7 @@
   [data-rk-part="content"] th { background: var(--rk-surface); text-align: start; }
   /* Cells a selection runs across (the view marks them): a tint and an outline, so it is not color alone. */
   [data-rk-part="content"] [data-rk-cell-selected] { background: var(--rk-selection-bg); outline: 2px solid var(--rk-accent); outline-offset: -2px; }
+  [data-rk-part="content"] img[data-rk-image-selected] { outline: 2px solid var(--rk-accent); outline-offset: 2px; }
   /* Focus inside the writing area shows on the whole editor, not as a box around the text. */
   .rk-root:focus-within { outline: var(--rk-focus-width) solid var(--rk-focus-color); outline-offset: var(--rk-focus-offset); }
   .rk-root:focus-within [data-rk-part="content"] :focus-visible,
@@ -248,6 +249,7 @@
     [data-rk-part="button"][aria-disabled="true"], [data-rk-part="select"][aria-disabled="true"] { color: GrayText; border-color: GrayText; opacity: 1; }
     [data-rk-part="content"] a { color: LinkText; }
     [data-rk-part="content"] [data-rk-cell-selected] { outline-color: Highlight; background: Canvas; }
+    [data-rk-part="content"] img[data-rk-image-selected] { outline-color: Highlight; }
     .rk-root :focus-visible, .rk-root:focus-within { outline-color: Highlight; }
     [data-rk-part="separator"], [data-rk-part="menu-separator"] { background: CanvasText; }
     [data-rk-part="menu"] { border-color: CanvasText; background: Canvas; }

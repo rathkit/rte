@@ -41,3 +41,15 @@ The editor ships no upload service. The function is the host's.
 The address goes through the same check as a pasted image: scripts, malformed data addresses and anything else the paste check refuses
 are refused, and nothing changes. It is off in a code block. An address on another site is kept but not loaded unless the host passes
 `loadRemoteImages: true`; the styled interface draws a dashed box in its place.
+
+## Selecting, resizing and describing
+
+A click on an image selects it and the styled interface outlines it. With the `images` plugin
+installed, a handle appears on its bottom right corner; dragging it sets the width, shows a dashed guide while you drag, and changes the
+document once, on release (one undo step). The handle is not part of the document and is absent in a read-only editor.
+
+`image.update` (`{ alt, width, height }`) is the same change by command, and the Image properties button opens a dialog for it, which is the way to
+set a size without a pointer. Sizes are whole numbers from 1 to 10000, as `300` or `"300px"`; other units are refused and nothing changes. Setting
+a width alone drops the old height, so the picture keeps its proportions; an empty or `null` value clears that property. The description
+(`alt`) is trimmed, and cleared when empty. The command is off unless exactly one image is selected, or the arguments name one with
+`{ path, offset }`. The size is written as `width` and `height` attributes in HTML.

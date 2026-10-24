@@ -916,6 +916,44 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(100);
   check(`${name} (ui) a good address inserts the image with its description`, await page.evaluate(() => window.__one.editor.getHtml() === '<p>one<img src="https://example.test/cat.png" alt="A cat"> two</p>'), await page.evaluate(() => window.__one.editor.getHtml()));
   check(`${name} (ui) and nothing was fetched: the image is held back until the host allows it`, t.outside.length === 0 && (await page.evaluate(() => document.querySelectorAll("#root img[data-rte-remote-src]").length)) === 1 && (await page.evaluate(() => document.querySelectorAll("#root img[src]").length)) === 0, t.outside);
+  // Image properties and resizing: a click selects the image and shows a handle; dragging it sets the width; the dialog edits the description and size.
+  const tiny = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+  await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>one<img src="${src}" alt="dot" width="100"> two</p>`); e.focus(); }, tiny);
+  await page.waitForTimeout(80);
+  check(`${name} (ui) no handle before an image is selected`, (await page.locator("[data-rk-resize-handle]").count()) === 0);
+  const imgBox = await page.locator("#root [data-rk-part=content] img").boundingBox();
+  await page.mouse.click(imgBox.x + imgBox.width / 2, imgBox.y + imgBox.height / 2);
+  await page.waitForTimeout(80);
+  check(`${name} (ui) a click selects the image and marks it`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 1), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) the marker is not part of the document`, await page.evaluate(() => !window.__one.editor.getHtml().includes("data-rk")));
+  check(`${name} (ui) a resize handle shows on its corner`, (await page.locator("[data-rk-resize-handle]").count()) === 1);
+  const handle = await page.locator("[data-rk-resize-handle]").boundingBox();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 + 60, handle.y + handle.height / 2 + 10, { steps: 4 });
+  check(`${name} (ui) a guide shows while dragging, and the document is unchanged until release`, (await page.locator("[data-rk-resize-line]").count()) === 1 && (await page.evaluate(() => window.__one.editor.getHtml())).includes('width="100"'));
+  await page.mouse.up();
+  await page.waitForTimeout(80);
+  check(`${name} (ui) releasing sets the new width (one undo step)`, await page.evaluate(() => /<img [^>]*width="16\d"/.test(window.__one.editor.getHtml()) && !window.__one.editor.getHtml().includes("height=")), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) the guide is gone`, (await page.locator("[data-rk-resize-line]").count()) === 0);
+  await page.evaluate(() => window.__one.editor.undo());
+  await page.waitForTimeout(60);
+  check(`${name} (ui) undo restores the old width`, await page.evaluate(() => window.__one.editor.getHtml().includes('width="100"')), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="image-properties"]');
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the properties dialog starts with the image's values`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rk-part=field]")]; return !!d && f.length === 3 && f[0].value === "dot" && f[1].value === "100" && f[2].value === ""; }));
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("A dot");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("40");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the dialog sets the description and width`, await page.evaluate(() => /<img [^>]*alt="A dot"[^>]*width="40"/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>plain text</p>"); e.focus(); });
+  await page.waitForTimeout(80);
+  check(`${name} (ui) the handle goes when no image is selected`, (await page.locator("[data-rk-resize-handle]").count()) === 0);
+
   // A menu entry that asks for something opens a dialog.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
   await page.waitForTimeout(60);

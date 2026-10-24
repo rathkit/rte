@@ -141,3 +141,26 @@ test("image.insert is off in a code block", async () => {
   assert.equal(engine.commands.state("image.insert").enabled, false);
   assert.equal(engine.commands.run("image.insert", { src: "https://example.test/a.png" }), false);
 });
+
+test("image.update sets the description and size of the selected image; a width alone drops the old height; bad sizes are refused", async () => {
+  const { importHtml } = await import("../import.ts");
+  const { imageSelection } = await import("../imageselect.ts");
+  const engine = setup();
+  engine.setDocument(importHtml('<p>a<img src="https://example.test/a.png" alt="old" width="100" height="50">b</p>'));
+  assert.equal(engine.commands.state("image.update").enabled, false, "off with no image selected");
+  assert.equal(engine.commands.run("image.update", { alt: "x" }), false);
+  engine.setSelection(imageSelection([0], 1));
+  assert.deepEqual(engine.commands.state("image.update").value, { alt: "old", width: "100", height: "50" });
+  assert.equal(engine.commands.state("image.update").value, engine.commands.state("image.update").value, "the same object while nothing changed");
+  assert.equal(engine.commands.run("image.update", { width: "300px" }), true);
+  assert.equal(exportHtml(engine.document), '<p>a<img src="https://example.test/a.png" alt="old" width="300">b</p>');
+  assert.equal(engine.commands.run("image.update", { alt: " A cat ", height: 120 }), true);
+  assert.equal(exportHtml(engine.document), '<p>a<img src="https://example.test/a.png" alt="A cat" width="300" height="120">b</p>');
+  for (const bad of [0, -5, 10001, 1.5, "wide", "12em"]) assert.equal(engine.commands.run("image.update", { width: bad }), false, String(bad));
+  assert.equal(engine.commands.run("image.update", { alt: null, width: null, height: null }), true);
+  assert.equal(exportHtml(engine.document), '<p>a<img src="https://example.test/a.png">b</p>');
+  engine.undo();
+  assert.match(exportHtml(engine.document), /alt="A cat" width="300" height="120"/, "one undo step");
+  engine.setSelection(imageSelection([0], 1));
+  assert.equal(engine.commands.run("image.update", { path: [0], offset: 0, width: 40 }), false, "no image at that place");
+});

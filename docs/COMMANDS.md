@@ -32,7 +32,7 @@ changes the document is disabled.
 | `lists` | `list.bulleted`, `list.numbered`, `list.definition`, `list.checklist`, `list.toggleChecked`, `list.indent`, `list.outdent` (see `LISTS.md`) |
 | `tables` | `table.insert`, `table.rowBefore`, `table.rowAfter`, `table.columnBefore`, `table.columnAfter`, `table.deleteRow`, `table.deleteColumn`, `table.delete`, `table.header`, `table.mergeCells`, `table.splitCell`, `table.columnWidth`, `table.nextCell`, `table.previousCell` (see `TABLES.md`) |
 | `find` | `find.set` `{ query, matchCase, wholeWord }` (its state `value` is `{ query, matchCase, wholeWord, open, matches, index }`: every match in document order and which one is selected, -1 for none), `find.next`, `find.previous`, `find.replace` and `find.replaceAll` with `{ with }`, `find.open` (Mod-f), `find.toggle`, `find.close`. The search is editor state, not document and not history; searching works in a read-only editor, replacing does not. A match lies inside one paragraph, item or cell. Replacing keeps the formatting of the first replaced character |
-| `images` | `image.insert` with `{ src, alt }`: the address goes through the same check as pasted images (see `IMAGES.md`) |
+| `images` | `image.insert` with `{ src, alt }`: the address goes through the same check as pasted images (see `IMAGES.md`); `image.update` with `{ alt, width, height }` changes the selected image (see `IMAGES.md`) |
 
 ## What the browser can ask for
 

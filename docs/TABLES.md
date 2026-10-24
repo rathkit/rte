@@ -12,7 +12,7 @@ style). Only plain numbers with `px` or `%` are widths; `9em`, `calc(...)` and t
 
 A cell may have a `background` (a plain color) and lines: `border`, one line all round (solid, dashed or dotted, 1 to 8 px, a color), or `null` for none whatever a stylesheet says; or, where the sides differ, `borders` with a line (or `null`) for each side that has been said. A side that has not been said is left to the stylesheet (the styled interface draws a grid). The same four sides are always kept as one `border`. The table may carry
 `heights`, the least height of each row in `px`, like `widths` for columns. HTML in: a cell's `background-color`, `background` (when it is a plain color) or
-`bgcolor`, its `border` shorthand, and a row's (or its first cell's) `height`; anything else (images, gradients, double lines, a different line on each side) is
+`bgcolor`, its `border` shorthand, and a row's (or its first cell's) `height`; `border-top`, `border-right`, `border-bottom` and `border-left` for lines that differ by side; anything else (images, gradients, double lines) is
 dropped. Cell styles are read when a document is loaded, not from a paste, like text colors. HTML out: `style` on the cell and the row.
 
 ## Commands

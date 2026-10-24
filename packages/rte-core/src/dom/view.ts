@@ -14,6 +14,7 @@ import type { Block, Doc, MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
 import { cellChain, getContent, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
+import { ImageSelection } from "./imageview.ts";
 import { CellMarks, installColumnResize } from "./tableview.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
@@ -80,6 +81,7 @@ export class Editor {
   });
   private readonly cleanups: (() => void)[] = [];
   private readonly cellMarks: CellMarks;
+  private readonly imageSelection: ImageSelection;
 
   constructor(options: EditorOptions) {
     this.element = options.element;
@@ -94,6 +96,8 @@ export class Editor {
       ...(options.onMaxLength ? { onMaxLength: options.onMaxLength } : {}),
     });
     this.cellMarks = new CellMarks(this.element, this.engine, () => this.observer.takeRecords());
+    this.imageSelection = new ImageSelection(this.element, this.engine, () => this.observer.takeRecords());
+    this.cleanups.push(() => this.imageSelection.destroy());
     this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
     for (const plugin of options.plugins ?? []) this.engine.use(plugin);
     // The document is read once the plugins are in, so what they teach the importer applies to it.
@@ -110,7 +114,10 @@ export class Editor {
     this.cleanups.push(this.engine.onTransaction((_snapshot, _previous, change) => {
       if (change.docChanged) this.draw();
       else if (change.selectionChanged && !this.reading) this.writeSelection();
-      if (change.docChanged || change.selectionChanged) this.cellMarks.update();
+      if (change.docChanged || change.selectionChanged) {
+        this.cellMarks.update();
+        this.imageSelection.update();
+      }
     }));
     installColumnResize(this.element, this.engine, (target, type, handler) => this.listen(target, type, handler), () => this.observer.takeRecords());
     this.listen(this.element, "focusin", () => this.engine.setFocused(true));
