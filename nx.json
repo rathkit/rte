@@ -87,34 +87,55 @@
         },
         "docs": {
           "semverBump": "none",
-          "changelog": false
+          "changelog": {
+            "title": "Documentation"
+          }
         },
         "test": {
           "semverBump": "none",
-          "changelog": false
+          "changelog": {
+            "title": "Tests"
+          }
         },
         "build": {
           "semverBump": "none",
-          "changelog": false
+          "changelog": {
+            "title": "Build"
+          }
         },
         "ci": {
           "semverBump": "none",
-          "changelog": false
+          "changelog": {
+            "title": "Continuous integration"
+          }
         },
         "chore": {
           "semverBump": "none",
-          "changelog": false
+          "changelog": {
+            "title": "Chores"
+          }
         },
         "style": {
           "semverBump": "none",
-          "changelog": false
+          "changelog": {
+            "title": "Style"
+          }
+        },
+        "revert": {
+          "semverBump": "patch",
+          "changelog": {
+            "title": "Reverts"
+          }
         }
       }
     },
     "changelog": {
       "workspaceChangelog": {
         "file": "CHANGELOG.md",
-        "createRelease": false
+        "createRelease": false,
+        "renderOptions": {
+          "authors": false
+        }
       },
       "projectChangelogs": false,
       "automaticFromRef": true

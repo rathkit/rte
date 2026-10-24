@@ -36,7 +36,7 @@ Signed commits and tags: Nx runs plain `git commit` and `git tag`, so signing fo
 
 **The very first release (`0.1.0-alpha.0`)** has no earlier tag and a written changelog entry, so Nx is not used for it: the versions are already `0.1.0-alpha.0`, `CHANGELOG.md` already has the entry. Run `pnpm check:release v0.1.0-alpha.0`, then `git tag -s v0.1.0-alpha.0` and push the tag. Nx Release takes over from the tag after it.
 
-The changelog lists features, fixes, speed changes and internal changes (commit types `feat`, `fix`, `perf`, `refactor`); `docs`, `test`, `build`, `ci`, `chore` and `style` commits do not appear. A breaking change (`!` or a `BREAKING CHANGE:` footer) gets its own heading.
+The changelog lists every commit since the last tag, grouped by type: features, fixes, speed, internal changes, documentation, tests, build, continuous integration, chores, style and reverts. No type is hidden. A breaking change (`!` or a `BREAKING CHANGE:` footer) also gets its own heading.
 
 A dry run needs no tag: run the `release` workflow by hand with a tag name as input. It builds and checks everything and uploads the files as a workflow artifact, and creates and publishes nothing.
 
