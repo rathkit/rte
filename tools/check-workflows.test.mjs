@@ -16,6 +16,16 @@ test("every action in every workflow is pinned to a commit", () => {
   }
 });
 
+test("workflows use only actions the repository allows: GitHub's own, or ones from verified creators already in use", () => {
+  const allowed = /^(actions|github)\/|^pnpm\/action-setup@/;
+  for (const f of files) {
+    for (const line of text(f).split("\n").filter((l) => /^\s*-?\s*uses:/.test(l))) {
+      const action = line.replace(/^\s*-?\s*uses:\s*/, "").trim();
+      assert.match(action, allowed, `${f}: ${action} is not an action this repository allows (see Settings, Actions)`);
+    }
+  }
+});
+
 test("no workflow can see or use a stored npm token", () => {
   for (const f of files) {
     assert.doesNotMatch(text(f), /NPM_TOKEN|NODE_AUTH_TOKEN|secrets\.NPM/i, `${f} mentions an npm token`);
