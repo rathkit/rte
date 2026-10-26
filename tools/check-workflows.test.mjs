@@ -59,3 +59,13 @@ test("the release workflow publishes only with provenance, only to next, only fr
 test("the CI workflow never asks for more than read access", () => {
   assert.doesNotMatch(text("ci.yml"), /write/);
 });
+
+test("CI skips changes that only touch documentation, and keeps the browsers between runs", () => {
+  const ci = text("ci.yml");
+  assert.match(ci, /paths-ignore:/);
+  for (const path of ["*.md", "docs/**"]) assert.ok(ci.includes(`"${path}"`), path);
+  // Nothing that changes how the editor builds or behaves may be ignored.
+  assert.doesNotMatch(ci.slice(ci.indexOf("paths-ignore"), ci.indexOf("permissions:")), /packages|tools|\.github\/workflows|package\.json|\.ya?ml|\.mjs|\.ts/);
+  assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
+  assert.match(ci, /hashFiles\('tools\/browser-checks\/pnpm-lock\.yaml'\)/);
+});

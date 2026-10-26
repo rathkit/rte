@@ -1,9 +1,25 @@
 name: ci
 
+# A change that only touches the root documents (README, changelog and the like), docs/, licenses or the community files runs nothing. The checks that read those files
+# (the word and secret scans) run again on the next change to anything else, on every release, and on the history scan.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+      - "LICENSE*"
+      - "NOTICE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/CODEOWNERS"
   pull_request:
+    paths-ignore:
+      - "*.md"
+      - "docs/**"
+      - "LICENSE*"
+      - "NOTICE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - ".github/CODEOWNERS"
 
 permissions:
   contents: read
@@ -61,6 +77,11 @@ jobs:
       - run: pnpm build
       # The browser driver is not a dependency of the workspace: it is a project of its own (tools/browser-checks) whose lockfile pins the
       # exact tarball by its sha512 hash. Installed without install scripts; fetching the browsers is a separate, explicit command.
+      # The browsers are kept between runs, keyed by the driver's lockfile (which pins their version), so they are downloaded only when it changes.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tools/browser-checks/pnpm-lock.yaml') }}
       - name: Install the browser driver and the browsers
         working-directory: tools/browser-checks
         run: |
