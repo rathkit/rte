@@ -329,8 +329,11 @@ export class Editor {
     const domSel = document.getSelection();
     if (!domSel || domSel.rangeCount === 0 || !domSel.anchorNode || !domSel.focusNode) return;
     if (!this.element.contains(domSel.anchorNode) || !this.element.contains(domSel.focusNode)) return;
-    const anchor = this.posOf(domSel.anchorNode, domSel.anchorOffset);
-    const focus = this.posOf(domSel.focusNode, domSel.focusOffset);
+    // A drag from cell to cell makes Firefox select one range per cell: the selection runs from the start of the first to the end of the last.
+    const first = domSel.rangeCount > 1 ? domSel.getRangeAt(0) : undefined;
+    const last = first ? domSel.getRangeAt(domSel.rangeCount - 1) : undefined;
+    const anchor = first ? this.posOf(first.startContainer, first.startOffset) : this.posOf(domSel.anchorNode, domSel.anchorOffset);
+    const focus = last ? this.posOf(last.endContainer, last.endOffset) : this.posOf(domSel.focusNode, domSel.focusOffset);
     if (!anchor || !focus) return;
     const doc = this.engine.document;
     // What the page reports is already on the page, so it must not be written back to it.
@@ -344,15 +347,17 @@ export class Editor {
 
   /**
    * A point on the page as a position in the document. Some browsers report a selection that spans whole blocks (select all, in Firefox)
-   * as points on the editing surface itself, between its blocks: those become the start of the block after, or the end of the last one.
+   * as points on the editing surface itself, between its blocks, and one that spans table cells (a drag from cell to cell, in Firefox)
+   * as points on a table row: those become the start of the block or cell after, or the end of the last one before the end of the node.
    */
   private posOf(node: Node, offset: number): Pos | null {
-    if (node !== this.element) return posFromDom(this.element, node, offset);
+    const direct = node !== this.element ? posFromDom(this.element, node, offset) : null;
+    if (direct || !(node instanceof Element)) return direct;
     const containers = (el: Element): Element[] => (el.hasAttribute("data-rte") ? [el, ...el.querySelectorAll("[data-rte]")] : [...el.querySelectorAll("[data-rte]")]);
-    const at = this.element.children[offset];
+    const at = node.children[offset];
     const first = at ? containers(at)[0] : undefined;
     if (first) return posFromDom(this.element, first, 0);
-    const all = containers(this.element);
+    const all = containers(node);
     const last = all[all.length - 1];
     return last ? posFromDom(this.element, last, last.childNodes.length) : null;
   }

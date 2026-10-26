@@ -245,6 +245,17 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(60);
   check(`${name} a caret marks none`, (await marked()) === 0, await marked());
   check(`${name} marking cells leaves the document as it was`, (await html()) === "<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>", await html());
+  // A real drag with the mouse from one cell to another selects the rectangle between them.
+  const centerOf = (sel) => page.evaluate((q) => { const b = document.querySelector(q).getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }, sel);
+  const dragFrom = await centerOf("#ed tr:nth-child(1) td:nth-child(1)");
+  const dragTo = await centerOf("#ed tr:nth-child(2) td:nth-child(2)");
+  await page.mouse.move(dragFrom.x, dragFrom.y);
+  await page.mouse.down();
+  await page.mouse.move(dragTo.x, dragTo.y, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(80);
+  check(`${name} dragging the mouse from cell to cell marks the rectangle`, (await marked()) === 4, await marked());
+  await page.evaluate(() => { const a = document.querySelector("#ed tr:nth-child(1) td:nth-child(1) p").firstChild; window.__editor.selectDom(a, 1, a, 1); });
   // Dragging a column edge sets the width; one undo step; a double-click puts it back to automatic.
   const cellBox = () => page.evaluate(() => { const b = document.querySelector("#ed tr:nth-child(1) td:nth-child(1)").getBoundingClientRect(); return { right: b.right, top: b.top, mid: b.top + b.height / 2, width: b.width }; });
   let box = await cellBox();
