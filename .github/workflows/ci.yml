@@ -1,6 +1,6 @@
 name: ci
 
-# A change that only touches the root documents (README, changelog and the like), docs/, licenses or the community files runs nothing. The checks that read those files
+# A change that only touches the root documents (README, changelog and the like), docs/, licenses or the community files runs nothing when pushed. A pull request always runs the checks, because branch protection requires them and a skipped workflow never reports. The checks that read those files
 # (the word and secret scans) run again on the next change to anything else, on every release, and on the history scan.
 on:
   push:
@@ -13,13 +13,6 @@ on:
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/CODEOWNERS"
   pull_request:
-    paths-ignore:
-      - "*.md"
-      - "docs/**"
-      - "LICENSE*"
-      - "NOTICE"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/CODEOWNERS"
 
 permissions:
   contents: read
