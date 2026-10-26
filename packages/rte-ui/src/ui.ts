@@ -359,12 +359,22 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
         const label = part(document.createElement("label"), "field-label");
         label.htmlFor = inputId;
         label.textContent = field.label;
-        const input = part(document.createElement("input"), "field");
+        // A choice is a list to pick from; everything else is an input (the others read the same way: by name, with a value).
+        const input = (field.type === "choice" ? part(document.createElement("select"), "field") : part(document.createElement("input"), "field")) as HTMLInputElement;
         input.id = inputId;
         input.name = field.name;
-        input.type = field.type === "checkbox" ? "checkbox" : "text";
-        if (field.type === "url") input.inputMode = "url";
-        input.autocomplete = "off";
+        if (field.type === "choice") {
+          for (const choice of field.choices ?? []) {
+            const option = document.createElement("option");
+            option.value = choice.value;
+            option.textContent = choice.label;
+            input.appendChild(option);
+          }
+        } else {
+          input.type = field.type === "checkbox" ? "checkbox" : "text";
+          if (field.type === "url") input.inputMode = "url";
+          input.autocomplete = "off";
+        }
         if (field.required) input.required = true;
         const error = part(document.createElement("span"), "field-error");
         error.setAttribute("data-rk-error", field.name);

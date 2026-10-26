@@ -24,14 +24,25 @@ function encodeSpaces(value: string, atStart: boolean, atEnd: boolean): string {
   return out;
 }
 
+/** The style that places an image: floated to a side, or on a line of its own in the middle. */
+const IMAGE_ALIGN_STYLE: Record<string, string> = {
+  left: "float: left; margin: 0 1em 0.5em 0;",
+  right: "float: right; margin: 0 0 0.5em 1em;",
+  center: "display: block; margin: 0 auto;",
+};
+
+function exportImage(node: Extract<Inline, { type: "image" }>, placed: boolean): string {
+  return `<img src="${escapeAttribute(node.src)}"${node.alt !== undefined ? ` alt="${escapeAttribute(node.alt)}"` : ""}`
+    + `${node.width !== undefined ? ` width="${node.width}"` : ""}${node.height !== undefined ? ` height="${node.height}"` : ""}`
+    + `${placed && node.align ? ` style="${IMAGE_ALIGN_STYLE[node.align]}"` : ""}>`;
+}
+
 export function exportInline(content: readonly Inline[]): string {
   let out = "";
   content.forEach((node, i) => {
     if (node.type === "br") out += "<br>";
-    else if (node.type === "image") {
-      out += `<img src="${escapeAttribute(node.src)}"${node.alt !== undefined ? ` alt="${escapeAttribute(node.alt)}"` : ""}`
-        + `${node.width !== undefined ? ` width="${node.width}"` : ""}${node.height !== undefined ? ` height="${node.height}"` : ""}>`;
-    } else {
+    else if (node.type === "image") out += exportImage(node, true);
+    else {
       const sorted = [...node.marks].sort((a, b) => MARK_ORDER.indexOf(a.type) - MARK_ORDER.indexOf(b.type));
       let body = escapeText(encodeSpaces(node.text, i === 0 || content[i - 1]?.type === "br", i === content.length - 1 || content[i + 1]?.type === "br"));
       for (let k = sorted.length - 1; k >= 0; k--) {
@@ -93,7 +104,12 @@ function exportTable(table: Table): string {
 
 export function exportBlock(block: Block): string {
   switch (block.type) {
-    case "p": return `<p${dirAttr(block.dir)}${blockStyle(block)}>${exportInline(block.content)}</p>`;
+    case "p": {
+      // An image alone in its paragraph with a caption is a figure; its alignment is the paragraph's.
+      const only = block.content.length === 1 ? block.content[0] : undefined;
+      if (only?.type === "image" && only.caption) return `<figure${dirAttr(block.dir)}${blockStyle(block)}>${exportImage(only, false)}<figcaption>${escapeText(only.caption)}</figcaption></figure>`;
+      return `<p${dirAttr(block.dir)}${blockStyle(block)}>${exportInline(block.content)}</p>`;
+    }
     case "h": return `<h${block.level}${dirAttr(block.dir)}${blockStyle(block)}>${exportInline(block.content)}</h${block.level}>`;
     case "ul": case "ol": return exportList(block, 0);
     case "dl": return `<dl>${block.entries.map((entry) => { const tag = entry.kind === "term" ? "dt" : "dd"; return `<${tag}>${exportInline(entry.content)}</${tag}>`; }).join("")}</dl>`;

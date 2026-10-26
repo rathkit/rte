@@ -382,7 +382,7 @@ export class Editor {
     const container = containerAt(this.element, path);
     if (!container) return;
     const clone = container.cloneNode(true) as Element;
-    clone.querySelectorAll("ul, ol, [data-rte-ph], [data-rte-check]").forEach((n) => n.remove());
+    clone.querySelectorAll("ul, ol, [data-rte-ph], [data-rte-check], [data-rte-caption]").forEach((n) => n.remove());
     const first = importBlocks(`<p>${clone.innerHTML}</p>`, { ...this.engine.importOptions, styles: "allowlist", keepEmptyBlocks: true })[0];
     if (!first || (first.type !== "p" && first.type !== "h")) return;
     if (JSON.stringify(first.content) === JSON.stringify(getContent(this.engine.document, path))) return;

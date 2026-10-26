@@ -1008,7 +1008,7 @@ for (const [name, type] of engines) {
   check(`${name} (ui) undo restores the old width`, await page.evaluate(() => window.__one.editor.getHtml().includes('width="100"')), await page.evaluate(() => window.__one.editor.getHtml()));
   await page.click('#root [data-rk-item="image-properties"]');
   await page.waitForTimeout(100);
-  check(`${name} (ui) the properties dialog starts with the image's values`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rk-part=field]")]; return !!d && f.length === 3 && f[0].value === "dot" && f[1].value === "100" && f[2].value === ""; }));
+  check(`${name} (ui) the properties dialog starts with the image's values`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rk-part=field]")]; return !!d && f.length === 5 && f[0].value === "dot" && f[1].value === "100" && f[2].value === "" && f[3].value === "" && f[4].value === ""; }));
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.type("A dot");
   await page.keyboard.press("Tab");
@@ -1027,6 +1027,35 @@ for (const [name, type] of engines) {
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(80);
   check(`${name} (ui) the arrow key alone moves past it and drops the selection`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 0) && (await page.locator("[data-rk-resize-handle]").count()) === 0);
+  // Position and caption, from the properties dialog.
+  await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p><img src="${src}" alt="dot" width="40"></p><p>after</p>`); e.focus(); }, pixel);
+  await page.waitForTimeout(60);
+  const dotBox = await page.locator("#root [data-rk-part=content] img").boundingBox();
+  await page.mouse.click(dotBox.x + dotBox.width / 2, dotBox.y + dotBox.height / 2);
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="image-properties"]');
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the properties dialog has a position list and a caption field`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const sel = d && d.querySelector("select[name=align]"); return !!sel && sel.options.length === 4 && !!d.querySelector("[name=caption]"); }));
+  await page.selectOption('#root [data-rk-part=dialog][open] select[name=align]', "center");
+  await page.fill('#root [data-rk-part=dialog][open] [name=caption]', "A dot");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+  check(`${name} (ui) a captioned image is written as a figure`, await page.evaluate(() => /<figure><img [^>]*alt="dot"[^>]*><figcaption>A dot<\/figcaption><\/figure><p>after<\/p>/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) and the caption shows under the picture without being text of the document`, await page.evaluate(() => { const c = document.querySelector("#root [data-rk-part=content] [data-rte-caption]"); return !!c && c.textContent === "A dot" && c.getAttribute("contenteditable") === "false"; }));
+  // Typing beside the picture makes it no longer alone in its paragraph, and a caption is kept only for an image alone.
+  await page.locator("#root [data-rk-part=content] p").nth(1).click();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowLeft");
+  await page.keyboard.type("x");
+  check(`${name} (ui) the caret passes the caption; typing next to the picture ends the figure`, await page.evaluate(() => { const h = window.__one.editor.getHtml(); return !h.includes("<figure>") && h.includes("x") && h.includes("<p>after</p>"); }), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>a<img src="${src}" width="40">b</p>`); e.focus(); }, pixel);
+  await page.waitForTimeout(60);
+  const inlineBox = await page.locator("#root [data-rk-part=content] img").boundingBox();
+  await page.mouse.click(inlineBox.x + inlineBox.width / 2, inlineBox.y + inlineBox.height / 2);
+  await page.waitForTimeout(60);
+  await page.evaluate(() => window.__one.editor.commands.run("image.update", { align: "right" }));
+  await page.waitForTimeout(80);
+  check(`${name} (ui) an image beside text floats to the side`, await page.evaluate(() => getComputedStyle(document.querySelector("#root [data-rk-part=content] img")).cssFloat === "right" && /style="float: right;/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>plain text</p>"); e.focus(); });
   await page.waitForTimeout(80);
   check(`${name} (ui) the handle goes when no image is selected`, (await page.locator("[data-rk-resize-handle]").count()) === 0);

@@ -150,7 +150,7 @@ test("image.update sets the description and size of the selected image; a width 
   assert.equal(engine.commands.state("image.update").enabled, false, "off with no image selected");
   assert.equal(engine.commands.run("image.update", { alt: "x" }), false);
   engine.setSelection(imageSelection([0], 1));
-  assert.deepEqual(engine.commands.state("image.update").value, { alt: "old", width: "100", height: "50" });
+  assert.deepEqual(engine.commands.state("image.update").value, { alt: "old", width: "100", height: "50", align: "", caption: "" });
   assert.equal(engine.commands.state("image.update").value, engine.commands.state("image.update").value, "the same object while nothing changed");
   assert.equal(engine.commands.run("image.update", { width: "300px" }), true);
   assert.equal(exportHtml(engine.document), '<p>a<img src="https://example.test/a.png" alt="old" width="300">b</p>');
@@ -163,4 +163,34 @@ test("image.update sets the description and size of the selected image; a width 
   assert.match(exportHtml(engine.document), /alt="A cat" width="300" height="120"/, "one undo step");
   engine.setSelection(imageSelection([0], 1));
   assert.equal(engine.commands.run("image.update", { path: [0], offset: 0, width: 40 }), false, "no image at that place");
+});
+
+test("image position and captions: written and read back, and set by image.update", async () => {
+  const { importHtml } = await import("../import.ts");
+  const { imageSelection } = await import("../imageselect.ts");
+  const src = "https://example.test/a.png";
+  for (const [style, align] of [["float: left; margin: 0 1em 0.5em 0;", "left"], ["float: right; margin: 0 0 0.5em 1em;", "right"], ["display: block; margin: 0 auto;", "center"]] as const) {
+    const html = `<p>a<img src="${src}" style="${style}">b</p>`;
+    assert.equal(exportHtml(importHtml(html)), html, align);
+  }
+  assert.equal(exportHtml(importHtml(`<p><img src="${src}" align="right"></p>`)), `<p><img src="${src}" style="float: right; margin: 0 0 0.5em 1em;"></p>`, "the old align attribute");
+  assert.equal(exportHtml(importHtml(`<p><img src="${src}" style="float: none; position: absolute"></p>`)), `<p><img src="${src}"></p>`, "other styles are dropped");
+  const figure = `<figure><img src="${src}" alt="A cat"><figcaption>My <b>cat</b> &amp; me</figcaption></figure>`;
+  assert.equal(exportHtml(importHtml(figure)), `<figure><img src="${src}" alt="A cat"><figcaption>My cat &amp; me</figcaption></figure>`, "a figure is a captioned image; the caption is text");
+  assert.equal(exportHtml(importHtml(`<figure style="text-align: center"><img src="${src}"><figcaption>c</figcaption></figure>`)), `<figure style="text-align: center;"><img src="${src}"><figcaption>c</figcaption></figure>`, "the figure's alignment is the paragraph's");
+  assert.equal(exportHtml(importHtml(`<figure><img src="${src}"></figure>`)), `<p><img src="${src}"></p>`, "no caption, no figure");
+  assert.equal(exportHtml(importHtml(`<figure><img src="${src}"><img src="${src}"><figcaption>two</figcaption></figure>`)), `<p><img src="${src}"><img src="${src}"></p><p>two</p>`, "two pictures make no figure");
+
+  const engine = setup();
+  engine.setDocument(importHtml(`<p><img src="${src}"></p><p>a<img src="${src}">b</p>`));
+  engine.setSelection(imageSelection([0], 0));
+  assert.equal(engine.commands.run("image.update", { align: "left", caption: " Hello " }), true);
+  assert.equal(exportHtml(engine.document), `<figure><img src="${src}"><figcaption>Hello</figcaption></figure><p>a<img src="${src}">b</p>`, "a captioned image writes its position as the figure's, not on the picture");
+  assert.deepEqual(engine.commands.state("image.update").value, { alt: "", width: "", height: "", align: "left", caption: "Hello" });
+  assert.equal(engine.commands.run("image.update", { align: "diagonal" }), false);
+  assert.equal(engine.commands.run("image.update", { caption: null, align: "" }), true);
+  assert.equal(exportHtml(engine.document), `<p><img src="${src}"></p><p>a<img src="${src}">b</p>`);
+  engine.setSelection(imageSelection([1], 1));
+  assert.equal(engine.commands.run("image.update", { align: "right", caption: "nope" }), true);
+  assert.equal(exportHtml(engine.document), `<p><img src="${src}"></p><p>a<img src="${src}" style="float: right; margin: 0 0 0.5em 1em;">b</p>`, "beside text it floats, and keeps no caption");
 });

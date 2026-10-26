@@ -4,7 +4,7 @@ import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import { parseLine, SIDES, withSides, type Line, type Side } from "./cellborder.ts";
 import {
-  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, ROW_HEIGHT, normalizeInline, type Align, type CellBorder, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
+  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, ROW_HEIGHT, inlineText, normalizeInline, type Align, type ImageAlign, type CellBorder, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 
@@ -231,6 +231,19 @@ function alignOf(el: HElement, settings: Settings): Align | undefined {
   return ALIGNS.has(value) && value !== "left" ? (value as Align) : undefined;
 }
 
+/** How an image sits: floated to a side, on a line of its own in the middle, or (the old `align` attribute) to a side. */
+function imageAlignOf(el: HElement, settings: Settings): ImageAlign | undefined {
+  const style = settings.allowStyles ? parseStyle(el.attrs.style) : new Map<string, string>();
+  const float = (style.get("float") ?? "").toLowerCase();
+  if (float === "left" || float === "right") return float;
+  const margin = (style.get("margin") ?? "").toLowerCase().split(/\s+/).filter(Boolean);
+  const centered = (style.get("margin-left")?.toLowerCase() === "auto" && style.get("margin-right")?.toLowerCase() === "auto")
+    || (margin.length === 1 && margin[0] === "auto") || ((margin.length === 2 || margin.length === 3) && margin[1] === "auto") || (margin.length === 4 && margin[1] === "auto" && margin[3] === "auto");
+  if ((style.get("display") ?? "").toLowerCase() === "block" && centered) return "center";
+  const attr = (el.attrs.align ?? "").toLowerCase();
+  return attr === "left" || attr === "right" ? attr : undefined;
+}
+
 /** A length in pixels, for the units word processors write indents in. NaN for anything else. */
 function lengthToPx(value: string): number {
   const m = /^(-?\d*\.?\d+)(px|pt|in|cm|mm|em|rem|pc)?$/.exec(value.trim().toLowerCase());
@@ -402,10 +415,38 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       };
       const width = size(el.attrs.width);
       const height = size(el.attrs.height);
+      const align = imageAlignOf(el, settings);
       sink.push({
         type: "image", src, ...(el.attrs.alt ? { alt: el.attrs.alt } : {}),
-        ...(width !== undefined ? { width } : {}), ...(height !== undefined ? { height } : {}),
+        ...(width !== undefined ? { width } : {}), ...(height !== undefined ? { height } : {}), ...(align ? { align } : {}),
       });
+      return;
+    }
+    case "figure": {
+      // A figure with one picture and a caption is a paragraph holding the picture with its caption.
+      const pictures: HElement[] = [];
+      const captions: HElement[] = [];
+      const visit = (nodes: readonly HNode[]): void => {
+        for (const n of nodes) {
+          if (n.type !== "el") continue;
+          if (n.tag === "img") pictures.push(n);
+          else if (n.tag === "figcaption") captions.push(n);
+          else visit(n.children);
+        }
+      };
+      visit(el.children);
+      const caption = captions[0] && inlineText(inlineOf(captions[0].children, ctx, settings)).trim();
+      if (pictures.length !== 1 || !caption || captions.length !== 1) break;
+      const holder = new Sink({ ...settings, keepEmpty: false });
+      convertElement(pictures[0] as HElement, holder, ctx, settings);
+      holder.flush();
+      const first = holder.blocks[0];
+      const image = first?.type === "p" ? first.content[0] : undefined;
+      if (image?.type !== "image" || first?.type !== "p" || first.content.length !== 1) break;
+      sink.flush();
+      const align = alignOf(el, settings);
+      const dir = dirOf(el);
+      sink.blocks.push({ type: "p", content: [{ ...image, caption }], ...(align ? { align } : {}), ...(dir ? { dir } : {}) });
       return;
     }
     case "p": {

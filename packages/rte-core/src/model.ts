@@ -22,7 +22,12 @@ export interface Image {
   readonly alt?: string;
   readonly width?: number;
   readonly height?: number;
+  /** How the image sits among text: floated to one side with text wrapping round it, or on a line of its own in the middle. Absent: in the line. */
+  readonly align?: ImageAlign;
+  /** A caption. Written (as a figure) only for an image alone in its paragraph. */
+  readonly caption?: string;
 }
+export type ImageAlign = "left" | "right" | "center";
 export type Inline = TextRun | LineBreak | Image;
 
 export type Align = "left" | "center" | "right" | "justify";

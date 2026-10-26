@@ -53,3 +53,18 @@ set a size without a pointer. Sizes are whole numbers from 1 to 10000, as `300` 
 a width alone drops the old height, so the picture keeps its proportions; an empty or `null` value clears that property. The description
 (`alt`) is trimmed, and cleared when empty. The command is off unless exactly one image is selected, or the arguments name one with
 `{ path, offset }`. The size is written as `width` and `height` attributes in HTML.
+
+## Position and captions
+
+`image.update` also takes `align` and `caption`; the Image properties dialog has a Position list and a Caption field.
+
+- **Position** (`align`): `left` or `right` floats the picture to that side with text wrapping round it, `center` puts it on a line of its own
+  in the middle, empty (or `null`) leaves it in the line. It is written as `style` on the `<img>` (`float: left; margin: 0 1em 0.5em 0;`,
+  `float: right; margin: 0 0 0.5em 1em;`, `display: block; margin: 0 auto;`) and read back from the same, from `margin: auto` on a block, and
+  from the old `align` attribute. Any other style on an image is dropped.
+- **Caption** (`caption`): text, no formatting. A caption belongs to a picture alone in its paragraph, and that paragraph is written as
+  `<figure><img …><figcaption>…</figcaption></figure>`; a `<figure>` with one picture and one caption is read the same way, with the
+  figure's `text-align` as the paragraph's alignment. A captioned picture is placed by its paragraph (the alignment buttons), not by `align`.
+  The caption is drawn under the picture and is not text of the document: the caret passes it, and it is changed in the dialog.
+  Setting a caption on a picture that has text beside it does nothing, and adding text beside a captioned picture ends the figure: the
+  caption is not kept, because HTML has no place for a caption in the middle of a line.

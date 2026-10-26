@@ -53,7 +53,22 @@ function renderInline(parent: HTMLElement, content: readonly Inline[], options: 
       if (node.alt !== undefined) img.setAttribute("alt", node.alt);
       if (node.width !== undefined) img.setAttribute("width", String(node.width));
       if (node.height !== undefined) img.setAttribute("height", String(node.height));
+      // A captioned image alone in its paragraph is placed by the paragraph, as the figure it is written as.
+      const captioned = !!node.caption && content.length === 1;
+      if (captioned) img.removeAttribute("data-rte-align");
+      else if (node.align === "left") { img.style.cssText = "float: left; margin: 0 1em 0.5em 0;"; img.setAttribute("data-rte-align", "left"); }
+      else if (node.align === "right") { img.style.cssText = "float: right; margin: 0 0 0.5em 1em;"; img.setAttribute("data-rte-align", "right"); }
+      else if (node.align === "center") { img.style.cssText = "display: block; margin: 0 auto;"; img.setAttribute("data-rte-align", "center"); }
       parent.appendChild(img);
+      // The caption of an image alone in its paragraph: drawn under it, but not text of the document (the mapping skips it).
+      if (captioned && node.caption) {
+        const caption = document.createElement("span");
+        caption.setAttribute("data-rte-caption", "");
+        caption.setAttribute("contenteditable", "false");
+        caption.style.cssText = "display: block; font-size: 0.9em; opacity: 0.8;";
+        caption.textContent = node.caption;
+        parent.appendChild(caption);
+      }
     } else {
       let out: Node = document.createTextNode(node.text);
       const sorted = [...node.marks].sort((a, b) => MARK_ORDER.indexOf(a.type) - MARK_ORDER.indexOf(b.type));
@@ -272,7 +287,7 @@ function* inlineItems(container: Element): Generator<Node> {
     }
     if (node.nodeType === Node.TEXT_NODE) yield node;
     else if (node instanceof Element) {
-      if (node.hasAttribute("data-rte-ph") || node.hasAttribute("data-rte-check") || BLOCK_TAGS.has(node.tagName)) continue;
+      if (node.hasAttribute("data-rte-ph") || node.hasAttribute("data-rte-check") || node.hasAttribute("data-rte-caption") || BLOCK_TAGS.has(node.tagName)) continue;
       if (node.tagName === "BR" || node.tagName === "IMG") yield node;
       else stack.push([...node.childNodes].reverse());
     }
