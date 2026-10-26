@@ -71,3 +71,12 @@ test("CI skips changes that only touch documentation, and keeps the browsers bet
   assert.match(ci, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /hashFiles\('tools\/browser-checks\/pnpm-lock\.yaml'\)/);
 });
+
+test("the pull request checks a branch ruleset can require are named for what the ruleset lists", () => {
+  // A required check matches a job's name, so the jobs are named dco and title, not by their keys.
+  assert.match(text("dco.yml"), /commits:\n(?:.*\n)*?\s+name: dco\n/);
+  assert.match(text("title.yml"), /title:\n\s+name: title\n/);
+  const pattern = new RegExp(text("title.yml").match(/pattern='(.*)'/)?.[1]?.replace(/\[:upper:\]/g, "A-Z").replace(/\[:space:\]/g, "\\s") ?? "(?!)");
+  for (const good of ["feat(tables): sort rows", "chore(release): 0.1.0", "docs!: break it", "fix: a. b"]) assert.match(good, pattern, good);
+  for (const bad of ["Feat: x1", "feat: Upper", "feat: ends.", "feat(a b): x1", "update things", "feat:no space"]) assert.doesNotMatch(bad, pattern, bad);
+});
