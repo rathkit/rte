@@ -2,6 +2,7 @@
 // app's install would. Bundling uses rathkit-pack:  RTE_PACK=<binary> node tools/framework-checks/build.mjs
 import { cpSync, copyFileSync, mkdirSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { buildAot } from "./aot.mjs";
 import { buildReadmeExamples } from "./readme.mjs";
 import { join } from "node:path";
 
@@ -28,4 +29,5 @@ for (const app of ["react", "vue", "svelte", "angular", "angular-forms", "jquery
   copyFileSync(join(here, `apps/${app}.html`), join(here, `dist/${app}.html`));
   console.log(`built ${app}`);
 }
+console.log(`built the AOT Angular app: ${await buildAot(pack)}`);
 console.log(`built the README examples: ${buildReadmeExamples(pack).join(", ")}`);

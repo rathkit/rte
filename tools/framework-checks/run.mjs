@@ -6,7 +6,7 @@ const base = process.argv[2];
 const require = createRequire(`${process.env.RTE_PLAYWRIGHT}/`);
 const { chromium, firefox, webkit } = require("playwright");
 const engines = [["chromium", chromium], ["firefox", firefox], ["webkit", webkit]];
-const apps = ["react", "vue", "svelte", "angular", "jquery"];
+const apps = ["react", "vue", "svelte", "angular", "angular-aot", "jquery"];
 
 let failures = 0;
 let passes = 0;
@@ -37,13 +37,13 @@ for (const [engine, type] of engines) {
     await page.goto(new URL(`/frameworks/dist/${app}.html`, base).href);
     await page.waitForFunction("window.__fw && window.__fw.ready === true");
 
-    const surfaces = await page.locator("[contenteditable=true]").count();
+    const surfaces = await page.locator("[contenteditable=true][aria-label=Body]").count();
     check(`${name} one live editing surface`, surfaces === 1, surfaces);
-    check(`${name} surface has its name`, (await page.locator("[contenteditable=true]").getAttribute("aria-label")) === "Body", null);
+    check(`${name} surface has its name`, (await page.locator("[contenteditable=true][aria-label=Body]").getAttribute("aria-label")) === "Body", null);
     check(`${name} editor is ready`, await page.evaluate(() => window.__fw.readies >= 1 && !!window.__fw.editor), null);
 
     // Typing changes the document but not the bold button's state, so the button must not redraw.
-    await page.locator("[contenteditable=true]").click();
+    await page.locator("[contenteditable=true][aria-label=Body]").click();
     await page.keyboard.press("End");
     const before = await page.evaluate(() => window.__fw.commits());
     await page.keyboard.type("abcdefghijklmnopqrstuvwxy");
@@ -66,6 +66,16 @@ for (const [engine, type] of engines) {
     check(`${name} bold reached the document`, (await page.evaluate(() => window.__fw.editor.getHtml())).includes("<strong>"), null);
     if (app === "svelte") check(`${name} Svelte's own derived store agrees`, await page.evaluate(() => window.__fw.extra.active() === true && window.__fw.extra.blocks() === 1), null);
 
+    if (app === "angular-aot") {
+      // Built ahead of time with no template compiler: the forms entry point works in the same page.
+      check(`${name} runs with no template compiler and no errors`, errors.length === 0, errors);
+      check(`${name} the control starts with its document`, await page.evaluate(() => [...document.querySelectorAll('[aria-label="Control"]')].some((e) => e.textContent === "control")), null);
+      await page.locator('[aria-label="Control"]').click();
+      await page.keyboard.press("ControlOrMeta+End");
+      await page.keyboard.type("q");
+      await page.waitForTimeout(100);
+      check(`${name} typing in the controlled editor reaches the control`, await page.evaluate(() => window.__fw.control.value.includes("controlq") && window.__fw.control.dirty), await page.evaluate(() => window.__fw.control.value));
+    }
     await page.evaluate(() => window.__fw.destroy());
     await page.waitForTimeout(50);
     const left = await page.locator("[contenteditable=true]").count();

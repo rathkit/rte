@@ -20,8 +20,8 @@ export class RteValueAccessor {
   setDisabledState(disabled: boolean): void { this.host.readOnly = disabled; }
   onTouched(): void { this.touched(); }
 
-  static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: RteValueAccessor, deps: [], target: i0.ɵɵFactoryTarget.Directive });
-  static ɵdir = i0.ɵɵngDeclareDirective({
+  static ɵfac: i0.ɵɵFactoryDeclaration<RteValueAccessor, never> = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: RteValueAccessor, deps: [], target: i0.ɵɵFactoryTarget.Directive });
+  static ɵdir: i0.ɵɵDirectiveDeclaration<RteValueAccessor, "[rteEditor][formControlName],[rteEditor][formControl],[rteEditor][ngModel]", never, {}, {}, never, never, true, never> = i0.ɵɵngDeclareDirective({
     minVersion: "14.0.0",
     version: "20.0.0",
     type: RteValueAccessor,

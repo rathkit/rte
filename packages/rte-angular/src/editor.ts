@@ -61,8 +61,11 @@ export class RteEditor {
     this.editor.set(undefined);
   }
 
-  static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: RteEditor, deps: [], target: i0.ɵɵFactoryTarget.Directive });
-  static ɵdir = i0.ɵɵngDeclareDirective({
+  // The types are what an Angular build reads from the .d.ts file to know this is a directive, and which inputs and outputs it has.
+  static ɵfac: i0.ɵɵFactoryDeclaration<RteEditor, never> = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: RteEditor, deps: [], target: i0.ɵɵFactoryTarget.Directive });
+  static ɵdir: i0.ɵɵDirectiveDeclaration<RteEditor, "[rteEditor]", ["rteEditor"],
+    { "label": { "alias": "label"; "required": true }; "defaultValue": { "alias": "defaultValue"; "required": false }; "options": { "alias": "options"; "required": false }; "readOnly": { "alias": "readOnly"; "required": false } },
+    { "change": "change"; "ready": "ready" }, never, never, true, never> = i0.ɵɵngDeclareDirective({
     minVersion: "17.1.0",
     version: "20.0.0",
     type: RteEditor,
