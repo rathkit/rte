@@ -277,6 +277,32 @@ for (const [name, type] of engines) {
   check(`${name} double-clicking an edge puts the column back to automatic`, !(await html()).includes("<colgroup>"), await html());
   await page.evaluate(() => window.__editor.commands.run("table.deleteRow"));
   check(`${name} the delete row command removes the row`, !(await html()).includes("<tr><td>c</td>"), await html());
+  // Sorting rows from the table menu, by the column the caret is in.
+  await reset("<table><tbody><tr><td>b</td></tr><tr><td>c</td></tr><tr><td>a</td></tr></tbody></table><p>z</p>");
+  await page.click("#ed tr:nth-child(1) td:nth-child(1)");
+  await page.evaluate(() => window.__editor.commands.run("table.sort", "asc"));
+  check(`${name} sorting puts the rows in order`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td></tr><tr><td>b</td></tr><tr><td>c</td></tr></table><p>z</p>", await html());
+  // Dragging the bottom edge of a row sets its height; a double-click puts it back to automatic.
+  await reset("<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>");
+  await page.click("#ed tr:nth-child(2) td:nth-child(1)");
+  const rowBox = () => page.evaluate(() => { const b = document.querySelector("#ed tr:nth-child(1)").getBoundingClientRect(); return { bottom: b.bottom, left: b.left, width: b.width, height: b.height }; });
+  let rb = await rowBox();
+  await page.mouse.move(rb.left + 10, rb.bottom - 2);
+  check(`${name} the pointer on a row's bottom edge shows the resize cursor`, (await page.evaluate(() => document.getElementById("ed").style.cursor)) === "row-resize", "cursor");
+  await page.mouse.down();
+  await page.mouse.move(rb.left + 10, rb.bottom + 40, { steps: 4 });
+  check(`${name} dragging a row edge shows a guide line`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === true, "line");
+  await page.mouse.up();
+  await page.waitForTimeout(60);
+  const tall = await rowBox();
+  check(`${name} letting go sets the row height`, /<tr style="height: \d+px">/.test(await html()) && Math.abs(tall.height - (rb.height + 42)) < 8, { html: await html(), before: rb.height, after: tall.height });
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} one undo takes the row height back`, !(await html()).includes("height"), await html());
+  await page.click("#ed tr:nth-child(1) td:nth-child(1)");
+  await page.evaluate(() => window.__editor.commands.run("table.rowHeight", { height: "80px" }));
+  rb = await rowBox();
+  await page.mouse.dblclick(rb.left + 10, rb.bottom - 2);
+  check(`${name} double-clicking a row edge puts the row back to automatic`, !(await html()).includes("height"), await html());
   await reset("<ul><li>a</li><li>b</li></ul>");
   await select({ start: "li:nth-child(2)", so: 1, eo: 1 });
   await page.keyboard.press("Enter");

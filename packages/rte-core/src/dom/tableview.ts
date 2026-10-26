@@ -11,6 +11,8 @@ export const SELECTED_CELL = "data-rk-cell-selected";
 const GRAB = 5;
 /** The narrowest a dragged column can be made, in pixels. */
 const MIN_WIDTH = 24;
+/** The shortest a dragged row can be made, in pixels. */
+const MIN_HEIGHT = 16;
 
 /**
  * Marks the cells of the rectangle a selection runs across (when it starts and ends in different cells of one table). The marks are
@@ -52,9 +54,19 @@ function edgeAt(root: HTMLElement, event: PointerEvent | MouseEvent): HTMLElemen
   return event.clientX >= box.right - GRAB && event.clientX <= box.right + GRAB ? cell : null;
 }
 
+/** Where a pointer is on the bottom edge of a cell's row (not at a column edge): the cell, or nothing. */
+function rowEdgeAt(root: HTMLElement, event: PointerEvent | MouseEvent): HTMLElement | null {
+  const cell = event.target instanceof Element ? event.target.closest<HTMLElement>("td, th") : null;
+  const row = cell?.parentElement;
+  if (!cell || !row || !root.contains(cell) || edgeAt(root, event)) return null;
+  const box = row.getBoundingClientRect();
+  return event.clientY >= box.bottom - GRAB && event.clientY <= box.bottom + GRAB ? cell : null;
+}
+
 /**
  * Dragging a column edge: a line follows the pointer, and letting go sets the width through the `table.columnWidth` command, so it is
  * one undo step and does nothing where the tables plugin is not installed. Double-clicking an edge puts the column back to automatic.
+ * The bottom edge of a row works the same way through `table.rowHeight`.
  * Returns what takes it away again.
  */
 export function installColumnResize(root: HTMLElement, engine: Engine, listen: (target: EventTarget, type: string, handler: (event: Event) => void) => void, quiet: () => void): void {
@@ -63,12 +75,15 @@ export function installColumnResize(root: HTMLElement, engine: Engine, listen: (
     const inside = cell.querySelector<HTMLElement>("[data-rte]");
     return inside ? posFromDom(root, inside, 0)?.path : undefined;
   };
+  const rowAvailable = (): boolean => !engine.readOnly && engine.commands.list().some((c) => c.name === "table.rowHeight");
+  let rowDrag: { path: readonly number[]; startY: number; startHeight: number; top: number; line: HTMLElement; height: number } | undefined;
   let drag: { cell: HTMLElement; path: readonly number[]; startX: number; startWidth: number; line: HTMLElement; width: number } | undefined;
 
   listen(root, "pointermove", (e) => {
-    if (drag) return;
+    if (drag || rowDrag) return;
     const near = available() && edgeAt(root, e as PointerEvent) !== null;
-    const want = near ? "col-resize" : "";
+    const nearRow = !near && rowAvailable() && rowEdgeAt(root, e as PointerEvent) !== null;
+    const want = near ? "col-resize" : nearRow ? "row-resize" : "";
     if (root.style.cursor !== want) {
       root.style.cursor = want;
       quiet();
@@ -79,7 +94,21 @@ export function installColumnResize(root: HTMLElement, engine: Engine, listen: (
     if (event.button !== 0 || !available()) return;
     const cell = edgeAt(root, event);
     const path = cell && cellPath(cell);
-    if (!cell || !path) return;
+    if (!cell || !path) {
+      const rowCell = rowAvailable() ? rowEdgeAt(root, event) : null;
+      const rowPath = rowCell && cellPath(rowCell);
+      const row = rowCell?.parentElement;
+      if (!rowCell || !rowPath || !row) return;
+      event.preventDefault();
+      const rowBox = row.getBoundingClientRect();
+      const rowTable = rowCell.closest("table")?.getBoundingClientRect() ?? rowBox;
+      const rowLine = document.createElement("div");
+      rowLine.setAttribute("data-rk-resize-line", "");
+      rowLine.style.cssText = `position:fixed;z-index:2147483647;pointer-events:none;height:2px;background:#17408b;top:${rowBox.bottom - 1}px;left:${rowTable.left}px;width:${rowTable.width}px`;
+      document.body.appendChild(rowLine);
+      rowDrag = { path: rowPath, startY: event.clientY, startHeight: rowBox.height, top: rowBox.top, line: rowLine, height: rowBox.height };
+      return;
+    }
     event.preventDefault();
     const box = cell.getBoundingClientRect();
     const table = cell.closest("table")?.getBoundingClientRect() ?? box;
@@ -90,11 +119,23 @@ export function installColumnResize(root: HTMLElement, engine: Engine, listen: (
     drag = { cell, path, startX: event.clientX, startWidth: box.width, line, width: box.width };
   });
   const move = (e: Event): void => {
+    if (rowDrag) {
+      rowDrag.height = Math.max(MIN_HEIGHT, rowDrag.startHeight + (e as PointerEvent).clientY - rowDrag.startY);
+      rowDrag.line.style.top = `${rowDrag.top + rowDrag.height - 1}px`;
+      return;
+    }
     if (!drag) return;
     drag.width = Math.max(MIN_WIDTH, drag.startWidth + (e as PointerEvent).clientX - drag.startX);
     drag.line.style.left = `${drag.cell.getBoundingClientRect().left + drag.width - 1}px`;
   };
   const finish = (cancel: boolean): void => {
+    if (rowDrag) {
+      const { line, path, height, startHeight } = rowDrag;
+      line.remove();
+      rowDrag = undefined;
+      if (!cancel && Math.round(height) !== Math.round(startHeight)) engine.commands.run("table.rowHeight", { height: `${Math.round(height)}px`, cell: path });
+      return;
+    }
     if (!drag) return;
     const { line, path, width, startWidth } = drag;
     line.remove();
@@ -106,6 +147,13 @@ export function installColumnResize(root: HTMLElement, engine: Engine, listen: (
   listen(document, "pointercancel", () => finish(true));
   listen(document, "keydown", (e) => { if ((e as KeyboardEvent).key === "Escape") finish(true); });
   listen(root, "dblclick", (e) => {
+    const rowCell = rowAvailable() ? rowEdgeAt(root, e as MouseEvent) : null;
+    const rowPath = rowCell && cellPath(rowCell);
+    if (rowPath && locateCell(engine.document, rowPath as number[])) {
+      e.preventDefault();
+      engine.commands.run("table.rowHeight", { height: "", cell: rowPath });
+      return;
+    }
     const cell = available() ? edgeAt(root, e as MouseEvent) : null;
     const path = cell && cellPath(cell);
     if (path && locateCell(engine.document, path as number[])) {

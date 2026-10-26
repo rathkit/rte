@@ -347,3 +347,51 @@ test("table.border draws lines on the whole table from any cell; with sides it d
   const outside = make("<p>x</p>");
   assert.equal(outside.commands.state("table.border").enabled, false);
 });
+
+test("table.rowHeight with a cell changes that cell's row only, whatever is selected", () => {
+  const e = make(cells([["a", "b"], ["c", "d"]]));
+  inCell(e, 0, 0);
+  const second = containerPaths(e.document).find((p) => p[1] === 1 && p[2] === 0);
+  assert.ok(second);
+  assert.equal(e.commands.run("table.rowHeight", { height: "60px", cell: second }), true);
+  assert.match(html(e), /<tr><td>a<\/td><td>b<\/td><\/tr><tr style="height: 60px">/);
+  assert.equal(e.commands.run("table.rowHeight", { height: "", cell: second }), true);
+  assert.doesNotMatch(html(e), /height/);
+  assert.equal(e.commands.run("table.rowHeight", { height: "tall", cell: second }), false);
+  assert.equal(e.commands.run("table.rowHeight", { height: "20px", cell: [5, 0, 0, 0] }), false, "no such cell");
+});
+
+test("table.sort orders the rows by the caret's column: numbers by value, text by language, empty last, header kept, stable, caret follows", () => {
+  const e = make(`<table><tbody><tr><th>Item</th><th>Qty</th></tr>${[["pear", "10"], ["Apple", "9"], ["fig", ""], ["kiwi", "$1,200"], ["apple2", "9"]].map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</tbody></table>`);
+  const names = () => [...html(e).matchAll(/<td>([^<]*)<\/td><td>/g)].map((m) => m[1]);
+  inCell(e, 1, 0);
+  assert.equal(e.commands.run("table.sort", "asc"), true);
+  assert.deepEqual(names(), ["Apple", "apple2", "fig", "kiwi", "pear"]);
+  assert.match(html(e), /^<table><tbody><tr><th scope="col">Item<\/th>/, "the header row stays first");
+  assert.deepEqual(e.selection.focus.path.slice(0, 3), [0, 5, 0], "the caret is in the cell that moved with its row: pear is now last");
+  inCell(e, 1, 1);
+  e.commands.run("table.sort", "desc");
+  assert.deepEqual(names(), ["kiwi", "pear", "Apple", "apple2", "fig"], "numbers by value, highest first; the two 9s keep their order; empty last");
+  e.commands.run("table.sort", "asc");
+  assert.deepEqual(names(), ["Apple", "apple2", "pear", "kiwi", "fig"], "ascending: 9, 9, 10, 1200, empty");
+  e.undo();
+  assert.deepEqual(names(), ["kiwi", "pear", "Apple", "apple2", "fig"], "one undo step");
+});
+
+test("table.sort is off for a table with a cell that spans rows, and outside tables", () => {
+  const spanned = make('<table><tbody><tr><td rowspan="2">a</td><td>2</td></tr><tr><td>1</td></tr></tbody></table>');
+  inCell(spanned, 0, 1);
+  assert.equal(spanned.commands.state("table.sort").enabled, false);
+  assert.equal(spanned.commands.run("table.sort", "asc"), false);
+  assert.equal(make("<p>x</p>").commands.state("table.sort").enabled, false);
+  const one = make(cells([["a", "b"]]));
+  inCell(one, 0, 0);
+  assert.equal(one.commands.state("table.sort").enabled, false, "one row has nothing to sort");
+});
+
+test("sorting moves a row's height with it", () => {
+  const e = make('<table><colgroup><col><col></colgroup><tbody><tr><td>b</td></tr><tr style="height: 50px"><td>a</td></tr></tbody></table>');
+  inCell(e, 0, 0);
+  e.commands.run("table.sort", "asc");
+  assert.match(html(e), /<tr style="height: 50px"><td>a<\/td><\/tr><tr><td>b<\/td><\/tr>/);
+});

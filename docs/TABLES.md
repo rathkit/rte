@@ -32,6 +32,7 @@ dropped. Cell styles are read when a document is loaded, not from a paste, like 
 | `table.cellBorder` | `default`, `none`, `thin`, `thick`, `dashed`, `dotted`, or `{ style, width, color }`; with `sides: ["top", ...]` (and `line: <preset>` in place of the style) only those edges of the selection | The lines of the selected cells. `default` says nothing; `none` says there are none. The presets use the text color, so they read on any theme. Value: the preset name of the first cell, `""` for sides that differ or a custom line |
 | `table.borderTop`, `table.borderRight`, `table.borderBottom`, `table.borderLeft` | | A thin line along that edge of the selection (the cells on that edge, that side only), on or off; off is `none`. `active` says whether the edge has a line |
 | `table.border` | the same choices as `table.cellBorder` | Lines for the whole table from any cell in it: every cell, or with `sides` only the table's outline. The styled interface has a Table lines menu. |
+| `table.sort` | `"asc"` or `"desc"` | Puts the rows in order by the column of the caret's cell: numbers (`1,200`, `$5`, `12%`) by value and before text, text by the user's language with digits in order, empty cells last either way. A header row stays first, the sort is stable, a row's height moves with it, and the caret stays in its cell. Off for a table with a cell that spans rows |
 | `table.rowHeight` | `{ height }` | The least height of the rows the selection covers: `40`, `40px`, or empty for automatic |
 | `table.nextCell`, `table.previousCell` | Tab and Shift+Tab. Tab past the last cell adds a row; Shift+Tab in the first cell is left to the browser. Lists inside a cell get Tab first |
 
@@ -60,7 +61,9 @@ those cells and outlines them. The marks are attributes on the drawn cells, not 
 
 A pointer on a cell's right edge shows a resize cursor. Dragging draws a guide line and, on release, runs `table.columnWidth` for the column
 that edge belongs to (the last column a spanning cell covers), so the width is one undo step. Double-clicking an edge puts the column back to
-automatic. Where the tables plugin is not installed, or the editor is read-only, edges do nothing. Touch input has not been tried.
+automatic. The bottom edge of a row works the same way through `table.rowHeight` (with `cell`, the row of that cell). Where the tables plugin is not installed, or the editor is read-only, edges do nothing. Touch input has not been tried.
+
+Dragging the mouse from one cell to another selects the rectangle between them in all three engines (Firefox reports such a drag as one range per cell; the view reads it from the first to the last).
 
 ## Pasting a table into a table
 

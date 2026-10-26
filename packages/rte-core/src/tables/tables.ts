@@ -1,7 +1,7 @@
 // Table editing: adding and removing rows and columns, the header row, moving between cells, and inserting a table. Pure functions over
 // the document, like the other edit operations. A cell can span rows and columns, so every change works on a grid of placed cells (each
 // cell with the row and column where it starts) and is turned back into rows afterwards.
-import { COLOR_VALUE, COLUMN_WIDTH, ROW_HEIGHT, type Block, type CellBorder, type Doc, type Table, type TableCell } from "../model.ts";
+import { COLOR_VALUE, COLUMN_WIDTH, ROW_HEIGHT, inlineText, type Block, type CellBorder, type Doc, type Table, type TableCell } from "../model.ts";
 import { caret, containerPaths, fixup, getBlock, mapBlockList, type EditResult, type Path, type Selection } from "../path.ts";
 import { sameLine, SIDES, sidesOf, withSides, type Line, type Side } from "../cellborder.ts";
 import { extent, fromGrid, inRow, locateCell as locate, meets, selectedCells, toGrid, type Grid, type Placed, type Where } from "../tablegrid.ts";
@@ -287,10 +287,19 @@ export function rowHeight(doc: Doc, path: Path): string {
  * Sets the least height of the rows the selection covers: a number of pixels (`40`, `40px`), or nothing for automatic. Anything else
  * changes nothing.
  */
-export function setRowHeight(doc: Doc, sel: Selection, height: string | null | undefined): EditResult {
+export function setRowHeight(doc: Doc, sel: Selection, height: string | null | undefined, cell?: Path): EditResult {
   const raw = (height ?? "").trim().toLowerCase();
   const value = raw === "" ? null : /^\d+(\.\d+)?$/.test(raw) ? `${raw}px` : raw;
   if (value !== null && !ROW_HEIGHT.test(value)) return { doc, selection: sel };
+  // A dragged row edge names the cell it belongs to, and changes that cell's row only, whatever is selected.
+  if (cell) {
+    const at = locate(doc, cell);
+    const block = at && getBlock(doc, at.table);
+    if (!at || block?.type !== "table") return { doc, selection: sel };
+    const grid = toGrid(block);
+    const heights = grid.heights.map((h, r) => (r === at.placed.row ? value : h));
+    return { doc: replaceTable(doc, at.table, fromGrid({ ...grid, heights })), selection: sel };
+  }
   const found = selectedCells(doc, sel);
   if (!found) return { doc, selection: sel };
   const { grid, rect, where } = found;
@@ -401,4 +410,56 @@ export function moveToCell(doc: Doc, sel: Selection, direction: "next" | "previo
   }
   const path = firstContainerIn(doc, here.table, target.row, inRow(grid.cells, target.row).indexOf(target));
   return path ? { doc, selection: caret({ path, offset: 0 }) } : undefined;
+}
+
+// ---- sorting ----------------------------------------------------------------------------------------------
+
+/** The text of a cell, for ordering: the text of its paragraphs, headings and code, one space between them. */
+function cellText(cell: TableCell): string {
+  return cell.blocks.map((b) => (b.type === "p" || b.type === "h" ? inlineText(b.content) : b.type === "pre" ? b.text : "")).join(" ").trim();
+}
+
+/** A number written the usual ways (`1,200`, `$5`, `12%`), or undefined for anything else. */
+function numberIn(text: string): number | undefined {
+  const plain = text.replace(/[\s,$€£%]/g, "");
+  return plain !== "" && /^[-+]?(\d+\.?\d*|\.\d+)$/.test(plain) ? Number(plain) : undefined;
+}
+
+/** Whether a table can be sorted: it has no cell spanning rows, since a row could not then move on its own. */
+export function canSort(doc: Doc, path: Path): boolean {
+  const here = locate(doc, path);
+  const table = here && getBlock(doc, here.table);
+  return table?.type === "table" && toGrid(table).cells.every((p) => p.cell.rowspan === 1) && toGrid(table).rows > 1;
+}
+
+/**
+ * Puts the rows in order by the column of the cell the caret is in: numbers by value (before text), text by the user's language with
+ * digits in order, empty cells last whichever way it goes. A header row stays where it is. The sort is stable. Does nothing to a
+ * table with a cell that spans rows. The caret stays in its cell, which moves with its row.
+ */
+export function sortRows(doc: Doc, sel: Selection, direction: "asc" | "desc" = "asc"): EditResult {
+  return edit(doc, sel, (grid, at) => {
+    if (grid.rows < 2 || grid.cells.some((p) => p.cell.rowspan > 1)) return undefined;
+    const header = inRow(grid.cells, 0).every((p) => p.cell.header) ? 1 : 0;
+    const keyOf = (row: number): string => {
+      const cell = grid.cells.find((q) => q.row === row && q.col <= at.col && at.col < q.col + q.cell.colspan);
+      return cell ? cellText(cell.cell) : "";
+    };
+    const rows = Array.from({ length: grid.rows - header }, (_, i) => i + header).map((row) => ({ row, key: keyOf(row) }));
+    const sign = direction === "desc" ? -1 : 1;
+    const ordered = [...rows].sort((a, b) => {
+      if (a.key === "" || b.key === "") return a.key === b.key ? 0 : a.key === "" ? 1 : -1;
+      const x = numberIn(a.key);
+      const y = numberIn(b.key);
+      if (x !== undefined && y !== undefined) return sign * (x - y);
+      if (x !== undefined || y !== undefined) return x !== undefined ? -1 : 1;
+      return sign * a.key.localeCompare(b.key, undefined, { numeric: true, sensitivity: "base" });
+    });
+    if (ordered.every((r, i) => r.row === i + header)) return undefined;
+    const moved = new Map<number, number>(ordered.map((r, i) => [r.row, i + header]));
+    const to = (row: number): number => moved.get(row) ?? row;
+    const cells = grid.cells.map((p) => ({ ...p, row: to(p.row) }));
+    const heights = grid.heights.map((_, r) => grid.heights[[...moved].find(([, n]) => n === r)?.[0] ?? r] ?? null);
+    return { grid: { ...grid, cells, heights }, target: { row: to(at.row), col: at.col } };
+  });
 }

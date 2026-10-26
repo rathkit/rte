@@ -3,7 +3,7 @@ import type { CommandDef } from "../commands.ts";
 import type { EditorSnapshot } from "../engine.ts";
 import { SIDES, type Side } from "../cellborder.ts";
 import type { KeyBinding } from "../keymap.ts";
-import { cellBackground, cellBorderPreset, hasEdgeLine, toggleEdgeLine, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setTableBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
+import { canSort, sortRows, cellBackground, cellBorderPreset, hasEdgeLine, toggleEdgeLine, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setTableBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -58,9 +58,15 @@ export function tableCommands(): readonly Def[] {
       run: (ctx) => ctx.apply("table", (doc, sel) => toggleEdgeLine(doc, sel, side)),
       state: (s) => ({ enabled: here(s), active: hasEdgeLine(s.doc, s.selection, side) }),
     })),
-    def<{ readonly height?: string | null } | undefined, string>({
+    def<"asc" | "desc" | { readonly direction?: "asc" | "desc" } | undefined, never>({
+      name: "table.sort", label: "Sort rows",
+      run: (ctx, arg) => ctx.apply("table", (doc, sel) => sortRows(doc, sel, (typeof arg === "string" ? arg : arg?.direction) === "desc" ? "desc" : "asc")),
+      state: (s) => ({ enabled: canSort(s.doc, s.selection.focus.path) }),
+    }),
+    def<{ readonly height?: string | null; readonly cell?: readonly number[] } | undefined, string>({
       name: "table.rowHeight", label: "Row height",
-      run: (ctx, arg) => ctx.apply("table", (doc, sel) => setRowHeight(doc, sel, arg?.height)),
+      // `cell` is for a dragged row edge: the row of that cell, rather than the rows of the selection.
+      run: (ctx, arg) => ctx.apply("table", (doc, sel) => setRowHeight(doc, sel, arg?.height, arg?.cell as number[] | undefined)),
       state: (s) => ({ enabled: here(s), value: rowHeight(s.doc, s.selection.focus.path) }),
     }),
     // Moving only: they leave the document alone unless the caret passes the last cell, where a row is added.
