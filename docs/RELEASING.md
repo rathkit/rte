@@ -4,7 +4,7 @@ How a release is made, what an alpha promises, and the steps only the owner can 
 
 ## Versions and tags
 
-- All ten packages are released together under one version, and a release is a git tag `v<version>`.
+- All eleven packages are released together under one version, and a release is a git tag `v<version>`.
 - The first release is `0.1.0-alpha.0`. Later alphas count up (`0.1.0-alpha.1`), then betas and release candidates if there are any, then `0.1.0`.
 - **Every release while the project is in alpha goes to the `next` dist-tag. None goes to `latest`.** `publishConfig.tag` is `next` in every package, `tools/check-release.mjs` refuses any tag that is not an alpha, beta or rc, and `pnpm check:packages` fails on a package that is not an alpha version or does not name `next`. Installing `@rathkit/rte-core` with no tag therefore gets nothing until a stable release exists; to try the alpha, ask for it: `npm install @rathkit/rte-core@next`.
 - Packages ask each other for the release they were built with or a later one below the next minor (`>=0.1.0-alpha.0 <0.2.0`): a prerelease range has to name its starting point, or npm will not match prereleases.
@@ -21,7 +21,7 @@ It promises that the packages install with nothing else (no runtime dependencies
 
 ## Making a release
 
-Versions, the changelog, the release commit and the tag are made by [Nx Release](https://nx.dev/features/manage-releases), configured under `release` in `nx.json`: all ten packages in one fixed group, tags like `v0.1.0-alpha.1`, a version and a changelog worked out from the Conventional Commits since the last tag. Nx's own version code for npm packages comes from the `@nx/js` plugin, which brings a large dependency tree and does not work with the TypeScript 7 this repository uses, so `tools/release/version-actions.cjs` (about 60 lines, tested) does the same for plain npm packages: it writes `version`, and keeps the range each package asks of its siblings at "this release or later, below the next minor". Nx is a development tool and does not touch the shipped packages.
+Versions, the changelog, the release commit and the tag are made by [Nx Release](https://nx.dev/features/manage-releases), configured under `release` in `nx.json`: all eleven packages in one fixed group, tags like `v0.1.0-alpha.1`, a version and a changelog worked out from the Conventional Commits since the last tag. Nx's own version code for npm packages comes from the `@nx/js` plugin, which brings a large dependency tree and does not work with the TypeScript 7 this repository uses, so `tools/release/version-actions.cjs` (about 60 lines, tested) does the same for plain npm packages: it writes `version`, and keeps the range each package asks of its siblings at "this release or later, below the next minor". Nx is a development tool and does not touch the shipped packages.
 
 **Every release after the first:**
 
@@ -29,7 +29,7 @@ Versions, the changelog, the release commit and the tag are made by [Nx Release]
 2. `pnpm release` (that is, `nx release --skip-publish`) works out the version from the Conventional Commits since the last tag, bumps every package to it, adds the entry to `CHANGELOG.md`, and makes one commit (`chore(release): <version>`) and the tag `v<version>`. It never publishes (`--skip-publish`): publishing is the workflow's.
 3. Read the entry and the diff; edit `CHANGELOG.md` and amend the release commit if the notes need words that commit subjects do not give.
 4. `pnpm check:release v<version>` (tag, packages and changelog agree; refuses a tag that is not an alpha, beta or rc), then push the commit and the tag: `git push --follow-tags`.
-5. The `release` workflow runs on the tag: the full set of checks (including the check of what would be published, with the oldest supported Node), then it packs the ten tarballs, writes `SHA256SUMS` and a software bill of materials for each package (CycloneDX, zero runtime components, made by `tools/make-sbom.mjs`), signs `SHA256SUMS` with Sigstore (keyless), and creates a GitHub pre-release with all of it and the notes (the changelog entry for the version).
+5. The `release` workflow runs on the tag: the full set of checks (including the check of what would be published, with the oldest supported Node), then it packs the eleven tarballs, writes `SHA256SUMS` and a software bill of materials for each package (CycloneDX, zero runtime components, made by `tools/make-sbom.mjs`), signs `SHA256SUMS` with Sigstore (keyless), and creates a GitHub pre-release with all of it and the notes (the changelog entry for the version).
 6. The `publish` job (only when `NPM_PUBLISH` is `true`) checks the downloaded files against `SHA256SUMS` and publishes exactly those tarballs with provenance, access public and the `next` tag, through npm trusted publishing: no npm token is stored anywhere, and the job asks for `id-token: write` only.
 
 ### How the version is chosen
@@ -62,7 +62,7 @@ A trusted publisher is configured on a package that already exists on npm, and n
 
 1. Make the repository public (see below) and create the `@rathkit` organization on npm with required two-factor authentication.
 2. Run the `release` workflow for the tag. Download the files from the GitHub pre-release and check them as `docs/VERIFY.md` describes.
-3. Publish the ten tarballs by hand from the owner's machine, with two-factor authentication: `npm publish <file>.tgz --access public --tag next`. These first versions have no provenance, because provenance needs the workflow to publish; say so in the release notes.
+3. Publish the eleven tarballs by hand from the owner's machine, with two-factor authentication: `npm publish <file>.tgz --access public --tag next`. These first versions have no provenance, because provenance needs the workflow to publish; say so in the release notes.
 4. For each package on npmjs.com (Settings, Trusted Publisher): organization `rathkit`, repository `rte`, workflow `release.yml`, environment `npm`. Create the `npm` environment in the repository settings (add yourself as a required reviewer).
 5. Set the repository variable `NPM_PUBLISH` to `true`. From the next release (`0.1.0-alpha.1`) the workflow publishes, with provenance.
 

@@ -11,7 +11,7 @@ const pack = process.env.RTE_PACK;
 if (!pack) throw new Error("set RTE_PACK to a rathkit-pack binary");
 
 rmSync(join(here, "node_modules/@rathkit"), { recursive: true, force: true });
-for (const name of ["core", "headless", "element", "react", "vue", "svelte", "jquery", "ui", "themes", "icons"]) {
+for (const name of ["core", "headless", "element", "react", "vue", "svelte", "angular", "jquery", "ui", "themes", "icons"]) {
   const to = join(here, "node_modules/@rathkit", `rte-${name}`);
   mkdirSync(to, { recursive: true });
   copyFileSync(join(packages, `rte-${name}`, "package.json"), join(to, "package.json"));
@@ -19,7 +19,7 @@ for (const name of ["core", "headless", "element", "react", "vue", "svelte", "jq
 }
 rmSync(join(here, "dist"), { recursive: true, force: true });
 mkdirSync(join(here, "dist"), { recursive: true });
-for (const app of ["react", "vue", "svelte", "jquery"]) {
+for (const app of ["react", "vue", "svelte", "angular", "angular-forms", "jquery"]) {
   const result = spawnSync(pack, ["bundle", join(here, `apps/${app}.js`), "--outfile", join(here, `dist/${app}.js`), "--format", "iife", "--define", 'process.env.NODE_ENV="development"', "--define", "__VUE_OPTIONS_API__=true", "--define", "__VUE_PROD_DEVTOOLS__=false", "--define", "__VUE_PROD_HYDRATION_MISMATCH_DETAILS__=false"], { encoding: "utf8" });
   if (result.status !== 0) {
     console.error(`bundle ${app} failed:\n${result.stderr || result.stdout}`);

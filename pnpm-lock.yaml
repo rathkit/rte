@@ -176,6 +176,15 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
+  packages/rte-angular:
+    devDependencies:
+      '@rathkit/rte-core':
+        specifier: workspace:*
+        version: link:../rte-core
+      '@rathkit/rte-headless':
+        specifier: workspace:*
+        version: link:../rte-headless
+
   packages/rte-core: {}
 
   packages/rte-element:

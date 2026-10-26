@@ -65,6 +65,14 @@ export function buildReadmeExamples(pack) {
       writeFileSync(join(work, `${name}.jsx`), `${code}\nimport { createRoot as __createRoot } from "react-dom/client";\n__createRoot(document.getElementById("app")).render(<${component} />);\n`);
       bundle(pack, join(work, `${name}.jsx`), out, ["--jsx", "automatic"]);
       body = `<div id="app"></div>\n<script src="./readme-${name}.js"></script>`;
+    } else if (lang === "ts") {
+      // The Angular example: run as written, with the compiler loaded because the example is not built by the Angular build.
+      const mount = /selector: "([\w-]+)"/.exec(code)?.[1];
+      const root = /export class (\w+)/.exec(code)?.[1];
+      if (!mount || !root) throw new Error(`${pkg}: the ts example needs a selector and an exported class`);
+      writeFileSync(join(work, `${name}.ts`), `import "@angular/compiler";\n${code.replace(/\nbootstrapApplication\(\w+\);\s*$/, "")}\nbootstrapApplication(${root});\n`);
+      bundle(pack, join(work, `${name}.ts`), out);
+      body = `<${mount}></${mount}>\n<script src="./readme-${name}.js"></script>`;
     } else if (lang === "vue") {
       const sfc = require("vue/compiler-sfc");
       const { descriptor, errors } = sfc.parse(code, { filename: `${name}.vue` });

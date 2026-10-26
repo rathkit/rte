@@ -45,7 +45,7 @@ dispatches `rk-open` with the item and the control, and the page, or the styled 
 
 ## Angular
 
-The Angular wrapper (a standalone component with the forms `ControlValueAccessor`) is not built yet. Until it is, the custom element works in Angular as it is. Add `CUSTOM_ELEMENTS_SCHEMA` to the component that uses it, import `@rathkit/rte-element/define` once, and bind the element's `value` property and `rk-change` event:
+`@rathkit/rte-angular` is the Angular wrapper: the `rteEditor` directive, signals for command state and an Angular forms value accessor (see its README). The custom element also works in Angular as it is. Add `CUSTOM_ELEMENTS_SCHEMA` to the component that uses it, import `@rathkit/rte-element/define` once, and bind the element's `value` property and `rk-change` event:
 
 ```ts
 @Component({
@@ -58,4 +58,4 @@ export class BodyField {
 }
 ```
 
-Because the element is form-associated, it also takes part in a native `<form>` without any Angular forms code. `ngModel` and reactive forms need the wrapper.
+Because the element is form-associated, it also takes part in a native `<form>` without any Angular forms code. `ngModel` and reactive forms need the wrapper (`@rathkit/rte-angular/forms`).

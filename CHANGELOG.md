@@ -4,7 +4,7 @@ All notable changes to Rathkit RTE are written here, newest first. The project f
 
 ## [0.1.0-alpha.0] - unreleased
 
-The first alpha. Published to the `next` dist-tag only, never `latest`. Ten packages, none with a runtime dependency. It is a first look, not something to build on: the APIs will change.
+The first alpha. Published to the `next` dist-tag only, never `latest`. Eleven packages, none with a runtime dependency. It is a first look, not something to build on: the APIs will change.
 
 ### Packages
 
@@ -12,7 +12,7 @@ The first alpha. Published to the `next` dist-tag only, never `latest`. Ten pack
 - `@rathkit/rte-headless`: how a toolbar, menu, dialog, tooltip and announcement behave for keyboard and assistive technology, with no markup or CSS.
 - `@rathkit/rte-element`: `<rk-editor>` and `<rk-toolbar>` custom elements.
 - `@rathkit/rte-ui`, `@rathkit/rte-themes`, `@rathkit/rte-icons`: the styled interface, four themes and a density setting, and the icon set.
-- `@rathkit/rte-react`, `@rathkit/rte-vue`, `@rathkit/rte-svelte`, `@rathkit/rte-jquery`: wrappers. (Angular works through the custom element; a wrapper comes later.)
+- `@rathkit/rte-react`, `@rathkit/rte-vue`, `@rathkit/rte-svelte`, `@rathkit/rte-angular`, `@rathkit/rte-jquery`: wrappers. The Angular one is a directive, signals and an Angular forms value accessor.
 
 ### Editing
 

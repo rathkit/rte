@@ -4,9 +4,15 @@
   "description": "Real copies of the frameworks, for checking the wrappers in a browser. Its own project with its own lockfile: nothing here is part of the main workspace or ships.",
   "type": "module",
   "devDependencies": {
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/core": "22.2.3",
+    "@angular/forms": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
     "jquery": "4.0.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "rxjs": "7.8.2",
     "svelte": "5.57.2",
     "vue": "3.5.44"
   }

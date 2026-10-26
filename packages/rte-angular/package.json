@@ -1,0 +1,92 @@
+{
+  "name": "@rathkit/rte-angular",
+  "version": "0.1.0-alpha.0",
+  "description": "The editor for Angular: a directive, signals and an Angular forms value accessor over the headless layer, with no editor or accessibility logic of its own.",
+  "keywords": [
+    "rich-text",
+    "editor",
+    "wysiwyg",
+    "contenteditable",
+    "zero-dependencies",
+    "typescript",
+    "angular",
+    "signals"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://rathkit.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rathkit/rte.git",
+    "directory": "packages/rte-angular"
+  },
+  "bugs": {
+    "url": "https://github.com/rathkit/rte/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "tag": "next"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.map"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./forms": {
+      "types": "./dist/forms.d.ts",
+      "default": "./dist/forms.js"
+    }
+  },
+  "peerDependencies": {
+    "@rathkit/rte-core": ">=0.1.0-alpha.0 <0.2.0",
+    "@rathkit/rte-headless": ">=0.1.0-alpha.0 <0.2.0",
+    "@angular/core": ">=20.0.0",
+    "@angular/forms": ">=20.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rathkit/rte-core": {
+      "optional": true
+    },
+    "@rathkit/rte-headless": {
+      "optional": true
+    },
+    "@angular/core": {
+      "optional": true
+    },
+    "@angular/forms": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@rathkit/rte-core": "workspace:*",
+    "@rathkit/rte-headless": "workspace:*"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && tsc -p tsconfig.build.js.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --import ./test/register.mjs --test \"src/**/*.test.ts\""
+  },
+  "rathkit": {
+    "budgets": [
+      {
+        "name": "angular",
+        "entry": "dist/index.js",
+        "gzipKB": 2
+      },
+      {
+        "name": "angular forms",
+        "entry": "dist/forms.js",
+        "gzipKB": 2
+      }
+    ]
+  }
+}

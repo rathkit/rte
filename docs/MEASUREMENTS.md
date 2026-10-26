@@ -21,6 +21,7 @@ Numbers are here only because they were measured, and each says how. They are no
 | `@rathkit/rte-ui` (without icons) | 9.5 KB | 25 KB |
 | `@rathkit/rte-icons` (all) | 2.0 KB | 6 KB |
 | `@rathkit/rte-react`, `-vue`, `-svelte`, `-jquery` | 1.0, 1.1, 0.6, 0.7 KB | 2 KB each |
+| `@rathkit/rte-angular` (with and without the forms entry) | 1.4, 1.5 KB | 2 KB each |
 
 The stylesheet is separate (`@rathkit/rte-ui/base.css`). A bundler that removes unused code will ship less than the sum, because plugins and icons are separate entry points. Minified figures are not published yet: the minifier used for them is not released.
 

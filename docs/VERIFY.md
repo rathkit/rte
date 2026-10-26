@@ -14,7 +14,7 @@ It verifies the registry signatures and the provenance of everything in `node_mo
 
 ## The release files: checksums and signature
 
-Each GitHub release has the ten tarballs, `SHA256SUMS`, `SHA256SUMS.sigstore.json` and a bill of materials for each package. Download them into one folder.
+Each GitHub release has the eleven tarballs, `SHA256SUMS`, `SHA256SUMS.sigstore.json` and a bill of materials for each package. Download them into one folder.
 
 Check the files against the list:
 

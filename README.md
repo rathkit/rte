@@ -31,6 +31,7 @@ Text with bold, italic, underline, strikethrough, code, super- and subscript, te
 | `@rathkit/rte-react` | Early. `RteEditor`, `useRteEditor`, and the hooks `useCommand` and `useSelector`, over the headless layer; a component re-renders only when the value it reads changes. Not published |
 | `@rathkit/rte-vue` | Early. `RteEditor` and the composables `useCommand` and `useSelector`, over the headless layer. Not published |
 | `@rathkit/rte-svelte` | Early. Stores (`command`, `selector`) and the `use:rteEditor` action. Needs nothing from Svelte itself. Not published |
+| `@rathkit/rte-angular` | Early. The `rteEditor` directive, signals (`commandState`, `selected`) and an Angular forms value accessor (`@rathkit/rte-angular/forms`). Written in the compiled form, so it needs no Angular compiler. Not published |
 | `@rathkit/rte-jquery` | Early. `$(el).rkEditor(options)` over the custom element, with `rk:change` events. Not published |
 
 More packages (the Angular wrapper, server) will appear here as they are built.

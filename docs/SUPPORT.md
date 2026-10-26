@@ -24,7 +24,7 @@ Paste conformance: 80 scrubbed clipboard captures from word processors and sprea
 
 ## README examples
 
-The example in each package's README is built exactly as written (bundled against the built packages and, for the wrapper packages, the real React, Vue, Svelte and jQuery) and run in all three engines: the editor appears with its name, typing is reported through the example's own callback, the Bold button works where the example has one, the interface gets its theme, and there is no error and no request for anything outside the page (`tools/framework-checks`, run locally with `RTE_PLAYWRIGHT` and `RTE_PACK` like the other framework checks).
+The example in each package's README is built exactly as written (bundled against the built packages and, for the wrapper packages, the real React, Vue, Svelte, Angular 22 and jQuery) and run in all three engines: the editor appears with its name, typing is reported through the example's own callback, the Bold button works where the example has one, the interface gets its theme, and there is no error and no request for anything outside the page (`tools/framework-checks`, run locally with `RTE_PLAYWRIGHT` and `RTE_PACK` like the other framework checks).
 
 ## Accessibility
 
