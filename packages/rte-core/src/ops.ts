@@ -1,6 +1,6 @@
 // The toolkit handed to plugins: the editing operations, as plain functions. A plugin uses these through the host
 // instead of importing the editor, so it carries no run-time dependency on it.
-import { setAlign, setBlockType } from "./blocks.ts";
+import { insertRule, setAlign, setBlockType, toggleCodeBlock, toggleQuote } from "./blocks.ts";
 import {
   deleteBackward, deleteForward, deleteSelection, extractSelection, insertBlocks, insertLineBreak, insertText, moveSelection, rangeHasMark,
   selectedText, sliceInline, splitBlock, toggleMark,
@@ -29,7 +29,7 @@ export const ops = {
   parseStyle, checkImageSrc, escapeText, escapeAttribute, encodeBase64, decodeBase64,
   // Editing.
   insertText, insertBlocks, insertLineBreak, splitBlock, deleteSelection, deleteBackward, deleteForward, moveSelection,
-  extractSelection, selectedText, toggleMark, rangeHasMark, setBlockType, setAlign, setLink,
+  extractSelection, selectedText, toggleMark, rangeHasMark, setBlockType, setAlign, setLink, toggleQuote, toggleCodeBlock, insertRule,
   importHtml, importBlocks, importText, exportHtml, exportBlock, exportInline,
 } as const;
 

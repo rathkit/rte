@@ -403,6 +403,7 @@ export class Editor {
           const taken = this.engine.triggerText(data);
           if (taken) {
             this.apply("pattern", () => taken);
+            if (taken.storedMarks) this.engine.setStoredMarks(taken.storedMarks);
             return true;
           }
           this.apply("type", (doc, sel) => insertText(doc, sel, data, this.engine.storedMarks));

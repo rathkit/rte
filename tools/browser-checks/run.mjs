@@ -72,6 +72,17 @@ for (const [name, type] of engines) {
   const t = await open(type, name === "chromium" ? { permissions: ["clipboard-read", "clipboard-write"] } : {});
   const { page, html, reset, select } = t;
 
+  // --- typed shortcuts
+  for (const [typed, out] of [["## Title", "<h2>Title</h2>"], ["> quoted", "<blockquote><p>quoted</p></blockquote>"], ["a **b** c", "<p>a <strong>b</strong> c</p>"], ["`x` y", "<p><code>x</code> y</p>"], ["see https://example.test/a now", '<p>see <a href="https://example.test/a">https://example.test/a</a> now</p>']]) {
+    await reset("");
+    await page.keyboard.type(typed);
+    check(`${name} typing ${JSON.stringify(typed)} formats as it goes`, (await html()).replace(/&nbsp;/g, " ") === out, await html());
+  }
+  await reset("");
+  await page.keyboard.type("**bold**");
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} one undo takes a typed shortcut back`, !(await html()).includes("<strong>"), await html());
+
   // --- typing and editing keys
   await reset("");
   await page.keyboard.type("Hello world");

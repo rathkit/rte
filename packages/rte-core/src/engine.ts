@@ -1,6 +1,6 @@
 // The editor's state machine, with no DOM: the document, the selection, history, read-only and focus, as immutable
 // snapshots that can be subscribed to. The browser view drives this; so can a test, a server, or any other host.
-import type { Behaviors, ContainerBehavior, ContainerKind, TextTrigger } from "./behaviors.ts";
+import type { Behaviors, ContainerBehavior, ContainerKind, TextTrigger, TriggerResult } from "./behaviors.ts";
 import { CommandRegistry, type CommandDef, type Unsubscribe } from "./commands.ts";
 import { detectPlatform, Keymap, type KeyBinding, type KeyEventLike, type Platform } from "./keymap.ts";
 import { emptyDoc, type Doc, type Mark } from "./model.ts";
@@ -335,7 +335,7 @@ export class Engine {
    * Gives the text typed next to the caret to the plugins that watch for it (a list shortcut, say). Returns the result of the
    * first one that takes over, or undefined when none does and the text should be inserted as usual.
    */
-  triggerText(typed: string): EditResult | undefined {
+  triggerText(typed: string): TriggerResult | undefined {
     this.refresh();
     for (const trigger of this.textTriggers) {
       const result = trigger(this.doc, this.sel, typed);

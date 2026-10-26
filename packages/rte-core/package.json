@@ -55,6 +55,10 @@
       "types": "./dist/tables/index.d.ts",
       "default": "./dist/tables/index.js"
     },
+    "./autoformat": {
+      "types": "./dist/autoformat/index.d.ts",
+      "default": "./dist/autoformat/index.js"
+    },
     "./find": {
       "types": "./dist/find/index.d.ts",
       "default": "./dist/find/index.js"
@@ -86,6 +90,7 @@
       "lists",
       "tables",
       "find",
+      "autoformat",
       "word",
       "svg",
       "images"
@@ -113,6 +118,12 @@
       {
         "name": "tables plugin",
         "entry": "dist/tables/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "autoformat plugin",
+        "entry": "dist/autoformat/index.js",
         "gzipKB": 15,
         "plugin": true
       },
