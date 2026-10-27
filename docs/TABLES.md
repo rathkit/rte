@@ -71,5 +71,6 @@ A table pasted with the caret (or a selection) in a table cell fills the cells, 
 
 ## Not built
 
-- Table-wide borders (a command for every cell at once).
-- Selecting a rectangle of cells by dragging across them as cells (the selection is still text, and the rectangle is worked out from its two ends).
+- Sorting a table that has a cell spanning rows, and moving a column or a row by dragging it.
+- Touch input for dragging column and row edges has not been tried.
+- A table is still drawn again cell by cell on a change; very large tables have not been measured.

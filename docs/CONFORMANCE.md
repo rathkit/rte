@@ -81,14 +81,13 @@ again from the model the next time anything is drawn. Until then the page keeps 
   only in Chromium through the debugging protocol, which simulates it. The caret and text land correctly there.
 - Spelling-correction replacement is handled (the word the browser targets is replaced, not the word at the
   caret) but has not been tried with a real spell checker.
-- Some input types are blocked and reported through `onUnhandledInput`: justification, indent and outdent outside
-  lists, subscript and superscript, remove formatting, text direction, colors and font names, insert link, transpose and
-  yank. They wait for the commands behind them. Soft-line deletion deletes to the edge of the block, not the visual line.
+- Most input types the browser sends (formatting, justification, indent, text direction, colors, links, remove formatting) run the
+  command behind them. The rest are reported through `onUnhandledInput`, and nothing changes. Soft-line deletion deletes to the edge of the block, not the visual line.
 - With a caret, a mark command (bold, italic and the rest) chooses the mark for the text typed next; the choice is forgotten when the caret moves, a range is selected, or the document is replaced or undone. It applies to typed text, not to input-method composition or to pasted text.
 - Lists and definition lists work (see `LISTS.md`). Multi-block items and numbering styles beyond what import reads are not built.
 - WebKit rewrites copied HTML and turns some spaces next to inline tags into non-breaking spaces. The editor
   keeps them as written, so text pasted in WebKit can carry `&nbsp;` where Chromium has a plain space.
-- A table is drawn again as a whole when any cell changes. Large tables have not been measured.
+- A table redraws only the cells that changed. Large tables have not been measured.
 - Touch input, mobile keyboards and screen readers are untested.
 - Remote images (`http`, `https`) are kept in the document but not drawn unless the host passes
   `loadRemoteImages: true`, so pasting never makes the browser fetch anything. `Editor.remoteImages()` lists them.
