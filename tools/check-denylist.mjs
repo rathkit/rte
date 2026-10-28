@@ -1,7 +1,7 @@
 // Scans the shipped zone for words that must never appear in it (the private project plan).
-// The word list is NOT stored in the repo. It comes from the RTE_DENYLIST environment variable
+// The word list is NOT stored in the repo. It comes from the RATHKIT_DENYLIST environment variable
 // (comma or newline separated), set from CI secrets. Names that are allowed inside migration
-// packages (packages/compat-*) come from RTE_DENYLIST_COMPAT_ALLOW in the same format.
+// packages (packages/compat-*) come from RATHKIT_DENYLIST_COMPAT_ALLOW in the same format.
 //   node tools/check-denylist.mjs            the files now
 //   node tools/check-denylist.mjs --history  every commit on every branch and tag: messages, author names and every added line and path
 // (the second is for the day before a repository is made public, when history becomes public too).
@@ -14,15 +14,15 @@ const split = (value) =>
     .map((word) => word.trim().toLowerCase())
     .filter(Boolean);
 
-const denied = split(process.env.RTE_DENYLIST);
-const compatAllowed = new Set(split(process.env.RTE_DENYLIST_COMPAT_ALLOW));
+const denied = split(process.env.RATHKIT_DENYLIST);
+const compatAllowed = new Set(split(process.env.RATHKIT_DENYLIST_COMPAT_ALLOW));
 
 if (denied.length === 0) {
   if (process.env.CI) {
-    console.error("denylist: RTE_DENYLIST is not set; refusing to pass in CI");
+    console.error("denylist: RATHKIT_DENYLIST is not set; refusing to pass in CI");
     process.exit(1);
   }
-  console.warn("denylist: RTE_DENYLIST is not set, skipping (CI will fail without it)");
+  console.warn("denylist: RATHKIT_DENYLIST is not set, skipping (CI will fail without it)");
   process.exit(0);
 }
 

@@ -25,8 +25,8 @@ jobs:
       - name: Word check over the whole history
         run: node tools/check-denylist.mjs --history
         env:
-          RTE_DENYLIST: ${{ secrets.RTE_DENYLIST }}
-          RTE_DENYLIST_COMPAT_ALLOW: ${{ secrets.RTE_DENYLIST_COMPAT_ALLOW }}
+          RATHKIT_DENYLIST: ${{ secrets.RATHKIT_DENYLIST }}
+          RATHKIT_DENYLIST_COMPAT_ALLOW: ${{ secrets.RATHKIT_DENYLIST_COMPAT_ALLOW }}
           CI: "true"
       - name: Secret scan over the whole history
         run: node tools/scan-secrets.mjs --history

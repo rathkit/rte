@@ -70,7 +70,7 @@ Requirements of trusted publishing, from npm's documentation: npm CLI 11.5.1 or 
 
 ## Before the repositories are made public (owner, with this repository's tools)
 
-1. Run the word check over the whole history, not only the files: `RTE_DENYLIST=... node tools/check-denylist.mjs --history` (and read the files once more for references to other products).
+1. Run the word check over the whole history, not only the files: `RATHKIT_DENYLIST=... node tools/check-denylist.mjs --history` (and read the files once more for references to other products).
 2. Run `node tools/scan-secrets.mjs --history`: it looks through every commit for private keys and the common token formats. Confirm by hand that nothing it reports is real, and rotate anything that is.
 3. Confirm `fixtures/` holds only scrubbed captures (`pnpm check:fixtures`).
 4. Then flip the repository to public, turn on private vulnerability reporting, secret scanning and push protection, and branch protection or a ruleset on `main` (the settings in `publish-readiness.md`, items 8 and 9).

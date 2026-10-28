@@ -51,7 +51,7 @@ Individual checks:
 
 ```sh
 pnpm check:zero-deps
-pnpm check:denylist   # needs RTE_DENYLIST; skipped locally if unset, required in CI
+pnpm check:denylist   # needs RATHKIT_DENYLIST; skipped locally if unset, required in CI
 pnpm typecheck
 pnpm test
 ```

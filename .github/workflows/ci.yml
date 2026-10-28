@@ -44,8 +44,8 @@ jobs:
       - run: pnpm check:secrets
       - run: pnpm check:denylist
         env:
-          RTE_DENYLIST: ${{ secrets.RTE_DENYLIST }}
-          RTE_DENYLIST_COMPAT_ALLOW: ${{ secrets.RTE_DENYLIST_COMPAT_ALLOW }}
+          RATHKIT_DENYLIST: ${{ secrets.RATHKIT_DENYLIST }}
+          RATHKIT_DENYLIST_COMPAT_ALLOW: ${{ secrets.RATHKIT_DENYLIST_COMPAT_ALLOW }}
       - run: pnpm check:graph
       - run: pnpm check:fixtures
       - run: pnpm test:tools
