@@ -378,15 +378,21 @@ test("table.sort orders the rows by the caret's column: numbers by value, text b
   assert.deepEqual(names(), ["kiwi", "pear", "Apple", "apple2", "fig"], "one undo step");
 });
 
-test("table.sort is off for a table with a cell that spans rows, and outside tables", () => {
-  const spanned = make('<table><tbody><tr><td rowspan="2">a</td><td>2</td></tr><tr><td>1</td></tr></tbody></table>');
-  inCell(spanned, 0, 1);
-  assert.equal(spanned.commands.state("table.sort").enabled, false);
-  assert.equal(spanned.commands.run("table.sort", "asc"), false);
+test("table.sort moves rows tied by a cell that spans rows as one group; it is off outside tables and for a single group", () => {
+  const table = '<table><tbody><tr><td rowspan="2">z</td><td>1</td></tr><tr><td>2</td></tr><tr><td>b</td><td>3</td></tr><tr><td rowspan="2">a</td><td>4</td></tr><tr><td>5</td></tr></tbody></table>';
+  const e = make(table);
+  inCell(e, 0, 0);
+  assert.equal(e.commands.state("table.sort").enabled, true);
+  assert.equal(e.commands.run("table.sort", "asc"), true);
+  assert.equal(html(e), '<table><tbody><tr><td rowspan="2">a</td><td>4</td></tr><tr><td>5</td></tr><tr><td>b</td><td>3</td></tr><tr><td rowspan="2">z</td><td>1</td></tr><tr><td>2</td></tr></tbody></table>', "groups of rows by their first row, each group in its own order");
+  assert.deepEqual(e.selection.focus.path.slice(0, 3), [0, 3, 0], "the caret's cell moved with its group");
+  const one = make('<table><tbody><tr><td rowspan="2">a</td><td>2</td></tr><tr><td>1</td></tr></tbody></table>');
+  inCell(one, 0, 1);
+  assert.equal(one.commands.state("table.sort").enabled, false, "one group has nothing to put in order");
   assert.equal(make("<p>x</p>").commands.state("table.sort").enabled, false);
-  const one = make(cells([["a", "b"]]));
-  inCell(one, 0, 0);
-  assert.equal(one.commands.state("table.sort").enabled, false, "one row has nothing to sort");
+  const single = make(cells([["a", "b"]]));
+  inCell(single, 0, 0);
+  assert.equal(single.commands.state("table.sort").enabled, false, "one row has nothing to sort");
 });
 
 test("sorting moves a row's height with it", () => {
@@ -394,4 +400,38 @@ test("sorting moves a row's height with it", () => {
   inCell(e, 0, 0);
   e.commands.run("table.sort", "asc");
   assert.match(html(e), /<tr style="height: 50px"><td>a<\/td><\/tr><tr><td>b<\/td><\/tr>/);
+});
+
+test("table.moveRow and table.moveColumn move a row or column a step, or next to another, with its height or width; the caret goes with it", () => {
+  const e = make('<table><colgroup><col style="width: 50px"><col><col></colgroup><tbody><tr><th>h1</th><th>h2</th><th>h3</th></tr><tr style="height: 40px"><td>a</td><td>b</td><td>c</td></tr><tr><td>d</td><td>e</td><td>f</td></tr><tr><td>g</td><td>h</td><td>i</td></tr></tbody></table>');
+  const col0 = () => [...html(e).matchAll(/<t[dh][^>]*>([^<]*)<\/t[dh]>/g)].map((m) => m[1]);
+  inCell(e, 1, 0);
+  assert.equal(e.commands.run("table.moveRow", { by: 1 }), true);
+  assert.match(html(e), /<tr><td>d<\/td><td>e<\/td><td>f<\/td><\/tr><tr style="height: 40px"><td>a<\/td>/, "down a step; the height went with the row");
+  assert.deepEqual(e.selection.focus.path.slice(0, 3), [0, 2, 0], "the caret is in the moved row");
+  assert.equal(e.commands.run("table.moveRow", { to: 3, after: true }), true);
+  assert.deepEqual(col0().filter((_, i) => i % 3 === 0), ["h1", "d", "g", "a"], "to after the last row");
+  inCell(e, 1, 0);
+  assert.equal(e.commands.run("table.moveRow", { by: -1 }), false, "the header row is not passed");
+  assert.equal(e.commands.state("table.moveRow").enabled, true);
+  assert.equal(e.commands.run("table.moveColumn", { by: 1 }), true);
+  assert.match(html(e), /<col><col style="width: 50px"><col>/, "the width went with the column");
+  assert.deepEqual(col0().slice(0, 3), ["h2", "h1", "h3"]);
+  e.undo();
+  assert.deepEqual(col0().slice(0, 3), ["h1", "h2", "h3"], "one undo step");
+  inCell(e, 1, 2);
+  assert.equal(e.commands.run("table.moveColumn", { by: 1 }), false, "past the last column");
+  assert.equal(e.commands.run("table.moveColumn", { to: 0 }), true, "before the first column");
+  assert.equal(make("<p>x</p>").commands.state("table.moveRow").enabled, false);
+});
+
+test("a spanning cell keeps the rows or columns it covers together when they move", () => {
+  const e = make('<table><tbody><tr><td rowspan="2">x</td><td>1</td></tr><tr><td>2</td></tr><tr><td>y</td><td>3</td></tr></tbody></table>');
+  inCell(e, 0, 0);
+  assert.equal(e.commands.run("table.moveRow", { by: 1 }), true);
+  assert.equal(html(e), '<table><tbody><tr><td>y</td><td>3</td></tr><tr><td rowspan="2">x</td><td>1</td></tr><tr><td>2</td></tr></tbody></table>');
+  const wide = make('<table><tbody><tr><td colspan="2">w</td><td>z</td></tr><tr><td>a</td><td>b</td><td>c</td></tr></tbody></table>');
+  inCell(wide, 0, 0);
+  assert.equal(wide.commands.run("table.moveColumn", { by: 1 }), true);
+  assert.equal(html(wide), '<table><tbody><tr><td>z</td><td colspan="2">w</td></tr><tr><td>c</td><td>a</td><td>b</td></tr></tbody></table>');
 });

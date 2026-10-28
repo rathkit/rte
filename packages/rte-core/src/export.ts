@@ -31,10 +31,14 @@ const IMAGE_ALIGN_STYLE: Record<string, string> = {
   center: "display: block; margin: 0 auto;",
 };
 
+/**
+ * An image as HTML. `placed` is whether it sits among other things (so its position is written on it); a caption that has no figure to
+ * go in, because text is beside the picture, is kept in a `data-caption` attribute so that it is not lost and comes back when read.
+ */
 function exportImage(node: Extract<Inline, { type: "image" }>, placed: boolean): string {
   return `<img src="${escapeAttribute(node.src)}"${node.alt !== undefined ? ` alt="${escapeAttribute(node.alt)}"` : ""}`
     + `${node.width !== undefined ? ` width="${node.width}"` : ""}${node.height !== undefined ? ` height="${node.height}"` : ""}`
-    + `${placed && node.align ? ` style="${IMAGE_ALIGN_STYLE[node.align]}"` : ""}>`;
+    + `${placed && node.align ? ` style="${IMAGE_ALIGN_STYLE[node.align]}"` : ""}${placed && node.caption ? ` data-caption="${escapeAttribute(node.caption)}"` : ""}>`;
 }
 
 export function exportInline(content: readonly Inline[]): string {

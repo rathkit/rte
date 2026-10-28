@@ -40,6 +40,16 @@ Run of 2026-10-24 (Linux under WSL2, Intel Core i7-11850H, 16 threads, 31 GB, Ch
 | Same, CPU 4x slower: type / Enter | 5.6 / 5.4 | 24.8 / 27.3 | 19.6 |
 | Move the caret with 56 commands subscribed | | 1.4 (12.9 at 4x) | |
 
+Large tables, same machine and method, run of 2026-10-27 (typing in one cell; other cells redrawn: none):
+
+| | 500 cells | 5,000 cells (100 by 50) | 20,000 cells (200 by 100) |
+| --- | --- | --- | --- |
+| Load a document | 55.6 | 174.7 | 904.0 |
+| Type a character in one cell | 7.6 | 9.0 | 24.1 |
+| Same, CPU 4x slower: load / type | 209.5 / 17.8 | 838.3 / 40.4 | 2512.5 / 176.4 |
+
+The editor's own work for a keystroke in the 20,000-cell table is 0.04 ms (measured without a page); the rest is the browser laying out the table, which grows with the number of cells. A table of that size is slow to load and to type in on a slow device, and it is not something to build a form on; 5,000 cells types within a frame. The check enforces that typing redraws that one cell and no other, at 5,000 and 20,000 cells.
+
 Typing in the middle of 5,000 paragraphs was 5 to 7 ms in earlier runs on this machine and 20 ms in this one, so single readings of that cell should not be trusted; the limit in the check is 30 ms.
 
 The limits the checks enforce (the speed section fails above them): 10 ms per command at 1,000 paragraphs and 30 ms at 5,000 (p95), loading 1,000 paragraphs within 40 ms, a caret move within 30 ms, typing in a 500-cell table within 12 ms. CI runs on shared machines and multiplies all of them by 2.

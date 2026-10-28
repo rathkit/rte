@@ -27,23 +27,38 @@ export interface Where {
   readonly placed: Placed;
 }
 
+// A table is never changed once made, so its grid is worked out once; a table that is typed in is a new object and gets a new grid.
+const gridCache = new WeakMap<Table, Grid>();
+
 export function toGrid(table: Table): Grid {
-  const taken = new Set<string>();
+  const hit = gridCache.get(table);
+  if (hit) return hit;
   const cells: Placed[] = [];
   let cols = 0;
   let rows = table.rows.length;
-  table.rows.forEach((row, r) => {
-    let c = 0;
-    for (const cell of row) {
-      while (taken.has(`${r},${c}`)) c++;
-      cells.push({ cell, row: r, col: c });
-      for (let dr = 0; dr < cell.rowspan; dr++) for (let dc = 0; dc < cell.colspan; dc++) taken.add(`${r + dr},${c + dc}`);
-      c += cell.colspan;
-      cols = Math.max(cols, c);
-      rows = Math.max(rows, r + cell.rowspan);
-    }
-  });
-  return { cells, rows, cols, widths: Array.from({ length: cols }, (_, i) => table.widths?.[i] ?? null), heights: Array.from({ length: rows }, (_, i) => table.heights?.[i] ?? null) };
+  if (table.rows.every((row) => row.every((cell) => cell.rowspan === 1 && cell.colspan === 1))) {
+    // No cell spans anything, so each one sits right after the one before it.
+    table.rows.forEach((row, r) => {
+      row.forEach((cell, c) => cells.push({ cell, row: r, col: c }));
+      cols = Math.max(cols, row.length);
+    });
+  } else {
+    const taken = new Set<string>();
+    table.rows.forEach((row, r) => {
+      let c = 0;
+      for (const cell of row) {
+        while (taken.has(`${r},${c}`)) c++;
+        cells.push({ cell, row: r, col: c });
+        for (let dr = 0; dr < cell.rowspan; dr++) for (let dc = 0; dc < cell.colspan; dc++) taken.add(`${r + dr},${c + dc}`);
+        c += cell.colspan;
+        cols = Math.max(cols, c);
+        rows = Math.max(rows, r + cell.rowspan);
+      }
+    });
+  }
+  const grid: Grid = { cells, rows, cols, widths: Array.from({ length: cols }, (_, i) => table.widths?.[i] ?? null), heights: Array.from({ length: rows }, (_, i) => table.heights?.[i] ?? null) };
+  gridCache.set(table, grid);
+  return grid;
 }
 
 export const inRow = (cells: readonly Placed[], row: number): Placed[] => cells.filter((p) => p.row === row).sort((a, b) => a.col - b.col);

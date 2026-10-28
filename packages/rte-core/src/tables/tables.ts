@@ -425,29 +425,53 @@ function numberIn(text: string): number | undefined {
   return plain !== "" && /^[-+]?(\d+\.?\d*|\.\d+)$/.test(plain) ? Number(plain) : undefined;
 }
 
-/** Whether a table can be sorted: it has no cell spanning rows, since a row could not then move on its own. */
+/** Whether a table can be sorted: it has more than one row, or one group of rows tied together by cells that span rows, to move. */
 export function canSort(doc: Doc, path: Path): boolean {
   const here = locate(doc, path);
   const table = here && getBlock(doc, here.table);
-  return table?.type === "table" && toGrid(table).cells.every((p) => p.cell.rowspan === 1) && toGrid(table).rows > 1;
+  if (table?.type !== "table") return false;
+  const grid = toGrid(table);
+  return rowGroups(grid, headerRows(grid)).length > 1;
+}
+
+/** How many rows at the top are header cells and stay where they are: the first row, when every cell in it is a header. */
+const headerRows = (grid: Grid): number => (grid.rows > 0 && inRow(grid.cells, 0).every((p) => p.cell.header) ? 1 : 0);
+
+/**
+ * The runs of rows that have to move together, from `first` on: rows that a cell spanning rows ties to the ones below it are one group.
+ * Each is a start row and a count.
+ */
+function rowGroups(grid: Grid, first: number): { start: number; count: number }[] {
+  const reach = Array.from({ length: grid.rows }, (_, r) => r);
+  for (const p of grid.cells) reach[p.row] = Math.max(reach[p.row] as number, Math.min(grid.rows - 1, p.row + p.cell.rowspan - 1));
+  const groups: { start: number; count: number }[] = [];
+  let r = first;
+  while (r < grid.rows) {
+    let end = reach[r] as number;
+    for (let k = r; k <= end; k++) end = Math.max(end, reach[k] as number);
+    groups.push({ start: r, count: end - r + 1 });
+    r = end + 1;
+  }
+  return groups;
 }
 
 /**
  * Puts the rows in order by the column of the cell the caret is in: numbers by value (before text), text by the user's language with
- * digits in order, empty cells last whichever way it goes. A header row stays where it is. The sort is stable. Does nothing to a
- * table with a cell that spans rows. The caret stays in its cell, which moves with its row.
+ * digits in order, empty cells last whichever way it goes. A header row stays where it is. The sort is stable. Rows tied together by a
+ * cell that spans rows move as one, ordered by their first row. The caret stays in its cell, which moves with its rows.
  */
 export function sortRows(doc: Doc, sel: Selection, direction: "asc" | "desc" = "asc"): EditResult {
   return edit(doc, sel, (grid, at) => {
-    if (grid.rows < 2 || grid.cells.some((p) => p.cell.rowspan > 1)) return undefined;
-    const header = inRow(grid.cells, 0).every((p) => p.cell.header) ? 1 : 0;
+    const header = headerRows(grid);
+    const groups = rowGroups(grid, header);
+    if (groups.length < 2) return undefined;
     const keyOf = (row: number): string => {
-      const cell = grid.cells.find((q) => q.row === row && q.col <= at.col && at.col < q.col + q.cell.colspan);
+      const cell = grid.cells.find((q) => q.row <= row && row < q.row + q.cell.rowspan && q.col <= at.col && at.col < q.col + q.cell.colspan);
       return cell ? cellText(cell.cell) : "";
     };
-    const rows = Array.from({ length: grid.rows - header }, (_, i) => i + header).map((row) => ({ row, key: keyOf(row) }));
     const sign = direction === "desc" ? -1 : 1;
-    const ordered = [...rows].sort((a, b) => {
+    const keyed = groups.map((g) => ({ ...g, key: keyOf(g.start) }));
+    const ordered = [...keyed].sort((a, b) => {
       if (a.key === "" || b.key === "") return a.key === b.key ? 0 : a.key === "" ? 1 : -1;
       const x = numberIn(a.key);
       const y = numberIn(b.key);
@@ -455,11 +479,100 @@ export function sortRows(doc: Doc, sel: Selection, direction: "asc" | "desc" = "
       if (x !== undefined || y !== undefined) return x !== undefined ? -1 : 1;
       return sign * a.key.localeCompare(b.key, undefined, { numeric: true, sensitivity: "base" });
     });
-    if (ordered.every((r, i) => r.row === i + header)) return undefined;
-    const moved = new Map<number, number>(ordered.map((r, i) => [r.row, i + header]));
-    const to = (row: number): number => moved.get(row) ?? row;
-    const cells = grid.cells.map((p) => ({ ...p, row: to(p.row) }));
-    const heights = grid.heights.map((_, r) => grid.heights[[...moved].find(([, n]) => n === r)?.[0] ?? r] ?? null);
-    return { grid: { ...grid, cells, heights }, target: { row: to(at.row), col: at.col } };
+    if (ordered.every((g, i) => g === keyed[i])) return undefined;
+    const laid = relayRows(grid, header, ordered);
+    return { grid: laid.grid, target: { row: laid.to(at.row), col: at.col } };
   });
+}
+
+// ---- moving rows and columns ------------------------------------------------------------------------------
+
+type Group = { start: number; count: number };
+
+/** The grid with its row groups laid out again in the given order (after any header rows); heights go with their rows. */
+function relayRows(grid: Grid, header: number, ordered: readonly Group[]): { grid: Grid; to: (row: number) => number } {
+  const moved = new Map<number, number>();
+  let next = header;
+  for (const g of ordered) for (let k = 0; k < g.count; k++) moved.set(g.start + k, next++);
+  const to = (row: number): number => moved.get(row) ?? row;
+  const heights = grid.heights.map((_, r) => grid.heights[[...moved].find(([, n]) => n === r)?.[0] ?? r] ?? null);
+  return { grid: { ...grid, cells: grid.cells.map((p) => ({ ...p, row: to(p.row) })), heights }, to };
+}
+
+/** The runs of columns tied together by cells that span columns, each a start column and a count. */
+function colGroups(grid: Grid): Group[] {
+  const reach = Array.from({ length: grid.cols }, (_, c) => c);
+  for (const p of grid.cells) reach[p.col] = Math.max(reach[p.col] as number, Math.min(grid.cols - 1, p.col + p.cell.colspan - 1));
+  const groups: Group[] = [];
+  let c = 0;
+  while (c < grid.cols) {
+    let end = reach[c] as number;
+    for (let k = c; k <= end; k++) end = Math.max(end, reach[k] as number);
+    groups.push({ start: c, count: end - c + 1 });
+    c = end + 1;
+  }
+  return groups;
+}
+
+/** Where to put a group among the others: `by` steps up or down (-1, 1), or at the group holding row or column `to` (after it if `after`). */
+export type MoveTarget = { readonly by?: number; readonly to?: number; readonly after?: boolean };
+
+function reorder(groups: readonly Group[], from: number, target: MoveTarget, lowest: number): Group[] | undefined {
+  const at = from;
+  let insert: number;
+  if (target.by !== undefined) insert = at + (target.by < 0 ? -1 : target.by > 0 ? 1 : 0) + (target.by > 0 ? 1 : 0);
+  else if (target.to !== undefined) {
+    const holder = groups.findIndex((g) => target.to! >= g.start && target.to! < g.start + g.count);
+    if (holder === -1) return undefined;
+    insert = holder + (target.after ? 1 : 0);
+  } else return undefined;
+  if (insert < lowest) return undefined;
+  insert = Math.max(lowest, Math.min(groups.length, insert));
+  if (insert === at || insert === at + 1) return undefined;
+  const without = groups.filter((_, i) => i !== at);
+  const placed = insert > at ? insert - 1 : insert;
+  return [...without.slice(0, placed), groups[at] as Group, ...without.slice(placed)];
+}
+
+/** Moves the row the caret is in (with the rows tied to it by spanning cells), a step up or down or next to a given row. The caret goes with it. */
+export function moveRow(doc: Doc, sel: Selection, target: MoveTarget, cell?: Path): EditResult {
+  return edit(doc, sel, (grid, at) => {
+    const header = headerRows(grid);
+    const groups = rowGroups(grid, header);
+    const from = groups.findIndex((g) => at.row >= g.start && at.row < g.start + g.count);
+    if (from === -1) return undefined;
+    const ordered = reorder(groups, from, target, 0);
+    if (!ordered) return undefined;
+    const laid = relayRows(grid, header, ordered);
+    return { grid: laid.grid, target: { row: laid.to(at.row), col: at.col } };
+  }, false, cell ?? sel.focus.path);
+}
+
+/** Moves the column the caret is in (with the columns tied to it by spanning cells), a step left or right or next to a given column. */
+export function moveColumn(doc: Doc, sel: Selection, target: MoveTarget, cell?: Path): EditResult {
+  return edit(doc, sel, (grid, at) => {
+    const groups = colGroups(grid);
+    const from = groups.findIndex((g) => at.col >= g.start && at.col < g.start + g.count);
+    if (from === -1) return undefined;
+    const ordered = reorder(groups, from, target, 0);
+    if (!ordered) return undefined;
+    const moved = new Map<number, number>();
+    let next = 0;
+    for (const g of ordered) for (let k = 0; k < g.count; k++) moved.set(g.start + k, next++);
+    const to = (col: number): number => moved.get(col) ?? col;
+    const widths = grid.widths.map((_, c) => grid.widths[[...moved].find(([, n]) => n === c)?.[0] ?? c] ?? null);
+    return { grid: { ...grid, cells: grid.cells.map((p) => ({ ...p, col: to(p.col) })), widths }, target: { row: at.row, col: to(at.col) } };
+  }, false, cell ?? sel.focus.path);
+}
+
+/** Whether the row (or column) the caret is in can move a step in that direction. */
+export function canMove(doc: Doc, path: Path, axis: "row" | "column", by: -1 | 1): boolean {
+  const here = locate(doc, path);
+  const table = here && getBlock(doc, here.table);
+  if (!here || table?.type !== "table") return false;
+  const grid = toGrid(table);
+  const groups = axis === "row" ? rowGroups(grid, headerRows(grid)) : colGroups(grid);
+  const place = axis === "row" ? here.placed.row : here.placed.col;
+  const index = groups.findIndex((g) => place >= g.start && place < g.start + g.count);
+  return index !== -1 && index + by >= 0 && index + by < groups.length;
 }

@@ -62,9 +62,14 @@ a width alone drops the old height, so the picture keeps its proportions; an emp
   in the middle, empty (or `null`) leaves it in the line. It is written as `style` on the `<img>` (`float: left; margin: 0 1em 0.5em 0;`,
   `float: right; margin: 0 0 0.5em 1em;`, `display: block; margin: 0 auto;`) and read back from the same, from `margin: auto` on a block, and
   from the old `align` attribute. Any other style on an image is dropped.
-- **Caption** (`caption`): text, no formatting. A caption belongs to a picture alone in its paragraph, and that paragraph is written as
+- **Caption** (`caption`): text, no formatting. A picture alone in its paragraph with a caption is written as
   `<figure><img …><figcaption>…</figcaption></figure>`; a `<figure>` with one picture and one caption is read the same way, with the
   figure's `text-align` as the paragraph's alignment. A captioned picture is placed by its paragraph (the alignment buttons), not by `align`.
   The caption is drawn under the picture and is not text of the document: the caret passes it, and it is changed in the dialog.
-  Setting a caption on a picture that has text beside it does nothing, and adding text beside a captioned picture ends the figure: the
-  caption is not kept, because HTML has no place for a caption in the middle of a line.
+  With text beside the picture there is no place for a caption in HTML, so it is kept in a `data-caption` attribute on the `<img>`, read
+  back from there, and shows again when the picture is alone in its paragraph.
+
+## Moving and touch
+
+An image can be dragged to another place in the text (all three engines). On a touch screen, tapping an image selects it and its corner
+handle follows a finger (checked with touch events in Chromium). Dragging an image by touch is left to the browser.

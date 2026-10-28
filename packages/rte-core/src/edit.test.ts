@@ -141,3 +141,17 @@ test("moving across blocks", () => {
   const range: Selection = { anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 3 } };
   assert.equal(html(moveSelection(d, range, { path: [2], offset: 3 }, false)), "<p></p><p>bbb</p><p>cccaaa</p>");
 });
+
+test("transposeChars swaps the characters either side of the caret, or the last two at the end, and keeps each one's formatting", async () => {
+  const { transposeChars } = await import("./edit.ts");
+  const { importHtml } = await import("./import.ts");
+  const { exportHtml } = await import("./export.ts");
+  const { caret } = await import("./path.ts");
+  const run = (html: string, offset: number) => exportHtml(transposeChars(importHtml(html), caret({ path: [0], offset })).doc);
+  assert.equal(run("<p>abcd</p>", 2), "<p>acbd</p>");
+  assert.equal(run("<p>abcd</p>", 4), "<p>abdc</p>", "at the end, the last two");
+  assert.equal(run("<p>a<b>b</b>cd</p>", 2), "<p>a<strong>c</strong>bd</p>".replace("<strong>c</strong>b", "c<strong>b</strong>"), "each keeps its mark");
+  assert.equal(run("<p>abcd</p>", 0), "<p>abcd</p>", "nothing before the caret");
+  assert.equal(run("<p>a</p>", 1), "<p>a</p>", "one character");
+  assert.equal(run("<p>a<br>b</p>", 2), "<p>a<br>b</p>", "a line break is not swapped");
+});

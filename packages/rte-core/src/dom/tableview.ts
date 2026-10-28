@@ -1,6 +1,7 @@
 // What the view adds on top of drawing a table: the cells a selection covers are marked so they can be styled, and a column edge can
 // be dragged to set the column's width. Both work from the model's grid, and neither changes the document except through a command.
 import type { Engine } from "../engine.ts";
+import { pathKey } from "../path.ts";
 import { inRow, locateCell, selectedCells } from "../tablegrid.ts";
 import { posFromDom } from "./render.ts";
 
@@ -24,7 +25,9 @@ export class CellMarks {
   constructor(private readonly root: HTMLElement, private readonly engine: Engine, private readonly quiet: () => void) {}
 
   update(): void {
-    const found = selectedCells(this.engine.document, this.engine.selection);
+    // A caret, or a selection inside one container, covers no cells to mark.
+    const sel = this.engine.selection;
+    const found = pathKey(sel.anchor.path) === pathKey(sel.focus.path) ? undefined : selectedCells(this.engine.document, sel);
     const next: HTMLElement[] = [];
     // A table at the top level is the one case drawn with a plain row-and-cell structure to look cells up in.
     if (found && found.count > 1 && found.where.table.length === 1) {

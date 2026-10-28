@@ -3,7 +3,7 @@ import type { CommandDef } from "../commands.ts";
 import type { EditorSnapshot } from "../engine.ts";
 import { SIDES, type Side } from "../cellborder.ts";
 import type { KeyBinding } from "../keymap.ts";
-import { canSort, sortRows, cellBackground, cellBorderPreset, hasEdgeLine, toggleEdgeLine, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setTableBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
+import { canMove, canSort, moveColumn, moveRow, sortRows, cellBackground, cellBorderPreset, hasEdgeLine, toggleEdgeLine, columnWidth, canMerge, canSplit, deleteColumn, deleteRow, deleteTable, hasHeaderRow, inTable, insertColumn, insertRow, insertTable, mergeCells, moveToCell, rowHeight, setCellBackground, setCellBorder, setTableBorder, setColumnWidth, setRowHeight, splitCell, toggleHeaderRow, type InsertTableOptions } from "./tables.ts";
 
 type Def = CommandDef<never, unknown>;
 const def = <A, V>(d: CommandDef<A, V>): Def => d as unknown as Def;
@@ -58,6 +58,17 @@ export function tableCommands(): readonly Def[] {
       run: (ctx) => ctx.apply("table", (doc, sel) => toggleEdgeLine(doc, sel, side)),
       state: (s) => ({ enabled: here(s), active: hasEdgeLine(s.doc, s.selection, side) }),
     })),
+    // `cell` is for a dragged grip: the row or column of that cell, rather than the caret's.
+    def<{ readonly by?: number; readonly to?: number; readonly after?: boolean; readonly cell?: readonly number[] } | undefined, never>({
+      name: "table.moveRow", label: "Move row",
+      run: (ctx, arg) => ctx.apply("table", (doc, sel) => moveRow(doc, sel, arg ?? {}, arg?.cell as number[] | undefined)),
+      state: (s) => ({ enabled: canMove(s.doc, s.selection.focus.path, "row", -1) || canMove(s.doc, s.selection.focus.path, "row", 1) }),
+    }),
+    def<{ readonly by?: number; readonly to?: number; readonly after?: boolean; readonly cell?: readonly number[] } | undefined, never>({
+      name: "table.moveColumn", label: "Move column",
+      run: (ctx, arg) => ctx.apply("table", (doc, sel) => moveColumn(doc, sel, arg ?? {}, arg?.cell as number[] | undefined)),
+      state: (s) => ({ enabled: canMove(s.doc, s.selection.focus.path, "column", -1) || canMove(s.doc, s.selection.focus.path, "column", 1) }),
+    }),
     def<"asc" | "desc" | { readonly direction?: "asc" | "desc" } | undefined, never>({
       name: "table.sort", label: "Sort rows",
       run: (ctx, arg) => ctx.apply("table", (doc, sel) => sortRows(doc, sel, (typeof arg === "string" ? arg : arg?.direction) === "desc" ? "desc" : "asc")),

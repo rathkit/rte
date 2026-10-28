@@ -72,6 +72,54 @@ for (const [name, type] of engines) {
   const t = await open(type, name === "chromium" ? { permissions: ["clipboard-read", "clipboard-write"] } : {});
   const { page, html, reset, select } = t;
 
+  // --- input types the browser asks for by name that are not typing
+  const beforeInput = (inputType, data) => page.evaluate(([t, d]) => document.getElementById("ed").dispatchEvent(new InputEvent("beforeinput", { inputType: t, data: d, bubbles: true, cancelable: true })), [inputType, data]);
+  await reset("<p>abcd</p>");
+  await select({ start: "p", so: 2, eo: 2 });
+  await beforeInput("insertTranspose");
+  check(`${name} a transpose request swaps the characters round the caret`, (await html()) === "<p>acbd</p>", await html());
+  await reset("<p>one</p>");
+  await select({ start: "p", so: 3, eo: 3 });
+  await beforeInput("insertFromYank", " two");
+  check(`${name} a yank request inserts the text`, (await html()).replace(/&nbsp;/g, " ") === "<p>one two</p>", await html());
+  await reset("<p>one two</p>");
+  await select({ start: "p", so: 0, eo: 3 });
+  // Chromium turns an input type it does not know into an empty one when the event is made, so it never sends these two.
+  if (name !== "chromium") {
+    await beforeInput("deleteContent");
+    check(`${name} a delete-content request deletes the selection`, (await html()) === "<p> two</p>" || (await html()) === "<p>&nbsp;two</p>", await html());
+  }
+  await reset("<p>one</p>");
+  await select({ start: "p", so: 1, eo: 1 });
+  await beforeInput("insertOrderedList");
+  check(`${name} an ordered list request makes a numbered list`, (await html()) === "<ol><li>one</li></ol>", await html());
+  // A soft line is a line as the page wraps it: the test finds where the lines break, puts the caret in the middle of the second one,
+  // and checks each request against the text worked out from those breaks.
+  await page.evaluate(() => { document.getElementById("ed").style.width = "160px"; });
+  const text = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi";
+  await reset(`<p>${text}</p>`);
+  const lines = await page.evaluate(() => {
+    const n = document.querySelector("#ed p").firstChild; const out = []; let top = null;
+    for (let i = 0; i < n.length; i++) { const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1); const t = Math.round(r.getBoundingClientRect().top); if (top === null || t > top + 5) { out.push(i); top = t; } }
+    return out;
+  });
+  check(`${name} the test paragraph wraps onto at least three lines`, lines.length >= 3, lines);
+  const lineStart = lines[1];
+  const lineEnd = lines[2];
+  const mid = Math.floor((lineStart + lineEnd) / 2);
+  const lineCheck = async (inputType, expected, label) => {
+    await reset(`<p>${text}</p>`);
+    await select({ start: "p", so: mid, eo: mid });
+    await beforeInput(inputType);
+    const got = (await html()).replace(/&nbsp;/g, " ");
+    // A space at the wrap belongs to the line before it or the line after it, depending on the browser; ignore only that.
+    check(`${name} ${label}`, got.replace(/ /g, "") === `<p>${expected}</p>`.replace(/ /g, ""), { got, expected });
+  };
+  await lineCheck("deleteSoftLineBackward", text.slice(0, lineStart) + text.slice(mid), "deleting to the start of a soft line takes from the start of that line to the caret");
+  await lineCheck("deleteSoftLineForward", text.slice(0, mid) + text.slice(lineEnd), "deleting to the end of a soft line takes from the caret to the end of that line");
+  if (name !== "chromium") await lineCheck("deleteEntireSoftLine", text.slice(0, lineStart) + text.slice(lineEnd), "deleting the entire soft line takes that line only");
+  await page.evaluate(() => { document.getElementById("ed").style.width = ""; });
+
   // --- typed shortcuts
   for (const [typed, out] of [["## Title", "<h2>Title</h2>"], ["> quoted", "<blockquote><p>quoted</p></blockquote>"], ["a **b** c", "<p>a <strong>b</strong> c</p>"], ["`x` y", "<p><code>x</code> y</p>"], ["see https://example.test/a now", '<p>see <a href="https://example.test/a">https://example.test/a</a> now</p>']]) {
     await reset("");
@@ -282,6 +330,36 @@ for (const [name, type] of engines) {
   await page.click("#ed tr:nth-child(1) td:nth-child(1)");
   await page.evaluate(() => window.__editor.commands.run("table.sort", "asc"));
   check(`${name} sorting puts the rows in order`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td></tr><tr><td>b</td></tr><tr><td>c</td></tr></table><p>z</p>", await html());
+  // Grips on the table the caret is in: drag the row's or the column's to move it.
+  await reset("<table><tbody><tr><td>a1</td><td>a2</td><td>a3</td></tr><tr><td>b1</td><td>b2</td><td>b3</td></tr><tr><td>c1</td><td>c2</td><td>c3</td></tr></tbody></table><p>z</p>");
+  await page.click("#ed tr:nth-child(1) td:nth-child(1)");
+  await page.waitForTimeout(60);
+  const gripBox = (kind) => page.evaluate((k) => { const g = document.querySelector(`[data-rk-grip="${k}"]`); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }, kind);
+  check(`${name} a table with the caret in it has a row grip and a column grip, and no resize grips for a mouse`, !!(await gripBox("row")) && !!(await gripBox("column")) && !(await gripBox("width")) && !(await gripBox("height")), [await gripBox("row"), await gripBox("column")]);
+  const rowStart = await gripBox("row");
+  const lastRow = await centerOf("#ed tr:nth-child(3) td:nth-child(1)");
+  await page.mouse.move(rowStart.x, rowStart.y);
+  await page.mouse.down();
+  await page.mouse.move(lastRow.x, lastRow.y + 14, { steps: 5 });
+  check(`${name} dragging the row grip shows a guide`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === true, "line");
+  await page.mouse.up();
+  await page.waitForTimeout(80);
+  check(`${name} letting go moves the row there`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>b1</td><td>b2</td><td>b3</td></tr><tr><td>c1</td><td>c2</td><td>c3</td></tr><tr><td>a1</td><td>a2</td><td>a3</td></tr></table><p>z</p>", await html());
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} and one undo takes it back`, (await html()).replace(/<\/?tbody>/g, "").startsWith("<table><tr><td>a1</td>"), await html());
+  await page.click("#ed tr:nth-child(1) td:nth-child(1)");
+  await page.waitForTimeout(60);
+  const colStart = await gripBox("column");
+  const lastCol = await centerOf("#ed tr:nth-child(1) td:nth-child(3)");
+  await page.mouse.move(colStart.x, colStart.y);
+  await page.mouse.down();
+  await page.mouse.move(lastCol.x + 20, lastCol.y, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(80);
+  check(`${name} dragging the column grip moves the column`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a2</td><td>a3</td><td>a1</td></tr><tr><td>b2</td><td>b3</td><td>b1</td></tr><tr><td>c2</td><td>c3</td><td>c1</td></tr></table><p>z</p>", await html());
+  await page.evaluate(() => window.__editor.engine.setFocused(false));
+  await page.waitForTimeout(60);
+  check(`${name} the grips go when the editor loses focus`, !(await gripBox("row")), "grip");
   // Dragging the bottom edge of a row sets its height; a double-click puts it back to automatic.
   await reset("<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>");
   await page.click("#ed tr:nth-child(2) td:nth-child(1)");
@@ -1027,6 +1105,19 @@ for (const [name, type] of engines) {
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(80);
   check(`${name} (ui) the arrow key alone moves past it and drops the selection`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 0) && (await page.locator("[data-rk-resize-handle]").count()) === 0);
+  // An image can be dragged to another place in the text.
+  await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>first<img src="${src}" alt="dot" width="40"></p><p>second line</p>`); e.focus(); }, pixel);
+  await page.waitForTimeout(80);
+  const moving = await page.locator("#root [data-rk-part=content] img").boundingBox();
+  const target = await page.locator("#root [data-rk-part=content] p").nth(1).boundingBox();
+  await page.mouse.click(moving.x + moving.width / 2, moving.y + moving.height / 2);
+  await page.waitForTimeout(60);
+  await page.mouse.move(moving.x + moving.width / 2, moving.y + moving.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(target.x + 30, target.y + target.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  check(`${name} (ui) dragging an image moves it to where it is dropped`, await page.evaluate(() => /^<p>first<\/p><p>.*<img [^>]*>.*<\/p>$/.test(window.__one.editor.getHtml()) && !/^<p>first<img/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml().replace(/src="[^"]*"/g, "src=…")));
   // Position and caption, from the properties dialog.
   await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p><img src="${src}" alt="dot" width="40"></p><p>after</p>`); e.focus(); }, pixel);
   await page.waitForTimeout(60);
@@ -1261,6 +1352,47 @@ for (const [name, type] of engines) {
     await page.waitForTimeout(800);
     check(`${name} (narrow) tapping a button leaves no tooltip over it`, await page.evaluate(() => document.querySelector("#root [data-rk-part=tooltip]").hidden), "tip");
   }
+  if (touch) {
+    // A finger brings up grips on the cell's right and bottom edges, which a finger can hold where a thin edge could not be.
+    await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>"); });
+    await page.waitForTimeout(80);
+    await page.tap("#root [data-rk-part=content] td");
+    await page.waitForTimeout(100);
+    const grip = (kind) => page.evaluate((k) => { const g = document.querySelector(`[data-rk-grip="${k}"]`); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, w: b.width }; }, kind);
+    check(`${name} (narrow) a touch on a table cell shows the width and height grips, big enough for a finger`, !!(await grip("width")) && !!(await grip("height")) && (await grip("width")).w >= 22, [await grip("width"), await grip("height")]);
+    if (name === "chromium") {
+      const cdp = await page.context().newCDPSession(page);
+      const touch = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
+      const g = await grip("width");
+      const before = await page.evaluate(() => document.querySelector("#root [data-rk-part=content] td").getBoundingClientRect().width);
+      await touch("touchStart", g.x, g.y);
+      for (let i = 1; i <= 5; i++) await touch("touchMove", g.x + i * 8, g.y);
+      await touch("touchEnd", 0, 0);
+      await page.waitForTimeout(100);
+      check(`${name} (narrow) dragging the width grip with a finger sets the column width`, await page.evaluate(() => /<col style="width: \d+px">/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
+      const h = await grip("height");
+      await touch("touchStart", h.x, h.y);
+      for (let i = 1; i <= 5; i++) await touch("touchMove", h.x, h.y + i * 6);
+      await touch("touchEnd", 0, 0);
+      await page.waitForTimeout(100);
+      check(`${name} (narrow) dragging the height grip with a finger sets the row height`, await page.evaluate(() => /<tr style="height: \d+px">/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
+      void before;
+      // The same with an image: a tap selects it, and its corner handle follows a finger.
+      await page.evaluate((src) => { window.__one.editor.setHtml(`<p>a<img src="${src}" alt="dot" width="60">b</p>`); }, onePixelPng());
+      await page.waitForTimeout(80);
+      await page.tap("#root [data-rk-part=content] img");
+      await page.waitForTimeout(100);
+      const corner = await page.evaluate(() => { const g = document.querySelector("[data-rk-resize-handle]"); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+      check(`${name} (narrow) a tap on an image selects it and shows the resize handle`, !!corner, corner);
+      if (corner) {
+        await touch("touchStart", corner.x, corner.y);
+        for (let i = 1; i <= 5; i++) await touch("touchMove", corner.x + i * 8, corner.y + i * 8);
+        await touch("touchEnd", 0, 0);
+        await page.waitForTimeout(100);
+        check(`${name} (narrow) dragging the handle with a finger resizes the image`, await page.evaluate(() => { const m = /width="(\d+)"/.exec(window.__one.editor.getHtml()); return !!m && Number(m[1]) > 60; }), await page.evaluate(() => window.__one.editor.getHtml().replace(/src="[^"]*"/, "src=…")));
+      }
+    }
+  }
   check(`${name} (narrow) no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
@@ -1367,6 +1499,11 @@ for (const [name, type] of engines) {
         check(`speed: ${n} paragraphs, every command within ${commandBudget} ms (p95)`, worst <= commandBudget * scale, r);
         check(`speed: ${n} paragraphs, set content within ${setBudget} ms`, r.set <= setBudget * scale, r);
       }
+    }
+    for (const [rows, cols] of [[100, 50], [200, 100]]) {
+      const big = await measureTable(rows, cols);
+      console.log(`speed${label} table of ${rows * cols} cells: set ${big.set.toFixed(1)} ms, type in one cell p95 ${big.type.toFixed(1)} ms, other cells redrawn ${big.redrawn - 1}`);
+      if (rate === 1) check(`speed: typing in a cell of a ${rows * cols}-cell table redraws that cell only`, big.sameTable && big.redrawn === 1, big);
     }
     const table = await measureTable(50, 10);
     console.log(`speed${label} table of 500 cells: set ${table.set.toFixed(1)} ms, type in one cell p95 ${table.type.toFixed(1)} ms`);

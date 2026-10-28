@@ -416,9 +416,11 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       const width = size(el.attrs.width);
       const height = size(el.attrs.height);
       const align = imageAlignOf(el, settings);
+      const caption = (el.attrs["data-caption"] ?? "").trim();
       sink.push({
         type: "image", src, ...(el.attrs.alt ? { alt: el.attrs.alt } : {}),
         ...(width !== undefined ? { width } : {}), ...(height !== undefined ? { height } : {}), ...(align ? { align } : {}),
+        ...(caption !== "" ? { caption: caption.slice(0, 1000) } : {}),
       });
       return;
     }

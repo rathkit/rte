@@ -4,17 +4,19 @@
 import { createEngine } from "../core.ts";
 import {
   caret, clampPos, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, extractSelection, insertBlocks, insertLineBreak,
-  insertText, isCollapsed, moveSelection, selectedText, splitBlock, type EditResult,
+  insertText, isCollapsed, moveSelection, selectedText, splitBlock, transposeChars, type EditResult,
 } from "../edit.ts";
 import type { Engine } from "../engine.ts";
 import type { Plugin } from "../plugin.ts";
 import { exportHtml } from "../export.ts";
 import { importBlocks, importHtml } from "../import.ts";
-import type { Block, Doc, MarkType } from "../model.ts";
+import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
 import { cellChain, getContent, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
+import { imageSelection } from "../imageselect.ts";
 import { ImageSelection } from "./imageview.ts";
+import { TableGrips } from "./tablegrips.ts";
 import { CellMarks, installColumnResize } from "./tableview.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
@@ -25,7 +27,7 @@ const INPUT_COMMANDS: Readonly<Record<string, readonly [string, unknown?]>> = {
   insertHorizontalRule: ["block.rule"], formatRemove: ["format.clear"],
   formatFontColor: ["format.color", "data"], formatBackColor: ["format.background", "data"],
   formatIndent: ["block.indent"], formatOutdent: ["block.outdent"],
-  insertLink: ["link.set", "href"],
+  insertLink: ["link.set", "href"], insertOrderedList: ["list.numbered"], insertUnorderedList: ["list.bulleted"],
   formatSetBlockTextDirection: ["block.direction", "data"],
 };
 
@@ -82,6 +84,7 @@ export class Editor {
   private readonly cleanups: (() => void)[] = [];
   private readonly cellMarks: CellMarks;
   private readonly imageSelection: ImageSelection;
+  private readonly tableGrips: TableGrips;
 
   constructor(options: EditorOptions) {
     this.element = options.element;
@@ -98,6 +101,8 @@ export class Editor {
     this.cellMarks = new CellMarks(this.element, this.engine, () => this.observer.takeRecords());
     this.imageSelection = new ImageSelection(this.element, this.engine, () => this.observer.takeRecords());
     this.cleanups.push(() => this.imageSelection.destroy());
+    this.tableGrips = new TableGrips(this.element, this.engine);
+    this.cleanups.push(() => this.tableGrips.destroy());
     this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
     for (const plugin of options.plugins ?? []) this.engine.use(plugin);
     // The document is read once the plugins are in, so what they teach the importer applies to it.
@@ -111,13 +116,18 @@ export class Editor {
     this.draw();
     // The page follows the model: after every change to the document it is drawn again, and a selection the editor set (not one
     // the page reported) is written to the page.
-    this.cleanups.push(this.engine.onTransaction((_snapshot, _previous, change) => {
+    let wasFocused = this.engine.snapshot.focused;
+    this.cleanups.push(this.engine.onTransaction((snapshot, _previous, change) => {
       if (change.docChanged) this.draw();
       else if (change.selectionChanged && !this.reading) this.writeSelection();
+      const focusMoved = snapshot.focused !== wasFocused;
+      wasFocused = snapshot.focused;
       if (change.docChanged || change.selectionChanged) {
         this.cellMarks.update();
         this.imageSelection.update();
       }
+      // The table handles belong to the editor having the focus, so they follow it as well as the caret.
+      if (change.docChanged || change.selectionChanged || focusMoved) this.tableGrips.update();
     }));
     installColumnResize(this.element, this.engine, (target, type, handler) => this.listen(target, type, handler), () => this.observer.takeRecords());
     this.listen(this.element, "focusin", () => this.engine.setFocused(true));
@@ -420,8 +430,19 @@ export class Editor {
         case "deleteContentForward": this.apply("delete", deleteForward); return true;
         case "deleteWordBackward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "backward", this.engine.behaviors)); return true;
         case "deleteWordForward": this.apply("delete", (doc, sel) => deleteWord(doc, sel, "forward", this.engine.behaviors)); return true;
-        case "deleteSoftLineBackward": case "deleteHardLineBackward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "backward")); return true;
-        case "deleteSoftLineForward": case "deleteHardLineForward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "forward")); return true;
+        case "deleteHardLineBackward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "backward")); return true;
+        case "deleteHardLineForward": this.apply("delete", (doc, sel) => deleteToEdge(doc, sel, "forward")); return true;
+        // A soft line is a line as the page wraps it, so where it begins and ends is asked of the page.
+        case "deleteSoftLineBackward": this.deleteVisualLine("backward"); return true;
+        case "deleteSoftLineForward": this.deleteVisualLine("forward"); return true;
+        case "deleteEntireSoftLine": this.deleteVisualLine("both"); return true;
+        case "deleteContent": this.apply("delete", deleteSelection); return true;
+        case "insertTranspose": this.apply("transpose", transposeChars); return true;
+        case "insertFromYank": {
+          const text = event.dataTransfer?.getData("text/plain") || event.data || "";
+          if (text !== "") this.apply("type", (doc, sel) => insertText(doc, sel, text.replace(/\r?\n/g, " ")));
+          return true;
+        }
         case "deleteByCut": case "deleteByDrag": this.apply("cut", deleteSelection); return true;
         case "historyUndo": this.undo(); return true;
         case "historyRedo": this.redo(); return true;
@@ -463,6 +484,33 @@ export class Editor {
     void handled;
   }
 
+  /**
+   * Deletes to the start or end of the line the caret is on as the page lays it out (or both, for the whole line). The page knows where
+   * a line wraps; the browser's own selection movement is asked to move to the line boundary, and the result is read back as positions.
+   * A selection is deleted as it is.
+   */
+  private deleteVisualLine(which: "backward" | "forward" | "both"): void {
+    this.readSelection();
+    const sel = this.engine.selection;
+    if (!isCollapsed(sel)) { this.apply("delete", deleteSelection); return; }
+    const domSel = document.getSelection();
+    const at = domFromPos(this.element, sel.focus);
+    if (!domSel || !at) { this.apply("delete", (doc, s) => deleteToEdge(doc, s, which === "forward" ? "forward" : "backward")); return; }
+    const edge = (direction: "backward" | "forward"): Pos | null => {
+      domSel.collapse(at.node, at.offset);
+      domSel.modify("extend", direction, "lineboundary");
+      const found = domSel.focusNode ? this.posOf(domSel.focusNode, domSel.focusOffset) : null;
+      domSel.collapse(at.node, at.offset);
+      return found;
+    };
+    const start = which === "forward" ? sel.focus : edge("backward") ?? { path: sel.focus.path, offset: 0 };
+    const end = which === "backward" ? sel.focus : edge("forward") ?? sel.focus;
+    // The line can run into the next container (a wrapped line ends where the block does); stay in this container.
+    const clampedStart = start.path.join(".") === sel.focus.path.join(".") ? start : { path: sel.focus.path, offset: 0 };
+    const clampedEnd = end.path.join(".") === sel.focus.path.join(".") ? end : { path: sel.focus.path, offset: inlineLength(getContent(this.engine.document, sel.focus.path)) };
+    this.apply("delete", (doc) => deleteSelection(doc, { anchor: clampedStart, focus: clampedEnd }));
+  }
+
   private onPaste(event: ClipboardEvent): void {
     event.preventDefault();
     if (this.engine.readOnly) return;
@@ -492,7 +540,12 @@ export class Editor {
   }
 
   private onDragStart(event: DragEvent): void {
-    this.readSelection();
+    // Dragging a picture drags that picture, whatever selection the browser made when it was pressed.
+    const dragged = event.target;
+    if (dragged instanceof HTMLImageElement && this.element.contains(dragged) && dragged.parentNode) {
+      const at = posFromDom(this.element, dragged.parentNode, [...dragged.parentNode.childNodes].indexOf(dragged as ChildNode));
+      if (at) this.engine.setSelection(imageSelection(at.path, at.offset));
+    } else this.readSelection();
     if (isCollapsed(this.engine.selection) || !event.dataTransfer) return;
     event.dataTransfer.setData("text/html", exportHtml({ blocks: extractSelection(this.engine.document, this.engine.selection) }));
     event.dataTransfer.setData("text/plain", selectedText(this.engine.document, this.engine.selection));

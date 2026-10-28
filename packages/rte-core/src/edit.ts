@@ -314,6 +314,23 @@ export function deleteToEdge(doc: Doc, sel: Selection, direction: "backward" | "
   return deleteSelection(doc, { anchor: pos, focus: other });
 }
 
+/**
+ * Swaps the two characters either side of the caret (at the end of the text, the last two), the way a transpose key does. The characters
+ * keep their own formatting. Nothing happens beside a line break or an image, or with fewer than two characters.
+ */
+export function transposeChars(doc: Doc, sel: Selection): EditResult {
+  if (!isCollapsed(sel)) return { doc, selection: sel };
+  const path = sel.anchor.path;
+  const content = getContent(doc, path);
+  const at = Math.min(sel.anchor.offset, inlineLength(content) - 1);
+  if (at < 1) return { doc, selection: sel };
+  // The two characters as runs of their own, so each keeps its formatting.
+  const [one, two] = [sliceInline(content, at - 1, at)[0], sliceInline(content, at, at + 1)[0]];
+  if (one?.type !== "text" || two?.type !== "text") return { doc, selection: sel };
+  const next = normalizeInline([...sliceInline(content, 0, at - 1), two, one, ...sliceInline(content, at + 1)]);
+  return { doc: setContent(doc, path, next), selection: caret({ path, offset: at + 1 }) };
+}
+
 // ---- marks ------------------------------------------------------------------------------------------------
 
 /** True when every character in the range already has the mark. */

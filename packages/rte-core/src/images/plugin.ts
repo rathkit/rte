@@ -141,9 +141,8 @@ export function images(options: ImagesOptions = {}): Plugin {
             const newWidth = width === undefined ? node.width : width ?? undefined;
             const newHeight = height === undefined ? (width === undefined ? node.height : undefined) : height ?? undefined;
             const newAlign = align === undefined ? node.align : align ?? undefined;
-            // A caption belongs to an image alone in its paragraph; beside text it is not kept.
-            const alone = content.length === 1;
-            const newCaption = arg?.caption === undefined ? node.caption : arg.caption === null || arg.caption.trim() === "" ? undefined : alone ? arg.caption.trim() : node.caption;
+            // A caption shows under an image alone in its paragraph; beside text it is kept, and comes back when the text goes.
+            const newCaption = arg?.caption === undefined ? node.caption : arg.caption === null || arg.caption.trim() === "" ? undefined : arg.caption.trim();
             const changed: Inline = { ...rest, ...(alt !== undefined ? { alt } : {}), ...(newWidth !== undefined ? { width: newWidth } : {}), ...(newHeight !== undefined ? { height: newHeight } : {}), ...(newAlign ? { align: newAlign } : {}), ...(newCaption ? { caption: newCaption } : {}) };
             const next = ops.normalizeInline([...ops.sliceInline(content, 0, target.offset), changed, ...ops.sliceInline(content, target.offset + 1)]);
             return { doc: ops.setContent(doc, target.path, next), selection: sel };
@@ -168,7 +167,7 @@ export function images(options: ImagesOptions = {}): Plugin {
           { name: "width", type: "text", label: "Width in px (empty for the image's own)" },
           { name: "height", type: "text", label: "Height in px (empty to keep the proportions)" },
           { name: "align", type: "choice", label: "Position", choices: [{ value: "", label: "In the line" }, { value: "left", label: "Left, text wraps round it" }, { value: "right", label: "Right, text wraps round it" }, { value: "center", label: "Centered on its own line" }] },
-          { name: "caption", type: "text", label: "Caption (for an image alone in its paragraph)" },
+          { name: "caption", type: "text", label: "Caption (shown under an image that is alone in its paragraph)" },
         ],
       });
       host.ui("toolbar.main", {

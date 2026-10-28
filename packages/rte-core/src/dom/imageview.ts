@@ -21,17 +21,17 @@ export class ImageSelection {
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
     this.stops.push(() => window.removeEventListener("scroll", reposition, true), () => window.removeEventListener("resize", reposition));
-    // A click on an image selects it (the browser would put the caret beside it).
-    const click = (e: Event): void => {
+    // A press on an image selects it. The press is not cancelled, so that the image can still be dragged to another place.
+    const select = (e: Event): void => {
       const target = e.target;
       if (!(target instanceof HTMLImageElement) || !this.root.contains(target) || this.engine.readOnly) return;
       const at = posFromDom(this.root, target.parentNode as Node, [...(target.parentNode as Node).childNodes].indexOf(target));
-      if (!at) return;
-      e.preventDefault();
-      this.engine.setSelection(imageSelection(at.path, at.offset));
+      if (at) this.engine.setSelection(imageSelection(at.path, at.offset));
     };
-    this.root.addEventListener("mousedown", click);
-    this.stops.push(() => this.root.removeEventListener("mousedown", click));
+    this.root.addEventListener("mousedown", select);
+    // The browser puts its own selection in once the press is over (a caret beside the image, in some), so it is made again.
+    this.root.addEventListener("click", select);
+    this.stops.push(() => this.root.removeEventListener("mousedown", select), () => this.root.removeEventListener("click", select));
   }
 
   /** The drawn element of the selected image, or undefined. */

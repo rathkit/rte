@@ -32,7 +32,8 @@ dropped. Cell styles are read when a document is loaded, not from a paste, like 
 | `table.cellBorder` | `default`, `none`, `thin`, `thick`, `dashed`, `dotted`, or `{ style, width, color }`; with `sides: ["top", ...]` (and `line: <preset>` in place of the style) only those edges of the selection | The lines of the selected cells. `default` says nothing; `none` says there are none. The presets use the text color, so they read on any theme. Value: the preset name of the first cell, `""` for sides that differ or a custom line |
 | `table.borderTop`, `table.borderRight`, `table.borderBottom`, `table.borderLeft` | | A thin line along that edge of the selection (the cells on that edge, that side only), on or off; off is `none`. `active` says whether the edge has a line |
 | `table.border` | the same choices as `table.cellBorder` | Lines for the whole table from any cell in it: every cell, or with `sides` only the table's outline. The styled interface has a Table lines menu. |
-| `table.sort` | `"asc"` or `"desc"` | Puts the rows in order by the column of the caret's cell: numbers (`1,200`, `$5`, `12%`) by value and before text, text by the user's language with digits in order, empty cells last either way. A header row stays first, the sort is stable, a row's height moves with it, and the caret stays in its cell. Off for a table with a cell that spans rows |
+| `table.sort` | `"asc"` or `"desc"` | Puts the rows in order by the column of the caret's cell: numbers (`1,200`, `$5`, `12%`) by value and before text, text by the user's language with digits in order, empty cells last either way. A header row stays first, the sort is stable, a row's height moves with it, and the caret stays in its cell. Rows tied together by a cell that spans rows move as one group, ordered by the group's first row; off when there is only one group to order |
+| `table.moveRow`, `table.moveColumn` | `{ by }` (-1 or 1), or `{ to, after }` | Moves the caret's row or column a step, or next to the row or column `to` (after it with `after`). Rows or columns tied by a spanning cell move together, a header row stays first, and heights and widths move with them. `cell` names another cell's row or column (used by the grips) |
 | `table.rowHeight` | `{ height }` | The least height of the rows the selection covers: `40`, `40px`, or empty for automatic |
 | `table.nextCell`, `table.previousCell` | Tab and Shift+Tab. Tab past the last cell adds a row; Shift+Tab in the first cell is left to the browser. Lists inside a cell get Tab first |
 
@@ -69,8 +70,19 @@ Dragging the mouse from one cell to another selects the rectangle between them i
 
 A table pasted with the caret (or a selection) in a table cell fills the cells, cell by cell, from the selected cell, as pasting copied spreadsheet cells into a spreadsheet does; the table grows by blank rows and columns for what does not fit. Each filled cell keeps its own kind (header or not) and size and takes the pasted cell's content, and its fill and line if the pasted cell has them. One pasted cell fills every selected cell. This is in the core, so it holds without the plugin. Plain text with tabs between cells and a line to a row (as a spreadsheet or terminal copies it) pasted into a table is read as cells the same way.
 
+## Handles
+
+While the caret is in a table (at the top level of the document) and the editor has the focus, two handles sit outside it: a square left of the
+caret's row and one above its column. Dragging the row handle up or down, or the column handle left or right, shows a guide and, on release,
+runs `table.moveRow` or `table.moveColumn` (one undo step). The Table menu has Move row up and down and Move column left and right for the
+keyboard. When the last pointer used was a finger, two more handles sit on the caret's cell, at its right and bottom edge, to set the column's
+width and the row's height (`table.columnWidth`, `table.rowHeight`), because the thin edges are not something a finger can hold. They are
+elements outside the document. Touch dragging is checked with touch events in Chromium; Firefox has no touch emulation to check it with.
+
+## Large tables
+
+A change to a cell redraws that cell only, and everything that reads the table's grid reads it once per table, so the editor's own cost of a keystroke does not grow with the table. The browser's layout of the table does. In Chromium typing in a cell takes about 9 ms at 5,000 cells and 24 ms at 20,000 (`MEASUREMENTS.md` has the figures and the method).
+
 ## Not built
 
-- Sorting a table that has a cell spanning rows, and moving a column or a row by dragging it.
-- Touch input for dragging column and row edges has not been tried.
-- A table is still drawn again cell by cell on a change; very large tables have not been measured.
+- Sorting or moving by dragging several rows or columns at once, and moving a cell on its own.

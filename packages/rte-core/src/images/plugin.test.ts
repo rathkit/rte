@@ -191,6 +191,10 @@ test("image position and captions: written and read back, and set by image.updat
   assert.equal(engine.commands.run("image.update", { caption: null, align: "" }), true);
   assert.equal(exportHtml(engine.document), `<p><img src="${src}"></p><p>a<img src="${src}">b</p>`);
   engine.setSelection(imageSelection([1], 1));
-  assert.equal(engine.commands.run("image.update", { align: "right", caption: "nope" }), true);
-  assert.equal(exportHtml(engine.document), `<p><img src="${src}"></p><p>a<img src="${src}" style="float: right; margin: 0 0 0.5em 1em;">b</p>`, "beside text it floats, and keeps no caption");
+  assert.equal(engine.commands.run("image.update", { align: "right", caption: "kept" }), true);
+  const beside = `<p><img src="${src}"></p><p>a<img src="${src}" style="float: right; margin: 0 0 0.5em 1em;" data-caption="kept">b</p>`;
+  assert.equal(exportHtml(engine.document), beside, "beside text it floats, and the caption is kept in an attribute");
+  assert.equal(exportHtml(importHtml(beside)), beside, "and read back from it");
+  const alone = importHtml(`<p><img src="${src}" data-caption="Back"></p>`);
+  assert.equal(exportHtml(alone), `<figure><img src="${src}"><figcaption>Back</figcaption></figure>`, "alone in its paragraph, the kept caption is a figure again");
 });
