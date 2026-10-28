@@ -17,7 +17,8 @@ The first alpha. Published to the `next` dist-tag only, never `latest`. Eleven p
 ### Editing
 
 - Text: links that can open in a new tab, bold, italic, underline, strikethrough, code, superscript, subscript, text and highlight colors, links, images (resizable by dragging a corner or in a properties dialog, with a description, a position beside text and a caption; by address, paste or drop), special characters, clear formatting.
-- Tables: sort rows by a column (numbers by value, text by language), and drag a row's bottom edge to set its height.
+- Lists: marker style and starting number from a menu, and several paragraphs in one item.
+- Tables: move rows and columns (a step, or by dragging a handle), handles for a finger, large tables measured; sort rows by a column (numbers by value, text by language), and drag a row's bottom edge to set its height.
 - Typed shortcuts: headings, quotes, code blocks, rules, bold, italic, strike, code spans and web addresses turn into formatting as they are typed (the `autoformat` plugin; each kind can be turned off).
 - Blocks: paragraphs, headings, block quotes, code blocks, horizontal rules, alignment, reading direction, indent.
 - Lists: bulleted, numbered, definition and task lists with nesting, Tab and Shift+Tab, and typed shortcuts.

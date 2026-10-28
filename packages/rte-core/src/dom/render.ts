@@ -44,7 +44,16 @@ const isRemote = (src: string): boolean => /^https?:/i.test(src) || src.startsWi
 
 function renderInline(parent: HTMLElement, content: readonly Inline[], options: RenderOptions): void {
   for (const node of content) {
-    if (node.type === "br") parent.appendChild(document.createElement("br"));
+    if (node.type === "br") {
+      parent.appendChild(document.createElement("br"));
+      // A paragraph break leaves a gap, drawn by an empty element that is not text of the document.
+      if (node.paragraph) {
+        const gap = document.createElement("span");
+        gap.setAttribute("data-rte-gap", "");
+        gap.style.cssText = "display: block; height: 0.6em;";
+        parent.appendChild(gap);
+      }
+    }
     else if (node.type === "image") {
       const img = document.createElement("img");
       // The address stays in the model. Without permission the view holds it in an attribute and loads nothing.

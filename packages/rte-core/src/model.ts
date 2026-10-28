@@ -15,6 +15,8 @@ export interface TextRun {
 }
 export interface LineBreak {
   readonly type: "br";
+  /** In a list item: a break between two paragraphs of the item, written as `</p><p>`, not as `<br>`. */
+  readonly paragraph?: true;
 }
 export interface Image {
   readonly type: "image";

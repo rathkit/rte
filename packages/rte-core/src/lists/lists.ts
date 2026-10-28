@@ -1,7 +1,7 @@
 // List commands: turning blocks into list items and back, moving items in and out, and the typed shortcuts.
 // Pure functions over the document, like the rest of the edit operations.
 import type { ContainerBehavior } from "../behaviors.ts";
-import { sliceInline } from "../edit.ts";
+import { deleteSelection, sliceInline } from "../edit.ts";
 import { inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type ListItem } from "../model.ts";
 import {
   caret, clampPos, containerPaths, selectedContainers, fixup, getBlock, getContent, isCollapsed, kindAt, mapBlockList, pathKey, setContent,
@@ -138,21 +138,62 @@ function withOptions(list: List, options: ListOptions): List {
   };
 }
 
-/** Changes the type of the list that directly holds an item. Nested lists change on their own. */
-function retypeListOf(doc: Doc, itemPath: Path, type: "ul" | "ol", options: ListOptions): Doc {
+/** Changes the list that directly holds an item (not the lists around it or inside it) with `change`. */
+function updateListOf(doc: Doc, itemPath: Path, change: (list: List) => List): Doc {
   const loc = locateItem(doc, itemPath);
   const root = loc ? getBlock(doc, loc.listBlock) : undefined;
   if (!loc || (root?.type !== "ul" && root?.type !== "ol")) return doc;
   const edit = (list: List, steps: readonly number[]): List => {
-    if (steps.length === 1) {
-      const { start: _drop, ...rest } = list;
-      void _drop;
-      return withOptions({ ...rest, type }, options);
-    }
+    if (steps.length === 1) return change(list);
     const [i, k] = steps as [number, number];
     return { ...list, items: list.items.map((item, idx) => (idx !== i ? item : { ...item, sublists: item.sublists.map((sub, s) => (s === k ? edit(sub, steps.slice(2)) : sub)) })) };
   };
   return replaceBlock(doc, loc.listBlock, [edit(root, loc.item)]);
+}
+
+/** Changes the type of the list that directly holds an item. Nested lists change on their own. */
+function retypeListOf(doc: Doc, itemPath: Path, type: "ul" | "ol", options: ListOptions): Doc {
+  return updateListOf(doc, itemPath, (list) => {
+    const { start: _drop, ...rest } = list;
+    void _drop;
+    return withOptions({ ...rest, type }, options);
+  });
+}
+
+/** The marker styles the list controls offer: CSS `list-style-type` keywords, for numbered lists and for bulleted ones. */
+export const LIST_STYLES: Readonly<Record<"ul" | "ol", readonly string[]>> = {
+  ol: ["decimal", "decimal-leading-zero", "lower-alpha", "upper-alpha", "lower-roman", "upper-roman", "lower-greek"],
+  ul: ["disc", "circle", "square"],
+};
+
+/** The list the selection starts in: its type, its marker style (absent: the default for its depth) and where it starts counting. */
+export function listStyleAt(doc: Doc, sel: Selection): { type: "ul" | "ol"; style?: string; start?: number } | undefined {
+  const path = selectedContainers(doc, sel)[0];
+  const held = path && kindAt(doc, path) === "li" ? listOfItem(doc, path) : undefined;
+  return held ? { type: held.list.type, ...(held.list.style !== undefined ? { style: held.list.style } : {}), ...(held.list.start !== undefined ? { start: held.list.start } : {}) } : undefined;
+}
+
+/**
+ * Sets the marker style and, for a numbered list, the number it starts at, of the list the selection starts in (only that list: lists
+ * inside it and around it keep theirs). `style` is one of `LIST_STYLES` for that kind of list, or null for the default; `start` is a
+ * whole number from 0 to 99999, or null for 1. Anything else changes nothing.
+ */
+export function setListStyle(doc: Doc, sel: Selection, change: { readonly style?: string | null; readonly start?: number | string | null }): EditResult {
+  const path = selectedContainers(doc, sel)[0];
+  const held = path && kindAt(doc, path) === "li" ? listOfItem(doc, path) : undefined;
+  if (!path || !held) return { doc, selection: sel };
+  const style = change.style === undefined ? undefined : change.style === null || change.style === "" ? null : LIST_STYLES[held.list.type].includes(change.style) ? change.style : false;
+  const raw = change.start;
+  const start = raw === undefined ? undefined : raw === null || raw === "" ? null : Number(raw);
+  if (style === false || (start !== undefined && start !== null && (held.list.type !== "ol" || !Number.isInteger(start) || start < 0 || start > 99999))) return { doc, selection: sel };
+  const next = updateListOf(doc, path, (list) => {
+    const { style: _s, start: _t, ...rest } = list;
+    void [_s, _t];
+    const newStyle = style === undefined ? list.style : style ?? undefined;
+    const newStart = start === undefined ? list.start : start === null || start === 1 ? undefined : start;
+    return { ...rest, ...(newStyle !== undefined ? { style: newStyle } : {}), ...(newStart !== undefined ? { start: newStart } : {}) };
+  });
+  return { doc: next, selection: carry(doc, next, sel) };
 }
 
 const sameKind = (a: List | undefined, type: "ul" | "ol", options: ListOptions): a is List =>
@@ -352,6 +393,21 @@ export function listShortcut(doc: Doc, sel: Selection): EditResult | undefined {
   const target = containerPaths(result.doc).find((p) => getContent(result.doc, p) === getContent(emptied, path)) ?? path;
   const made = task === undefined ? result.doc : setChecked(result.doc, target, task);
   return { doc: made, selection: caret({ path: target, offset: 0 }) };
+}
+
+// ---- paragraphs inside an item ----------------------------------------------------------------------------
+
+/**
+ * Starts a new paragraph inside the list item the caret is in, instead of a new item: the item then reads as two paragraphs under one
+ * marker. A selection is replaced. Does nothing outside a list item.
+ */
+export function insertItemParagraph(doc: Doc, sel: Selection): EditResult {
+  if (kindAt(doc, sel.focus.path) !== "li") return { doc, selection: sel };
+  const cleared = deleteSelection(doc, sel);
+  const pos = cleared.selection.anchor;
+  const content = getContent(cleared.doc, pos.path);
+  const next = normalizeInline([...sliceInline(content, 0, pos.offset), { type: "br", paragraph: true }, ...sliceInline(content, pos.offset)]);
+  return { doc: setContent(cleared.doc, pos.path, next), selection: caret({ path: pos.path, offset: pos.offset + 1 }) };
 }
 
 // ---- Enter and Backspace in lists -------------------------------------------------------------------------

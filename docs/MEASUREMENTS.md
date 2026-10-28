@@ -8,18 +8,19 @@ Numbers are here only because they were measured, and each says how. They are no
 
 | Entry point | gzipped | budget |
 | --- | --- | --- |
-| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 37.1 KB | 60 KB |
-| `@rathkit/rte-core/dom` (core + browser view) | 46.9 KB | 60 KB |
-| `@rathkit/rte-core/lists` | 7.1 KB | 15 KB |
-| `@rathkit/rte-core/tables` | 5.5 KB | 15 KB |
+| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 41.7 KB | 60 KB |
+| `@rathkit/rte-core/dom` (core + browser view) | 57.7 KB | 60 KB |
+| `@rathkit/rte-core/lists` | 8.9 KB | 15 KB |
+| `@rathkit/rte-core/tables` | 8.0 KB | 15 KB |
+| `@rathkit/rte-core/autoformat` | 1.7 KB | 15 KB |
 | `@rathkit/rte-core/find` | 2.4 KB | 15 KB |
 | `@rathkit/rte-core/word` | 1.9 KB | 15 KB |
 | `@rathkit/rte-core/svg` | 3.7 KB | 15 KB |
-| `@rathkit/rte-core/images` | 2.9 KB | 15 KB |
+| `@rathkit/rte-core/images` | 3.9 KB | 15 KB |
 | `@rathkit/rte-headless` | 7.4 KB | 12 KB |
-| `@rathkit/rte-element` | 2.6 KB | 4 KB |
-| `@rathkit/rte-ui` (without icons) | 9.5 KB | 25 KB |
-| `@rathkit/rte-icons` (all) | 2.0 KB | 6 KB |
+| `@rathkit/rte-element` | 2.8 KB | 4 KB |
+| `@rathkit/rte-ui` (without icons) | 9.7 KB | 25 KB |
+| `@rathkit/rte-icons` (all) | 2.1 KB | 6 KB |
 | `@rathkit/rte-react`, `-vue`, `-svelte`, `-jquery` | 1.0, 1.1, 0.6, 0.7 KB | 2 KB each |
 | `@rathkit/rte-angular` (with and without the forms entry) | 1.4, 1.5 KB | 2 KB each |
 

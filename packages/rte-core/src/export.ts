@@ -75,7 +75,14 @@ function exportList(list: List, depth: number): string {
   const items = list.items.map((item) => {
     const noMarker = item.checked !== undefined || (item.content.length === 0 && item.sublists.length > 0);
     const box = item.checked === undefined ? "" : `<input type="checkbox" disabled${item.checked ? " checked" : ""}> `;
-    return `<li${noMarker ? ' style="list-style-type: none;"' : ""}>${box}${exportInline(item.content)}${item.sublists.map((sub) => exportList(sub, depth + 1)).join("")}</li>`;
+    // An item with paragraph breaks in it is written as paragraphs; the task's checkbox goes in the first.
+    const paragraphs: Inline[][] = [[]];
+    for (const node of item.content) {
+      if (node.type === "br" && node.paragraph) paragraphs.push([]);
+      else (paragraphs[paragraphs.length - 1] as Inline[]).push(node);
+    }
+    const text = paragraphs.length === 1 ? exportInline(item.content) : paragraphs.map((part, i) => `<p>${i === 0 ? box : ""}${exportInline(part)}</p>`).join("");
+    return `<li${noMarker ? ' style="list-style-type: none;"' : ""}>${paragraphs.length === 1 ? box : ""}${text}${item.sublists.map((sub) => exportList(sub, depth + 1)).join("")}</li>`;
   }).join("");
   return `<${list.type}${start}${style}>${items}</${list.type}>`;
 }

@@ -592,7 +592,8 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
     for (const block of inner.blocks) {
       if (block.type === "ul" || block.type === "ol") item.sublists.push(block as L);
       else if (block.type === "p" || block.type === "h") {
-        if (item.content.length > 0) item.content.push({ type: "br" });
+        // Two paragraphs in one item stay two paragraphs.
+        if (item.content.length > 0) item.content.push({ type: "br", paragraph: true });
         item.content.push(...block.content);
       }
     }

@@ -79,3 +79,61 @@ test("Enter in a task makes a task that is not done; Backspace at its start take
     assert.equal(exportHtml(result.doc), `<ul>${li("", done)}</ul>`, typed);
   }
 });
+
+// ---- marker style and start number ------------------------------------------------------------------------
+
+test("list.style and list.start set the marker and the starting number of the list the caret is in, and only that list", () => {
+  const e = taskEngine("<ol><li>one<ol><li>inner</li></ol></li><li>two</li></ol><ul><li>bullet</li></ul>");
+  e.setSelection(caret({ path: [0, 1], offset: 0 }));
+  assert.equal(e.commands.state("list.style").value, "");
+  assert.equal(e.commands.run("list.style", "upper-roman"), true);
+  assert.equal(e.commands.state("list.style").value, "upper-roman");
+  assert.match(taskHtml(e), /^<ol style="list-style-type: upper-roman;"><li>one<ol><li>inner<\/li><\/ol><\/li><li>two<\/li><\/ol><ul>/, "the inner list keeps its own");
+  assert.equal(e.commands.run("list.start", 5), true);
+  assert.equal(e.commands.state("list.start").value, "5");
+  assert.match(taskHtml(e), /^<ol start="5" style="list-style-type: upper-roman;">/);
+  assert.equal(e.commands.run("list.start", ""), true, "empty is 1 again");
+  assert.doesNotMatch(taskHtml(e), /start=/);
+  assert.equal(e.commands.run("list.style", ""), true);
+  assert.doesNotMatch(taskHtml(e), /list-style-type: upper-roman/);
+  for (const bad of ["disc", "wavy", "none"]) assert.equal(e.commands.run("list.style", bad), false, `${bad} is not a numbered list's style`);
+  for (const bad of [-1, 1.5, 100000, "x"]) assert.equal(e.commands.run("list.start", bad), false, String(bad));
+  e.setSelection(caret({ path: [0, 0, 0, 0], offset: 0 }));
+  e.commands.run("list.style", "lower-alpha");
+  assert.match(taskHtml(e), /<ol style="list-style-type: lower-alpha;"><li>inner/, "the caret's own list, the inner one");
+  e.setSelection(caret({ path: [1, 0], offset: 0 }));
+  assert.equal(e.commands.run("list.style", "square"), true);
+  assert.match(taskHtml(e), /<ul style="list-style-type: square;"><li>bullet/);
+  assert.equal(e.commands.run("list.start", 3), false, "a bulleted list has no number to start at");
+  assert.equal(e.commands.state("list.start").enabled, false);
+  e.undo();
+  assert.doesNotMatch(taskHtml(e), /square/, "one undo step");
+  const outside = taskEngine("<p>x</p>");
+  assert.equal(outside.commands.state("list.style").enabled, false);
+});
+
+// ---- paragraphs inside an item ----------------------------------------------------------------------------
+
+test("an item can hold paragraphs: read from <li><p>, written back as paragraphs, and started with list.paragraph", async () => {
+  const html = '<ul><li><p>first</p><p>second</p><ul><li>inner</li></ul></li><li>plain</li></ul>';
+  const e = taskEngine(html);
+  assert.equal(taskHtml(e), '<ul><li><p>first</p><p>second</p><ul><li>inner</li></ul></li><li>plain</li></ul>', "paragraphs survive a round trip");
+  assert.equal(taskHtml(taskEngine('<ul><li>a<br>b</li></ul>')), '<ul><li>a<br>b</li></ul>', "a line break stays a line break");
+  const task = taskEngine('<ul><li style="list-style-type: none;"><input type="checkbox" disabled checked> <p>done one</p><p>more</p></li></ul>');
+  assert.match(taskHtml(task), /^<ul><li style="list-style-type: none;"><p><input type="checkbox" disabled checked> done one<\/p><p>more<\/p><\/li><\/ul>$/, "a task's checkbox goes in the first paragraph");
+  assert.equal(taskHtml(taskEngine(taskHtml(task))), taskHtml(task), "and reads back the same");
+  const made = taskEngine("<ul><li>onetwo</li></ul>");
+  made.setSelection(caret({ path: [0, 0], offset: 3 }));
+  assert.equal(made.commands.run("list.paragraph"), true);
+  assert.equal(taskHtml(made), "<ul><li><p>one</p><p>two</p></li></ul>");
+  assert.deepEqual(made.selection.focus, { path: [0, 0], offset: 4 }, "the caret is at the start of the new paragraph");
+  made.undo();
+  assert.equal(taskHtml(made), "<ul><li>onetwo</li></ul>", "one undo step");
+  const outside = taskEngine("<p>x</p>");
+  assert.equal(outside.commands.run("list.paragraph"), false);
+  // Enter still adds an item, splitting the paragraphs of the item between the two.
+  const split = taskEngine("<ul><li><p>one</p><p>two</p></li></ul>");
+  split.setSelection(caret({ path: [0, 0], offset: 1 }));
+  split.apply("split", (doc, sel) => splitListItem(doc, sel.focus) ?? { doc, selection: sel });
+  assert.equal(taskHtml(split), "<ul><li>o</li><li>ne<br>two</li></ul>".replace("ne<br>two", "<p>ne</p><p>two</p>"), "the break stays in the second item");
+});

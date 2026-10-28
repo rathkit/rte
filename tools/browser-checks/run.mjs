@@ -120,6 +120,24 @@ for (const [name, type] of engines) {
   if (name !== "chromium") await lineCheck("deleteEntireSoftLine", text.slice(0, lineStart) + text.slice(lineEnd), "deleting the entire soft line takes that line only");
   await page.evaluate(() => { document.getElementById("ed").style.width = ""; });
 
+  // --- a paragraph inside a list item
+  await reset("<ul><li>one</li></ul>");
+  await select({ start: "li", so: 3, eo: 3 });
+  await page.keyboard.press("ControlOrMeta+Shift+Enter");
+  await page.keyboard.type("two");
+  check(`${name} Mod+Shift+Enter starts a paragraph in the item, not a new item`, (await html()) === "<ul><li><p>one</p><p>two</p></li></ul>", await html());
+  check(`${name} and the gap between the paragraphs is drawn without being text`, await page.evaluate(() => { const li = document.querySelector("#ed li"); return !!li.querySelector("[data-rte-gap]") && li.textContent === "onetwo"; }), await page.evaluate(() => document.querySelector("#ed li").innerHTML));
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Backspace");
+  check(`${name} Backspace at the start of the second paragraph joins it to the first`, (await html()) === "<ul><li>onetwo</li></ul>", await html());
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} and one undo brings it back`, (await html()) === "<ul><li><p>one</p><p>two</p></li></ul>", await html());
+  await reset("<ul><li><p>a</p><p>b</p></li><li>c</li></ul>");
+  await page.click("#ed li:nth-child(2)");
+  await page.keyboard.press("End");
+  await page.keyboard.type("!");
+  check(`${name} a list loaded with two paragraphs in an item can still be typed in elsewhere`, (await html()) === "<ul><li><p>a</p><p>b</p></li><li>c!</li></ul>", await html());
+
   // --- typed shortcuts
   for (const [typed, out] of [["## Title", "<h2>Title</h2>"], ["> quoted", "<blockquote><p>quoted</p></blockquote>"], ["a **b** c", "<p>a <strong>b</strong> c</p>"], ["`x` y", "<p><code>x</code> y</p>"], ["see https://example.test/a now", '<p>see <a href="https://example.test/a">https://example.test/a</a> now</p>']]) {
     await reset("");
@@ -1118,6 +1136,24 @@ for (const [name, type] of engines) {
   await page.mouse.up();
   await page.waitForTimeout(100);
   check(`${name} (ui) dragging an image moves it to where it is dropped`, await page.evaluate(() => /^<p>first<\/p><p>.*<img [^>]*>.*<\/p>$/.test(window.__one.editor.getHtml()) && !/^<p>first<img/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml().replace(/src="[^"]*"/g, "src=…")));
+  // The list style menu: a marker style for the list the caret is in, and where it starts counting.
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<ol><li>one</li><li>two</li></ol><p>after</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] li").firstChild; e.selectDom(n, 1, n, 1); });
+  await page.waitForTimeout(60);
+  await page.click('#root [data-rk-item="list-style"]');
+  await page.waitForTimeout(80);
+  await page.click('#root [data-rk-menu-item="list-style-lower-roman"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) the list style menu sets the marker`, await page.evaluate(() => window.__one.editor.getHtml() === '<ol style="list-style-type: lower-roman;"><li>one</li><li>two</li></ol><p>after</p>'), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rk-item="list-style"]');
+  await page.waitForTimeout(80);
+  check(`${name} (ui) and that style shows as the chosen one`, await page.evaluate(() => document.querySelector('#root [data-rk-menu-item="list-style-lower-roman"]').getAttribute("aria-checked") === "true"));
+  await page.click('#root [data-rk-menu-item="list-start"]');
+  await page.waitForTimeout(100);
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.type("4");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+  check(`${name} (ui) the Start at dialog sets the number`, await page.evaluate(() => window.__one.editor.getHtml().startsWith('<ol start="4" style="list-style-type: lower-roman;">')), await page.evaluate(() => window.__one.editor.getHtml()));
   // Position and caption, from the properties dialog.
   await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p><img src="${src}" alt="dot" width="40"></p><p>after</p>`); e.focus(); }, pixel);
   await page.waitForTimeout(60);

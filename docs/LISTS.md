@@ -26,7 +26,15 @@ What the list commands do, in the terms of the requirements.
   Tab turns a term into a detail and Shift+Tab turns it back. Backspace at the start of the first entry makes a paragraph; any other
   entry joins the one before. Tab, Shift+Tab and the Enter alternation are our choices: the requirements leave them open. An entry
   that holds a list or table when imported is read as plain blocks so nothing is lost.
-- Not built: list numbering styles beyond what the import reads, and multi-block items.
+- **Marker style and start** (`list.style`, `list.start`; the List style menu in the styled interface): `list.style` takes a style name for the
+  list the caret is in, and only that list: numbered lists `decimal`, `decimal-leading-zero`, `lower-alpha`, `upper-alpha`, `lower-roman`,
+  `upper-roman`, `lower-greek`; bulleted ones `disc`, `circle`, `square`; empty is the default for the depth. `list.start` takes a whole number
+  from 0 to 99999 for a numbered list (empty is 1). Anything else changes nothing. The import still reads any `list-style-type` keyword and the old
+  `type` attribute (`a`, `A`, `i`, `I`, `1`).
+- **Paragraphs in an item** (`list.paragraph`, Mod-Shift-Enter, or New paragraph in item in the List style menu): starts a new paragraph inside the
+  item the caret is in instead of a new item. The item is written as `<li><p>…</p><p>…</p></li>` (a task's checkbox in the first paragraph) and read
+  from that; a gap is drawn between the paragraphs. Backspace at the start of a paragraph joins it to the one before, and Enter still adds an item,
+  taking the later paragraphs with it. An item holds paragraphs of text only: a quote, table or code block inside an item is read as text, as before.
 
 ## Tasks
 
