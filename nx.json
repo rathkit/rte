@@ -149,7 +149,8 @@
       "tag": true,
       "push": false,
       "commitMessage": "chore(release): {version}",
-    "commitArgs": ["--signoff"]
+      "commitArgs": ["--signoff"],
+      "tagArgs": ["--sign"]
     }
   }
 }

@@ -25,3 +25,9 @@ test("every package must be at the tagged version, and the changelog must have t
   assert.deepEqual(problems, ["@a/z is at 0.0.0, not 0.1.0-alpha.0"]);
   assert.deepEqual(problemsWith("v0.1.0-alpha.2", { versions: { "@a/x": "0.1.0-alpha.2" }, changelog }), ["CHANGELOG.md has no section for 0.1.0-alpha.2"]);
 });
+
+test("an unsigned tag is a problem, because a pushed release cannot be re-tagged", () => {
+  const problems = problemsWith("v0.1.0-alpha.0", { versions: same, changelog, signed: false });
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /not signed/);
+});
