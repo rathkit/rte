@@ -58,7 +58,7 @@ The commit's scope (`feat(tables):`) does not matter: a commit counts for the re
 
 **While the current version is a prerelease** (`0.1.0-alpha.1`), Nx always makes the next one the next prerelease (`0.1.0-alpha.2`) whatever the commits say: leaving a prerelease is a decision, not a calculation. To start a new prerelease line from a stable version, add `--preid` (`nx release --preid alpha --skip-publish` turns a feature after `0.1.0` into `0.2.0-alpha.0`); to leave one, give the version: `nx release 0.1.0 --skip-publish`. The rules above then apply from the new stable version. (`tools/check-release.mjs` and the release workflow refuse a stable tag while the project is in alpha; lifting that is a deliberate change to that file, made when the first stable release is decided.)
 
-Signed commits and tags: Nx runs plain `git commit` and `git tag`, so signing follows your git configuration (`commit.gpgSign` and `tag.gpgSign` set to true).
+Signed commits and tags: Nx runs plain `git commit` and `git tag`, so signing follows your git configuration (`commit.gpgSign` and `tag.gpgSign` set to true). The release commit also gets the DCO sign-off (`commitArgs` in `nx.json`).
 
 **The very first release (`0.1.0-alpha.0`)** has no earlier tag and a written changelog entry, so Nx is not used for it: the versions are already `0.1.0-alpha.0`, `CHANGELOG.md` already has the entry. Run `pnpm check:release v0.1.0-alpha.0`, then `git tag -s v0.1.0-alpha.0` and push the tag. Nx Release takes over from that tag: the next release is `0.1.0-alpha.1`.
 
