@@ -2,7 +2,7 @@
 
 All notable changes to Rathkit RTE are written here, newest first. The project follows [Semantic Versioning](https://semver.org) with the 0.x rules in `docs/RELEASING.md`: during 0.x anything may change between releases, and every release is marked with the dist-tag it was published to.
 
-## [0.1.0-alpha.0] - unreleased
+## [0.1.0-alpha.0] - 2026-10-30
 
 The first alpha. Published to the `next` dist-tag only, never `latest`. Eleven packages, none with a runtime dependency. It is a first look, not something to build on: the APIs will change.
 
