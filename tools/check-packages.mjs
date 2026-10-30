@@ -1,6 +1,6 @@
 // Checks what would be published, without publishing anything. Each package is packed the way `npm publish` would pack it, and the
 // tarballs are checked and then installed into an empty project, where the entry points are imported and the types compiled:
-//   - a tarball holds only package.json, README.md, LICENSE and built files (no sources, tests or source maps);
+//   - a tarball holds only package.json, README.md, LICENSE, NOTICE and built files (no sources, tests or source maps);
 //   - every file `exports` points at is in it, and the license is the repository's;
 //   - the packages install together with nothing from a registry, and the ones that run in Node import;
 //   - the types resolve for someone who installed them.
@@ -17,6 +17,7 @@ import { join, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const packagesDir = join(root, "packages");
 const license = readFileSync(join(root, "LICENSE"), "utf8");
+const notice = readFileSync(join(root, "NOTICE"), "utf8");
 const work = mkdtempSync(join(tmpdir(), "rte-pack-"));
 const problems = [];
 const fail = (message) => problems.push(message);
@@ -37,11 +38,12 @@ for (const dir of packages) {
   meta.set(pkg.name, { pkg, files, dir });
   tarballs.push(join(work, packed.filename));
   for (const f of files) {
-    if (!/^(package\.json|README\.md|LICENSE|dist\/.+\.(js|d\.ts)|css\/.+\.css)$/.test(f)) fail(`${pkg.name}: unexpected file in the tarball: ${f}`);
+    if (!/^(package\.json|README\.md|LICENSE|NOTICE|dist\/.+\.(js|d\.ts)|css\/.+\.css)$/.test(f)) fail(`${pkg.name}: unexpected file in the tarball: ${f}`);
     if (/\.test\.|\/test\//.test(f)) fail(`${pkg.name}: a test file is in the tarball: ${f}`);
   }
-  for (const needed of ["package.json", "README.md", "LICENSE"]) if (!files.includes(needed)) fail(`${pkg.name}: ${needed} is missing`);
+  for (const needed of ["package.json", "README.md", "LICENSE", "NOTICE"]) if (!files.includes(needed)) fail(`${pkg.name}: ${needed} is missing`);
   if (readFileSync(join(pkgDir, "LICENSE"), "utf8") !== license) fail(`${pkg.name}: LICENSE differs from the repository's`);
+  if (readFileSync(join(pkgDir, "NOTICE"), "utf8") !== notice) fail(`${pkg.name}: NOTICE differs from the repository's`);
   if (pkg.license !== "Apache-2.0") fail(`${pkg.name}: license field is ${pkg.license}`);
   if (pkg.private) fail(`${pkg.name}: still private`);
   if (!/^\d+\.\d+\.\d+-alpha\.\d+$/.test(pkg.version)) fail(`${pkg.name}: version ${pkg.version} is not an alpha`);

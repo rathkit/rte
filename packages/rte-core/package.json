@@ -36,6 +36,7 @@
   },
   "files": [
     "dist",
+    "NOTICE",
     "!dist/**/*.map"
   ],
   "exports": {
