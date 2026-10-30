@@ -44,8 +44,10 @@ test("no workflow can see or use a stored npm token", () => {
 
 test("the release workflow publishes only with provenance, only to next, only from the downloaded files, and asks for the OIDC permission in the jobs that need it", () => {
   const release = text("release.yml");
-  const publishes = release.split("\n").filter((l) => /npm publish/.test(l));
+  const publishes = release.split("\n").filter((l) => /npm (stage )?publish/.test(l));
   assert.ok(publishes.length > 0);
+  // Nothing goes live from CI: each version is staged, and the owner approves it with two-factor authentication.
+  for (const line of publishes) assert.match(line, /npm stage publish/);
   for (const line of publishes) assert.match(line, /--provenance/);
   for (const line of publishes) assert.match(line, /--tag next/);
   assert.match(release, /sha256sum --check --strict SHA256SUMS/);

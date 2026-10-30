@@ -30,7 +30,21 @@ Versions, the changelog, the release commit and the tag are made by [Nx Release]
 3. Read the entry and the diff; edit `CHANGELOG.md` and amend the release commit if the notes need words that commit subjects do not give.
 4. `pnpm check:release v<version>` (tag, packages and changelog agree; refuses a tag that is not an alpha, beta or rc), then push the commit and the tag: `git push --follow-tags`.
 5. The `release` workflow runs on the tag: the full set of checks (including the check of what would be published, with the oldest supported Node), then it packs the eleven tarballs, writes `SHA256SUMS` and a software bill of materials for each package (CycloneDX, zero runtime components, made by `tools/make-sbom.mjs`), signs `SHA256SUMS` with Sigstore (keyless), and creates a GitHub pre-release with all of it and the notes (the changelog entry for the version).
-6. The `publish` job (only when `NPM_PUBLISH` is `true`) checks the downloaded files against `SHA256SUMS` and publishes exactly those tarballs with provenance, access public and the `next` tag, through npm trusted publishing: no npm token is stored anywhere, and the job asks for `id-token: write` only.
+6. The `publish` job (only when `NPM_PUBLISH` is `true`) checks the downloaded files against `SHA256SUMS` and stages exactly those tarballs with provenance, access public and the `next` tag (`npm stage publish`), through npm trusted publishing: no npm token is stored anywhere, and the job asks for `id-token: write` only. It cannot make a version live: the trusted publisher on each package does not allow a direct `npm publish`.
+7. The owner approves the staged versions (below). Only then are they on npm.
+
+### Approving a release
+
+Each package version waits in npm's staging area until it is approved with two-factor authentication. Before approving, compare what is staged with the signed release:
+
+```sh
+npm stage list                    # the staged versions and their ids
+npm stage download <stage-id>     # the exact tarball, to check against SHA256SUMS
+npm stage approve <stage-id>      # publishes it (asks for the two-factor code)
+npm stage reject <stage-id>       # removes it
+```
+
+Approve all eleven, then check the tags (`npm view @rathkit/rte-core dist-tags`: `next` is the new version and `latest` has not moved) and install the packages in an empty project.
 
 ### How the version is chosen
 
@@ -63,10 +77,10 @@ A trusted publisher is configured on a package that already exists on npm, and n
 1. Make the repository public (see below) and create the `@rathkit` organization on npm with required two-factor authentication.
 2. Run the `release` workflow for the tag. Download the files from the GitHub pre-release and check them as `docs/VERIFY.md` describes.
 3. Publish the eleven tarballs by hand from the owner's machine, with two-factor authentication: `npm publish <file>.tgz --access public --tag next`. These first versions have no provenance, because provenance needs the workflow to publish; say so in the release notes.
-4. For each package on npmjs.com (Settings, Trusted Publisher): organization `rathkit`, repository `rte`, workflow `release.yml`, environment `npm`. Create the `npm` environment in the repository settings (add yourself as a required reviewer).
-5. Set the repository variable `NPM_PUBLISH` to `true`. From the next release (`0.1.0-alpha.1`) the workflow publishes, with provenance.
+4. For each package on npmjs.com (Settings, Trusted Publisher): organization `rathkit`, repository `rte`, workflow `release.yml`, environment `npm`, with "Allow npm publish" and "Allow npm dist-tag" both left unchecked so that CI can only stage. Under Publishing access, choose "Require two-factor authentication and disallow bypass 2fa tokens". Create the `npm` environment in the repository settings (add yourself as a required reviewer, and allow deployment from `v*` tags only).
+5. Set the repository variable `NPM_PUBLISH` to `true`. From the next release (`0.1.0-alpha.1`) the workflow stages the packages, with provenance, and you approve them.
 
-Requirements of trusted publishing, from npm's documentation: npm CLI 11.5.1 or later and Node 22.14.0 or later in the publish job (the workflow uses Node 26, which brings npm 12), `id-token: write`, and a publisher entry per package.
+Requirements of trusted publishing, from npm's documentation: npm CLI 11.5.1 or later and Node 22.14.0 or later in the publish job (the workflow uses Node 26, which brings npm 12), `id-token: write`, and a publisher entry per package. npm assigns `latest` to a package's first published version whatever tag is given, and `latest` cannot be removed, only moved: the first versions of the packages therefore have `latest` on npm's `0.0.0-stage` placeholder.
 
 ## Before the repositories are made public (owner, with this repository's tools)
 

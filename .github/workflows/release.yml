@@ -105,6 +105,8 @@ jobs:
             --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file release/RELEASE_NOTES.md --prerelease --verify-tag
 
   # Publishing to npm: the same tarballs that were checked and listed above, with provenance, to the `next` tag. Off until NPM_PUBLISH is set.
+  # The job only stages each version in npm; nothing is live until the owner approves it with two-factor authentication
+  # (docs/RELEASING.md, "Approving a release").
   publish:
     needs: release
     if: github.event_name == 'push' && vars.NPM_PUBLISH == 'true'
@@ -125,9 +127,9 @@ jobs:
           path: release
       - name: The files are the ones that were listed
         run: cd release && sha256sum --check --strict SHA256SUMS
-      - name: Publish with provenance, to next and never to latest
+      - name: Stage with provenance, for the next tag and never latest
         run: |
           npm --version
           for file in release/*.tgz; do
-            npm publish "$file" --access public --tag next --provenance
+            npm stage publish "$file" --access public --tag next --provenance
           done
