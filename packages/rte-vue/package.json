@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-vue",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "The editor for Vue: a component and composables over the headless layer, with no editor or accessibility logic of its own.",
   "keywords": [
     "rich-text",
@@ -44,8 +44,8 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": ">=0.1.0-alpha.0 <0.2.0",
-    "@rathkit/rte-headless": ">=0.1.0-alpha.0 <0.2.0",
+    "@rathkit/rte-core": ">=0.1.0-alpha.1 <0.2.0",
+    "@rathkit/rte-headless": ">=0.1.0-alpha.1 <0.2.0",
     "vue": ">=3.4"
   },
   "peerDependenciesMeta": {

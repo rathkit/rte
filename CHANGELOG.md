@@ -1,3 +1,17 @@
+## 0.1.0-alpha.1 (2026-10-30)
+
+### Documentation
+
+- **changelog:** drop a stale gap and note the hand-published first versions ([2448f61](https://github.com/rathkit/rte/commit/2448f61))
+
+### Build
+
+- **release:** sign off the release commit ([6f4ddb2](https://github.com/rathkit/rte/commit/6f4ddb2))
+
+### Continuous integration
+
+- **release:** stage the packages and leave the approval to the owner ([5f7cf76](https://github.com/rathkit/rte/commit/5f7cf76))
+
 # Changelog
 
 All notable changes to Rathkit RTE are written here, newest first. The project follows [Semantic Versioning](https://semver.org) with the 0.x rules in `docs/RELEASING.md`: during 0.x anything may change between releases, and every release is marked with the dist-tag it was published to.
