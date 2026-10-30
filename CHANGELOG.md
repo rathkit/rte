@@ -4,7 +4,7 @@ All notable changes to Rathkit RTE are written here, newest first. The project f
 
 ## [0.1.0-alpha.0] - 2026-10-30
 
-The first alpha. Published to the `next` dist-tag only, never `latest`. Eleven packages, none with a runtime dependency. It is a first look, not something to build on: the APIs will change.
+The first alpha. Published to the `next` dist-tag only, never `latest`. Eleven packages, none with a runtime dependency. It is a first look, not something to build on: the APIs will change. These first versions were published by hand and carry no provenance statement; later releases are published by the release workflow and will.
 
 ### Packages
 
@@ -33,4 +33,4 @@ Unit tests, 700+ browser checks in Chromium, Firefox and WebKit, an interface au
 
 ### Known gaps
 
-Touch input, real input methods (macOS, Windows) and screen readers have not been tested by hand. The Angular wrapper is not built. See `docs/CONFORMANCE.md` for the list.
+Touch input, real input methods (macOS, Windows) and screen readers have not been tested by hand. See `docs/CONFORMANCE.md` for the list.
