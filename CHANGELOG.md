@@ -1,3 +1,9 @@
+## 0.1.0-alpha.2 (2026-10-31)
+
+### Build
+
+- **release:** sign the release tag and check for the signature ([cd4ac2c](https://github.com/rathkit/rte/commit/cd4ac2c))
+
 ## 0.1.0-alpha.1 (2026-10-30)
 
 ### Documentation
