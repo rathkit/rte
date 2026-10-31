@@ -1,16 +1,22 @@
 ## 0.1.0-alpha.3 (2026-10-31)
 
+The first version published to npm by the release workflow: staged with provenance and approved by the owner. Use this one.
+
 ### Continuous integration
 
 - **release:** give npm a path it will not take for a repository ([3a9f7c8](https://github.com/rathkit/rte/commit/3a9f7c8))
 
 ## 0.1.0-alpha.2 (2026-10-31)
 
+Not published to npm: the publish step failed on a file path before anything was staged. A GitHub pre-release only.
+
 ### Build
 
 - **release:** sign the release tag and check for the signature ([cd4ac2c](https://github.com/rathkit/rte/commit/cd4ac2c))
 
 ## 0.1.0-alpha.1 (2026-10-30)
+
+Not published to npm: its tag was created without a signature, so the publish job was cancelled before anything was staged. A GitHub pre-release only.
 
 ### Documentation
 
@@ -23,10 +29,6 @@
 ### Continuous integration
 
 - **release:** stage the packages and leave the approval to the owner ([5f7cf76](https://github.com/rathkit/rte/commit/5f7cf76))
-
-# Changelog
-
-All notable changes to Rathkit RTE are written here, newest first. The project follows [Semantic Versioning](https://semver.org) with the 0.x rules in `docs/RELEASING.md`: during 0.x anything may change between releases, and every release is marked with the dist-tag it was published to.
 
 ## [0.1.0-alpha.0] - 2026-10-30
 

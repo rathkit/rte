@@ -21,6 +21,8 @@ It promises that the packages install with nothing else (no runtime dependencies
 
 ## Making a release
 
+`CHANGELOG.md` has no title: Nx Release always writes the newest section at the very top of the file, so a title there would end up in the middle. It is written newest first, and every release says which dist-tag it went to.
+
 Versions, the changelog, the release commit and the tag are made by [Nx Release](https://nx.dev/features/manage-releases), configured under `release` in `nx.json`: all eleven packages in one fixed group, tags like `v0.1.0-alpha.1`, a version and a changelog worked out from the Conventional Commits since the last tag. Nx's own version code for npm packages comes from the `@nx/js` plugin, which brings a large dependency tree and does not work with the TypeScript 7 this repository uses, so `tools/release/version-actions.cjs` (about 60 lines, tested) does the same for plain npm packages: it writes `version`, and keeps the range each package asks of its siblings at "this release or later, below the next minor". Nx is a development tool and does not touch the shipped packages.
 
 **Every release after the first:**
