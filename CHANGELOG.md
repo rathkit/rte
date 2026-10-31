@@ -1,3 +1,9 @@
+## 0.1.0-alpha.3 (2026-10-31)
+
+### Continuous integration
+
+- **release:** give npm a path it will not take for a repository ([3a9f7c8](https://github.com/rathkit/rte/commit/3a9f7c8))
+
 ## 0.1.0-alpha.2 (2026-10-31)
 
 ### Build

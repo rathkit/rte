@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-core",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Document model, transforms, commands, view layer and plugin API for Rathkit RTE.",
   "keywords": [
     "rich-text",

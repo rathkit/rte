@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-svelte",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "The editor for Svelte: stores and an action over the headless layer, with no editor or accessibility logic of its own.",
   "keywords": [
     "rich-text",
@@ -44,8 +44,8 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": ">=0.1.0-alpha.2 <0.2.0",
-    "@rathkit/rte-headless": ">=0.1.0-alpha.2 <0.2.0"
+    "@rathkit/rte-core": ">=0.1.0-alpha.3 <0.2.0",
+    "@rathkit/rte-headless": ">=0.1.0-alpha.3 <0.2.0"
   },
   "peerDependenciesMeta": {
     "@rathkit/rte-core": {
