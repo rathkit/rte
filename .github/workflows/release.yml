@@ -130,6 +130,7 @@ jobs:
       - name: Stage with provenance, for the next tag and never latest
         run: |
           npm --version
-          for file in release/*.tgz; do
+          # The ./ matters: npm reads a bare release/name.tgz as a GitHub repository.
+          for file in ./release/*.tgz; do
             npm stage publish "$file" --access public --tag next --provenance
           done
