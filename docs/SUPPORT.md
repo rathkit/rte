@@ -37,7 +37,7 @@ What runs automatically:
 - **Target size**: toolbar buttons are at least 24px square at a 390px wide viewport.
 - **Announcements**: toggles, search results and counts are said through a polite live region.
 
-What is not tested: by hand with a screen reader (VoiceOver, NVDA, JAWS, TalkBack), with a real input method on macOS or Windows, on a real phone or tablet, with speech input, or with browser zoom and text-size settings. Anyone relying on those should treat this as unverified, and reports are welcome.
+What is not tested (the script for it is [HAND-TESTING.md](HAND-TESTING.md)): by hand with a screen reader (VoiceOver, NVDA, JAWS, TalkBack), with a real input method on macOS or Windows, on a real phone or tablet, with speech input, or with browser zoom and text-size settings. Anyone relying on those should treat this as unverified, and reports are welcome.
 
 ## Privacy and network
 
