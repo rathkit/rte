@@ -260,7 +260,7 @@ VERIFY before relying on this document:
 
 ## 8. Mapping to build phases
 Done and not done, as of the first alpha:
-- Phase 0: **mostly done.** Trusted publishing, provenance, signed releases, SBOM, size and dependency gates are built and in use. Claiming `@rathkit-pro` on npm: not checked here.
+- Phase 0: **done.** Trusted publishing, provenance, signed releases, SBOM, size and dependency gates are built and in use. The `@rathkit-pro` scope is claimed on npm.
 - Phase 2 (public alpha): **done for the free packages**: published to npm and GitHub Releases (`0.1.0-alpha.3`). The `rte-license` verifier was not built.
 - Phase 3 to 4: first premium plugins on the private registry. Issuer service, token format, key rotation drill. Not started.
 - Phase 5: enterprise package: offline bundles, mirror guide, security evidence pack, optional telemetry package. Not started.

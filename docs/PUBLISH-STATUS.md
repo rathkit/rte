@@ -20,7 +20,7 @@ Against `PUBLISH-READINESS.md`, as of 2026-10-24. "Done" means it is in the repo
 
 | # | Item | Status | Evidence |
 | --- | --- | --- | --- |
-| 8 | GitHub settings | **Done since** (the repositories are public and have rulesets; the rest of the list is the owner's to confirm). On 2026-10-24: owner | After the repository is public (`RELEASING.md`) |
+| 8 | GitHub settings | **Done since** (the repositories are public, have rulesets, and have secret scanning turned on). On 2026-10-24: owner | After the repository is public (`RELEASING.md`) |
 | 9 | npm settings | **Done since** (the `@rathkit` organization, trusted publishers, the `npm` environment with an approval step). On 2026-10-24: owner | No premium package is in the first alpha; the release workflow stores no token |
 | 10 | Repo hygiene | Done | No `Zone.Identifier` files exist in the repository and the pattern is in `.gitignore`; `pnpm check:fixtures` (scrubbed captures only) runs in CI |
 | 11 | Browser and accessibility statement | Done | `SUPPORT.md`: exact versions, what runs, what is not tested |
