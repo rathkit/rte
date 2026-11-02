@@ -58,6 +58,15 @@ export function createFloating(options: FloatingOptions): Floating {
     stops.push(() => removers.forEach((remove) => remove()));
   };
 
+  // Where the focus goes when a dialog opened from here closes. The control that opened it may be hidden by then (the selection toolbar
+  // hides when the editor loses the focus), and a hidden element takes no focus; so the dialog is told this one, which hands the focus to the editor.
+  const returnTo = document.createElement("button");
+  returnTo.type = "button";
+  returnTo.hidden = true;
+  returnTo.focus = () => editor.focus();
+  root.appendChild(returnTo);
+  stops.push(() => returnTo.remove());
+
   const iconInto = (el: HTMLElement, name: string | undefined): boolean => {
     const holder = part(document.createElement("span"), "icon");
     holder.setAttribute("aria-hidden", "true");
@@ -98,7 +107,7 @@ export function createFloating(options: FloatingOptions): Floating {
       }
       bar.replaceChildren(...controls);
       unbind?.();
-      unbind = toolbar.bind(bar, { onOpen: (item, opener) => { if (item.kind === "dialog") options.openDialog(item, opener); } });
+      unbind = toolbar.bind(bar, { onOpen: (item) => { if (item.kind === "dialog") options.openDialog(item, returnTo); } });
     };
     let unbind: (() => void) | undefined;
     draw();
@@ -232,7 +241,7 @@ export function createFloating(options: FloatingOptions): Floating {
         onSelect: (entry) => {
           const id = entry.getAttribute("data-rk-menu-item") ?? "";
           const item = entries.get(id);
-          if (item?.kind === "dialog") { options.openDialog(item, editor.element); return; }
+          if (item?.kind === "dialog") { options.openDialog(item, returnTo); return; }
           toolbar.activate(id);
           editor.focus();
         },
@@ -264,8 +273,8 @@ export function createFloating(options: FloatingOptions): Floating {
 
     const onContextMenu = (e: MouseEvent): void => {
       // Left to the browser: the touch long-press (it brings the selection handles), and Shift with the right button, the way out to the
-      // browser's own menu (its spelling suggestions, say).
-      if (e.shiftKey || (e as PointerEvent).pointerType === "touch") return;
+      // browser's own menu (its spelling suggestions, say). Shift+F10, the key for a context menu, also reports Shift, but is not a click.
+      if ((e.shiftKey && e.button === 2) || (e as PointerEvent).pointerType === "touch") return;
       if (toolbar.items.length === 0) return;
       e.preventDefault();
       // From the keyboard there is no pointer: the menu goes where the selection is.

@@ -1295,6 +1295,47 @@ for (const [name, type] of engines) {
     await page.waitForTimeout(150);
     check(`${name} (ui) Shift with the right button does not open the menu, which leaves the browser's own`, await page.evaluate((q) => document.querySelector(q).hidden, menu), "opened");
     await page.keyboard.press("Escape");
+    // The link dialog, opened from each of the two surfaces: it applies to the selected text and the focus comes back to the editor.
+    const field = "#second [data-rk-part=dialog]:not([data-rk-shortcuts]) [data-rk-part=field]";
+    const fresh = () => page.evaluate(() => { const e = window.__two.editor; e.setHtml("<p>one two three four five six seven</p>"); });
+    await fresh();
+    await pick(4, 7);
+    await page.waitForTimeout(250);
+    await page.click(`${bar} [data-rk-item=link]`);
+    await page.waitForTimeout(100);
+    await page.fill(field, "https://x.test/a");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(150);
+    check(`${name} (ui) the link dialog opened from the selection toolbar links the selected text and returns the focus to the editor`, await page.evaluate(() => window.__two.editor.getHtml().includes('<a href="https://x.test/a">two</a>') && document.activeElement.isContentEditable), await page.evaluate(() => window.__two.editor.getHtml() + " " + document.activeElement.tagName));
+    await fresh();
+    await pick(8, 13);
+    await page.click(para, { button: "right" });
+    await page.waitForTimeout(150);
+    await page.click(`${menu} [data-rk-menu-item=link]`);
+    await page.waitForTimeout(100);
+    await page.fill(field, "https://x.test/b");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(150);
+    check(`${name} (ui) the link dialog opened from the context menu links the selected text and returns the focus to the editor`, await page.evaluate(() => window.__two.editor.getHtml().includes('<a href="https://x.test/b">three</a>') && document.activeElement.isContentEditable), await page.evaluate(() => window.__two.editor.getHtml() + " " + document.activeElement.tagName));
+    // The key for a context menu, with a real key press.
+    await pick(2, 2);
+    await page.keyboard.press("Shift+F10");
+    await page.waitForTimeout(150);
+    const byKey = await page.evaluate((q) => !document.querySelector(q).hidden, menu);
+    if (name === "chromium") check(`${name} (ui) Shift+F10 opens the context menu at the caret`, byKey, "closed");
+    else console.log(`note: ${name} sends no context menu event for a Shift+F10 key press from the test driver (opened: ${byKey}); left to the hand-testing script`);
+    await page.keyboard.press("Escape");
+    // Dragging a selection does not show the bar until the button is released.
+    await fresh();
+    const box = await page.evaluate((q) => { const r = document.querySelector(q).getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width }; }, para);
+    await page.mouse.move(box.x + 4, box.y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 80, box.y, { steps: 6 });
+    await page.waitForTimeout(250);
+    const during = await shown();
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    check(`${name} (ui) the selection toolbar waits for the pointer to be released when text is selected by dragging`, !during && (await shown()), JSON.stringify([during, await shown()]));
   }
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");
