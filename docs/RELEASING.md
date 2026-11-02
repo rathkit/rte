@@ -62,7 +62,7 @@ The commit's scope (`feat(tables):`) does not matter: a commit counts for the re
 
 Signed commits and tags: Nx runs `git commit` and `git tag --annotate`, and a tag made that way was not signed even with `tag.gpgSign` set, so `nx.json` asks for it outright (`tagArgs: ["--sign"]`). The release commit also gets the DCO sign-off (`commitArgs`). `pnpm check:release` fails on a tag without a signature; also run `git tag -v v<version>` before pushing, because a released tag is immutable and cannot be replaced.
 
-**The very first release (`0.1.0-alpha.0`)** has no earlier tag and a written changelog entry, so Nx is not used for it: the versions are already `0.1.0-alpha.0`, `CHANGELOG.md` already has the entry. Run `pnpm check:release v0.1.0-alpha.0`, then `git tag -s v0.1.0-alpha.0` and push the tag. Nx Release takes over from that tag: the next release is `0.1.0-alpha.1`.
+**The very first release (`0.1.0-alpha.0`, done)** had no earlier tag and a written changelog entry, so Nx was not used for it: the versions were already `0.1.0-alpha.0`, `CHANGELOG.md` already had the entry; the tag was made with `git tag -s v0.1.0-alpha.0`. Nx Release takes over from that tag.
 
 The changelog lists every commit since the last tag, grouped by type: features, fixes, speed, internal changes, documentation, tests, build, continuous integration, chores, style and reverts. No type is hidden. A breaking change (`!` or a `BREAKING CHANGE:` footer) also gets its own heading.
 
@@ -72,25 +72,40 @@ A dry run needs no tag: run the `release` workflow by hand with a tag name as in
 
 The repository allows only GitHub's own actions, verified creators, and one more: `pnpm/setup` at one named commit, which sets up pnpm (the version in `packageManager`), the Node in `.node-version`, the pnpm cache and the install from the lockfile in one step. Workflows use those and nothing else, and install `cosign` from its GitHub release at a pinned version and checksum. `tools/check-workflows.test.mjs` fails on any other action, or on `pnpm/setup` at another commit. To move to a newer `pnpm/setup`, change the commit in the workflows and in the allowed-actions setting together. Only the oldest-Node import check (Node 22.14.0, set up with `actions/setup-node`) and the npm publishing job (Node only) set Node up separately.
 
-## The first release is partly manual (owner)
+## How the first release was made
 
-A trusted publisher is configured on a package that already exists on npm, and npm has no way to set one up before a package's first publish (checked against the npm documentation and several guides on 2026-10-24; **verify again before the first release**, since this is the kind of thing npm may add). So, once:
+A trusted publisher is configured on a package that already exists on npm, and npm has no way to set one up before a package's first publish, so the first release was partly manual. This is what was done, once:
 
-1. Make the repository public (see below) and create the `@rathkit` organization on npm with required two-factor authentication.
-2. Run the `release` workflow for the tag. Download the files from the GitHub pre-release and check them as `docs/VERIFY.md` describes.
-3. Publish the eleven tarballs by hand from the owner's machine, with two-factor authentication: `npm publish <file>.tgz --access public --tag next`. These first versions have no provenance, because provenance needs the workflow to publish; say so in the release notes.
-4. For each package on npmjs.com (Settings, Trusted Publisher): organization `rathkit`, repository `rte`, workflow `release.yml`, environment `npm`, with "Allow npm publish" and "Allow npm dist-tag" both left unchecked so that CI can only stage. Under Publishing access, choose "Require two-factor authentication and disallow bypass 2fa tokens". Create the `npm` environment in the repository settings (add yourself as a required reviewer, and allow deployment from `v*` tags only).
-5. Set the repository variable `NPM_PUBLISH` to `true`. From the next release (`0.1.0-alpha.1`) the workflow stages the packages, with provenance, and you approve them.
+1. The repositories were made public (recreated on 2026-10-30) and the `@rathkit` organization on npm was set up with required two-factor authentication.
+2. The `release` workflow ran for the tag `v0.1.0-alpha.0`; the files were taken from the GitHub pre-release and checked as `docs/VERIFY.md` describes.
+3. The eleven tarballs were published by hand from the owner's machine, with two-factor authentication: `npm publish <file>.tgz --access public --tag next`. These first versions have no provenance, because provenance needs the workflow to publish; the release notes say so.
+4. On npmjs.com each package got a trusted publisher (Settings, Trusted Publisher): organization `rathkit`, repository `rte`, workflow `release.yml`, environment `npm`, with "Allow npm publish" and "Allow npm dist-tag" both left unchecked so that CI can only stage. The `npm` environment in the repository settings has the owner as a required reviewer, so a run waits for approval before it can stage.
+5. The repository variable `NPM_PUBLISH` was set to `true`.
 
-Requirements of trusted publishing, from npm's documentation: npm CLI 11.5.1 or later and Node 22.14.0 or later in the publish job (the workflow uses Node 26, which brings npm 12), `id-token: write`, and a publisher entry per package. npm assigns `latest` to a package's first published version whatever tag is given, and `latest` cannot be removed, only moved: the first versions of the packages therefore have `latest` on npm's `0.0.0-stage` placeholder.
+From then on the workflow stages the packages with provenance and the owner approves them (above). `0.1.0-alpha.3` was the first version published that way. The requirements of trusted publishing, from npm's documentation: npm CLI 11.5.1 or later and Node 22.14.0 or later in the publish job (the workflow uses Node 26, which brings npm 12), `id-token: write`, and a publisher entry per package. npm assigns `latest` to a package's first published version whatever tag is given, and `latest` cannot be removed, only moved: the packages therefore have `latest` on npm's `0.0.0-stage` placeholder, and an alpha is installed with `@next`.
 
-## Before the repositories are made public (owner, with this repository's tools)
+A package added later has the same one-time steps: its first version is published by hand, then its trusted publisher is set.
 
-1. Run the word check over the whole history, not only the files: `RATHKIT_DENYLIST=... node tools/check-denylist.mjs --history` (and read the files once more for references to other products).
-2. Run `node tools/scan-secrets.mjs --history`: it looks through every commit for private keys and the common token formats. Confirm by hand that nothing it reports is real, and rotate anything that is.
+## When a release goes wrong
+
+A released tag is immutable: a tag, and the version it names, can never be reused. A release that fails after the tag is pushed therefore cannot be fixed in place; the fix is a new version number, and the failed one stays in the history. That is what happened to two versions, and the changelog says so under each:
+
+- **`0.1.0-alpha.1`**: its tag was created without a signature, so the publish job was cancelled before anything was staged. A GitHub pre-release only.
+- **`0.1.0-alpha.2`**: the publish step failed on a file path before anything was staged. A GitHub pre-release only.
+
+`npm view @rathkit/rte-core versions` therefore lists only `0.0.0-stage` (npm's placeholder), `0.1.0-alpha.0` (by hand, no provenance) and `0.1.0-alpha.3` (the first the workflow published). Use `0.1.0-alpha.3` or later.
+
+If one leg of a run fails for a reason that has nothing to do with the code (a flaky test on one platform, a runner that did not start), run only that leg again on the same tag, with no new version: `gh run rerun <run-id> --failed`. If the failure needs a change to the repository, make the change and release a new version.
+
+## Before a repository is made public
+
+All of this was done before the flip (2026-10-30) and is the list to repeat for any repository that is added later:
+
+1. The word check over the whole history, not only the files: `RATHKIT_DENYLIST=... node tools/check-denylist.mjs --history` (and read the files once more for references to other products). The `history-scan` workflow runs it.
+2. `node tools/scan-secrets.mjs --history`: it looks through every commit for private keys and the common token formats. Confirm by hand that nothing it reports is real, and rotate anything that is.
 3. Confirm `fixtures/` holds only scrubbed captures (`pnpm check:fixtures`).
-4. Then flip the repository to public, turn on private vulnerability reporting, secret scanning and push protection, and branch protection or a ruleset on `main` (the settings in `publish-readiness.md`, items 8 and 9).
+4. Then flip the repository to public, turn on private vulnerability reporting, secret scanning and push protection, and a ruleset on `main` (the settings in `PUBLISH-READINESS.md`, items 8 and 9). The ruleset names the required checks by job name (`browsers`, `check`, `dco`, `title`): if a job in `ci.yml` is renamed or split, change the ruleset in the same change, or the old name never reports and every pull request is blocked.
 
 ## Decisions that are not made here
 
-The copyright holder named in a `NOTICE`, the contribution terms (a DCO or a CLA), the timing of the company, how `rathkit-pack` is distributed, and the announcement are the owner's (`publish-readiness.md`, items 7 and 16 to 19).
+Decided: how `rathkit-pack` is distributed (an npm launcher with platform packages, crates.io, and GitHub releases), the timing of the company (Rathkit LLC exists), and the contribution terms (a DCO sign-off on every commit). Still open, and the owner's: the copyright holder named in `NOTICE`, which stays "Steven Rathbauer" until the assignment of the project's intellectual property to Rathkit LLC is signed, and the announcement (`PUBLISH-READINESS.md`, items 16 and 19).

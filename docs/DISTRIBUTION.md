@@ -1,6 +1,6 @@
 # Rathkit RTE: Distribution, Licensing, Telemetry and Compliance
 
-Status: DRAFT v0.1 (2026-10-19). Design sketch for owner review. Not legal advice. Items marked VERIFY rest on vendor claims or facts that were not confirmed when this was written; check them before relying on them. Prices are deliberately absent.
+Status: DRAFT v0.1 (2026-10-19), a design sketch that is partly overtaken by what was built: for how the free packages are released and verified today, `RELEASING.md` and `VERIFY.md` are the record (npm with trusted publishing, staged and approved by the owner, with provenance; GitHub releases with `SHA256SUMS`, bills of materials and a Sigstore signature; the first version published by hand). The premium sections below are not built and are still open. Design sketch for owner review. Not legal advice. Items marked VERIFY rest on vendor claims or facts that were not confirmed when this was written; check them before relying on them. Prices are deliberately absent.
 
 ## 0. Recommended defaults at a glance
 

@@ -1,6 +1,8 @@
 # Publish readiness: where each item stands
 
-Against `PUBLISH-READINESS.md`, as of 2026-10-24. "Done" means it is in the repository and checked by a test or a CI step named here; nothing has been published. Items for the owner and the site session are listed as waiting.
+> **A snapshot of 2026-10-24, before the first release.** It is kept as the record of where each item stood then. Since then the repositories were made public (2026-10-30) and all eleven packages were published to npm (`0.1.0-alpha.3` under `next` is the one to use); `CHANGELOG.md` and `RELEASING.md` have the history, and the items below that say "Owner", "not yet run on a tag", "switched off" or "nothing has been published" describe the world before that.
+
+Against `PUBLISH-READINESS.md`, as of 2026-10-24. "Done" means it is in the repository and checked by a test or a CI step named here. Items for the owner and the site session are listed as waiting.
 
 ## A. Blockers
 
