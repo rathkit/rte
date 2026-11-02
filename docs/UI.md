@@ -16,7 +16,7 @@ All shipped CSS is in cascade layers, so your own unlayered CSS wins without a s
 
 ## Parts
 
-Every element carries `data-rk-part`: `root`, `toolbar`, `button`, `select`, `separator`, `icon`, `label`, `content`, `menu-host`, `menu`, `menu-item`, `menu-separator`, `menu-keys`, `tooltip`, `dialog`, `dialog-title`,
+Every element carries `data-rk-part`: `root`, `toolbar`, `button`, `select`, `separator`, `icon`, `label`, `content`, `menu-host`, `menu`, `menu-item`, `menu-separator`, `menu-keys`, `floating`, `tooltip`, `dialog`, `dialog-title`,
 `field-label`, `field`, `field-error`, `actions`, `action`. Selectors and the `classes` option address parts by these names, never by class,
 so the inside of the interface can change without breaking a theme. The only class is `rk-root`, which scopes everything to one editor.
 Nothing reaches outside it, and tokens are never set on `:root`, so two editors on a page can differ.
@@ -74,6 +74,16 @@ when a toggle is pressed. Controls keep their name from `aria-label`, so an icon
 A `menu` item in the interface list is drawn as a button that opens a list of commands (the Table menu is one). It is the headless menu: arrow keys move through the entries, typing jumps to one, Enter or Space chooses, Escape closes and returns the focus to the button, and a click elsewhere closes it. An entry whose command is unavailable stays reachable and says `aria-disabled`; a toggle entry is a `menuitemcheckbox` with `aria-checked`, and a check mark in front of it so the state never depends on color. After a choice the focus goes back to the editor, and toggles are announced.
 
 Tooltips are one shared element (`data-rk-part="tooltip"`, `role="tooltip"`) put under the control it is for. The tip shows after a pause when the pointer rests on a control and at once when the keyboard focuses it; it is dismissed with Escape (anywhere on the page) without moving the pointer or the focus; the pointer can move onto it without it going away; and it goes when the pointer or focus leaves. The words are the control's accessible name already, so the tip is not announced a second time. Controls carry the tip text in `data-rk-tip`.
+
+## Selection toolbar and context menu
+
+Both are off unless asked for: `createUi(editor, { root, selectionToolbar: true, contextMenu: true })`. They are made from interface items like the main toolbar, so they have the same names, icons, keys, dialogs and disabled and pressed states, and the same keyboard behavior from the headless layer.
+
+The **selection toolbar** (`data-rk-part="floating"`, `role="toolbar"`) shows over selected text, or under it when there is no room above, and follows the page when it scrolls. It reads the `toolbar.floating` slot; when that slot is empty it is given bold, italic, underline, strike, code, link, unlink and clear formatting, copied from the main toolbar. It waits until the pointer is released, so it does not flicker while a selection is dragged; it stays away after a touch, where the browser draws its own handles and menu; and it hides when the caret is collapsed or the focus leaves the editor. Alt+F10 moves the focus into it (the arrow keys then move between controls), and Escape puts the focus back in the editor and hides it until the selection changes. A control's tip is dismissed by the first Escape, so closing the bar can take two.
+
+The **context menu** opens on the right button, at the pointer (or at the selection, from the keyboard's menu key), kept inside the window. It reads the `menu.context` slot; when that slot is empty it is given undo, redo and the common formatting controls. It is a menu in the usual sense: arrow keys, type-ahead, Enter or Space to choose, Escape to close with the focus back in the editor. It replaces the browser's menu, which has spelling suggestions and the system's own entries, so two ways to the browser's menu are kept: Shift with the right button, and a touch long-press. Leave `contextMenu` off if those suggestions matter more than the shortcuts.
+
+Either list is yours to change: add items to `toolbar.floating` or `menu.context` with `editor.ui.add` before creating the interface, and the defaults are not added. Words: `floating.label` and `context.label` name the two for assistive technology.
 
 ## Find bar and status line
 

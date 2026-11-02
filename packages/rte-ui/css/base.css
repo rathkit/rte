@@ -107,6 +107,14 @@
   [data-rk-part="menu-keys"] { color: var(--rk-fg-muted); font-size: 0.85em; }
   [data-rk-part="menu-separator"] { height: var(--rk-border-width); margin: var(--rk-space-1) var(--rk-space-2); background: var(--rk-border-subtle); }
 
+  /* ---- the selection toolbar: a short row of controls over selected text ---- */
+  [data-rk-part="floating"] {
+    position: absolute; z-index: 15; display: flex; align-items: center; gap: var(--rk-space-1); padding: var(--rk-space-1);
+    background: var(--rk-surface-raised); border: var(--rk-border-width) solid var(--rk-border); border-radius: var(--rk-radius-m); box-shadow: var(--rk-shadow-popover);
+  }
+  [data-rk-part="floating"][hidden] { display: none; }
+  [data-rk-part="floating"] [data-rk-part="separator"] { align-self: stretch; margin-block: var(--rk-space-1); }
+
   /* ---- tooltip: the control's name and key, shown near it on hover and keyboard focus ---- */
   [data-rk-part="tooltip"] {
     position: absolute; z-index: 20; max-width: 20rem; padding: var(--rk-space-1) var(--rk-space-2); font-size: 0.85em; line-height: 1.35;
@@ -252,7 +260,7 @@
     [data-rk-part="content"] img[data-rk-image-selected] { outline-color: Highlight; }
     .rk-root :focus-visible, .rk-root:focus-within { outline-color: Highlight; }
     [data-rk-part="separator"], [data-rk-part="menu-separator"] { background: CanvasText; }
-    [data-rk-part="menu"] { border-color: CanvasText; background: Canvas; }
+    [data-rk-part="menu"], [data-rk-part="floating"] { border-color: CanvasText; background: Canvas; }
     ::highlight(rk-find) { background-color: Mark; color: MarkText; }
     ::highlight(rk-find-current) { background-color: Highlight; color: HighlightText; }
     [data-rk-part="find-field"] { border-color: ButtonText; }

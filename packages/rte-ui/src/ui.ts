@@ -3,6 +3,7 @@
 import type { UiItem } from "@rathkit/rte-core";
 import { checkFields, createAnnouncer, createDialog, createMenu, createToolbar, createTooltip, type Dialog, type Menu } from "@rathkit/rte-headless";
 import { createFindBar, type FindBar } from "./findbar.ts";
+import { createFloating, type Floating } from "./floating.ts";
 import { setIcon } from "./icon.ts";
 import { createShortcuts } from "./shortcuts.ts";
 import { createSourceView } from "./source.ts";
@@ -109,7 +110,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       appliedClasses.set(name, classes);
       for (const el of parts.get(name) ?? []) el.classList.add(...classes);
     }
-    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) { draw(); findBar?.refresh(); shortcuts.refresh(); }
+    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) { draw(); findBar?.refresh(); shortcuts.refresh(); floating?.refresh(); }
     syncDialogs();
   }
 
@@ -119,6 +120,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   // ---- the toolbar ---------------------------------------------------------------------------------------------
   let unbind: (() => void) | undefined;
+  let floating: Floating | undefined;
 
   function labelOf(item: UiItem): string {
     return message(`item.${item.id}` as `item.${string}`, toolbar.state(item.id)?.label ?? item.id);
@@ -433,6 +435,14 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   // ---- go ---------------------------------------------------------------------------------------------------
   drawn = toolbar.items.map((i) => i.id).join("\u0000");
   applyStyle(options.style ?? {});
+  // Made after the first look is applied, so the icons it draws are the ones the style gave.
+  floating = options.selectionToolbar || options.contextMenu
+    ? createFloating({
+      editor, root, selectionToolbar: options.selectionToolbar === true, contextMenu: options.contextMenu === true,
+      part: (el, name) => part(el, name as PartName), message: (key, fallback) => message(key as never, fallback), icon: (name) => iconFor(name),
+      openDialog,
+    })
+    : undefined;
   if (stopStatus) showStatus();
 
   return {
@@ -446,6 +456,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       tipEl.remove();
       stopStatus?.();
       findBar?.destroy();
+      floating?.destroy();
       sourceView?.destroy();
       removeSourceItem?.();
       shortcuts.destroy();

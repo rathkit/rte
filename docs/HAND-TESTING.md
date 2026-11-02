@@ -30,6 +30,12 @@ Chrome (Windows), TalkBack with Chrome (Android). JAWS if available.
 8. Open a menu button with the keyboard (Enter or Space, arrows, Escape).
    Expect: items are announced with their shortcut; focus returns on close.
 9. Trigger Find (Mod-F). Expect: the match count is announced when it changes.
+10. With the selection toolbar on, select a word and press Alt+F10. Expect: the
+    toolbar is announced by name, the arrow keys move between controls and each
+    is announced with its pressed state; Escape returns to the text.
+11. With the context menu on, open it with the right button and with the menu
+    key. Expect: it is announced as a menu, entries are read with their keys,
+    and Escape returns to the text.
 
 ## Input methods
 
@@ -51,6 +57,8 @@ Korean one if available.
 
 iOS Safari, Android Chrome; one tablet with a keyboard attached.
 
+0. Select text by long-press. Expect: the browser's own handles and menu show,
+   with no extra toolbar or menu on top of them, even with both turned on.
 1. Tap into the editor. Expect: the keyboard opens and the caret is visible
    above it (the page scrolls if needed).
 2. Long-press a word to select it. Expect: native selection handles work and

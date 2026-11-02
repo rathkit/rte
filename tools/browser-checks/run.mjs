@@ -1244,6 +1244,58 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Delete");
   check(`${name} (ui) deleting everything brings the placeholder back`, await page.evaluate((q) => document.querySelector(q).hasAttribute("data-rk-empty"), third), "back");
   // Cleaning up.
+  // The selection toolbar and the context menu (the second editor has both switched on).
+  {
+    const bar = "#second [data-rk-part=floating]";
+    const para = "#second [data-rk-part=content] p";
+    const pick = (from, to) => page.evaluate(([a, b, q]) => { const e = window.__two.editor; e.focus(); const n = document.querySelector(q).lastChild; e.selectDom(n, a, n, b); }, [from, to, para]);
+    const shown = () => page.evaluate((q) => { const b = document.querySelector(q); return !!b && !b.hidden && b.getBoundingClientRect().width > 0; }, bar);
+    check(`${name} (ui) the selection toolbar is not there until text is selected`, !(await shown()), "shown");
+    await pick(2, 9);
+    await page.waitForTimeout(250);
+    check(`${name} (ui) selecting text shows a named toolbar of formatting controls over it`, await page.evaluate((q) => { const b = document.querySelector(q); const ids = [...b.querySelectorAll("[data-rk-item]")].map((x) => x.getAttribute("data-rk-item")); return b.getAttribute("role") === "toolbar" && !!b.getAttribute("aria-label") && ["bold", "italic", "underline", "link"].every((i) => ids.includes(i)) && [...b.querySelectorAll("button")].every((x) => x.getAttribute("aria-label")); }, bar), "toolbar");
+    check(`${name} (ui) the selection toolbar sits over the selected text and inside the editor`, await page.evaluate(([q, p]) => { const b = document.querySelector(q).getBoundingClientRect(); const r = document.getElementById("second").getBoundingClientRect(); const n = document.querySelector(p).firstChild; const range = document.createRange(); range.setStart(n, 2); range.setEnd(n, 9); const s = range.getBoundingClientRect(); return b.bottom <= s.top + 1 && b.left >= r.left - 1 && b.right <= r.right + 1; }, [bar, para]), "placement");
+    await page.click(`${bar} [data-rk-item=bold]`);
+    check(`${name} (ui) a control in the selection toolbar formats the selection and shows it as on, and the selection stays`, await page.evaluate(([q, p]) => { const e = window.__two.editor; return e.getHtml().includes("<strong>") && document.querySelector(q + " [data-rk-item=bold]").getAttribute("aria-pressed") === "true" && document.querySelector(p + " strong") !== null && e.snapshot.selection.anchor.offset !== e.snapshot.selection.focus.offset; }, [bar, para]), await page.evaluate(() => window.__two.editor.getHtml()));
+    check(`${name} (ui) after using the selection toolbar the focus is back in the editor`, await page.evaluate(() => document.getElementById("second").contains(document.activeElement) && document.activeElement.isContentEditable), "focus");
+    await page.keyboard.press("Alt+F10");
+    check(`${name} (ui) Alt+F10 moves the focus into the selection toolbar`, await page.evaluate((q) => document.querySelector(q).contains(document.activeElement), bar), "focus");
+    // The first Escape dismisses the control's tooltip (shown because the focus arrived by keyboard); the next one closes the bar.
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(150);
+    check(`${name} (ui) Escape in the selection toolbar hides it and returns the focus to the editor`, !(await shown()) && (await page.evaluate(() => document.activeElement.isContentEditable)), "escape");
+    await pick(3, 3);
+    await page.waitForTimeout(250);
+    check(`${name} (ui) a caret without a selection shows no selection toolbar`, !(await shown()), "shown");
+    await pick(1, 6);
+    await page.waitForTimeout(250);
+    await page.evaluate(() => document.activeElement.blur());
+    await page.waitForTimeout(250);
+    check(`${name} (ui) moving the focus away from the editor hides the selection toolbar`, !(await shown()), "shown");
+
+    // the context menu
+    const menu = "#second [data-rk-context]";
+    await pick(0, 0);
+    await page.click(para, { button: "right" });
+    await page.waitForTimeout(150);
+    check(`${name} (ui) a right click opens a menu of commands at the pointer, and the browser's own menu is not used`, await page.evaluate((q) => { const m = document.querySelector(q); const names = [...m.querySelectorAll("[data-rk-menu-item]")].map((x) => x.querySelector("[data-rk-part=label]").textContent); return m.getAttribute("role") === "menu" && !m.hidden && names.includes("Undo") && names.includes("Bold") && !!m.getAttribute("aria-labelledby"); }, menu), "menu");
+    check(`${name} (ui) the context menu stays inside the window`, await page.evaluate((q) => { const r = document.querySelector(q).getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; }, menu), "bounds");
+    check(`${name} (ui) the first entry of the context menu has the focus`, await page.evaluate((q) => document.querySelector(q).contains(document.activeElement), menu), "focus");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(80);
+    check(`${name} (ui) Escape closes the context menu and returns the focus to the editor`, await page.evaluate((q) => document.querySelector(q).hidden && document.activeElement.isContentEditable, menu), "escape");
+    await pick(2, 9);
+    await page.click(para, { button: "right" });
+    await page.waitForTimeout(150);
+    await page.click(`${menu} [data-rk-menu-item=italic]`);
+    check(`${name} (ui) choosing an entry runs its command on the selection, closes the menu and returns the focus`, await page.evaluate(([q]) => window.__two.editor.getHtml().includes("<em>") && document.querySelector(q).hidden && document.activeElement.isContentEditable, [menu]), await page.evaluate(() => window.__two.editor.getHtml()));
+    await pick(0, 0);
+    await page.click(para, { button: "right", modifiers: ["Shift"] });
+    await page.waitForTimeout(150);
+    check(`${name} (ui) Shift with the right button does not open the menu, which leaves the browser's own`, await page.evaluate((q) => document.querySelector(q).hidden, menu), "opened");
+    await page.keyboard.press("Escape");
+  }
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");
   check(`${name} (ui) no page errors`, t.errors.length === 0, t.errors);

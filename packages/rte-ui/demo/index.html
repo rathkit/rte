@@ -28,15 +28,15 @@ const sample = `<h1>Rathkit RTE</h1><p>A rich text editor <strong>built from scr
 <blockquote><p>A quotation sits in the margin.</p></blockquote><pre>const editor = "code blocks keep their spacing";</pre>
 <table><tr><th>Part</th><th>Size</th></tr><tr><td>Core</td><td>17 KB</td></tr><tr><td>Lists</td><td>3.5 KB</td></tr></table><dl><dt>Term</dt><dd>What it means.</dd></dl>`;
 
-function make(rootId, style, html, options = {}) {
+function make(rootId, style, html, options = {}, uiOptions = {}) {
   const root = document.getElementById(rootId);
   const surface = document.createElement("div");
   const editor = createEditor({ element: surface, html, ...options });
-  const ui = createStandardUi(editor, { root, style });
+  const ui = createStandardUi(editor, { root, style, ...uiOptions });
   return { editor, ui };
 }
 window.__one = make("root", { theme: "light" }, sample);
-window.__two = make("second", { theme: "dark" }, "<p>A second editor on the same page, in another theme.</p>");
+window.__two = make("second", { theme: "dark" }, "<p>A second editor on the same page, in another theme.</p><p>Select some of this text to try the selection toolbar, or press the right button for the context menu.</p>", {}, { selectionToolbar: true, contextMenu: true });
 window.__three = make("third", { theme: "light" }, "", { placeholder: "Type here", maxLength: 12, spellcheck: false });
 window.__uiReady = true;
 </script>

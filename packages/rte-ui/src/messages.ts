@@ -2,6 +2,8 @@ import type { MessageKey } from "./types.ts";
 
 export const DEFAULT_MESSAGES: Readonly<Record<string, string>> = {
   "toolbar.label": "Formatting",
+  "floating.label": "Selection formatting",
+  "context.label": "Editing commands",
   "dialog.ok": "OK",
   "dialog.cancel": "Cancel",
   "field.required": "{label} is required.",

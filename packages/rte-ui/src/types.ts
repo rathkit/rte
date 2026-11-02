@@ -5,12 +5,12 @@ import type { TokenName } from "@rathkit/rte-themes";
 /** The parts the interface is made of. Selectors and `classes` address them by these names (as `data-rk-part`). */
 export type PartName =
   | "root" | "toolbar" | "button" | "select" | "separator" | "icon" | "label" | "content"
-  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status" | "source" | "shortcuts" | "findbar" | "find-line" | "find-row" | "find-label" | "find-field" | "find-count"
+  | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status" | "source" | "shortcuts" | "floating" | "findbar" | "find-line" | "find-row" | "find-label" | "find-field" | "find-count"
   | "dialog" | "dialog-title" | "field-label" | "field-check" | "field" | "field-error" | "actions" | "action";
 
 /** Words the interface says. Each has a default in English; this table is also the way to translate it. */
 export type MessageKey =
-  | "toolbar.label" | "dialog.ok" | "dialog.cancel" | "field.required" | "field.url"
+  | "toolbar.label" | "floating.label" | "context.label" | "dialog.ok" | "dialog.cancel" | "field.required" | "field.url"
   | "toggle.on" | "toggle.off"
   | "status.word" | "status.words" | "status.characters" | "status.selection"
   | "source.label" | "shortcuts.title" | "shortcuts.action" | "shortcuts.keys" | "shortcuts.close"
@@ -62,6 +62,17 @@ export interface UiOptions {
   readonly status?: boolean;
   /** Which set of interface items to draw. Default: the main toolbar. */
   readonly slot?: string;
+  /**
+   * A short row of formatting controls over selected text (the items of the `toolbar.floating` slot; when the slot is empty it gets the
+   * common formatting controls). Default: off. It stays out of the way of touch selection, and Alt+F10 moves the focus into it.
+   */
+  readonly selectionToolbar?: boolean;
+  /**
+   * A menu of commands at the pointer on a right click (the items of the `menu.context` slot; when empty it gets undo, redo and the common
+   * formatting controls). Default: off. It replaces the browser's menu, spelling suggestions included, so Shift + right click still opens the
+   * browser's own, and a touch long-press is left to the browser.
+   */
+  readonly contextMenu?: boolean;
   /**
    * Style that every `setStyle` is layered on top of: icons and messages given here stay unless the new style gives the same name.
    * This is how the standard interface keeps its default icons when the theme is switched.
