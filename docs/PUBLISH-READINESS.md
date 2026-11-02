@@ -1,5 +1,7 @@
 # Publish readiness: RTE and Pack
 
+> **Snapshot, written before the first release.** This is the original checklist for publishing RTE and Pack, kept as a record. It still says things that are no longer true, such as "all 10 packages are private" and "nothing is published". Today there are 11 packages on npm, `0.1.0-alpha.3` under `next` (`latest` is npm's `0.0.0-stage` placeholder), and Pack has shipped from its own repository. For what is current, see `CHANGELOG.md`, `docs/RELEASING.md` and `docs/VERIFY.md`.
+
 From the branding and site session to the build session. Written 2026-10-23.
 Nothing here names other products, so it is safe to move into a repo. Each item says who
 owns it: **build** (you), **site** (the site session) or **owner** (the user).

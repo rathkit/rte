@@ -1,6 +1,6 @@
 # Rathkit RTE: Distribution, Licensing, Telemetry and Compliance
 
-Status: DRAFT v0.1 (2026-10-19), a design sketch that is partly overtaken by what was built: for how the free packages are released and verified today, `RELEASING.md` and `VERIFY.md` are the record (npm with trusted publishing, staged and approved by the owner, with provenance; GitHub releases with `SHA256SUMS`, bills of materials and a Sigstore signature; the first version published by hand). The premium sections below are not built and are still open. Design sketch for owner review. Not legal advice. Items marked VERIFY rest on vendor claims or facts that were not confirmed when this was written; check them before relying on them. Prices are deliberately absent.
+Status: design sketch, not a plan or a promise. Written 2026-10-19, before the first release, and not kept in step since. Only the open-source half is built: `@rathkit/*` on npm, published by the release workflow with provenance from `0.1.0-alpha.3` on, and signed GitHub releases (`RELEASING.md`, `VERIFY.md`). Nothing premium exists. The premium scope, tiers, license tokens, registry delivery, telemetry package and compliance sections describe ideas that may change or never ship, and they set no price or date. Package names below that are not in the package table in `README.md` do not exist. Not legal advice. Items marked VERIFY rest on vendor claims or facts that were not confirmed when this was written, and several still have not been.
 
 ## 0. Recommended defaults at a glance
 
@@ -8,7 +8,7 @@ Status: DRAFT v0.1 (2026-10-19), a design sketch that is partly overtaken by wha
 |---|---|---|
 | Open-source scope | `@rathkit/*` on npm | Primary home; trusted publishing and provenance |
 | Premium scope | `@rathkit-pro/*` on a private registry | One scope maps to one registry, so premium cannot share `@rathkit` |
-| Open-source license | Apache-2.0 (MIT acceptable) | Patent grant, familiar to enterprise legal teams |
+| Open-source license | Apache-2.0 (decided) | Patent grant, familiar to enterprise legal teams |
 | Premium license | Commercial EULA, drafted by counsel | Not an OSS license |
 | License check | Offline, signed token, verified locally | No phone-home; auditable verifier |
 | Signature algorithm | ECDSA P-256 / SHA-256 (Ed25519 optional) | Works in every WebCrypto runtime and in FIPS-mode platforms |
@@ -26,13 +26,22 @@ Status: DRAFT v0.1 (2026-10-19), a design sketch that is partly overtaken by wha
 - Claim `rathkit-pro` as an npm organization even though the packages are not hosted there. This blocks anyone else from publishing look-alike packages (see dependency confusion in section 3.3).
 
 ### 1.2 Names
+These are the packages that exist today (the package table in `README.md` is the authority). The free plugins are entry points of `rte-core` (`/lists`, `/tables`, `/find`, `/word`, `/svg`, `/images`, `/autoformat`, `/standard`), not packages of their own.
+
 | Package | Scope | Notes |
 |---|---|---|
-| `rte-core`, `rte-react`, `rte-vue`, `rte-angular`, `rte-svelte`, ..., `rte-plugin-<name>`, `rte-themes`, `rte-server`, `rte-cli` | `@rathkit/` | Per the package map in the private project plan |
+| `rte-core`, `rte-headless`, `rte-element`, `rte-ui`, `rte-themes`, `rte-icons`, `rte-react`, `rte-vue`, `rte-svelte`, `rte-angular`, `rte-jquery` | `@rathkit/` | Built and on npm |
+
+Ideas only, none of which exists:
+
+| Package | Scope | Notes |
+|---|---|---|
+| `rte-server` | `@rathkit/` | A reference server package. Planned; the reference one would stay free |
 | `rte-license` | `@rathkit/` | Open-source license verifier and public keys. Open so customers can audit exactly what the check does |
 | `rte-telemetry` | `@rathkit/` | Optional, opt-in, never imported by any other package (section 5) |
+| `rte-cli` | `@rathkit/` | A command-line tool |
 | `rte-plugin-<name>` | `@rathkit-pro/` | Paid plugins |
-| `rte-server-<feature>` | `@rathkit-pro/` | Paid server features. The reference `rte-server` stays free |
+| `rte-server-<feature>` | `@rathkit-pro/` | Paid server features |
 | `rte-pro` | `@rathkit-pro/` | Optional meta-package that registers every paid plugin in one call |
 
 ### 1.3 Rules
@@ -49,7 +58,7 @@ Status: DRAFT v0.1 (2026-10-19), a design sketch that is partly overtaken by wha
 - **Enterprise.** Pro plus: registry access via SSO or dedicated tokens, signed offline bundles for air-gapped networks, private mirror support, security questionnaire and evidence package, support SLA.
 
 ### 1.5 Licenses
-- Free: Apache-2.0 recommended. MIT is simpler but has no patent grant.
+- Free: Apache-2.0 (decided; the repository's LICENSE). MIT would be simpler but has no patent grant.
 - Avoid source-available licenses with usage restrictions. They reduce contributors and adoption.
 - Premium: a commercial EULA written or reviewed by counsel, covering permitted use, redistribution, term, version entitlement (section 4.1), audit rights, and liability.
 - Trademark: protect "Rathkit" and the logo (forks may reuse code, not the name). "RTE" is generic and not worth registering.
@@ -66,11 +75,11 @@ Status: DRAFT v0.1 (2026-10-19), a design sketch that is partly overtaken by wha
 | Customer mirrors | Documented | Verdaccio, Artifactory, Nexus, Cloudsmith or CodeArtifact can proxy npm. Document the `.npmrc` and integrity-check steps |
 
 Release integrity checklist (gates in CI):
-- Trusted publishing only. No long-lived npm tokens anywhere. 2FA on all maintainer accounts.
-- Release workflow runs in a protected environment with required reviewers. GitHub Actions pinned by commit SHA.
+- Trusted publishing only. No long-lived npm tokens anywhere. 2FA on all maintainer accounts. (From `0.1.0-alpha.3` on: `0.1.0-alpha.0` was published by hand, without provenance, because npm cannot set a trusted publisher before a package exists.)
+- Release workflow runs in a protected environment with required reviewers. GitHub Actions pinned by commit SHA. (Real: the `npm` environment, and an approval step before a staged publish goes live.)
 - `npm ls --omit=dev` is empty, no install scripts, size budgets hold.
 - SBOM (CycloneDX or SPDX) listing zero runtime components.
-- Provenance attestation on every package. Target SLSA build provenance; claim a specific level only after verifying it.
+- Provenance attestation on every package, from `0.1.0-alpha.3` on. Target SLSA build provenance; claim a specific level only after verifying it.
 - Signed `SHA256SUMS` published with each GitHub Release.
 - Reproducible builds as a goal: a third party can rebuild a tarball and compare hashes.
 
@@ -234,7 +243,7 @@ A FedRAMP path would apply only to a service you operate for federal users, for 
 
 ## 7. Open decisions
 
-1. Free license: Apache-2.0 or MIT.
+1. Free license: settled, Apache-2.0.
 2. Premium unit: per developer, per product, or per deployment.
 3. Types without runtime imports: bundled declarations or optional types-only peer.
 4. Registry vendor for launch, after verifying compliance reports.
@@ -250,8 +259,9 @@ VERIFY before relying on this document:
 - Counsel review of the EULA, the Apache-2.0 notices and the trademark plan.
 
 ## 8. Mapping to build phases
-- Phase 0: claim `@rathkit-pro` on npm, set up trusted publishing, provenance, signed releases, SBOM, size and dependency gates.
-- Phase 2 (public alpha): publish free packages to npm and GitHub Releases. Ship `rte-license` verifier with test vectors.
-- Phase 3 to 4: first premium plugins on the private registry. Issuer service, token format, key rotation drill.
-- Phase 5: enterprise package: offline bundles, mirror guide, security evidence pack, optional telemetry package.
-- Phase 6: penetration test, SOC 2 Type I, then Type II observation window.
+Done and not done, as of the first alpha:
+- Phase 0: **mostly done.** Trusted publishing, provenance, signed releases, SBOM, size and dependency gates are built and in use. Claiming `@rathkit-pro` on npm: not checked here.
+- Phase 2 (public alpha): **done for the free packages**: published to npm and GitHub Releases (`0.1.0-alpha.3`). The `rte-license` verifier was not built.
+- Phase 3 to 4: first premium plugins on the private registry. Issuer service, token format, key rotation drill. Not started.
+- Phase 5: enterprise package: offline bundles, mirror guide, security evidence pack, optional telemetry package. Not started.
+- Phase 6: penetration test, SOC 2 Type I, then Type II observation window. Not started.
