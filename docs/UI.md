@@ -85,6 +85,20 @@ The **context menu** opens on the right button, at the pointer (or at the select
 
 Either list is yours to change: add items to `toolbar.floating` or `menu.context` with `editor.ui.add` before creating the interface, and the defaults are not added. Words: `floating.label` and `context.label` name the two for assistive technology.
 
+## As an element: `<rk-ui>`
+
+`@rathkit/rte-ui/element` gives the same interface to the editor element, by attributes, for pages and frameworks that use `<rk-editor>` (from `@rathkit/rte-element`):
+
+```html
+<rk-ui theme="light" selection-toolbar context-menu>
+  <rk-editor label="Notes"></rk-editor>
+</rk-ui>
+```
+
+Register it with `import "@rathkit/rte-ui/element/define"` (or call `define()` from `@rathkit/rte-ui/element`; the name is `rk-ui` unless you pass another). Load `base.css` and a theme's CSS as usual. The interface is drawn inside the `<rk-editor>`, so its value, form behavior, properties and events are unchanged.
+
+Attributes: `theme`, `scheme` and `density` (changing them restyles at once); `selection-toolbar`, `context-menu` and `status="false"` (changing them builds the interface again; the document is kept). The `styleProvider` property takes everything attributes cannot say (icons, messages, tokens, classes), and `ui` is the interface once it is built. In a framework, use the element in a template like any custom element: React 19, Vue and Svelte pass attributes through, and Angular needs `CUSTOM_ELEMENTS_SCHEMA`. The framework wrappers (`rte-react` and the others) stay without a styled interface; to give one of them the styled interface, call `createUi` with the editor it makes.
+
 ## Find bar and status line
 
 When the editor has the find plugin, a bar sits between the toolbar and the writing area (`data-rk-part="findbar"`). It opens with the toolbar button or Mod-f, with the focus in the search box. Enter and Shift+Enter move between matches, Escape closes it and puts the focus back in the editor. It holds no search logic: it reads `find.set` and runs the `find.*` commands. Matches are painted with the page's highlight registry (`::highlight(rk-find)`, `rk-find-current`) where the browser has one, so nothing in the document changes; the match being looked at is the selection. The count is announced once typing pauses.

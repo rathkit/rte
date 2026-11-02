@@ -469,6 +469,8 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       announcer.destroy();
       toolbar.destroy();
       toolbarEl.remove();
+      // The editing surface goes back where it was found: directly in the root.
+      contentEl.replaceWith(...contentEl.childNodes);
       root.classList.remove("rk-root");
       for (const name of ["data-rk-theme", "data-rk-scheme", "data-rk-density", "data-rk-part"]) root.removeAttribute(name);
       for (const t of appliedTokens) root.style.removeProperty(t);

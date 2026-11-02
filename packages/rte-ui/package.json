@@ -49,6 +49,14 @@
       "types": "./dist/standard.d.ts",
       "default": "./dist/standard.js"
     },
+    "./element": {
+      "types": "./dist/element.d.ts",
+      "default": "./dist/element.js"
+    },
+    "./element/define": {
+      "types": "./dist/element-define.d.ts",
+      "default": "./dist/element-define.js"
+    },
     "./base.css": "./css/base.css"
   },
   "peerDependencies": {
@@ -92,6 +100,11 @@
       {
         "name": "ui with default icons",
         "entry": "dist/standard.js",
+        "gzipKB": 30
+      },
+      {
+        "name": "ui element",
+        "entry": "dist/element.js",
         "gzipKB": 30
       }
     ]

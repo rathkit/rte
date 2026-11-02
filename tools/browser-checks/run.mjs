@@ -1337,6 +1337,24 @@ for (const [name, type] of engines) {
     await page.waitForTimeout(250);
     check(`${name} (ui) the selection toolbar waits for the pointer to be released when text is selected by dragging`, !during && (await shown()), JSON.stringify([during, await shown()]));
   }
+  // <rk-ui>: the interface around an <rk-editor>, by attributes.
+  {
+    const q = (sel) => page.evaluate((s) => document.querySelectorAll(s).length, sel);
+    const host = "#fourth rk-editor";
+    check(`${name} (ui element) <rk-ui> builds the interface inside the editor element, with one toolbar and the surface in the content`, (await q(`${host} > [data-rk-part=toolbar] [data-rk-item=bold]`)) === 1 && (await q(`${host} > [data-rk-part=content] [contenteditable=true]`)) === 1 && (await page.evaluate((h) => document.querySelector(h).classList.contains("rk-root"), host)), "built");
+    check(`${name} (ui element) the editor element's value is still the document`, await page.evaluate((h) => document.querySelector(h).value === "<p>An editor made from custom elements, with its interface.</p>", host), await page.evaluate((h) => document.querySelector(h).value, host));
+    await page.evaluate((h) => { const e = document.querySelector(h).editor; e.focus(); const n = document.querySelector(h + " [data-rk-part=content] p").lastChild; e.selectDom(n, 3, n, 9); }, host);
+    await page.waitForTimeout(250);
+    check(`${name} (ui element) the selection-toolbar attribute turns the selection toolbar on`, await page.evaluate((h) => { const b = document.querySelector(h + " [data-rk-part=floating]"); return !!b && !b.hidden; }, host), "shown");
+    await page.evaluate(() => document.getElementById("fourth").setAttribute("theme", "dark"));
+    check(`${name} (ui element) changing the theme attribute restyles without rebuilding`, await page.evaluate((h) => document.querySelector(h).getAttribute("data-rk-theme") === "dark" && document.querySelectorAll(h + " [data-rk-part=toolbar]").length === 1, host), "theme");
+    await page.evaluate(() => document.getElementById("fourth").removeAttribute("selection-toolbar"));
+    check(`${name} (ui element) removing the attribute rebuilds the interface without that part and keeps the document`, (await q(`${host} [data-rk-part=floating]`)) === 0 && (await q(`${host} [data-rk-part=toolbar]`)) === 1 && (await q(`${host} [data-rk-part=content] [contenteditable=true]`)) === 1 && (await q(`${host} [data-rk-part=content]`)) === 1 && (await page.evaluate((h) => document.querySelector(h).value.includes("custom elements"), host)), "rebuilt");
+    await page.evaluate(() => { const r = document.getElementById("fourth"); const p = r.parentNode; r.remove(); p.appendChild(r); });
+    await page.waitForTimeout(150);
+    check(`${name} (ui element) moving the element in the page leaves one interface`, (await q(`${host} [data-rk-part=toolbar]`)) === 1 && (await q(`${host} [data-rk-part=content] [contenteditable=true]`)) === 1, `${await q(`${host} [data-rk-part=toolbar]`)}`);
+    await page.evaluate(() => document.getElementById("fourth").remove());
+  }
   await page.evaluate(() => window.__two.ui.destroy());
   check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");
   check(`${name} (ui) no page errors`, t.errors.length === 0, t.errors);

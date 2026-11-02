@@ -43,6 +43,10 @@ dispatches `rk-open` with the item and the control, and the page, or the styled 
 
 `for` names the editor (default: the nearest `<rk-editor>`), `label` names the toolbar, `slot-name` picks which set of items.
 
+## A styled interface: `<rk-ui>`
+
+`<rk-toolbar>` is plain on purpose. For the styled interface (themes, icons, find bar, status line, dialogs, and the optional selection toolbar and context menu), wrap the editor in `<rk-ui>` from `@rathkit/rte-ui/element`. See [UI.md](UI.md#as-an-element-rk-ui).
+
 ## Angular
 
 `@rathkit/rte-angular` is the Angular wrapper: the `rteEditor` directive, signals for command state and an Angular forms value accessor (see its README). The custom element also works in Angular as it is. Add `CUSTOM_ELEMENTS_SCHEMA` to the component that uses it, import `@rathkit/rte-element/define` once, and bind the element's `value` property and `rk-change` event:

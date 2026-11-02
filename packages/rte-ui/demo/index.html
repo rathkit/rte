@@ -19,6 +19,7 @@
 <div id="root"></div>
 <div id="second"></div>
 <div id="third"></div>
+<rk-ui id="fourth" theme="light" selection-toolbar context-menu><rk-editor label="Element notes" value="<p>An editor made from custom elements, with its interface.</p>"></rk-editor></rk-ui>
 <script type="module">
 import { createEditor } from "@rathkit/rte-core/standard";
 import { createStandardUi } from "/ui/dist/standard.js";
@@ -38,5 +39,9 @@ function make(rootId, style, html, options = {}, uiOptions = {}) {
 window.__one = make("root", { theme: "light" }, sample);
 window.__two = make("second", { theme: "dark" }, "<p>A second editor on the same page, in another theme.</p><p>Select some of this text to try the selection toolbar, or press the right button for the context menu.</p>", {}, { selectionToolbar: true, contextMenu: true });
 window.__three = make("third", { theme: "light" }, "", { placeholder: "Type here", maxLength: 12, spellcheck: false });
+await import("/element/dist/define.js");
+(await import("/ui/dist/element.js")).define();
+await customElements.whenDefined("rk-ui");
+await document.querySelector("#fourth rk-editor").whenReady();
 window.__uiReady = true;
 </script>
