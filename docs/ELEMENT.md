@@ -43,6 +43,10 @@ dispatches `rk-open` with the item and the control, and the page, or the styled 
 
 `for` names the editor (default: the nearest `<rk-editor>`), `label` names the toolbar, `slot-name` picks which set of items.
 
+## In a framework
+
+Use the elements in a template like any custom element (Angular needs `CUSTOM_ELEMENTS_SCHEMA`). React 19 and Angular pass attributes and properties through as written. **In Vue, bind the starting content as an attribute**: `<rk-editor :value.attr="html">` (`"^value"` in a render function). Vue sets a `value` property again on every render, and setting `value` replaces the document, so a plain `:value` binding would throw away the person's edits each time anything else on the page changes. The `rk-ui` attributes (`theme`, `selection-toolbar`, and so on) are fine as ordinary bindings. These uses are checked against real React, Vue and Angular in three browsers.
+
 ## A styled interface: `<rk-ui>`
 
 `<rk-toolbar>` is plain on purpose. For the styled interface (themes, icons, find bar, status line, dialogs, and the optional selection toolbar and context menu), wrap the editor in `<rk-ui>` from `@rathkit/rte-ui/element`. See [UI.md](UI.md#as-an-element-rk-ui).

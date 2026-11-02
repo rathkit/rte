@@ -24,7 +24,8 @@
   },
   "type": "module",
   "sideEffects": [
-    "*.css"
+    "*.css",
+    "./dist/element-define.js"
   ],
   "engines": {
     "node": ">=22.14.0"

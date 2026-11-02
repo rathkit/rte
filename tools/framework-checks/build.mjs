@@ -20,7 +20,7 @@ for (const name of ["core", "headless", "element", "react", "vue", "svelte", "an
 }
 rmSync(join(here, "dist"), { recursive: true, force: true });
 mkdirSync(join(here, "dist"), { recursive: true });
-for (const app of ["react", "vue", "svelte", "angular", "angular-forms", "jquery"]) {
+for (const app of ["react", "vue", "svelte", "angular", "angular-forms", "jquery", "ui-react", "ui-vue", "ui-angular"]) {
   const result = spawnSync(pack, ["bundle", join(here, `apps/${app}.js`), "--outfile", join(here, `dist/${app}.js`), "--format", "iife", "--define", 'process.env.NODE_ENV="development"', "--define", "__VUE_OPTIONS_API__=true", "--define", "__VUE_PROD_DEVTOOLS__=false", "--define", "__VUE_PROD_HYDRATION_MISMATCH_DETAILS__=false"], { encoding: "utf8" });
   if (result.status !== 0) {
     console.error(`bundle ${app} failed:\n${result.stderr || result.stdout}`);

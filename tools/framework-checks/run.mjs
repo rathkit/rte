@@ -175,6 +175,46 @@ for (const [engine, type] of engines) {
   await browser.close();
 }
 
+// --- <rk-ui> used from React, Vue and Angular templates: the attributes come from the framework's state
+for (const [engine, type] of engines) {
+  const browser = await type.launch();
+  for (const app of ["ui-react", "ui-vue", "ui-angular"]) {
+    const name = `${engine} ${app}`;
+    const context = await browser.newContext();
+    const outside = [];
+    await context.route("**/*", (route) => {
+      const url = route.request().url();
+      if (/^(http:\/\/127\.0\.0\.1|data:|blob:|about:)/.test(url)) return route.continue();
+      outside.push(url.slice(0, 80));
+      return route.abort();
+    });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
+    page.on("console", (m) => { if (m.type() === "error") errors.push(m.text().slice(0, 200)); });
+    await page.goto(new URL(`/frameworks/dist/${app}.html`, base).href);
+    await page.waitForFunction("window.__fw && window.__fw.ready === true");
+    const count = (sel) => page.locator(sel).count();
+    await page.waitForSelector("rk-editor [data-rk-part=toolbar]");
+    check(`${name} the interface is built inside the editor element, once`, (await count("rk-editor > [data-rk-part=toolbar] [data-rk-item=bold]")) === 1 && (await count("rk-editor [contenteditable=true][aria-label=Body]")) === 1, null);
+    check(`${name} the theme attribute from the template is in effect`, (await page.getAttribute("rk-editor", "data-rk-theme")) === "light", await page.getAttribute("rk-editor", "data-rk-theme"));
+    await page.locator("rk-editor [contenteditable=true]").click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.waitForTimeout(300);
+    check(`${name} the selection-toolbar attribute from the template shows the bar over a selection`, await page.evaluate(() => { const b = document.querySelector("rk-editor [data-rk-part=floating]"); return !!b && !b.hidden; }), null);
+    await page.click("rk-editor [data-rk-part=floating] [data-rk-item=bold]");
+    await page.waitForTimeout(100);
+    check(`${name} a control in the bar formats the selection`, (await page.evaluate(() => document.querySelector("rk-editor").value)).includes("<strong>"), await page.evaluate(() => document.querySelector("rk-editor").value));
+    await page.click("#flip");
+    await page.waitForTimeout(100);
+    check(`${name} changing the state in the framework restyles without rebuilding or losing the document`, (await page.getAttribute("rk-editor", "data-rk-theme")) === "dark" && (await count("rk-editor [data-rk-part=toolbar]")) === 1 && (await page.evaluate(() => document.querySelector("rk-editor").value)).includes("<strong>"), null);
+    check(`${name} runs without an error`, errors.length === 0, errors);
+    check(`${name} asks for nothing from outside`, outside.length === 0, outside);
+    await context.close();
+  }
+  await browser.close();
+}
+
 // --- Angular forms: the value accessor against the real @angular/forms, with a reactive control and an ngModel
 for (const [engine, type] of engines) {
   const browser = await type.launch();
