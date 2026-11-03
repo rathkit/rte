@@ -14,7 +14,7 @@ the styled one (see `HEADLESS.md`).
 | `@rathkit/rte-core/tables` | Insert a table; add and remove rows and columns; merge and split cells; column widths; header row; Tab and Shift+Tab between cells. See `TABLES.md` | 5 KB |
 | `@rathkit/rte-core/find` | Find and replace: case and whole-word options, next and previous, replace one or all in a single undo step. See `COMMANDS.md` | 2 KB |
 | `@rathkit/rte-core/autoformat` | Typed shortcuts: `# ` to `###### ` headings, `> ` quote, three backticks a code block, three dashes a rule, `**bold**`, `~~strike~~`, `*italic*`, `_italic_`, `` `code` ``, and a web address followed by a space becomes a link. One undo step takes a conversion back | 1.7 KB |
-| `@rathkit/rte-core/markdown` | Markdown in plain-text paste, and Markdown out: `parseMarkdown`, `exportMarkdown`, `looksLikeMarkdown`, and a paste plugin. Off by default; see [MARKDOWN.md](MARKDOWN.md) | 11.8 KB |
+| `@rathkit/rte-core/markdown` | Markdown in plain-text paste, and Markdown out: `parseMarkdown`, `exportMarkdown`, `looksLikeMarkdown`, and a paste plugin. Off by default; see [MARKDOWN.md](MARKDOWN.md) | 13.1 KB |
 | `@rathkit/rte-core/word` | Reads lists the way word processors write them | 1.1 KB |
 | `@rathkit/rte-core/svg` | The SVG cleaner; lets content carry SVG images once cleaned | 2.5 KB |
 | `@rathkit/rte-core/images` | The image policy: upload hook, inline limit, reports | 1.2 KB |
@@ -43,6 +43,7 @@ plugin, Enter in an item is a line break and blocks pasted into an item become l
 | `pasteTransform(fn)` | Change pasted blocks before they go in; may take time (an upload). |
 | `fileHandler(fn)` | Turn pasted and dropped files into blocks. |
 | `pasteHandler(fn)` | See the raw clipboard before anything is sanitized. |
+| `copyFormat(fn)` | Add formats to what copy, cut and drag write (`{ "text/markdown": "..." }`), or replace the plain text. Gets the selected blocks. Later plugins win on the same type. |
 | `ops` | The editing operations as plain functions, so a plugin does not import the editor. |
 
 A plugin names the plugin API versions it supports (`api: ">=1 <2"`), and a mismatch fails when it is added. Removing a plugin takes

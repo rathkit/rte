@@ -141,6 +141,7 @@ export interface PluginHost {
   keybinding(b: KeyBinding): void;
   ui(slot: string, item: UiItem): void;
   pasteHandler(h: PasteHandler): void;
+  copyFormat(f: CopyFormatter): void;          // extra clipboard formats on copy, cut and drag
   blockType?(def: BlockTypeDef): void;         // model + render + import/export, for tables, embeds
 }
 ```

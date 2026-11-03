@@ -16,6 +16,13 @@ export const PLUGIN_API_VERSION = 1;
 /** Looks at blocks about to be pasted and returns the blocks to insert. May take time (an upload); then the paste waits. */
 export type PasteTransform = (blocks: readonly Block[]) => readonly Block[] | Promise<readonly Block[]>;
 
+/**
+ * Gives the formats a copy, cut or drag writes besides the editor's own HTML and plain text: `{ "text/markdown": "..." }`.
+ * Return a format the editor already writes (`text/plain`, `text/html`) to replace it. Return undefined to add nothing.
+ * Called once per copy with the selected blocks; it must be quick and must not change the document.
+ */
+export type CopyFormatter = (blocks: readonly Block[]) => Readonly<Record<string, string>> | undefined;
+
 /** What a plugin needs of a file that was pasted or dropped. A browser `File` fits. */
 export interface BlobLike {
   readonly type: string;
@@ -41,6 +48,8 @@ export interface PluginHost {
   command<A, V>(def: CommandDef<A, V>): void;
   keybinding(binding: KeyBinding): void;
   pasteHandler(handler: PasteHandler): void;
+  /** Adds formats to what copy, cut and drag write to the clipboard. Later plugins win when two give the same type. */
+  copyFormat(formatter: CopyFormatter): void;
   /** Takes over Enter, Backspace at the start, and paste inside a kind of container the plugin owns. One plugin per kind. */
   behavior(kind: ContainerKind, behavior: ContainerBehavior): void;
   /** Watches typed text before it is inserted, to turn a shortcut into something else. */

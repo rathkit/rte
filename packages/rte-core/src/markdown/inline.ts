@@ -14,6 +14,13 @@ export interface MarkdownOptions {
   readonly maxDataImageLength?: number;
 }
 
+/** Link reference definitions found in the document: `[label]: address "title"`. Keys come from `refLabel`. */
+export type Refs = ReadonlyMap<string, { readonly dest: string }>;
+export interface InlineContext extends MarkdownOptions { readonly refs?: Refs }
+
+/** The form of a reference label that is compared: case and runs of white space do not matter. */
+export const refLabel = (label: string): string => label.trim().replace(/\s+/g, " ").toLowerCase();
+
 const DEFAULT_SCHEMES = ["http", "https", "mailto", "tel"];
 const MAX_DESTINATION = 2000;
 const MAX_TITLE = 1000;
@@ -38,6 +45,8 @@ interface Bracket {
   image: boolean;
   active: boolean;
   index: number;
+  /** Where the text after the opening bracket starts in the source. */
+  textStart: number;
   delimBefore: Delimiter | null;
 }
 type Piece =
@@ -70,7 +79,7 @@ const after = (s: string, i: number): string => {
 
 const MARK_ORDER = ["link", "bold", "italic", "strike", "code"] as const;
 
-export function parseInline(src: string, options: MarkdownOptions = {}): Inline[] {
+export function parseInline(src: string, options: InlineContext = {}): Inline[] {
   const schemes = new Set(options.linkSchemes ?? DEFAULT_SCHEMES);
   const pieces: Piece[] = [];
   const brackets: (Bracket & { dead?: true })[] = [];
@@ -230,7 +239,7 @@ export function parseInline(src: string, options: MarkdownOptions = {}): Inline[
       const image = c === "!";
       flush();
       if (brackets.length >= MAX_BRACKETS) { buffer += image ? "![" : "["; i += image ? 2 : 1; continue; }
-      const b: Bracket & { dead?: true } = { k: "lb", image, active: true, index: pieces.length, delimBefore: tail };
+      const b: Bracket & { dead?: true } = { k: "lb", image, active: true, index: pieces.length, textStart: i + (image ? 2 : 1), delimBefore: tail };
       pieces.push(b);
       brackets.push(b);
       i += image ? 2 : 1;
@@ -240,7 +249,8 @@ export function parseInline(src: string, options: MarkdownOptions = {}): Inline[
       const top = brackets.pop();
       if (!top) { buffer += c; i++; continue; }
       if (!top.active) { flush(); asText(top); buffer += c; i++; continue; }
-      const tailInfo = src[i + 1] === "(" ? linkTail(i + 1) : undefined;
+      let tailInfo = src[i + 1] === "(" ? linkTail(i + 1) : undefined;
+      if (!tailInfo && options.refs && options.refs.size > 0) tailInfo = referenceTail(src, i, top.textStart, options.refs);
       if (!tailInfo) { flush(); asText(top); buffer += c; i++; continue; }
       flush();
       processEmphasis(top.delimBefore);
@@ -296,6 +306,25 @@ export function parseInline(src: string, options: MarkdownOptions = {}): Inline[
   return render(pieces);
 }
 
+/** `[text][label]`, `[text][]` and `[label]` against the definitions. `close` is the index of the `]`. */
+function referenceTail(src: string, close: number, textStart: number, refs: Refs): { dest: string; end: number } | undefined {
+  const text = src.slice(textStart, close);
+  if (text.length > 999) return undefined;
+  let label = text;
+  let end = close + 1;
+  if (src[close + 1] === "[") {
+    let k = close + 2;
+    while (k < src.length && k - close < 1002 && src[k] !== "]" && src[k] !== "[") k++;
+    if (src[k] !== "]") return undefined;
+    const given = src.slice(close + 2, k);
+    if (given !== "") label = given;
+    end = k + 1;
+  }
+  if (label.trim() === "") return undefined;
+  const def = refs.get(refLabel(label));
+  return def ? { dest: def.dest, end } : undefined;
+}
+
 function asText(b: Bracket): void {
   Object.assign(b as unknown as Piece, { k: "t", s: b.image ? "![" : "[" });
 }
@@ -315,7 +344,7 @@ function closingTicks(src: string, from: number, len: number): number {
 }
 
 /** Backslash escapes and entities in an address or title. */
-function unescape(raw: string): string {
+export function unescape(raw: string): string {
   let out = "";
   for (let i = 0; i < raw.length; i++) {
     const c = raw[i] as string;

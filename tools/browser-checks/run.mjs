@@ -301,6 +301,14 @@ for (const [name, type] of engines) {
   await page.click("pre");
   await page.evaluate(() => window.__editor.paste({ text: "# Title\n\n- one\n- two" }));
   check(`${name} pasting into a code block stays literal`, (await html()).startsWith("<pre>") && !(await html()).includes("<h1>") && !(await html()).includes("<ul>"), await html());
+  // Copy also writes the selection as Markdown (the copy hook), next to the editor's own HTML and text.
+  await reset("<h2>T</h2><p>a <strong>bold</strong> and <a href=\"https://x.test\">link</a></p><ul><li>x</li><li>y</li></ul>");
+  await page.click("p");
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.evaluate(() => document.addEventListener("copy", (e) => { window.__copied = [e.clipboardData.getData("text/html"), e.clipboardData.getData("text/plain"), e.clipboardData.getData("text/markdown")]; }, { once: true }));
+  await page.keyboard.press("ControlOrMeta+c");
+  const copied = await page.evaluate(() => window.__copied);
+  check(`${name} copy also writes the selection as Markdown`, copied[2] === "## T\n\na **bold** and [link](https://x.test)\n\n- x\n- y" && copied[0].includes("<h2>") && copied[1].includes("bold"), copied);
   await page.evaluate(() => window.__mdStop());
   // Cell edges: Backspace at the start of a cell and Delete at the end of one leave the table whole.
   await reset("<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>");

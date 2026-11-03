@@ -7,7 +7,7 @@
 //  - A table cell holds blocks, so a column's alignment is set on the paragraph in each cell.
 //  - Raw HTML, link reference definitions, footnotes and setext-style hard wrapping rules beyond the above are not interpreted; they stay text.
 import type { Align, Block, Inline, List, ListItem, TableCell } from "../model.ts";
-import { parseInline, type MarkdownOptions } from "./inline.ts";
+import { parseInline, refLabel, unescape, type InlineContext, type MarkdownOptions, type Refs } from "./inline.ts";
 
 const MAX_DEPTH = 24;
 
@@ -162,7 +162,78 @@ function tableAt(header: string, delimiter: string): { head: string[]; aligns: (
   return { head, aligns };
 }
 
-function paragraph(text: string, options: MarkdownOptions, align?: Align): Block | undefined {
+/** Which fenced code block, if any, the lines fed so far are inside. */
+class FenceState {
+  open: { ch: string; len: number } | null = null;
+  feed(line: string): void {
+    const f = isFence(line);
+    if (this.open) { if (f && f.ch === this.open.ch && f.len >= this.open.len && f.info === "") this.open = null; } else if (f) this.open = { ch: f.ch, len: f.len };
+  }
+}
+
+/** Whether a line that does not belong to a container can still continue it: only when the container ends in paragraph text. */
+const continuesParagraph = (previous: string | undefined, fence: FenceState): boolean =>
+  previous !== undefined && fence.open === null && !isBlank(previous) && !atx(previous) && !isRule(previous) && !setextLevel(previous) && leading(previous) < 4;
+
+/** `[label]: address "title"` on one line. */
+function refDef(line: string): { label: string; dest: string } | undefined {
+  const indent = leading(line);
+  if (indent > 3 || line[indent] !== "[") return undefined;
+  let i = indent + 1;
+  const from = i;
+  while (i < line.length && line[i] !== "]" && line[i] !== "[" && i - from < 1000) { if (line[i] === "\\") i++; i++; }
+  if (line[i] !== "]" || line[i + 1] !== ":") return undefined;
+  const label = line.slice(from, i);
+  if (label.trim() === "") return undefined;
+  i += 2;
+  while (line[i] === " " || line[i] === "\t") i++;
+  let dest: string;
+  if (line[i] === "<") {
+    const end = line.indexOf(">", i + 1);
+    if (end === -1 || /[\s<]/.test(line.slice(i + 1, end))) return undefined;
+    dest = line.slice(i + 1, end);
+    i = end + 1;
+  } else {
+    const start = i;
+    while (i < line.length && line[i] !== " " && line[i] !== "\t") i++;
+    dest = line.slice(start, i);
+  }
+  if (dest === "") return undefined;
+  while (line[i] === " " || line[i] === "\t") i++;
+  if (i < line.length) {
+    const open = line[i];
+    const close = open === "(" ? ")" : open;
+    if ((open !== '"' && open !== "'" && open !== "(") || line[i - 1] === undefined || i === 0 || (line[i - 1] !== " " && line[i - 1] !== "\t")) return undefined;
+    const end = line.lastIndexOf(close as string);
+    if (end <= i || line.slice(end + 1).trim() !== "") return undefined;
+  }
+  return { label, dest: unescape(dest) };
+}
+
+/** Every link reference definition in the text, wherever it sits (outside code fences), for links that use one before it appears. */
+function collectRefs(lines: readonly string[]): Refs {
+  const refs = new Map<string, { dest: string }>();
+  const fence = new FenceState();
+  let inParagraph = false;
+  for (const raw of lines) {
+    let line = raw;
+    for (;;) {
+      const quoted = leading(line) <= 3 && line.trimStart().startsWith(">");
+      if (!quoted) break;
+      line = line.trimStart().slice(1);
+      if (line.startsWith(" ")) line = line.slice(1);
+    }
+    fence.feed(line);
+    if (fence.open) { inParagraph = false; continue; }
+    // A definition cannot interrupt a paragraph: it counts only where a paragraph would start.
+    const def: { label: string; dest: string } | undefined = inParagraph ? undefined : refDef(line);
+    if (def) { const key = refLabel(def.label); if (!refs.has(key)) refs.set(key, { dest: def.dest }); }
+    inParagraph = !def && continuesParagraph(line, fence);
+  }
+  return refs;
+}
+
+function paragraph(text: string, options: InlineContext, align?: Align): Block | undefined {
   const content = parseInline(text.trim(), options);
   if (content.length === 0) return undefined;
   return { type: "p", content, ...(align ? { align } : {}) };
@@ -188,7 +259,7 @@ function flatten(blocks: readonly Block[]): Inline[] {
   return out;
 }
 
-function listItem(lines: string[], depth: number, options: MarkdownOptions): ListItem {
+function listItem(lines: string[], depth: number, options: InlineContext): ListItem {
   let checked: boolean | undefined;
   const first = lines[0] ?? "";
   const task = /^\[([ xX])\](?:[ \t]|$)/.exec(first);
@@ -210,7 +281,7 @@ function listItem(lines: string[], depth: number, options: MarkdownOptions): Lis
   return { content, sublists, ...(checked !== undefined ? { checked } : {}) };
 }
 
-function parseList(lines: string[], start: number, depth: number, options: MarkdownOptions): { list: List; next: number } {
+function parseList(lines: string[], start: number, depth: number, options: InlineContext): { list: List; next: number } {
   const first = marker(lines[start] as string) as Marker;
   const items: ListItem[] = [];
   let i = start;
@@ -222,6 +293,8 @@ function parseList(lines: string[], start: number, depth: number, options: Markd
     if (m.empty) body[0] = "";
     i++;
     let blanks = 0;
+    const fenced = new FenceState();
+    fenced.feed(body[0] ?? "");
     while (i < lines.length) {
       const line = lines[i] as string;
       if (isBlank(line)) { blanks++; i++; continue; }
@@ -230,11 +303,12 @@ function parseList(lines: string[], start: number, depth: number, options: Markd
         for (let b = 0; b < blanks; b++) body.push("");
         blanks = 0;
         body.push(line.slice(m.contentIndent));
+        fenced.feed(line.slice(m.contentIndent));
         i++;
         continue;
       }
       // A line that is less indented: the next item, a lazy continuation of the item's paragraph, or the end of the list.
-      if (blanks === 0 && !marker(line) && !interrupts(line, lines[i + 1]) && !isBlank(body[body.length - 1] ?? "") && !isFence(body[body.length - 1] ?? "")) {
+      if (blanks === 0 && !marker(line) && !interrupts(line, lines[i + 1]) && continuesParagraph(body[body.length - 1], fenced)) {
         body.push(line.trimStart());
         i++;
         continue;
@@ -250,7 +324,7 @@ function parseList(lines: string[], start: number, depth: number, options: Markd
   return { list, next: i };
 }
 
-function parseBlocks(lines: readonly string[], depth: number, options: MarkdownOptions): Block[] {
+function parseBlocks(lines: readonly string[], depth: number, options: InlineContext): Block[] {
   const out: Block[] = [];
   if (depth >= MAX_DEPTH) {
     const p = paragraph(lines.join("\n"), options);
@@ -287,18 +361,23 @@ function parseBlocks(lines: readonly string[], depth: number, options: MarkdownO
 
     if (leading(line) <= 3 && line.trimStart().startsWith(">")) {
       const inner: string[] = [];
+      const fenced = new FenceState();
       while (i < lines.length) {
         const l = lines[i] as string;
         if (leading(l) <= 3 && l.trimStart().startsWith(">")) {
           const t = l.trimStart().slice(1);
-          inner.push(t.startsWith(" ") ? t.slice(1) : t);
+          const content = t.startsWith(" ") ? t.slice(1) : t;
+          inner.push(content);
+          fenced.feed(content);
           i++;
-        } else if (!isBlank(l) && inner.length > 0 && !isBlank(inner[inner.length - 1] as string) && !interrupts(l, lines[i + 1]) && !marker(l) && !isFence(inner[inner.length - 1] as string)) {
+        } else if (!isBlank(l) && !interrupts(l, lines[i + 1]) && continuesParagraph(inner[inner.length - 1], fenced)) {
           inner.push(l.trimStart());
           i++;
         } else break;
       }
-      out.push({ type: "quote", blocks: parseBlocks(inner, depth + 1, options) });
+      // A quote with nothing in it (only a definition, or a bare ">") is not kept: the model has no empty quote.
+      const quoted = parseBlocks(inner, depth + 1, options);
+      if (quoted.length > 0) out.push({ type: "quote", blocks: quoted });
       continue;
     }
 
@@ -326,6 +405,8 @@ function parseBlocks(lines: readonly string[], depth: number, options: MarkdownO
       out.push({ type: "table", rows });
       continue;
     }
+
+    if (leading(line) < 4 && refDef(line)) { i++; continue; }
 
     if (leading(line) >= 4) {
       const body: string[] = [];
@@ -360,5 +441,6 @@ function parseBlocks(lines: readonly string[], depth: number, options: MarkdownO
 /** Reads Markdown into blocks ready to insert. Never throws; anything it does not understand stays text. */
 export function parseMarkdown(source: string, options: MarkdownOptions = {}): Block[] {
   const text = source.replace(/\r\n?|\u2028|\u2029/g, "\n").replace(/\0/g, "�");
-  return parseBlocks(text.split("\n").map(expandTabs), 0, options);
+  const lines = text.split("\n").map(expandTabs);
+  return parseBlocks(lines, 0, { ...options, refs: collectRefs(lines) });
 }

@@ -4,6 +4,7 @@ export { checkImageSrc, importBlocks, importHtml, importText, safeUrl, parseStyl
 export { exportBlock, exportHtml, exportInline } from "./export.ts";
 export * from "./path.ts";
 export * from "./edit.ts";
+export type { CopyFormatter } from "./plugin.ts";
 export { defaultPaste, extractFragment, pasteBlocks, type ClipboardData, type PasteHandler } from "./paste.ts";
 export { decodeBase64, encodeBase64 } from "./base64.ts";
 export { createEngine } from "./core.ts";

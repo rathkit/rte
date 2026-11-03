@@ -174,3 +174,47 @@ test("link schemes can be narrowed", () => {
   const e = engineWith({ paste: "always", linkSchemes: ["https"] }, "<p></p>");
   assert.equal(exportHtml({ blocks: [...pasteBlocks({ text: "[a](http://x.test) [b](https://y.test)" }, e.pasteHandlers)] }), '<p>a <a href="https://y.test">b</a></p>');
 });
+
+test("reference links and images use definitions anywhere in the text", () => {
+  const text = "[a][x] [b][] [c] [Two Words] ![pic][p]\n\n[x]: https://x.test \"T\"\n[b]: <https://b.test>\n[c]: /rel\n[two  WORDS]: https://two.test\n[p]: https://i.test/p.png\n[bad]: javascript:alert(1)\n\n[bad] [missing] [a][nope]";
+  assert.equal(html(text), '<p><a href="https://x.test">a</a> <a href="https://b.test">b</a> <a href="/rel">c</a> <a href="https://two.test">Two Words</a> <img src="https://i.test/p.png" alt="pic"></p><p>bad [missing] [a][nope]</p>');
+  assert.equal(html("```\n[q]: http://q.test\n```\n\n[q]"), "<pre>[q]: http://q.test</pre><p>[q]</p>");
+  assert.equal(html("> [q]: https://q.test\n\n[q]"), '<p><a href="https://q.test">q</a></p>');
+  assert.equal(html("a\n[q]: https://q.test"), `<p>a [q]: <a href="https://q.test">https://q.test</a></p>`);
+});
+
+test("lazy continuation follows paragraph text only", () => {
+  assert.equal(html("> a\nb"), "<blockquote><p>a b</p></blockquote>");
+  assert.equal(html("> # h\nb"), "<blockquote><h1>h</h1></blockquote><p>b</p>");
+  assert.equal(html("> ```\n> x\ny"), "<blockquote><pre>x</pre></blockquote><p>y</p>");
+  assert.equal(html("> a\n2. b"), "<blockquote><p>a 2. b</p></blockquote>");
+  assert.equal(html("- a\nb"), "<ul><li>a b</li></ul>");
+  assert.equal(html("- ```\n  x\ny"), "<ul><li><code>x</code></li></ul><p>y</p>".replace("<code>x</code>", "<code>x</code>"));
+});
+
+test("copy: the plugin adds text/markdown, can replace the plain text, or can be turned off", () => {
+  const blocks = importHtml("<h1>T</h1><p>a <em>b</em></p>").blocks;
+  const formats = (opts: Parameters<typeof markdown>[0]) => {
+    const e = engineWith(opts, "<p></p>");
+    return e.copyFormatters.map((f) => f(blocks)).filter(Boolean);
+  };
+  assert.deepEqual(formats({}), [{ "text/markdown": "# T\n\na *b*" }]);
+  assert.deepEqual(formats({ copy: "plain" }), [{ "text/markdown": "# T\n\na *b*", "text/plain": "# T\n\na *b*" }]);
+  assert.deepEqual(formats({ copy: "off" }), []);
+});
+
+test("markdown.copy writes the selection, or the whole document when nothing is selected", async () => {
+  const written: string[] = [];
+  Object.defineProperty(globalThis, "navigator", { value: { clipboard: { writeText: async (t: string) => { written.push(t); } } }, configurable: true });
+  try {
+    const e = engineWith({}, "<p>one <strong>two</strong></p><p>three</p>");
+    assert.equal(e.commands.run("markdown.copy"), true);
+    e.setSelection({ anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 3 } });
+    assert.equal(e.commands.run("markdown.copy"), true);
+    assert.deepEqual(written, ["one **two**\n\nthree", "one"]);
+    Object.defineProperty(globalThis, "navigator", { value: {}, configurable: true });
+    assert.equal(e.commands.run("markdown.copy"), false);
+  } finally {
+    Reflect.deleteProperty(globalThis, "navigator");
+  }
+});

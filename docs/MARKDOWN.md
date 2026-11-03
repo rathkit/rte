@@ -20,7 +20,7 @@ const text = exportMarkdown(editor.document);                    // the document
 | --- | --- |
 | `"detect"` (default) | Plain text that clearly looks like Markdown is read as Markdown. Anything else pastes as typed. |
 | `"always"` | Every plain-text paste is read as Markdown. |
-| `"never"` | The plugin does nothing. |
+| `"never"` | Markdown is not read on paste (copy is separate, see below). |
 
 Rules that hold in every mode:
 
@@ -44,15 +44,18 @@ So a lone `- ` line, `snake_case_names`, `2*3*4`, an address, a path, or a shell
 
 Headings (`#` and underlined), paragraphs, hard breaks (two spaces or a backslash), quotes, fenced and indented code,
 rules, bullet and numbered lists (nested, with a starting number), task items, tables (with column alignment), bold,
-italic, strikethrough, code spans, links, images and automatic links. Soft line breaks become a space.
+italic, strikethrough, code spans, links (inline, and by reference: `[text][label]`, `[text][]`, `[label]` with
+`[label]: address "title"` written anywhere, even after use), images (inline and by reference) and automatic links.
+Soft line breaks become a space. A line that continues a paragraph inside a quote or list item without its marker (lazy
+continuation) is followed as the spec says: only when the container ends in paragraph text, never after a heading, rule or an open code fence.
 
 ### What the model cannot hold
 
 - **List items hold text and sublists only.** A second paragraph of an item becomes a paragraph break inside it. Code, a quote or
-  a heading inside an item is flattened to text in the item (code keeps its code mark).
+  a heading inside an item is flattened to text in the item (code keeps its code mark). This is the document model's shape, not the reader's.
 - **Table cells and alignment.** The column alignment of a table is set on the paragraph in each cell.
-- Not read: link reference definitions (`[x]: address`), footnotes, HTML blocks, and the lazy-continuation rule inside deeply nested quotes. They stay text.
-- Nesting deeper than 24 levels is read as plain text.
+- **Not read, by design:** HTML (it stays text, so pasted markup can never run or style anything), footnotes (no footnote in the model), and nesting deeper than 24 levels (read as plain text, a bound that keeps hostile input cheap).
+- Reference definitions are not shown. A definition counts only where a paragraph could start, and not inside code.
 
 ## What is written
 
@@ -69,8 +72,14 @@ the same document apart from the details below. Markdown has no way to say these
 Characters that would otherwise be read as formatting are escaped (`\*`, `\_` between non-letters, `\[`, and a leading `#`, `>`, `-`, `1.`),
 code fences and spans are made longer than any backtick run inside, and two lists side by side alternate their marker (`-` and `*`) so they stay two lists.
 
-Copying as Markdown (writing `text/markdown` to the clipboard on copy) is not part of this: the plugin API has no copy hook yet.
-Use `exportMarkdown` to produce the text.
+## Copy
+
+The plugin uses the plugin API's `copyFormat` hook, so copy, cut and drag also write the selection as `text/markdown`
+(`copy: "markdown"`, the default). `copy: "plain"` also makes the plain text Markdown, which suits pasting into a text field or a terminal;
+`copy: "off"` adds nothing. The editor's own HTML is always written as well, so pasting back into an editor keeps full formatting.
+
+The command `markdown.copy` ("Copy as Markdown") writes the selection (the whole document when nothing is selected) as text with the
+browser's clipboard API. It is not on any toolbar or menu; bind it to a key or an item of your own. It returns false when the clipboard API is not there.
 
 ## Tests
 

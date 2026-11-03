@@ -10,7 +10,7 @@ import { startOf } from "./edit.ts";
 import type { ImportOptions } from "./import.ts";
 import { countDocument, countSelection, textLength, type Counts } from "./stats.ts";
 import { UiRegistry } from "./ui.ts";
-import { PLUGIN_API_VERSION, satisfiesApi, type FileHandler, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
+import { PLUGIN_API_VERSION, satisfiesApi, type CopyFormatter, type FileHandler, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
 import { ops } from "./ops.ts";
 
 export interface EditorSnapshot {
@@ -73,6 +73,8 @@ export class Engine {
   private readonly textTriggers: TextTrigger[] = [];
   /** Plugins that change pasted blocks before they go in. */
   readonly pasteTransforms: PasteTransform[] = [];
+  /** Plugins that add formats to what copy, cut and drag write. */
+  readonly copyFormatters: CopyFormatter[] = [];
   /** Plugins that turn pasted and dropped files into blocks. */
   readonly fileHandlers: FileHandler[] = [];
   /** How HTML is imported here: what plugins have added (an SVG cleaner, recognizers). Pass it to the importer. */
@@ -389,6 +391,10 @@ export class Engine {
       fileHandler: (handler: FileHandler) => {
         this.fileHandlers.push(handler);
         undo.push(() => { const i = this.fileHandlers.indexOf(handler); if (i !== -1) this.fileHandlers.splice(i, 1); });
+      },
+      copyFormat: (formatter: CopyFormatter) => {
+        this.copyFormatters.push(formatter);
+        undo.push(() => { const i = this.copyFormatters.indexOf(formatter); if (i !== -1) this.copyFormatters.splice(i, 1); });
       },
       pasteHandler: (handler: PasteHandler) => {
         this.pasteHandlers.push(handler);

@@ -529,13 +529,24 @@ export class Editor {
     });
   }
 
+  /** What copy, cut and drag write: the model's own HTML and text, then whatever formats plugins add. */
+  private copyFormats(): Record<string, string> {
+    const blocks = extractSelection(this.engine.document, this.engine.selection);
+    const formats: Record<string, string> = { "text/html": exportHtml({ blocks }), "text/plain": selectedText(this.engine.document, this.engine.selection) };
+    for (const formatter of this.engine.copyFormatters) {
+      let added: Readonly<Record<string, string>> | undefined;
+      try { added = formatter(blocks); } catch (error) { this.engine.warn(`A copy formatter failed: ${String(error)}`); }
+      for (const [type, value] of Object.entries(added ?? {})) if (/^[a-z]+\/[a-z0-9.+-]+$/i.test(type) && typeof value === "string") formats[type] = value;
+    }
+    return formats;
+  }
+
   /** Copy and cut write the model's own HTML and text, not the page's markup. */
   private onCopy(event: ClipboardEvent, cut: boolean): void {
     this.readSelection();
     if (isCollapsed(this.engine.selection) || !event.clipboardData) return;
     event.preventDefault();
-    event.clipboardData.setData("text/html", exportHtml({ blocks: extractSelection(this.engine.document, this.engine.selection) }));
-    event.clipboardData.setData("text/plain", selectedText(this.engine.document, this.engine.selection));
+    for (const [type, value] of Object.entries(this.copyFormats())) event.clipboardData.setData(type, value);
     if (cut && !this.engine.readOnly) this.apply("cut", deleteSelection);
   }
 
@@ -547,8 +558,7 @@ export class Editor {
       if (at) this.engine.setSelection(imageSelection(at.path, at.offset));
     } else this.readSelection();
     if (isCollapsed(this.engine.selection) || !event.dataTransfer) return;
-    event.dataTransfer.setData("text/html", exportHtml({ blocks: extractSelection(this.engine.document, this.engine.selection) }));
-    event.dataTransfer.setData("text/plain", selectedText(this.engine.document, this.engine.selection));
+    for (const [type, value] of Object.entries(this.copyFormats())) event.dataTransfer.setData(type, value);
     event.dataTransfer.effectAllowed = this.engine.readOnly ? "copy" : "copyMove";
     this.dragSource = this.engine.selection;
   }
