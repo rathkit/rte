@@ -2,14 +2,20 @@
 // written as inline HTML (the reader here treats HTML as text, so it would not come back). The list of what is dropped is in docs/MARKDOWN.md.
 import type { Align, Block, Doc, Inline, ItemChild, List, Mark, Table, TableCell } from "../model.ts";
 
-type Span = "bold" | "italic" | "strike" | "link";
+type Span = "bold" | "italic" | "strike" | "link" | "underline" | "sup" | "sub";
 interface Segment { readonly text: string; readonly spans: readonly Mark[]; readonly code: boolean; readonly image?: Extract<Inline, { type: "image" }>; readonly br?: boolean }
 
 const SPAN_ORDER: readonly Span[] = ["link", "bold", "italic", "strike"];
-const SPAN_MARK: Record<Exclude<Span, "link">, string> = { bold: "**", italic: "*", strike: "~~" };
+const HTML_SPAN_ORDER: readonly Span[] = ["link", "bold", "italic", "underline", "strike", "sup", "sub"];
+const SPAN_MARK: Record<Exclude<Span, "link">, [string, string]> = {
+  bold: ["**", "**"], italic: ["*", "*"], strike: ["~~", "~~"], underline: ["<u>", "</u>"], sup: ["<sup>", "</sup>"], sub: ["<sub>", "</sub>"],
+};
+
+/** Whether the document being written may use the few inline tags the reader understands (set by `exportMarkdown`, which is synchronous). */
+let inlineHtml = false;
 
 const spanMarks = (marks: readonly Mark[]): Mark[] =>
-  SPAN_ORDER.flatMap((type) => marks.filter((m) => m.type === type));
+  (inlineHtml ? HTML_SPAN_ORDER : SPAN_ORDER).flatMap((type) => marks.filter((m) => m.type === type));
 const sameSpan = (a: Mark, b: Mark): boolean => a.type === b.type && (a.type !== "link" || (b.type === "link" && a.href === b.href));
 const hasSpan = (list: readonly Mark[], m: Mark): boolean => list.some((x) => sameSpan(x, m));
 
@@ -70,8 +76,8 @@ function inline(content: readonly Inline[], flat: boolean, table: boolean): stri
 
   let out = "";
   let active: Mark[] = [];
-  const open = (m: Mark): void => { out += m.type === "link" ? "[" : SPAN_MARK[m.type as Exclude<Span, "link">]; };
-  const close = (m: Mark): void => { out += m.type === "link" ? `](${destination(m.href)})` : SPAN_MARK[m.type as Exclude<Span, "link">]; };
+  const open = (m: Mark): void => { out += m.type === "link" ? "[" : SPAN_MARK[m.type as Exclude<Span, "link">][0]; };
+  const close = (m: Mark): void => { out += m.type === "link" ? `](${destination(m.href)})` : SPAN_MARK[m.type as Exclude<Span, "link">][1]; };
   const move = (target: readonly Mark[]): void => {
     let keep = 0;
     while (keep < active.length && keep < target.length && sameSpan(active[keep] as Mark, target[keep] as Mark)) keep++;
@@ -83,7 +89,7 @@ function inline(content: readonly Inline[], flat: boolean, table: boolean): stri
   for (const seg of segments) {
     if (seg.br) {
       move([]);
-      out += flat ? " " : "\\\n";
+      out += flat ? (inlineHtml ? "<br>" : " ") : "\\\n";
       continue;
     }
     if (seg.image) {
@@ -222,6 +228,19 @@ function render(block: Block, flip: boolean): string {
 }
 
 /** The document as Markdown (CommonMark with the GitHub table, task item and strikethrough additions). */
-export function exportMarkdown(doc: Doc): string {
-  return blocks(doc.blocks);
+export function exportMarkdown(doc: Doc, options: MarkdownExportOptions = {}): string {
+  inlineHtml = options.inlineHtml === true;
+  try {
+    return blocks(doc.blocks);
+  } finally {
+    inlineHtml = false;
+  }
+}
+
+export interface MarkdownExportOptions {
+  /**
+   * Write underline, superscript and subscript as `<u>`, `<sup>` and `<sub>`, and a line break in a table cell or heading as `<br>`. The
+   * reader here understands those tags, so they come back; other Markdown readers show them as HTML. Default false: those details are dropped.
+   */
+  readonly inlineHtml?: boolean;
 }

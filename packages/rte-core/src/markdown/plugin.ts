@@ -17,6 +17,8 @@ export interface MarkdownPasteOptions {
    * `text/markdown`; `"plain"` also makes the plain text Markdown, for pasting into a text field; `"off"` adds nothing.
    */
   readonly copy?: "markdown" | "plain" | "off";
+  /** Write underline, superscript and subscript as inline HTML when copying (see `MarkdownExportOptions`). Default false. */
+  readonly inlineHtml?: boolean;
   /** URL schemes a link may use besides relative and fragment addresses. Default: http, https, mailto, tel. */
   readonly linkSchemes?: readonly string[];
   /** Largest `data:` image address, in characters. */
@@ -32,7 +34,7 @@ export function markdown(options: MarkdownPasteOptions = {}): Plugin {
     setup(host) {
       if (copy !== "off") {
         host.copyFormat((blocks) => {
-          const text = exportMarkdown({ blocks });
+          const text = exportMarkdown({ blocks }, { inlineHtml: options.inlineHtml === true });
           return copy === "plain" ? { "text/markdown": text, "text/plain": text } : { "text/markdown": text };
         });
       }
@@ -44,7 +46,7 @@ export function markdown(options: MarkdownPasteOptions = {}): Plugin {
           if (!clipboard) return false;
           const { doc, selection } = ctx.snapshot;
           const blocks = host.ops.isCollapsed(selection) ? doc.blocks : host.ops.extractSelection(doc, selection);
-          clipboard.writeText(exportMarkdown({ blocks })).catch((error: unknown) => host.editor.warn(`Copy as Markdown failed: ${String(error)}`));
+          clipboard.writeText(exportMarkdown({ blocks }, { inlineHtml: options.inlineHtml === true })).catch((error: unknown) => host.editor.warn(`Copy as Markdown failed: ${String(error)}`));
           return true;
         },
       });

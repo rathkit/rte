@@ -13,7 +13,7 @@ Numbers are here only because they were measured, and each says how. They are no
 | `@rathkit/rte-core/lists` | 8.9 KB | 15 KB |
 | `@rathkit/rte-core/tables` | 8.0 KB | 15 KB |
 | `@rathkit/rte-core/autoformat` | 1.7 KB | 15 KB |
-| `@rathkit/rte-core/markdown` | 13.1 KB | 15 KB |
+| `@rathkit/rte-core/markdown` | 13.6 KB | 15 KB |
 | `@rathkit/rte-core/find` | 2.4 KB | 15 KB |
 | `@rathkit/rte-core/word` | 1.9 KB | 15 KB |
 | `@rathkit/rte-core/svg` | 3.7 KB | 15 KB |

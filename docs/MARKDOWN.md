@@ -53,7 +53,8 @@ continuation) is followed as the spec says: only when the container ends in para
 
 - **List items** hold text, then (in order) nested lists, paragraphs, headings, code, quotes and rules, as in HTML. Tables do not go in an item: their text stays as paragraphs.
 - **Table cells and alignment.** The column alignment of a table is set on the paragraph in each cell.
-- **Not read, by design:** HTML (it stays text, so pasted markup can never run or style anything), footnotes (no footnote in the model), and nesting deeper than 24 levels (read as plain text, a bound that keeps hostile input cheap).
+- **HTML is text, with one small exception.** These inline tags **without attributes** are read as formatting: `<u>` `<ins>` (underline), `<sup>`, `<sub>`, `<b>` `<strong>`, `<i>` `<em>`, `<s>` `<del>` `<strike>`, `<kbd>` `<code>`, and `<br>`. A tag counts only when its closing partner is there; one left over, one with an attribute, a closing `</br>`, and every other tag (`<script>`, `<img>`, `<span style>`, `<a>`) stay text, so pasted markup can never run, load or style anything. HTML blocks are text too.
+- **Not read, by design:** footnotes (the document model has none), and nesting deeper than 24 levels (read as plain text, a bound that keeps hostile input cheap).
 - Reference definitions are not shown. A definition counts only where a paragraph could start, and not inside code.
 
 ## What is written
@@ -61,12 +62,14 @@ continuation) is followed as the spec says: only when the container ends in para
 `exportMarkdown(doc)` is deterministic: the same document always gives the same text, and reading that text gives back
 the same document apart from the details below. Markdown has no way to say these, so they are **dropped** (never written as inline HTML, which would not come back):
 
-- underline, superscript, subscript, text color and background marks;
+- text color and background marks, and (unless `inlineHtml` is on, below) underline, superscript and subscript;
 - alignment, indent and direction of a block (a table column's alignment is kept);
 - cell spans (`colspan`, `rowspan`: a spanning cell leaves empty cells), cell colors and borders, column widths, row heights, cells with more than one block, a table without a header row (the first row becomes the header);
 - image size, alignment and caption; the new-tab setting of a link;
 - definition lists (each term and detail becomes a paragraph);
-- a line break inside a table cell or a heading becomes a space.
+- a line break inside a table cell or a heading becomes a space (a `<br>` with `inlineHtml`).
+
+`exportMarkdown(doc, { inlineHtml: true })` (and `markdown({ inlineHtml: true })` for copy) writes underline, superscript, subscript and those line breaks as `<u>`, `<sup>`, `<sub>` and `<br>`. The reader here understands them, so they come back; other Markdown readers show the tags as HTML. Off by default, so the text stays plain Markdown.
 
 Characters that would otherwise be read as formatting are escaped (`\*`, `\_` between non-letters, `\[`, and a leading `#`, `>`, `-`, `1.`),
 code fences and spans are made longer than any backtick run inside, and two lists side by side alternate their marker (`-` and `*`) so they stay two lists.

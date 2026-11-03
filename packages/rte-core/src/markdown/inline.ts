@@ -28,6 +28,12 @@ const MAX_PAREN_DEPTH = 32;
 const MAX_BRACKETS = 64;
 
 type Emphasis = "bold" | "italic" | "strike";
+/** Marks an inline HTML tag can switch on. Only these tags are read, and only without attributes. */
+type SpanMark = Emphasis | "underline" | "sup" | "sub" | "code";
+const HTML_TAGS: Readonly<Record<string, SpanMark>> = {
+  u: "underline", ins: "underline", sup: "sup", sub: "sub", b: "bold", strong: "bold", i: "italic", em: "italic",
+  s: "strike", del: "strike", strike: "strike", kbd: "code", code: "code",
+};
 
 interface Delimiter {
   k: "d";
@@ -56,6 +62,7 @@ type Piece =
   | { k: "img"; src: string; alt: string; dead?: true }
   | { k: "lopen"; href: string | undefined; dead?: true }
   | { k: "lclose"; dead?: true }
+  | { k: "tag"; mark: SpanMark; close: boolean; raw: string; paired?: boolean; dead?: true }
   | (Delimiter & { dead?: true })
   | (Bracket & { dead?: true });
 
@@ -77,7 +84,7 @@ const after = (s: string, i: number): string => {
   return s.charAt(i);
 };
 
-const MARK_ORDER = ["link", "bold", "italic", "strike", "code"] as const;
+const MARK_ORDER = ["link", "bold", "italic", "underline", "strike", "code", "sup", "sub"] as const;
 
 export function parseInline(src: string, options: InlineContext = {}): Inline[] {
   const schemes = new Set(options.linkSchemes ?? DEFAULT_SCHEMES);
@@ -286,6 +293,13 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
         i = auto.end;
         continue;
       }
+      const tag = htmlTag(src, i);
+      if (tag) {
+        flush();
+        if (tag.mark === "br") pieces.push({ k: "br" }); else pieces.push({ k: "tag", mark: tag.mark, close: tag.close, raw: src.slice(i, tag.end) });
+        i = tag.end;
+        continue;
+      }
       buffer += c; i++; continue;
     }
     if ((c === "h" || c === "w") && brackets.length === 0 && !/[A-Za-z0-9]/.test(before(src, i))) {
@@ -303,6 +317,7 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
   flush();
   processEmphasis(null);
   for (const b of brackets) asText(b);
+  pairTags(pieces);
   return render(pieces);
 }
 
@@ -323,6 +338,33 @@ function referenceTail(src: string, close: number, textStart: number, refs: Refs
   if (label.trim() === "") return undefined;
   const def = refs.get(refLabel(label));
   return def ? { dest: def.dest, end } : undefined;
+}
+
+/** `<u>`, `</sup>`, `<br>` and the like, with no attributes. Anything else that starts with `<` is text. */
+function htmlTag(src: string, at: number): { mark: SpanMark | "br"; close: boolean; end: number } | undefined {
+  let i = at + 1;
+  const close = src[i] === "/";
+  if (close) i++;
+  const from = i;
+  while (i < src.length && i - from < 8 && /[A-Za-z]/.test(src.charAt(i))) i++;
+  const name = src.slice(from, i).toLowerCase();
+  const mark = name === "br" ? "br" : HTML_TAGS[name];
+  if (!mark || (mark === "br" && close)) return undefined;
+  while (src[i] === " " || src[i] === "\t") i++;
+  if (mark === "br" && src[i] === "/") i++;
+  if (src[i] !== ">") return undefined;
+  return { mark, close, end: i + 1 };
+}
+
+/** A tag counts only when its partner is there; one left over is shown as the text it was written as. */
+function pairTags(pieces: Piece[]): void {
+  const open = new Map<SpanMark, Piece[]>();
+  for (const p of pieces) {
+    if (p.dead || p.k !== "tag") continue;
+    if (!p.close) { const list = open.get(p.mark) ?? []; list.push(p); open.set(p.mark, list); continue; }
+    const mate = open.get(p.mark)?.pop();
+    if (mate && mate.k === "tag") { mate.paired = true; p.paired = true; }
+  }
 }
 
 function asText(b: Bracket): void {
@@ -390,13 +432,13 @@ function bareUrl(src: string, at: number, schemes: ReadonlySet<string>): { href:
 
 function render(pieces: readonly Piece[]): Inline[] {
   const out: Inline[] = [];
-  const counts: Record<Emphasis, number> = { bold: 0, italic: 0, strike: 0 };
+  const counts: Record<SpanMark, number> = { bold: 0, italic: 0, strike: 0, underline: 0, sup: 0, sub: 0, code: 0 };
   let link: string | undefined;
   const marks = (code: boolean): Mark[] => {
     const list: Mark[] = [];
     for (const type of MARK_ORDER) {
       if (type === "link") { if (link !== undefined) list.push({ type: "link", href: link }); }
-      else if (type === "code") { if (code) list.push({ type: "code" }); }
+      else if (type === "code") { if (code || counts.code > 0) list.push({ type: "code" }); }
       else if (counts[type] > 0) list.push({ type });
     }
     return list;
@@ -415,6 +457,10 @@ function render(pieces: readonly Piece[]): Inline[] {
         for (const m of p.closes) counts[m]--;
         emit(p.ch.repeat(p.n));
         for (const m of p.opens) counts[m]++;
+        break;
+      case "tag":
+        if (!p.paired) emit(p.raw);
+        else counts[p.mark] += p.close ? -1 : 1;
         break;
       case "lb": emit(p.image ? "![" : "["); break;
     }

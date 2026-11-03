@@ -54,7 +54,7 @@ test("quotes, code and tables", () => {
 });
 
 test("raw HTML and unsafe addresses stay harmless", () => {
-  assert.equal(html("<script>alert(1)</script> <b>x</b>"), "<p>&lt;script&gt;alert(1)&lt;/script&gt; &lt;b&gt;x&lt;/b&gt;</p>");
+  assert.equal(html("<script>alert(1)</script> <b>x</b>"), "<p>&lt;script&gt;alert(1)&lt;/script&gt; <strong>x</strong></p>");
   assert.equal(html("[x](javascript:alert(1)) [y](&#106;avascript:1) [z](JAVASCRIPT:1) [v](vbscript:1) [d](data:text/html,x)"), "<p>x y z v d</p>");
   assert.equal(html("[y](JaVa\tScript:1)"), "<p>[y](JaVa\tScript:1)</p>");
   assert.equal(html("![a](javascript:alert(1))"), "<p>a</p>");
@@ -127,7 +127,7 @@ test("hostile input stays fast", () => {
   const cases = [
     "*".repeat(10_000), "[".repeat(10_000), "[]".repeat(10_000), "](".repeat(10_000), "![".repeat(5_000) + "](x)".repeat(5_000),
     ">".repeat(1_000) + " x", "- ".repeat(2_000) + "x", "`".repeat(10_000), "`a".repeat(10_000), "*a ".repeat(10_000), "_a_ ".repeat(5_000) + "*".repeat(5_000),
-    "~".repeat(10_000), "(".repeat(10_000), "[a](" + "(".repeat(10_000), "<".repeat(10_000), "http://" + "a.".repeat(20_000), "|a".repeat(5_000) + "\n" + "|-".repeat(5_000),
+    "~".repeat(10_000), "<u>".repeat(10_000), "</u>".repeat(10_000), "<u><i></u></i>".repeat(3_000), "<br".repeat(10_000), "(".repeat(10_000), "[a](" + "(".repeat(10_000), "<".repeat(10_000), "http://" + "a.".repeat(20_000), "|a".repeat(5_000) + "\n" + "|-".repeat(5_000),
     "  ".repeat(5_000) + "- x", "1.".repeat(10_000), "\\".repeat(10_000), "&".repeat(10_000), "# ".repeat(10_000),
   ];
   for (const input of cases) {
@@ -221,4 +221,26 @@ test("markdown.copy writes the selection, or the whole document when nothing is 
   } finally {
     Reflect.deleteProperty(globalThis, "navigator");
   }
+});
+
+test("a few inline tags without attributes are read as formatting; every other tag stays text", () => {
+  assert.equal(html("a <u>b</u> x<sup>2</sup> H<sub>2</sub>O<br>c <kbd>Ctrl</kbd> <b>bold</b> <em>i</em> <del>d</del>"),
+    "<p>a <u>b</u> x<sup>2</sup> H<sub>2</sub>O<br>c <code>Ctrl</code> <strong>bold</strong> <em>i</em> <s>d</s></p>");
+  assert.equal(html("<U>caps</U> and **<u>mixed</u>** <br/> <br />x"), "<p><u>caps</u> and <strong><u>mixed</u></strong>&nbsp;<br>&nbsp;<br>x</p>");
+  // Unpaired, with attributes, or not on the list: text.
+  assert.equal(html("<u>open only and </i>close only"), "<p>&lt;u&gt;open only and &lt;/i&gt;close only</p>");
+  assert.equal(html('<u class="x">a</u> <span style="color:red">b</span> <img src=x onerror=alert(1)> <a href="javascript:1">c</a> <script>d</script> </br>'),
+    '<p>&lt;u class="x"&gt;a&lt;/u&gt; &lt;span style="color:red"&gt;b&lt;/span&gt; &lt;img src=x onerror=alert(1)&gt; &lt;a href="javascript:1"&gt;c&lt;/a&gt; &lt;script&gt;d&lt;/script&gt; &lt;/br&gt;</p>');
+});
+
+test("with inline HTML on, writing keeps underline, super and subscript, and reading gives them back", () => {
+  const source = "<p><u>u</u> x<sup>2</sup> H<sub>2</sub>O <strong><u>both</u></strong></p><h2>a<br>b</h2><table><tr><th>H</th></tr><tr><td>c<br>d</td></tr></table>";
+  const doc = importHtml(source);
+  assert.equal(exportMarkdown(doc), "u x2 H2O **both**\n\n## a b\n\n| H |\n| --- |\n| c d |");
+  const text = exportMarkdown(doc, { inlineHtml: true });
+  assert.equal(text, "<u>u</u> x<sup>2</sup> H<sub>2</sub>O **<u>both</u>**\n\n## a<br>b\n\n| H |\n| --- |\n| c<br>d |");
+  assert.equal(exportHtml({ blocks: parseMarkdown(text) }).replace(/<\/?tbody>/g, ""), exportHtml(doc).replace(/<\/?tbody>/g, "").replace("<br>b</h2>", "<br>b</h2>"));
+  assert.equal(exportMarkdown({ blocks: parseMarkdown(text) }, { inlineHtml: true }), text);
+  // A "<" that was text stays text.
+  assert.equal(exportMarkdown(importHtml("<p>1 &lt; 2 and &lt;u&gt;x&lt;/u&gt;</p>"), { inlineHtml: true }), "1 \\< 2 and \\<u>x\\</u>");
 });
