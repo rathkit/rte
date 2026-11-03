@@ -4,7 +4,7 @@ A rich text editor built from scratch, with zero runtime dependencies.
 
 > Built from scratch. Ships with nothing else.
 
-**Status: alpha.** `0.1.0-alpha.3` of all eleven packages is on npm under the `next` tag. The APIs will change between releases, and there is no API reference yet. Do not build on this.
+**Status: alpha.** `0.1.0-alpha.4` of all eleven packages is on npm under the `next` tag. The APIs will change between releases, and there is no API reference yet. Do not build on this.
 
 ```sh
 npm install @rathkit/rte-core@next
@@ -22,7 +22,7 @@ RTE is a rich text editor for the web. The core is written in TypeScript around 
 
 ## What it does today
 
-Text with bold, italic, underline, strikethrough, code, super- and subscript, text and highlight colors, links and images; headings, paragraphs, block quotes, code blocks and rules; bulleted, numbered and definition lists; tables with merged cells, column widths and a header row; alignment and reading direction; find and replace; an HTML source view; word and character counts; paste cleaned up from word processors and spreadsheets. Every action is a named command (`docs/COMMANDS.md`), so toolbars, keys and scripts share one path.
+Text with bold, italic, underline, strikethrough, code, super- and subscript, text and highlight colors, links and images; headings, paragraphs, block quotes, code blocks and rules; bulleted, numbered and definition lists; footnotes with numbered references and an end list of notes; tables with merged cells, column widths and a header row; alignment and reading direction; find and replace; an HTML source view; word and character counts; paste cleaned up from word processors and spreadsheets; Markdown in and out, as an opt-in plugin. Every action is a named command (`docs/COMMANDS.md`), so toolbars, keys and scripts share one path.
 
 ## Packages
 
@@ -40,7 +40,7 @@ Text with bold, italic, underline, strikethrough, code, super- and subscript, te
 | `@rathkit/rte-angular` | Early. The `rteEditor` directive, signals (`commandState`, `selected`) and an Angular forms value accessor (`@rathkit/rte-angular/forms`). Written in the compiled form, so it needs no Angular compiler |
 | `@rathkit/rte-jquery` | Early. `$(el).rkEditor(options)` over the custom element, with `rk:change` events |
 
-All eleven are on npm at `0.1.0-alpha.3` under `next`. Only the reference server package, `rte-server`, is still to come.
+All eleven are on npm at `0.1.0-alpha.4` under `next`. Only the reference server package, `rte-server`, is still to come.
 
 ## Development
 
