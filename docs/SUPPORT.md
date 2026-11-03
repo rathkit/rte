@@ -26,6 +26,8 @@ Paste conformance: 80 scrubbed clipboard captures from word processors and sprea
 
 The example in each package's README is built exactly as written (bundled against the built packages and, for the wrapper packages, the real React, Vue, Svelte, Angular 22 and jQuery; Angular also as an ahead-of-time build with Angular's compiler and linker, templates type-checked against the wrapper) and run in all three engines: the editor appears with its name, typing is reported through the example's own callback, the Bold button works where the example has one, the interface gets its theme, and there is no error and no request for anything outside the page (`tools/framework-checks`, run locally with `RTE_PLAYWRIGHT` and `RTE_PACK` like the other framework checks).
 
+The whole framework check was also run, on 2026-11-03, against the published `0.1.0-alpha.4` packages with the oldest versions the wrappers allow of React, Vue and jQuery (React 18.3.1, Vue 3.4.38, jQuery 3.7.1): 522 of 522 passed in all three engines. That run is by hand, not in CI: copy `tools/framework-checks`, install those versions there (`pnpm add -D react@18.3.1 react-dom@18.3.1 vue@3.4.38 jquery@3.7.1 --ignore-workspace`), and run the script as above. Angular 20 and 21, server-side rendering, real devices and screen readers have not been checked.
+
 ## Accessibility
 
 What runs automatically:
