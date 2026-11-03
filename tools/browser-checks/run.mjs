@@ -346,8 +346,7 @@ for (const [name, type] of engines) {
   const copied = await page.evaluate(() => window.__copied);
   check(`${name} copy also writes the selection as Markdown`, copied[2] === "## T\n\na **bold** and [link](https://x.test)\n\n- x\n- y" && copied[0].includes("<h2>") && copied[1].includes("bold"), copied);
   await page.evaluate(() => window.__mdStop());
-  // Footnotes (an opt-in plugin): a reference is one atom in the text, numbered by its place; its note is an item of the list at the end.
-  await page.evaluate(async () => { const f = await import("/dist/footnotes/index.js"); window.__fnStop = window.__editor.use(f.footnotes()); });
+  // Footnotes (in the standard editor): a reference is one atom in the text, numbered by its place; its note is an item of the list at the end.
   const refs = () => page.evaluate(() => [...document.querySelectorAll("#ed sup[data-rte-note]")].map((e) => e.textContent));
   await reset("<p>Hello world</p>");
   await page.click("p");
@@ -396,7 +395,6 @@ for (const [name, type] of engines) {
   await page.keyboard.press("ControlOrMeta+c");
   check(`${name} copy also writes the footnotes as Markdown`, (await page.evaluate(() => window.__copied)).includes("[^1]: First *source*.") && (await page.evaluate(() => window.__copied)).includes("Claim[^1]"), await page.evaluate(() => window.__copied));
   await page.evaluate(() => window.__mdStop());
-  await page.evaluate(() => window.__fnStop());
   // Cell edges: Backspace at the start of a cell and Delete at the end of one leave the table whole.
   await reset("<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>");
   await page.click("td:nth-child(2)");

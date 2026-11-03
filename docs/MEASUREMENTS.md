@@ -8,8 +8,8 @@ Numbers are here only because they were measured, and each says how. They are no
 
 | Entry point | gzipped | budget |
 | --- | --- | --- |
-| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 43.5 KB | 60 KB |
-| `@rathkit/rte-core/dom` (core + browser view) | 53.7 KB | 60 KB |
+| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 43.8 KB | 60 KB |
+| `@rathkit/rte-core/dom` (core + browser view) | 54.0 KB | 60 KB |
 | `@rathkit/rte-core/lists` | 9.1 KB | 15 KB |
 | `@rathkit/rte-core/tables` | 12.8 KB | 15 KB |
 | `@rathkit/rte-core/autoformat` | 1.7 KB | 15 KB |

@@ -15,11 +15,11 @@ the styled one (see `HEADLESS.md`).
 | `@rathkit/rte-core/find` | Find and replace: case and whole-word options, next and previous, replace one or all in a single undo step. See `COMMANDS.md` | 2 KB |
 | `@rathkit/rte-core/autoformat` | Typed shortcuts: `# ` to `###### ` headings, `> ` quote, three backticks a code block, three dashes a rule, `**bold**`, `~~strike~~`, `*italic*`, `_italic_`, `` `code` ``, and a web address followed by a space becomes a link. One undo step takes a conversion back | 1.7 KB |
 | `@rathkit/rte-core/markdown` | Markdown in plain-text paste, and Markdown out: `parseMarkdown`, `exportMarkdown`, `looksLikeMarkdown`, and a paste plugin. Off by default; see [MARKDOWN.md](MARKDOWN.md) | 13.6 KB |
-| `@rathkit/rte-core/footnotes` | Footnotes: a numbered reference in the text, its note in a list at the end, kept together as people edit. Off by default; see [FOOTNOTES.md](FOOTNOTES.md) | 3.8 KB |
+| `@rathkit/rte-core/footnotes` | Footnotes: a numbered reference in the text, its note in a list at the end, kept together as people edit. In the standard editor; see [FOOTNOTES.md](FOOTNOTES.md) | 3.8 KB |
 | `@rathkit/rte-core/word` | Reads lists the way word processors write them | 1.1 KB |
 | `@rathkit/rte-core/svg` | The SVG cleaner; lets content carry SVG images once cleaned | 2.5 KB |
 | `@rathkit/rte-core/images` | The image policy: upload hook, inline limit, reports | 1.2 KB |
-| `@rathkit/rte-core/standard` | `createEditor()`: the editor with all of the above wired in | |
+| `@rathkit/rte-core/standard` | `createEditor()`: the editor with all of the above wired in except Markdown, which stays opt-in. Footnotes are on and can be left out with `footnotes: false` (so can `lists`, `tables`, `find` and `autoformat`) | |
 
 Budgets are 60 KB for the core and 15 KB for each plugin. The sizes above come from `rathkit-pack`'s minifier and are provisional
 while that is still changing; CI checks the stricter unminified number. `pnpm check:graph` fails if a core file imports a

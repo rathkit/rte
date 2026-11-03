@@ -83,7 +83,7 @@ With the Markdown plugin on (`markdown()` from `@rathkit/rte-core/markdown`):
 
 ## Footnotes
 
-With the footnotes plugin on (`footnotes()` from `@rathkit/rte-core/footnotes`):
+In the standard editor (or with `footnotes()` from `@rathkit/rte-core/footnotes` added):
 
 1. Put the caret in a sentence and press Ctrl+Alt+F (Cmd+Option+F on a Mac; some keyboard layouts type a symbol with Option and the key will not reach the editor, so also try the toolbar button). Expect: a small number appears in the text, and the caret is in a new note at the end.
 2. Press Ctrl+Alt+Shift+F. Expect: the caret goes back beside the number; press it again and it returns to the note.

@@ -1,8 +1,9 @@
-// @rathkit/rte-core/standard: the editor with the free standard plugins already in it (lists, word-processor lists, SVG
+// @rathkit/rte-core/standard: the editor with the free standard plugins already in it (lists, tables, find, typed shortcuts, footnotes, word-processor lists, SVG
 // images, the image policy). This is the one to use unless you want to pick the parts yourself.
 import { autoformat, type AutoformatOptions } from "../autoformat/plugin.ts";
 import { Editor, type EditorOptions } from "../dom/view.ts";
 import { find } from "../find/plugin.ts";
+import { footnotes, type FootnotesOptions } from "../footnotes/plugin.ts";
 import { images, type ImagesOptions } from "../images/index.ts";
 import { lists, type ListsOptions } from "../lists/plugin.ts";
 import type { Plugin } from "../plugin.ts";
@@ -20,6 +21,8 @@ export interface StandardPluginOptions extends ImagesOptions {
   readonly find?: false;
   /** Options for tables, or `false` to leave tables out. */
   readonly tables?: TablesOptions | false;
+  /** Options for footnotes, or `false` to leave them out. */
+  readonly footnotes?: FootnotesOptions | false;
   /** More plugins, added after the standard ones. */
   readonly plugins?: readonly Plugin[];
 }
@@ -34,6 +37,7 @@ export function standardPlugins(options: StandardPluginOptions = {}): Plugin[] {
     ...(options.tables === false ? [] : [tables(options.tables)]),
     ...(options.find === false ? [] : [find()]),
     ...(options.autoformat === false ? [] : [autoformat(options.autoformat)]),
+    ...(options.footnotes === false ? [] : [footnotes(options.footnotes)]),
     word(),
     svg(),
     images({
@@ -47,8 +51,8 @@ export function standardPlugins(options: StandardPluginOptions = {}): Plugin[] {
 }
 
 export function createEditor(options: StandardOptions): Editor {
-  const { lists: _lists, tables: _tables, find: _find, autoformat: _autoformat, plugins: _plugins, uploadImage: _u, maxInlineImageBytes: _m, maxImageFileBytes: _f, onImageRejected: _r, ...editorOptions } = options;
-  void [_lists, _tables, _find, _autoformat, _plugins, _u, _m, _f, _r];
+  const { lists: _lists, tables: _tables, find: _find, autoformat: _autoformat, footnotes: _footnotes, plugins: _plugins, uploadImage: _u, maxInlineImageBytes: _m, maxImageFileBytes: _f, onImageRejected: _r, ...editorOptions } = options;
+  void [_lists, _tables, _find, _autoformat, _footnotes, _plugins, _u, _m, _f, _r];
   return new Editor({ ...editorOptions, plugins: standardPlugins(options) });
 }
 

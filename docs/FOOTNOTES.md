@@ -1,12 +1,13 @@
 # Footnotes
 
 `@rathkit/rte-core/footnotes` adds footnotes: a numbered reference in the text, and its note in a list at the end of the document.
-It is an opt-in entry (nothing in `standard` turns it on) and has no dependencies.
+It is part of the standard editor (`createEditor()` has it; `footnotes: false` leaves it out) and has no dependencies. To add
+it to an editor you build from the parts:
 
 ```ts
 import { footnotes } from "@rathkit/rte-core/footnotes";
 
-const editor = createEditor({ element, plugins: [footnotes()] });
+const editor = new Editor({ element, plugins: [footnotes()] });
 editor.commands.run("footnote.insert"); // a reference at the caret, and the caret in its new note
 ```
 
