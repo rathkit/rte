@@ -147,3 +147,10 @@ test("base64 with many trailing equals signs or spaces decodes (or fails) quickl
   assert.deepEqual([...(decodeBase64("aGk=") as Uint8Array)], [104, 105]);
   assert.ok(Date.now() - started < 2000);
 });
+
+test("deeply nested comments are refused quickly, not cut one layer at a time", () => {
+  const started = Date.now();
+  const nested = `${"<!--".repeat(40_000)}${"-->".repeat(40_000)}`;
+  assert.equal(sanitizeSvg(`<svg xmlns="http://www.w3.org/2000/svg">${nested}<rect width="1" height="1"/></svg>`), undefined);
+  assert.ok(Date.now() - started < 1500);
+});

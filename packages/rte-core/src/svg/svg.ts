@@ -75,10 +75,12 @@ function parseXml(source: string, limits: SvgLimits): XNode | undefined {
   // No entity declarations (they can expand without limit), and no CDATA or processing instructions beyond the XML header.
   if (/<!ENTITY|<!ATTLIST|<!NOTATION/i.test(source) || /<!\[CDATA\[/i.test(source)) return undefined;
   let stripped = source.replace(/^﻿/, "").replace(/<\?xml[^>]*\?>/i, "").replace(/<!DOCTYPE[^>[]*(?:\[[^\]]*\])?[^>]*>/gi, "");
-  // Comments are cut out until none is left to cut. A comment inside a comment can leave an opener behind: that is refused, not read.
-  for (let before = ""; before !== stripped; ) {
-    before = stripped;
-    stripped = stripped.replace(/<!--[\s\S]*?-->/g, "");
+  // Comments are cut out in a few passes, so that one inside another still goes. Anything that still has an opener after that is
+  // refused, not read: real pictures do not nest comments, and a fixed number of passes keeps the time linear.
+  for (let pass = 0; pass < 4; pass++) {
+    const next = stripped.replace(/<!--[\s\S]*?-->/g, "");
+    if (next === stripped) break;
+    stripped = next;
   }
   if (stripped.includes("<!--")) return undefined;
   const stack: XNode[] = [];
