@@ -22,7 +22,7 @@ const found = new WeakMap<Block, readonly string[]>();
 const NONE: readonly string[] = [];
 
 /** The ids of the references in a block, in order. A notes list holds none. */
-function blockNotes(block: Block): readonly string[] {
+function idsOf(block: Block): readonly string[] {
   if (isNotes(block)) return NONE;
   let ids = found.get(block);
   if (!ids) {
@@ -34,4 +34,4 @@ function blockNotes(block: Block): readonly string[] {
 }
 
 /** The ids of every reference in the document, in reading order. */
-export const noteIds = (doc: Doc): string[] => doc.blocks.flatMap(blockNotes);
+export const noteIds = (doc: Doc): string[] => doc.blocks.flatMap(idsOf);
