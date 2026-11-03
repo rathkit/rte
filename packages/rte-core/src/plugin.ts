@@ -6,7 +6,8 @@ import type { CommandDef, Unsubscribe } from "./commands.ts";
 import type { Engine } from "./engine.ts";
 import type { ImportOptions } from "./import.ts";
 import type { KeyBinding } from "./keymap.ts";
-import type { Block } from "./model.ts";
+import type { Block, Doc } from "./model.ts";
+import type { EditResult, Selection } from "./path.ts";
 import type { UiItem, UiSlot } from "./ui.ts";
 import type { Ops } from "./ops.ts";
 import type { PasteHandler } from "./paste.ts";
@@ -22,6 +23,13 @@ export type PasteTransform = (blocks: readonly Block[]) => readonly Block[] | Pr
  * Called once per copy with the selected blocks; it must be quick and must not change the document.
  */
 export type CopyFormatter = (blocks: readonly Block[]) => Readonly<Record<string, string>> | undefined;
+
+/**
+ * Puts right what an edit left, such as a footnote whose reference was deleted. Runs after every edit that changes the document, on
+ * the result, and returns the document and selection to use; the repair is part of the same undo step. It must be quick, and
+ * must return the same document when there is nothing to put right.
+ */
+export type Normalizer = (doc: Doc, selection: Selection) => EditResult;
 
 /** What a plugin needs of a file that was pasted or dropped. A browser `File` fits. */
 export interface BlobLike {
@@ -48,6 +56,8 @@ export interface PluginHost {
   command<A, V>(def: CommandDef<A, V>): void;
   keybinding(binding: KeyBinding): void;
   pasteHandler(handler: PasteHandler): void;
+  /** Adds a repair that runs after every edit that changes the document. */
+  normalize(normalizer: Normalizer): void;
   /** Adds formats to what copy, cut and drag write to the clipboard. Later plugins win when two give the same type. */
   copyFormat(formatter: CopyFormatter): void;
   /** Takes over Enter, Backspace at the start, and paste inside a kind of container the plugin owns. One plugin per kind. */

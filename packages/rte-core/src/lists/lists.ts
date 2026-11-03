@@ -468,7 +468,7 @@ export function splitListItem(doc: Doc, pos: Pos): EditResult | undefined {
   const next = mapListAt(doc, pos.path, (list, index) => ({
     ...list,
     items: list.items.flatMap((candidate, i) => (i !== index ? [candidate] : [
-      { content: before, children: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
+      { content: before, children: [], ...(item.checked !== undefined ? { checked: item.checked } : {}), ...(item.id !== undefined ? { id: item.id } : {}) },
       // The new item is a task too, and not yet done.
       { content: after, children: item.children, ...(item.checked !== undefined ? { checked: false } : {}) },
     ])),
@@ -489,9 +489,9 @@ export function insertIntoList(doc: Doc, pos: Pos, blocks: readonly Block[], bef
     const item = list.items[index];
     if (!item) return list;
     const rows = others.length === 0
-      ? [{ content: normalizeInline([...before, ...first, ...after]), children: item.children }]
+      ? [{ ...item, content: normalizeInline([...before, ...first, ...after]) }]
       : [
-          { content: normalizeInline([...before, ...first]), children: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
+          { content: normalizeInline([...before, ...first]), children: [], ...(item.checked !== undefined ? { checked: item.checked } : {}), ...(item.id !== undefined ? { id: item.id } : {}) },
           ...others.slice(0, -1).map((content) => ({ content, children: [], ...(item.checked !== undefined ? { checked: false } : {}) })),
           { content: normalizeInline([...lastText, ...after]), children: item.children, ...(item.checked !== undefined ? { checked: false } : {}) },
         ];

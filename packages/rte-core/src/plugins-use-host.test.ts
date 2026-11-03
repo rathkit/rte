@@ -9,7 +9,7 @@ import { ops } from "./ops.ts";
 test("every value the bundled plugins take from the core is in the toolkit plugins are handed", () => {
   const dir = new URL(".", import.meta.url).pathname;
   const missing: string[] = [];
-  for (const plugin of ["lists", "word", "svg", "images", "tables", "find", "autoformat"]) {
+  for (const plugin of ["lists", "word", "svg", "images", "tables", "find", "autoformat", "footnotes"]) {
     for (const file of readdirSync(join(dir, plugin)).filter((f) => f.endsWith(".ts") && !/\.test\.ts$/.test(f))) {
       const text = readFileSync(join(dir, plugin, file), "utf8");
       for (const m of text.matchAll(/import\s*(type\s+)?\{([^}]*)\}\s*from\s*"(\.\.\/[^"]+)"/g)) {

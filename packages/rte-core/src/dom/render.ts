@@ -54,7 +54,14 @@ function renderInline(parent: HTMLElement, content: readonly Inline[], options: 
         parent.appendChild(gap);
       }
     }
-    else if (node.type === "image") {
+    else if (node.type === "note") {
+      // The number is put in by renderDoc, which knows the order of the references. Not text of the document: one atom.
+      const mark = document.createElement("sup");
+      mark.setAttribute("data-rte-note", node.id);
+      mark.setAttribute("contenteditable", "false");
+      mark.setAttribute("role", "doc-noteref");
+      parent.appendChild(mark);
+    } else if (node.type === "image") {
       const img = document.createElement("img");
       // The address stays in the model. Without permission the view holds it in an attribute and loads nothing.
       if (isRemote(node.src) && !options.loadRemoteImages) img.setAttribute("data-rte-remote-src", node.src);
@@ -101,9 +108,11 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
   const el = document.createElement(list.type);
   if (list.start !== undefined) el.setAttribute("start", String(list.start));
   if (list.style !== undefined) el.style.listStyleType = list.style;
+  if (list.notes) { el.setAttribute("data-rk-notes", ""); el.setAttribute("role", "doc-endnotes"); el.setAttribute("aria-label", "Notes"); }
   list.items.forEach((item, i) => {
     const itemPath = [...path, i];
     const li = tag("li", itemPath);
+    if (list.notes && item.id) li.setAttribute("data-rk-note-id", item.id);
     if (item.content.length === 0 && (item.children[0]?.type === "ul" || item.children[0]?.type === "ol")) li.style.listStyleType = "none";
     if (item.checked !== undefined) {
       // A task's checkbox: not text, so the mapping between page and model skips it (data-rte-check); it is a real checkbox to assistive technology.
@@ -273,13 +282,12 @@ export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = 
   cache.claimed.clear();
   // Bring the root's children into line with `wanted`, moving as little as possible: first drop what is no longer
   // wanted, then walk both lists together, inserting only what is new or has moved.
-  const keep = new Set<Node>(wanted);
-  for (const node of [...root.childNodes]) if (!keep.has(node)) root.removeChild(node);
-  let cursor: ChildNode | null = root.firstChild;
-  for (const el of wanted) {
-    if (cursor === el) cursor = cursor.nextSibling;
-    else root.insertBefore(el, cursor);
-  }
+  reconcile(root, wanted);
+  // A reference shows its place among the references, which an edit far above it can change, so every one is numbered again.
+  root.querySelectorAll("sup[data-rte-note]").forEach((mark, i) => {
+    const n = String(i + 1);
+    if (mark.textContent !== n) { mark.textContent = n; mark.setAttribute("aria-label", `Footnote ${n}`); }
+  });
 }
 
 // ---- selection mapping ------------------------------------------------------------------------------------
@@ -297,7 +305,7 @@ function* inlineItems(container: Element): Generator<Node> {
     if (node.nodeType === Node.TEXT_NODE) yield node;
     else if (node instanceof Element) {
       if (node.hasAttribute("data-rte-ph") || node.hasAttribute("data-rte-check") || node.hasAttribute("data-rte-caption") || BLOCK_TAGS.has(node.tagName)) continue;
-      if (node.tagName === "BR" || node.tagName === "IMG") yield node;
+      if (node.tagName === "BR" || node.tagName === "IMG" || node.hasAttribute("data-rte-note")) yield node;
       else stack.push([...node.childNodes].reverse());
     }
   }

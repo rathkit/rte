@@ -30,7 +30,17 @@ export interface Image {
   readonly caption?: string;
 }
 export type ImageAlign = "left" | "right" | "center";
-export type Inline = TextRun | LineBreak | Image;
+/**
+ * A footnote reference: one character in the text, shown as the note's number. The note itself is an item of the document's notes
+ * list (`List.notes`) with the same `id`. Numbers are never stored: they come from the order of the references.
+ */
+export interface Note {
+  readonly type: "note";
+  readonly id: string;
+}
+export type Inline = TextRun | LineBreak | Image | Note;
+/** What an id of a note may be. Anything else is replaced when read, so an id is always safe in an attribute. */
+export const NOTE_ID = /^[A-Za-z0-9_-]{1,40}$/;
 
 export type Align = "left" | "center" | "right" | "justify";
 /** The most a block can be indented, in steps. */
@@ -65,6 +75,8 @@ export interface ListItem {
   readonly children: readonly ItemChild[];
   /** Present when the item is a task: whether it is done. Absent for an ordinary item. */
   readonly checked?: boolean;
+  /** In a notes list: the id of the reference this note belongs to. */
+  readonly id?: string;
 }
 /** What a list item may hold besides its own text. Tables and definition lists are not allowed in an item. */
 export type ItemChild = List | Paragraph | Heading | CodeBlock | Quote | Rule;
@@ -73,6 +85,8 @@ export interface List {
   readonly start?: number;
   /** A CSS list-style-type keyword such as `circle` or `lower-alpha`. Absent means the default for the depth. */
   readonly style?: string;
+  /** The footnotes of the document: a numbered list whose items are the notes, kept in the order of their references. */
+  readonly notes?: true;
   readonly items: readonly ListItem[];
 }
 export interface DefinitionEntry {

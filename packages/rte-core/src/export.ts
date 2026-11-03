@@ -2,7 +2,8 @@
 // order is fixed. Marks nest in a fixed order so the same document always serializes the same way.
 import { escapeAttribute, escapeText } from "./html/entities.ts";
 import { lineCss, SIDES } from "./cellborder.ts";
-import type { Block, CellBorder, Doc, Inline, List, Mark, Table, TableCell } from "./model.ts";
+import { noteIds } from "./notes.ts";
+import type { Block, CellBorder, Doc, Inline, List, ListItem, Mark, Table, TableCell } from "./model.ts";
 
 const MARK_ORDER = ["link", "bold", "italic", "underline", "strike", "code", "sup", "sub", "color", "background"] as const;
 const TAGS = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", sup: "sup", sub: "sub" } as const;
@@ -41,10 +42,14 @@ function exportImage(node: Extract<Inline, { type: "image" }>, placed: boolean):
     + `${placed && node.align ? ` style="${IMAGE_ALIGN_STYLE[node.align]}"` : ""}${placed && node.caption ? ` data-caption="${escapeAttribute(node.caption)}"` : ""}>`;
 }
 
+/** The ids of the references, in order, while a whole document is being written: they give each reference its number. */
+let numbers: readonly string[] = [];
+
 export function exportInline(content: readonly Inline[]): string {
   let out = "";
   content.forEach((node, i) => {
     if (node.type === "br") out += "<br>";
+    else if (node.type === "note") out += `<sup data-note="${node.id}"><a href="#fn-${node.id}" id="fnref-${node.id}" role="doc-noteref">${numbers.indexOf(node.id) + 1 || ""}</a></sup>`;
     else if (node.type === "image") out += exportImage(node, true);
     else {
       const sorted = [...node.marks].sort((a, b) => MARK_ORDER.indexOf(a.type) - MARK_ORDER.indexOf(b.type));
@@ -72,7 +77,7 @@ function exportList(list: List, depth: number): string {
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? ` style="list-style-type: ${list.style};"` : "";
   const start = list.type === "ol" && list.start !== undefined ? ` start="${list.start}"` : "";
   // An item with no text of its own that only holds a nested list shows no marker, and neither does a task: it has its checkbox instead.
-  const items = list.items.map((item) => {
+  const items = list.items.map((item): string => {
     const noMarker = item.checked !== undefined || (item.content.length === 0 && (item.children[0]?.type === "ul" || item.children[0]?.type === "ol"));
     const box = item.checked === undefined ? "" : `<input type="checkbox" disabled${item.checked ? " checked" : ""}> `;
     // An item with paragraph breaks in it is written as paragraphs; the task's checkbox goes in the first.
@@ -82,9 +87,12 @@ function exportList(list: List, depth: number): string {
       else (paragraphs[paragraphs.length - 1] as Inline[]).push(node);
     }
     const text = paragraphs.length === 1 ? exportInline(item.content) : paragraphs.map((part, i) => `<p>${i === 0 ? box : ""}${exportInline(part)}</p>`).join("");
-    return `<li${noMarker ? ' style="list-style-type: none;"' : ""}>${paragraphs.length === 1 ? box : ""}${text}${item.children.map((child) => (child.type === "ul" || child.type === "ol" ? exportList(child, depth + 1) : exportBlock(child))).join("")}</li>`;
-  }).join("");
-  return `<${list.type}${start}${style}>${items}</${list.type}>`;
+    const inner = `${paragraphs.length === 1 ? box : ""}${text}${item.children.map((child) => (child.type === "ul" || child.type === "ol" ? exportList(child, depth + 1) : exportBlock(child))).join("")}`;
+    return list.notes ? inner : `<li${noMarker ? ' style="list-style-type: none;"' : ""}>${inner}</li>`;
+  });
+  // A note is an item with an address and a link back to its reference.
+  if (list.notes) return `<section class="footnotes" role="doc-endnotes"><ol>${list.items.map((item, i) => `<li id="fn-${item.id}" data-note="${item.id}">${items[i]} <a href="#fnref-${item.id}" role="doc-backlink">\u21A9\uFE0E</a></li>`).join("")}</ol></section>`;
+  return `<${list.type}${start}${style}>${items.join("")}</${list.type}>`;
 }
 
 /** The style of a cell: the color behind it and the lines round it. */
@@ -131,4 +139,8 @@ export function exportBlock(block: Block): string {
   }
 }
 
-export const exportHtml = (doc: Doc, separator = ""): string => doc.blocks.map(exportBlock).join(separator);
+export function exportHtml(doc: Doc, separator = ""): string {
+  const outer = numbers;
+  numbers = noteIds(doc);
+  try { return doc.blocks.map(exportBlock).join(separator); } finally { numbers = outer; }
+}

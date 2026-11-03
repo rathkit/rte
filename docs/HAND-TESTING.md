@@ -79,6 +79,17 @@ With the Markdown plugin on (`markdown()` from `@rathkit/rte-core/markdown`):
 1. Copy a few lines of Markdown from a plain-text editor and paste. Expect: headings, lists and links are made.
 2. Copy the same text from a code editor with syntax coloring and paste. Expect: it pastes as colored HTML, not read as Markdown (code editors put HTML on the clipboard, and HTML always wins; see `MARKDOWN.md`).
 3. Copy a shell command with a `#` comment line from a terminal and paste. Expect: it stays as typed.
+4. Copy a page section that has footnotes (a GitHub README, say) and paste. Expect: numbered references and a notes list at the end, with the arrow links back removed.
+
+## Footnotes
+
+With the footnotes plugin on (`footnotes()` from `@rathkit/rte-core/footnotes`):
+
+1. Put the caret in a sentence and press Ctrl+Alt+F (Cmd+Option+F on a Mac; some keyboard layouts type a symbol with Option and the key will not reach the editor, so also try the toolbar button). Expect: a small number appears in the text, and the caret is in a new note at the end.
+2. Press Ctrl+Alt+Shift+F. Expect: the caret goes back beside the number; press it again and it returns to the note.
+3. Tap the number on a phone and move the caret with the arrow keys over it. Expect: it counts as one character; Backspace removes it and its note, and undo brings both back.
+4. With a screen reader on, move onto a reference and into the list. Expect: the reference is read as a footnote reference ("Footnote 1") and the list as notes. This has not been tried on a real screen reader.
+5. Copy a paragraph that has a reference and paste it somewhere else in the document. Expect: a second reference with its own copy of the note.
 
 ## Spell checking and speech
 

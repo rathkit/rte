@@ -10,7 +10,7 @@ import { startOf } from "./edit.ts";
 import type { ImportOptions } from "./import.ts";
 import { countDocument, countSelection, textLength, type Counts } from "./stats.ts";
 import { UiRegistry } from "./ui.ts";
-import { PLUGIN_API_VERSION, satisfiesApi, type CopyFormatter, type FileHandler, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
+import { PLUGIN_API_VERSION, satisfiesApi, type CopyFormatter, type FileHandler, type Normalizer, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
 import { ops } from "./ops.ts";
 
 export interface EditorSnapshot {
@@ -75,6 +75,8 @@ export class Engine {
   readonly pasteTransforms: PasteTransform[] = [];
   /** Plugins that add formats to what copy, cut and drag write. */
   readonly copyFormatters: CopyFormatter[] = [];
+  /** Plugins that keep the document consistent after every edit (footnotes keep their notes with their references). */
+  readonly normalizers: Normalizer[] = [];
   /** Plugins that turn pasted and dropped files into blocks. */
   readonly fileHandlers: FileHandler[] = [];
   /** How HTML is imported here: what plugins have added (an SVG cleaner, recognizers). Pass it to the importer. */
@@ -202,7 +204,7 @@ export class Engine {
     if (this.readOnlyMode) return false;
     this.refresh();
     const before: Level = { doc: this.doc, selection: this.sel };
-    const result = op(this.doc, this.sel);
+    const result = this.settle(op(this.doc, this.sel));
     if (result.doc === this.doc && sameSelection(result.selection, this.sel)) return false;
     const docChanged = result.doc !== this.doc;
     if (docChanged && this.maxLength !== undefined) {
@@ -225,6 +227,11 @@ export class Engine {
     this.sel = result.selection;
     this.commit({ docChanged, selectionChanged: !sameSelection(before.selection, this.sel) });
     return true;
+  }
+
+  /** Lets the normalizers put right what an edit left, so the repair is part of the same history step. */
+  private settle(result: EditResult): EditResult {
+    return result.doc === this.doc ? result : this.normalizers.reduce((r, normalize) => normalize(r.doc, r.selection), result);
   }
 
   /** Sets the selection without making a history step. Nothing happens if it is the selection already. */
@@ -265,8 +272,9 @@ export class Engine {
 
   /** Replaces the whole document and empties the history. */
   setDocument(doc: Doc, selection?: Selection): void {
-    this.doc = doc;
-    this.sel = selection ?? caret(startOf(doc));
+    const settled = this.settle({ doc, selection: selection ?? caret(startOf(doc)) });
+    this.doc = settled.doc;
+    this.sel = settled.selection;
     this.undoStack = [];
     this.redoStack = [];
     this.lastKind = "";
@@ -382,6 +390,10 @@ export class Engine {
           if (options.sanitizeSvg && this.importOptions.sanitizeSvg === options.sanitizeSvg) delete this.importOptions.sanitizeSvg;
           this.importOptions.recognizers = this.importOptions.recognizers.filter((r) => !added.includes(r));
         });
+      },
+      normalize: (normalizer: Normalizer) => {
+        this.normalizers.push(normalizer);
+        undo.push(() => { const i = this.normalizers.indexOf(normalizer); if (i !== -1) this.normalizers.splice(i, 1); });
       },
       pasteTransform: (transform: PasteTransform) => {
         this.pasteTransforms.push(transform);

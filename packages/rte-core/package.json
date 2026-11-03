@@ -64,6 +64,10 @@
       "types": "./dist/find/index.d.ts",
       "default": "./dist/find/index.js"
     },
+    "./footnotes": {
+      "types": "./dist/footnotes/index.d.ts",
+      "default": "./dist/footnotes/index.js"
+    },
     "./markdown": {
       "types": "./dist/markdown/index.d.ts",
       "default": "./dist/markdown/index.js"
@@ -97,6 +101,7 @@
       "find",
       "autoformat",
       "markdown",
+      "footnotes",
       "word",
       "svg",
       "images"
@@ -130,6 +135,12 @@
       {
         "name": "autoformat plugin",
         "entry": "dist/autoformat/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "footnotes plugin",
+        "entry": "dist/footnotes/index.js",
         "gzipKB": 15,
         "plugin": true
       },

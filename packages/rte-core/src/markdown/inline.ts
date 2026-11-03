@@ -3,7 +3,7 @@
 // Raw HTML is never interpreted; it stays text. Links and images go through the same address checks as pasted HTML.
 import { decodeEntities } from "../html/entities.ts";
 import { checkImageSrc, safeUrl } from "../import.ts";
-import { normalizeInline, type Inline, type Mark } from "../model.ts";
+import { normalizeInline, type Inline, type ListItem, type Mark } from "../model.ts";
 
 export interface MarkdownOptions {
   /** URL schemes a link may use besides relative and fragment addresses. Default: http, https, mailto, tel. */
@@ -16,7 +16,20 @@ export interface MarkdownOptions {
 
 /** Link reference definitions found in the document: `[label]: address "title"`. Keys come from `refLabel`. */
 export type Refs = ReadonlyMap<string, { readonly dest: string }>;
-export interface InlineContext extends MarkdownOptions { readonly refs?: Refs }
+/**
+ * The footnotes of the text being read. `keys` has a label (in `refLabel` form) for each definition found before reading begins;
+ * `use` gives the id for one more reference to a label (a label used twice gets two ids, as each reference has its own note).
+ */
+export interface NoteState {
+  readonly keys: ReadonlyMap<string, string>;
+  readonly items: Map<string, ListItem>;
+  /** Each id handed out, with the label it stands for, in the order the references were read. */
+  readonly used: Map<string, string>;
+  use(key: string): string | undefined;
+}
+/** What a footnote label may be: letters, digits, underscore, dot and dash. */
+export const NOTE_LABEL = /^[\p{L}\p{N}_.-]{1,64}$/u;
+export interface InlineContext extends MarkdownOptions { readonly refs?: Refs; readonly notes?: NoteState | undefined }
 
 /** The form of a reference label that is compared: case and runs of white space do not matter. */
 export const refLabel = (label: string): string => label.trim().replace(/\s+/g, " ").toLowerCase();
@@ -60,6 +73,7 @@ type Piece =
   | { k: "code"; s: string; dead?: true }
   | { k: "br"; dead?: true }
   | { k: "img"; src: string; alt: string; dead?: true }
+  | { k: "note"; id: string; dead?: true }
   | { k: "lopen"; href: string | undefined; dead?: true }
   | { k: "lclose"; dead?: true }
   | { k: "tag"; mark: SpanMark; close: boolean; raw: string; paired?: boolean; dead?: true }
@@ -256,6 +270,17 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
       const top = brackets.pop();
       if (!top) { buffer += c; i++; continue; }
       if (!top.active) { flush(); asText(top); buffer += c; i++; continue; }
+      // `[^label]` is a footnote reference when a definition for the label exists; otherwise it is text.
+      const label = !top.image && src[top.textStart] === "^" ? src.slice(top.textStart + 1, i) : "";
+      const noteId = options.notes && NOTE_LABEL.test(label) ? options.notes.use(refLabel(label)) : undefined;
+      if (noteId !== undefined) {
+        flush();
+        processEmphasis(top.delimBefore);
+        for (let k = top.index + 1; k < pieces.length; k++) (pieces[k] as Piece).dead = true;
+        Object.assign(top, { k: "note", id: noteId });
+        i++;
+        continue;
+      }
       let tailInfo = src[i + 1] === "(" ? linkTail(i + 1) : undefined;
       if (!tailInfo && options.refs && options.refs.size > 0) tailInfo = referenceTail(src, i, top.textStart, options.refs);
       if (!tailInfo) { flush(); asText(top); buffer += c; i++; continue; }
@@ -463,6 +488,7 @@ function render(pieces: readonly Piece[]): Inline[] {
         else counts[p.mark] += p.close ? -1 : 1;
         break;
       case "lb": emit(p.image ? "![" : "["); break;
+      case "note": out.push({ type: "note", id: p.id }); break;
     }
   }
   // A break at the very end of a paragraph says nothing.

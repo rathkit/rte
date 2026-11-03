@@ -4,7 +4,7 @@ import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import { parseLine, SIDES, withSides, type Line, type Side } from "./cellborder.ts";
 import {
-  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, ROW_HEIGHT, inlineText, normalizeInline, type Align, type ImageAlign, type CellBorder, type Direction, type Block, type Doc, type Inline, type ItemChild, type List, type ListItem, type Mark, type MarkType, type Paragraph,
+  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, NOTE_ID, ROW_HEIGHT, inlineText, normalizeInline, type Align, type ImageAlign, type CellBorder, type Direction, type Block, type Doc, type Inline, type ItemChild, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
 import { asChildren } from "./path.ts";
@@ -158,9 +158,11 @@ interface Li {
   level?: number;
   listId?: string;
   checked?: boolean;
+  id?: string;
 }
 interface L {
   type: "ul" | "ol";
+  notes?: true;
   start?: number;
   style?: string;
   items: Li[];
@@ -371,6 +373,15 @@ function inlineOf(nodes: readonly HNode[], ctx: Ctx, settings: Settings): Inline
   return normalizeInline(content);
 }
 
+// Footnotes, in the shapes found in the wild: ours (`sup data-note`), and `role="doc-noteref"`, `data-footnote-ref` and `footnote-ref`
+// for references, `doc-endnotes`, `data-footnotes` and `footnotes` for the list, and `doc-backlink` and the like for the way back.
+const NOTE_PREFIX = /^(?:user-content-)?(?:fnref|fn)[-:_]?/i;
+const noteId = (raw: string | undefined, strip: boolean): string | undefined => {
+  const id = strip ? raw?.replace(/^#/, "").replace(NOTE_PREFIX, "").replace(/[^\w-]/g, "") : raw;
+  return id !== undefined && NOTE_ID.test(id) ? id : undefined;
+};
+const hasClass = (el: HElement, name: string): boolean => (el.attrs.class ?? "").split(/\s+/).includes(name);
+
 function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings): void {
   const tag = el.tag;
   if (DROP.has(tag) || tag === "title") return;
@@ -397,6 +408,20 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
     convertNodes(el.children, sink, ctx, settings);
     const level = headingLevel as 1 | 2 | 3 | 4 | 5 | 6;
     sink.flush((content) => ({ type: "h", level, content: withoutBold(content) }), true);
+    return;
+  }
+
+  if (tag === "a" && (el.attrs.role === "doc-backlink" || el.attrs["data-footnote-backref"] !== undefined || hasClass(el, "footnote-back") || hasClass(el, "footnote-backref"))) return;
+  if ((tag === "sup" && el.attrs["data-note"] !== undefined) || (tag === "a" && (el.attrs.role === "doc-noteref" || el.attrs["data-footnote-ref"] !== undefined || hasClass(el, "footnote-ref")))) {
+    const id = tag === "sup" ? noteId(el.attrs["data-note"], false) : noteId(el.attrs.href, true);
+    if (id !== undefined) {
+      sink.push({ type: "note", id });
+      return;
+    }
+  }
+  if (el.attrs.role === "doc-endnotes" || el.attrs["data-footnotes"] !== undefined || hasClass(el, "footnotes")) {
+    sink.flush();
+    for (const ol of el.tag === "ol" ? [el] : el.children) if (ol.type === "el" && ol.tag === "ol") sink.blocks.push(convertList(ol, ctx, settings, true));
     return;
   }
 
@@ -567,8 +592,9 @@ function taskOf(li: HElement): { checked: boolean; children: HNode[] } | undefin
   return fromMarkup === undefined ? undefined : { checked: fromMarkup, children: kids };
 }
 
-function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
+function convertList(el: HElement, ctx: Ctx, settings: Settings, notes = false): L {
   const list: L = { type: el.tag === "ol" ? "ol" : "ul", items: [] };
+  if (notes) list.notes = true;
   const start = el.tag === "ol" && el.attrs.start !== undefined ? Number.parseInt(el.attrs.start, 10) : NaN;
   if (Number.isFinite(start) && start !== 1 && start >= 0 && start < 100000) list.start = start;
   let style = listStyleOf(el);
@@ -605,6 +631,13 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
       else item.children.push(...asChildren([block]));
     }
     item.content = normalizeInline(item.content);
+    if (notes) {
+      // The way back was taken out and left the space before it.
+      const tail = item.content[item.content.length - 1];
+      if (tail?.type === "text") item.content = normalizeInline([...item.content.slice(0, -1), { ...tail, text: tail.text.trimEnd() }]);
+      const id = noteId(child.attrs["data-note"], false) ?? noteId(child.attrs.id, true);
+      if (id !== undefined) item.id = id;
+    }
     const level = levelOf(child.attrs["data-aria-level"] ?? child.attrs["aria-level"]);
     if (level !== undefined) item.level = level;
     const listId = child.attrs["data-listid"];
@@ -843,9 +876,9 @@ function nestByLevel(lists: readonly L[]): List[] {
 }
 
 function freezeList(list: L, depth: number): List {
-  const items: ListItem[] = list.items.map((item) => ({ content: item.content, children: item.children.map((child): ItemChild => (child.type === "ul" || child.type === "ol" ? freezeList(child as L, depth + 1) : child)), ...(item.checked !== undefined ? { checked: item.checked } : {}) }));
+  const items: ListItem[] = list.items.map((item) => ({ content: item.content, children: item.children.map((child): ItemChild => (child.type === "ul" || child.type === "ol" ? freezeList(child as L, depth + 1) : child)), ...(item.checked !== undefined ? { checked: item.checked } : {}), ...(item.id !== undefined ? { id: item.id } : {}) }));
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? list.style : undefined;
-  return { type: list.type, ...(list.start !== undefined ? { start: list.start } : {}), ...(style !== undefined ? { style } : {}), items };
+  return { type: list.type, ...(list.notes ? { notes: true as const } : {}), ...(list.start !== undefined ? { start: list.start } : {}), ...(style !== undefined ? { style } : {}), items };
 }
 
 /**

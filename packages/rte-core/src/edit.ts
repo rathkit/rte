@@ -539,7 +539,7 @@ export function extractSelection(doc: Doc, sel: Selection): Block[] {
       const content = inRange(ordinal) ? cut(item.content, ordinal) : [];
       // What follows the item's text is cropped like any list of blocks; its containers come next in reading order.
       const children = asChildren(cropBlocks(item.children));
-      return inRange(ordinal) || children.length > 0 ? [{ content, children, ...(item.checked !== undefined ? { checked: item.checked } : {}) }] : [];
+      return inRange(ordinal) || children.length > 0 ? [{ content, children, ...(item.checked !== undefined ? { checked: item.checked } : {}), ...(item.id !== undefined ? { id: item.id } : {}) }] : [];
     });
     return items.length > 0 ? { ...list, items } : undefined;
   };

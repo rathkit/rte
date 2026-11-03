@@ -26,7 +26,7 @@ Status: design sketch, not a plan or a promise. Written 2026-10-19, before the f
 - Claim `rathkit-pro` as an npm organization even though the packages are not hosted there. This blocks anyone else from publishing look-alike packages (see dependency confusion in section 3.3).
 
 ### 1.2 Names
-These are the packages that exist today (the package table in `README.md` is the authority). The free plugins are entry points of `rte-core` (`/lists`, `/tables`, `/find`, `/word`, `/svg`, `/images`, `/autoformat`, `/markdown`, `/standard`), not packages of their own.
+These are the packages that exist today (the package table in `README.md` is the authority). The free plugins are entry points of `rte-core` (`/lists`, `/tables`, `/find`, `/word`, `/svg`, `/images`, `/autoformat`, `/markdown`, `/footnotes`, `/standard`), not packages of their own.
 
 | Package | Scope | Notes |
 |---|---|---|

@@ -2,13 +2,13 @@
 // items, strikethrough, bare web addresses). Written from the two public specifications, for untrusted input.
 //
 // What the document model cannot hold, and what is done about it (also in docs/MARKDOWN.md):
-//  - A list item holds inline content and children only. A second paragraph of an item becomes a paragraph break inside it;
-//    code, a quote or a heading inside an item is flattened to text in the item.
+//  - A list item holds its text and then children (lists, paragraphs, code, quotes, rules); a heading in an item stays a heading child.
 //  - A table cell holds blocks, so a column's alignment is set on the paragraph in each cell.
-//  - Raw HTML, link reference definitions, footnotes and setext-style hard wrapping rules beyond the above are not interpreted; they stay text.
-import type { Align, Block, Inline, ItemChild, List, ListItem, TableCell } from "../model.ts";
+//  - Raw HTML blocks, and the inline HTML beyond the small safe set, are not interpreted; they stay text. Link reference definitions are used, not kept.
+import { NOTE_ID, type Align, type Block, type Inline, type ItemChild, type List, type ListItem, type TableCell } from "../model.ts";
+import { noteIds } from "../notes.ts";
 import { asChildren } from "../path.ts";
-import { parseInline, refLabel, unescape, type InlineContext, type MarkdownOptions, type Refs } from "./inline.ts";
+import { NOTE_LABEL, parseInline, refLabel, unescape, type InlineContext, type MarkdownOptions, type NoteState, type Refs } from "./inline.ts";
 
 const MAX_DEPTH = 24;
 
@@ -212,8 +212,9 @@ function refDef(line: string): { label: string; dest: string } | undefined {
 }
 
 /** Every link reference definition in the text, wherever it sits (outside code fences), for links that use one before it appears. */
-function collectRefs(lines: readonly string[]): Refs {
+function collectRefs(lines: readonly string[]): { refs: Refs; keys: Map<string, string> } {
   const refs = new Map<string, { dest: string }>();
+  const keys = new Map<string, string>();
   const fence = new FenceState();
   let inParagraph = false;
   for (const raw of lines) {
@@ -227,11 +228,36 @@ function collectRefs(lines: readonly string[]): Refs {
     fence.feed(line);
     if (fence.open) { inParagraph = false; continue; }
     // A definition cannot interrupt a paragraph: it counts only where a paragraph would start.
+    const note = inParagraph || quotedLine(raw) ? undefined : noteDef(line);
+    if (note) {
+      const key = refLabel(note.label);
+      if (!keys.has(key)) keys.set(key, noteIdFor(note.label, keys));
+      inParagraph = false;
+      continue;
+    }
     const def: { label: string; dest: string } | undefined = inParagraph ? undefined : refDef(line);
     if (def) { const key = refLabel(def.label); if (!refs.has(key)) refs.set(key, { dest: def.dest }); }
     inParagraph = !def && continuesParagraph(line, fence);
   }
-  return refs;
+  return { refs, keys };
+}
+
+const quotedLine = (line: string): boolean => leading(line) <= 3 && line.trimStart().startsWith(">");
+
+/** `[^label]: text` (the label letters, digits, `_`, `.` and `-`), with what follows the colon. */
+function noteDef(line: string): { label: string; rest: string } | undefined {
+  const m = /^ {0,3}\[\^([^\]\s[]{1,64})\]:[ \t]*(.*)$/.exec(line);
+  return m && NOTE_LABEL.test(m[1] as string) ? { label: m[1] as string, rest: m[2] as string } : undefined;
+}
+
+/** An id for a label that the model accepts and no other label has. */
+function noteIdFor(label: string, taken: ReadonlyMap<string, string>): string {
+  const base = label.replace(/[^\w-]/g, "").slice(0, 32);
+  const used = new Set(taken.values());
+  for (let n = 0; ; n++) {
+    const id = base !== "" && n === 0 ? base : `n${taken.size + n + 1}`;
+    if (NOTE_ID.test(id) && !used.has(id)) return id;
+  }
 }
 
 function paragraph(text: string, options: InlineContext, align?: Align): Block | undefined {
@@ -248,7 +274,10 @@ function listItem(lines: string[], depth: number, options: InlineContext): ListI
     checked = task[1] !== " ";
     lines = [first.slice(task[0].length), ...lines.slice(1)];
   }
-  const blocks = parseBlocks(lines, depth + 1, options);
+  return { ...itemOf(parseBlocks(lines, depth + 1, options)), ...(checked !== undefined ? { checked } : {}) };
+}
+
+function itemOf(blocks: readonly Block[]): ListItem {
   // The item's text is its first paragraph, and any paragraphs that follow it directly are breaks inside that text. Everything after
   // the first block that is not a paragraph is a child, in order (a paragraph after such a block is a child paragraph).
   let content: Inline[] = [];
@@ -262,7 +291,7 @@ function listItem(lines: string[], depth: number, options: InlineContext): ListI
     leading = false;
     children.push(...asChildren([b]));
   });
-  return { content, children, ...(checked !== undefined ? { checked } : {}) };
+  return { content, children };
 }
 
 function parseList(lines: string[], start: number, depth: number, options: InlineContext): { list: List; next: number } {
@@ -390,6 +419,30 @@ function parseBlocks(lines: readonly string[], depth: number, options: InlineCon
       continue;
     }
 
+    const note = options.notes ? noteDef(line) : undefined;
+    const key = note ? refLabel(note.label) : "";
+    if (note && options.notes?.keys.has(key)) {
+      // A footnote's text: the rest of its line, then the lines indented four spaces (with blank lines between), then lazy lines.
+      const body = [note.rest];
+      const fenced = new FenceState();
+      fenced.feed(note.rest);
+      i++;
+      while (i < lines.length) {
+        const l = lines[i] as string;
+        if (isBlank(l)) {
+          let j = i;
+          while (j < lines.length && isBlank(lines[j] as string)) j++;
+          if (j >= lines.length || leading(lines[j] as string) < 4) break;
+          for (; i < j; i++) body.push("");
+          continue;
+        }
+        if (leading(l) >= 4) { body.push(l.slice(4)); fenced.feed(l.slice(4)); i++; continue; }
+        if (!noteDef(l) && !interrupts(l, lines[i + 1]) && continuesParagraph(body[body.length - 1], fenced)) { body.push(l.trimStart()); i++; continue; }
+        break;
+      }
+      if (!options.notes.items.has(key)) options.notes.items.set(key, itemOf(parseBlocks(body, depth + 1, { ...options, notes: undefined })));
+      continue;
+    }
     if (leading(line) < 4 && refDef(line)) { i++; continue; }
 
     if (leading(line) >= 4) {
@@ -426,5 +479,25 @@ function parseBlocks(lines: readonly string[], depth: number, options: InlineCon
 export function parseMarkdown(source: string, options: MarkdownOptions = {}): Block[] {
   const text = source.replace(/\r\n?|\u2028|\u2029/g, "\n").replace(/\0/g, "�");
   const lines = text.split("\n").map(expandTabs);
-  return parseBlocks(lines, 0, { ...options, refs: collectRefs(lines) });
+  const { refs, keys } = collectRefs(lines);
+  const used = new Map<string, string>();
+  const items = new Map<string, ListItem>();
+  const count = new Map<string, number>();
+  const notes: NoteState = {
+    keys, items, used,
+    // The first reference to a label has the label's id; a second gets an id of its own, with the same note text.
+    use(key) {
+      const base = keys.get(key);
+      if (base === undefined) return undefined;
+      const n = (count.get(key) ?? 0) + 1;
+      count.set(key, n);
+      const id = n === 1 ? base : `${base.slice(0, 34)}-${n}`;
+      used.set(id, key);
+      return id;
+    },
+  };
+  const blocks = parseBlocks(lines, 0, { ...options, refs, notes: keys.size > 0 ? notes : undefined });
+  if (used.size === 0) return blocks;
+  const order = noteIds({ blocks });
+  return [...blocks, { type: "ol", notes: true, items: order.map((id): ListItem => ({ ...(items.get(used.get(id) as string) ?? { content: [], children: [] }), id })) }];
 }

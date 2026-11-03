@@ -14,6 +14,7 @@ Paid paste recovers information that HTML does not carry in a standard form.
 | Add a scheme to scheme-less links; drop `file:` images | Free |
 | Keep `colspan`, `rowspan`, emphasis, links and heading tags | Free |
 | Read Markdown from plain text (opt-in plugin, [MARKDOWN.md](MARKDOWN.md)) | Free |
+| Keep footnotes from pasted pages and Markdown (opt-in plugin, [FOOTNOTES.md](FOOTNOTES.md)) | Free |
 | Resolve spreadsheet `<style>` classes (fills, bold, number formats) | Paid |
 | Typed cell values and formulas | Paid |
 | Infer headings from appearance (bold or large text) where the source declares none | Paid |

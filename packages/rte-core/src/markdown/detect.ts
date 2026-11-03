@@ -39,13 +39,14 @@ function link(text: string): boolean {
 export function looksLikeMarkdown(input: string): boolean {
   const text = input.length > LIMIT ? input.slice(0, LIMIT) : input;
   const lines = text.split(/\r\n?|\n/);
-  let headings = 0, listLines = 0, tasks = 0, quotes = 0;
+  let headings = 0, listLines = 0, tasks = 0, quotes = 0, notes = 0;
   let fence = false, table = false;
   for (let i = 0; i < lines.length; i++) {
     const line = (lines[i] as string).slice(0, LINE_LIMIT);
     if (/^ {0,3}(?:`{3,}|~{3,})/.test(line)) fence = true;
     else if (/^ {0,3}#{1,6}[ \t]+\S/.test(line)) headings++;
     else if (/^ {0,3}>/.test(line)) quotes++;
+    else if (/^ {0,3}\[\^[^\]\s]{1,64}\]:[ \t]*\S/.test(line)) notes++;
     else if (isList(line)) { listLines++; if (/^\s*(?:[-*+]|\d+[.)])[ \t]+\[[ xX]\][ \t]/.test(line)) tasks++; }
     else if (line.includes("|") && i + 1 < lines.length && isRow((lines[i + 1] as string).slice(0, LINE_LIMIT)) && line.replace(/[\s|]/g, "") !== "") table = true;
   }
@@ -56,6 +57,7 @@ export function looksLikeMarkdown(input: string): boolean {
   if (listLines >= 2) score += 2;
   if (tasks > 0) score += 2;
   if (quotes > 0) score += 1;
+  if (notes > 0) score += 2;
   if (link(text)) score += 2;
   if (pair(text, "**") || pair(text, "~~")) score += 2;
   if (pair(text, "`")) score += 1;

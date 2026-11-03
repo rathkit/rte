@@ -244,3 +244,35 @@ test("with inline HTML on, writing keeps underline, super and subscript, and rea
   // A "<" that was text stays text.
   assert.equal(exportMarkdown(importHtml("<p>1 &lt; 2 and &lt;u&gt;x&lt;/u&gt;</p>"), { inlineHtml: true }), "1 \\< 2 and \\<u>x\\</u>");
 });
+
+test("footnotes: references and definitions, a label used twice, text after the definition, and what has no definition stays text", () => {
+  const out = html("Here[^a] and again[^a], then[^2] and [^missing].\n\n[^a]: First *note*.\n\n    Second paragraph.\n\n        code\n[^2]: Two.\nlazy more\n\nafter");
+  assert.match(out, /^<p>Here<sup data-note="a">.*<\/sup> and again<sup data-note="a-2">.*<\/sup>, then<sup data-note="2">.*<\/sup> and \[\^missing\]\.<\/p><p>after<\/p><section class="footnotes"/);
+  const doc = { blocks: parseMarkdown("x[^a][^a]\n\n[^a]: Note.") };
+  const list = doc.blocks.at(-1);
+  assert.equal(list?.type === "ol" && list.notes, true);
+  assert.deepEqual(list?.type === "ol" ? list.items.map((i) => i.id) : [], ["a", "a-2"]);
+  // Two notes in a row with no blank line between, a definition no one refers to (dropped), and a fenced block that is not a definition.
+  assert.equal(html("a[^1] b[^2]\n\n[^1]: one\n[^2]: two\n[^3]: unused").match(/<li /g)?.length, 2);
+  assert.equal(html("```\n[^1]: not a note\n```\n\nx[^1]"), "<pre>[^1]: not a note</pre><p>x[^1]</p>");
+});
+
+test("footnotes are written with their numbers and read back as the same document", () => {
+  const source = "One[^1] and two[^2].\n\n[^1]: First.\n\n    More of the first.\n\n[^2]: Second.";
+  const doc = { blocks: parseMarkdown(source) };
+  assert.equal(exportMarkdown(doc), source);
+  assert.equal(exportHtml({ blocks: parseMarkdown(exportMarkdown(doc)) }), exportHtml(doc));
+});
+
+test("text that looks like footnote definitions is Markdown, and a lone reference in prose is not", () => {
+  assert.equal(looksLikeMarkdown("Text[^1]\n\n[^1]: The note."), true);
+  assert.equal(looksLikeMarkdown("see array[^1] for that"), false);
+});
+
+test("a hostile pile of footnote references stays fast", () => {
+  const start = Date.now();
+  const text = `${"[^a]".repeat(20000)}\n\n[^a]: x`;
+  parseMarkdown(text);
+  parseMarkdown(`${"[^".repeat(30000)}\n\n[^a]: x`);
+  assert.ok(Date.now() - start < 3000);
+});

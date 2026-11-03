@@ -1,9 +1,10 @@
 // Document model to Markdown text, the same document always giving the same text. What Markdown cannot say is dropped, never
 // written as inline HTML (the reader here treats HTML as text, so it would not come back). The list of what is dropped is in docs/MARKDOWN.md.
 import type { Align, Block, Doc, Inline, ItemChild, List, Mark, Table, TableCell } from "../model.ts";
+import { noteIds } from "../notes.ts";
 
 type Span = "bold" | "italic" | "strike" | "link" | "underline" | "sup" | "sub";
-interface Segment { readonly text: string; readonly spans: readonly Mark[]; readonly code: boolean; readonly image?: Extract<Inline, { type: "image" }>; readonly br?: boolean }
+interface Segment { readonly text: string; readonly spans: readonly Mark[]; readonly code: boolean; readonly image?: Extract<Inline, { type: "image" }>; readonly br?: boolean; readonly raw?: string }
 
 const SPAN_ORDER: readonly Span[] = ["link", "bold", "italic", "strike"];
 const HTML_SPAN_ORDER: readonly Span[] = ["link", "bold", "italic", "underline", "strike", "sup", "sub"];
@@ -13,6 +14,8 @@ const SPAN_MARK: Record<Exclude<Span, "link">, [string, string]> = {
 
 /** Whether the document being written may use the few inline tags the reader understands (set by `exportMarkdown`, which is synchronous). */
 let inlineHtml = false;
+/** The label written for each footnote id while a document is exported: its number. */
+let labels: ReadonlyMap<string, string> = new Map();
 
 const spanMarks = (marks: readonly Mark[]): Mark[] =>
   (inlineHtml ? HTML_SPAN_ORDER : SPAN_ORDER).flatMap((type) => marks.filter((m) => m.type === type));
@@ -61,6 +64,7 @@ function inline(content: readonly Inline[], flat: boolean, table: boolean): stri
     const node = run.node;
     if (node.type === "br") { segments.push({ text: "", spans: [], code: false, br: true }); return; }
     if (node.type === "image") { segments.push({ text: "", spans: [], code: false, image: node }); return; }
+    if (node.type === "note") { segments.push({ text: "", spans: [], code: false, raw: `[^${labels.get(node.id) ?? node.id}]` }); return; }
     const text = node.text;
     if (run.code) { segments.push({ text, spans: run.spans, code: true }); return; }
     const lead = /^\s*/.exec(text)?.[0] ?? "";
@@ -90,6 +94,11 @@ function inline(content: readonly Inline[], flat: boolean, table: boolean): stri
     if (seg.br) {
       move([]);
       out += flat ? (inlineHtml ? "<br>" : " ") : "\\\n";
+      continue;
+    }
+    if (seg.raw !== undefined) {
+      move([]);
+      out += seg.raw;
       continue;
     }
     if (seg.image) {
@@ -163,10 +172,11 @@ const indentLines = (text: string, by: string, first: string): string =>
   text.split("\n").map((l, i) => (i === 0 ? first + l : l === "" ? "" : by + l)).join("\n");
 
 function list(l: List, flip: boolean): string {
+  const notes = l.notes === true;
   const start = l.type === "ol" ? Math.max(0, Math.min(l.start ?? 1, 999_999_999 - l.items.length)) : 0;
   return l.items.map((item, i) => {
-    const mark = l.type === "ul" ? (flip ? "*" : "-") : `${start + i}${flip ? ")" : "."}`;
-    const task = item.checked === undefined ? "" : item.checked ? "[x] " : "[ ] ";
+    const mark = notes ? `[^${labels.get(item.id ?? "") ?? item.id}]:` : l.type === "ul" ? (flip ? "*" : "-") : `${start + i}${flip ? ")" : "."}`;
+    const task = notes || item.checked === undefined ? "" : item.checked ? "[x] " : "[ ] ";
     const paragraphs = inlineSplit(item.content).map((p) => guardLines(p));
     const body = [`${task}${paragraphs[0] ?? ""}`, ...paragraphs.slice(1)].join("\n\n");
     // What follows the text, in order. A nested list sits right under the text; other blocks are set off by a blank line.
@@ -183,8 +193,9 @@ function list(l: List, flip: boolean): string {
       before = child;
       beforeFlip = flipNext;
     }
-    return indentLines(text, " ".repeat(mark.length + 1), `${mark} `).replace(/^(\S+) (\n|$)/, "$1$2");
-  }).join("\n");
+    // A footnote's lines after the first are indented four spaces, and its definitions are set apart by a blank line.
+    return indentLines(text, " ".repeat(notes ? 4 : mark.length + 1), `${mark} `).replace(/^(\S+) (\n|$)/, "$1$2");
+  }).join(notes ? "\n\n" : "\n");
 }
 
 /** An item's content cut at its paragraph breaks. */
@@ -230,10 +241,13 @@ function render(block: Block, flip: boolean): string {
 /** The document as Markdown (CommonMark with the GitHub table, task item and strikethrough additions). */
 export function exportMarkdown(doc: Doc, options: MarkdownExportOptions = {}): string {
   inlineHtml = options.inlineHtml === true;
+  // A footnote is written with its number as the label.
+  labels = new Map(noteIds(doc).map((id, i) => [id, String(i + 1)]));
   try {
     return blocks(doc.blocks);
   } finally {
     inlineHtml = false;
+    labels = new Map();
   }
 }
 
