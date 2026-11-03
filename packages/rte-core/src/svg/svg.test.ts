@@ -135,3 +135,15 @@ test("without the sanitizer, svg images are refused", () => {
   const src = `data:image/svg+xml;base64,${encodeBase64(new TextEncoder().encode(wrap("<rect/>")))}`;
   assert.equal(exportHtml({ blocks: importBlocks(`<img src="${src}">`) }), "");
 });
+
+test("a comment inside a comment is refused, not left half-removed", () => {
+  assert.equal(sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg"><!<!---->--><script>x</script><rect width="1" height="1"/></svg>'), undefined);
+  assert.notEqual(sanitizeSvg('<svg xmlns="http://www.w3.org/2000/svg"><!-- note --><rect width="1" height="1"/></svg>'), undefined);
+});
+
+test("base64 with many trailing equals signs or spaces decodes (or fails) quickly", () => {
+  const started = Date.now();
+  assert.equal(decodeBase64(`${"=".repeat(200_000)}x`), undefined);
+  assert.deepEqual([...(decodeBase64("aGk=") as Uint8Array)], [104, 105]);
+  assert.ok(Date.now() - started < 2000);
+});

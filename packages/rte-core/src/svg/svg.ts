@@ -75,6 +75,8 @@ function parseXml(source: string, limits: SvgLimits): XNode | undefined {
   // No entity declarations (they can expand without limit), and no CDATA or processing instructions beyond the XML header.
   if (/<!ENTITY|<!ATTLIST|<!NOTATION/i.test(source) || /<!\[CDATA\[/i.test(source)) return undefined;
   const stripped = source.replace(/^﻿/, "").replace(/<\?xml[^>]*\?>/i, "").replace(/<!DOCTYPE[^>[]*(?:\[[^\]]*\])?[^>]*>/gi, "").replace(/<!--[\s\S]*?-->/g, "");
+  // A comment inside a comment leaves an opener behind once the inner one is cut out; refuse that rather than read it.
+  if (stripped.includes("<!--")) return undefined;
   const stack: XNode[] = [];
   let root: XNode | undefined;
   let count = 0;
