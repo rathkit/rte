@@ -28,6 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # The release dry run below reads the commits since the last tag.
+          fetch-depth: 0
+          fetch-tags: true
           persist-credentials: false
       # The oldest Node that `engines` allows, kept for the import checks of the packed packages (check:packages).
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -55,6 +58,8 @@ jobs:
       - run: pnpm check:size
       # What would be published: packed, installed together from the tarballs, imported and type-checked. Nothing is published.
       - run: pnpm check:packages
+      # The release tooling still works with the installed dev tools (a patched dependency once broke it unseen). Nothing is written.
+      - run: pnpm release:dry
 
   browsers:
     runs-on: ubuntu-latest
