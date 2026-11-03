@@ -175,10 +175,10 @@ for (const [engine, type] of engines) {
   await browser.close();
 }
 
-// --- <rk-ui> used from React, Vue and Angular templates: the attributes come from the framework's state
+// --- <rk-ui> used from React, Vue, Angular and Svelte templates: the attributes come from the framework's state
 for (const [engine, type] of engines) {
   const browser = await type.launch();
-  for (const app of ["ui-react", "ui-vue", "ui-angular"]) {
+  for (const app of ["ui-react", "ui-vue", "ui-angular", "ui-svelte"]) {
     const name = `${engine} ${app}`;
     const context = await browser.newContext();
     const outside = [];

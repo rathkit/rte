@@ -45,7 +45,7 @@ dispatches `rk-open` with the item and the control, and the page, or the styled 
 
 ## In a framework
 
-Use the elements in a template like any custom element (Angular needs `CUSTOM_ELEMENTS_SCHEMA`). React 19 and Angular pass attributes and properties through as written. **In Vue, bind the starting content as an attribute**: `<rk-editor :value.attr="html">` (`"^value"` in a render function). Vue sets a `value` property again on every render, and setting `value` replaces the document, so a plain `:value` binding would throw away the person's edits each time anything else on the page changes. The `rk-ui` attributes (`theme`, `selection-toolbar`, and so on) are fine as ordinary bindings. These uses are checked against real React, Vue and Angular in three browsers.
+Use the elements in a template like any custom element (Angular needs `CUSTOM_ELEMENTS_SCHEMA`). React 19 and Angular pass attributes and properties through as written. **In Vue, bind the starting content as an attribute**: `<rk-editor :value.attr="html">` (`"^value"` in a render function). Vue sets a `value` property again on every render, and setting `value` replaces the document, so a plain `:value` binding would throw away the person's edits each time anything else on the page changes. The `rk-ui` attributes (`theme`, `selection-toolbar`, and so on) are fine as ordinary bindings. These uses are checked against real React, Vue, Angular and Svelte in three browsers (Svelte compiles the template with its own compiler).
 
 ## A styled interface: `<rk-ui>`
 
