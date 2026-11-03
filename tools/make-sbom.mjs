@@ -13,7 +13,7 @@ const root = resolve(import.meta.dirname, "..");
 export function sbomFor(pkg, { tarball, timestamp = new Date().toISOString() } = {}) {
   const runtime = ["dependencies", "optionalDependencies", "bundledDependencies", "bundleDependencies"].filter((k) => pkg[k] && Object.keys(pkg[k]).length > 0);
   if (runtime.length > 0) throw new Error(`${pkg.name} has runtime dependencies (${runtime.join(", ")}); a package must ship none`);
-  const encoded = pkg.name.replace("@", "%40");
+  const encoded = pkg.name.replaceAll("@", "%40");
   const component = {
     type: "library",
     "bom-ref": `pkg:npm/${encoded}@${pkg.version}`,

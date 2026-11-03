@@ -1,7 +1,7 @@
 // Fails if a committed paste fixture still carries something that identifies a person, a machine or a
 // source document. Independent of scrub.mjs on purpose: it checks the result, not the method.
 //   node tools/check-fixtures.mjs [dir]   (default fixtures/paste)
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const MAX_FILE_BYTES = 400_000;
@@ -42,9 +42,11 @@ function main(dir) {
   const files = readdirSync(dir).filter((name) => name.endsWith(".json"));
   for (const name of files) {
     const path = join(dir, name);
-    const found = statSync(path).size > MAX_FILE_BYTES ? [`larger than ${MAX_FILE_BYTES} bytes`] : [];
+    // Read once and judge what was read, so the size checked is the size parsed.
+    const bytes = readFileSync(path);
+    const found = bytes.length > MAX_FILE_BYTES ? [`larger than ${MAX_FILE_BYTES} bytes`] : [];
     try {
-      found.push(...problemsIn(JSON.parse(readFileSync(path, "utf8"))));
+      found.push(...problemsIn(JSON.parse(bytes.toString("utf8"))));
     } catch {
       found.push("not valid JSON");
     }

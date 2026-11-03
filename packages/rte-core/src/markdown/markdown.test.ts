@@ -239,7 +239,7 @@ test("with inline HTML on, writing keeps underline, super and subscript, and rea
   assert.equal(exportMarkdown(doc), "u x2 H2O **both**\n\n## a b\n\n| H |\n| --- |\n| c d |");
   const text = exportMarkdown(doc, { inlineHtml: true });
   assert.equal(text, "<u>u</u> x<sup>2</sup> H<sub>2</sub>O **<u>both</u>**\n\n## a<br>b\n\n| H |\n| --- |\n| c<br>d |");
-  assert.equal(exportHtml({ blocks: parseMarkdown(text) }).replace(/<\/?tbody>/g, ""), exportHtml(doc).replace(/<\/?tbody>/g, "").replace("<br>b</h2>", "<br>b</h2>"));
+  assert.equal(exportHtml({ blocks: parseMarkdown(text) }).replace(/<\/?tbody>/g, ""), exportHtml(doc).replace(/<\/?tbody>/g, ""));
   assert.equal(exportMarkdown({ blocks: parseMarkdown(text) }, { inlineHtml: true }), text);
   // A "<" that was text stays text.
   assert.equal(exportMarkdown(importHtml("<p>1 &lt; 2 and &lt;u&gt;x&lt;/u&gt;</p>"), { inlineHtml: true }), "1 \\< 2 and \\<u>x\\</u>");

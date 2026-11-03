@@ -14,7 +14,7 @@ test("every package gets a CycloneDX bill with itself and zero components", () =
     assert.equal(bill.bomFormat, "CycloneDX");
     assert.equal(bill.specVersion, "1.5");
     assert.equal(bill.metadata.component.name, pkg.name);
-    assert.equal(bill.metadata.component.purl, `pkg:npm/${pkg.name.replace("@", "%40")}@${pkg.version}`);
+    assert.equal(bill.metadata.component.purl, `pkg:npm/${pkg.name.replaceAll("@", "%40")}@${pkg.version}`);
     assert.deepEqual(bill.components, []);
     assert.deepEqual(bill.dependencies, [{ ref: bill.metadata.component["bom-ref"], dependsOn: [] }]);
     assert.equal(bill.metadata.component.licenses[0].license.id, "Apache-2.0");
