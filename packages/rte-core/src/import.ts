@@ -4,9 +4,10 @@ import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
 import { parseLine, SIDES, withSides, type Line, type Side } from "./cellborder.ts";
 import {
-  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, ROW_HEIGHT, inlineText, normalizeInline, type Align, type ImageAlign, type CellBorder, type Direction, type Block, type Doc, type Inline, type List, type ListItem, type Mark, type MarkType, type Paragraph,
+  COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, ROW_HEIGHT, inlineText, normalizeInline, type Align, type ImageAlign, type CellBorder, type Direction, type Block, type Doc, type Inline, type ItemChild, type List, type ListItem, type Mark, type MarkType, type Paragraph,
   type TableCell,
 } from "./model.ts";
+import { asChildren } from "./path.ts";
 
 /** Handed to a recognizer so it can read content without knowing how the importer works inside. */
 export interface ImportContext {
@@ -152,7 +153,8 @@ interface Ctx {
 
 interface Li {
   content: Inline[];
-  sublists: L[];
+  /** Lists still being built, and the finished blocks an item may hold. */
+  children: (L | ItemChild)[];
   level?: number;
   listId?: string;
   checked?: boolean;
@@ -383,7 +385,7 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
         type: listItem.type,
         ...(listItem.start !== undefined && listItem.start !== 1 ? { start: listItem.start } : {}),
         ...(listItem.style !== undefined ? { style: listItem.style } : {}),
-        items: [{ content: normalizeInline(listItem.content as Inline[]), sublists: [], level: listItem.level, listId: listItem.listId }],
+        items: [{ content: normalizeInline(listItem.content as Inline[]), children: [], level: listItem.level, listId: listItem.listId }],
       });
     }
     return;
@@ -575,8 +577,8 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
     if (child.tag === "ul" || child.tag === "ol") {
       // A list placed directly inside a list belongs to the item before it.
       const nested = convertList(child, ctx, settings);
-      const last = list.items[list.items.length - 1] ?? (list.items[list.items.push({ content: [], sublists: [] }) - 1] as Li);
-      last.sublists.push(nested);
+      const last = list.items[list.items.length - 1] ?? (list.items[list.items.push({ content: [], children: [] }) - 1] as Li);
+      last.children.push(nested);
       continue;
     }
     if (child.tag !== "li") continue;
@@ -587,15 +589,20 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings): L {
     const task = taskOf(child);
     convertNodes(task ? task.children : child.children, inner, ctx, settings);
     inner.flush();
-    const item: Li = { content: [], sublists: [] };
+    const item: Li = { content: [], children: [] };
     if (task) item.checked = task.checked;
+    // The item's text is its leading paragraphs (two paragraphs in one item stay two paragraphs). What comes after the first
+    // block that is not a paragraph, whatever it is, is kept in order as the item's children.
+    let leading = true;
     for (const block of inner.blocks) {
-      if (block.type === "ul" || block.type === "ol") item.sublists.push(block as L);
-      else if (block.type === "p" || block.type === "h") {
-        // Two paragraphs in one item stay two paragraphs.
+      if (leading && (block.type === "p" || block.type === "h")) {
         if (item.content.length > 0) item.content.push({ type: "br", paragraph: true });
         item.content.push(...block.content);
+        continue;
       }
+      leading = false;
+      if (isList(block)) item.children.push(block);
+      else item.children.push(...asChildren([block]));
     }
     item.content = normalizeInline(item.content);
     const level = levelOf(child.attrs["data-aria-level"] ?? child.attrs["aria-level"]);
@@ -819,8 +826,8 @@ function nestByLevel(lists: readonly L[]): List[] {
         const fresh: L = { type: list.type, items: [] };
         const parent = stack[stack.length - 1];
         if (parent) {
-          const host = parent.items[parent.items.length - 1] ?? (parent.items[parent.items.push({ content: [], sublists: [] }) - 1] as Li);
-          host.sublists.push(fresh);
+          const host = parent.items[parent.items.length - 1] ?? (parent.items[parent.items.push({ content: [], children: [] }) - 1] as Li);
+          host.children.push(fresh);
         } else {
           result.push(fresh);
         }
@@ -829,14 +836,14 @@ function nestByLevel(lists: readonly L[]): List[] {
         stack.push(fresh);
         ids.push(item.listId);
       }
-      (stack[stack.length - 1] as L).items.push({ content: item.content, sublists: item.sublists, ...(item.checked !== undefined ? { checked: item.checked } : {}) });
+      (stack[stack.length - 1] as L).items.push({ content: item.content, children: item.children, ...(item.checked !== undefined ? { checked: item.checked } : {}) });
     }
   }
   return result.map((l) => freezeList(l, 0));
 }
 
 function freezeList(list: L, depth: number): List {
-  const items: ListItem[] = list.items.map((item) => ({ content: item.content, sublists: item.sublists.map((sub) => freezeList(sub, depth + 1)), ...(item.checked !== undefined ? { checked: item.checked } : {}) }));
+  const items: ListItem[] = list.items.map((item) => ({ content: item.content, children: item.children.map((child): ItemChild => (child.type === "ul" || child.type === "ol" ? freezeList(child as L, depth + 1) : child)), ...(item.checked !== undefined ? { checked: item.checked } : {}) }));
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? list.style : undefined;
   return { type: list.type, ...(list.start !== undefined ? { start: list.start } : {}), ...(style !== undefined ? { style } : {}), items };
 }

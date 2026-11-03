@@ -34,7 +34,15 @@ What the list commands do, in the terms of the requirements.
 - **Paragraphs in an item** (`list.paragraph`, Mod-Shift-Enter, or New paragraph in item in the List style menu): starts a new paragraph inside the
   item the caret is in instead of a new item. The item is written as `<li><p>…</p><p>…</p></li>` (a task's checkbox in the first paragraph) and read
   from that; a gap is drawn between the paragraphs. Backspace at the start of a paragraph joins it to the one before, and Enter still adds an item,
-  taking the later paragraphs with it. An item holds paragraphs of text only: a quote, table or code block inside an item is read as text, as before.
+  taking the later paragraphs with it. 
+- **What else an item holds.** After its text an item can hold, in order, **nested lists, paragraphs, headings, code blocks, quotes and rules** (its `children`).
+  They are read from `<li>` markup and from Markdown, written back in the same order, drawn inside the item, and edited like the same blocks
+  anywhere else (Enter in code adds a line, Enter in a paragraph adds a paragraph there, copy keeps them, find searches them). A paragraph
+  directly after the item's text is a paragraph break inside the text, as above; a paragraph is a child only after another child (text, code, more text).
+  Backspace in an empty child that cannot merge with what is before it (after a code block, say) removes it. Tables and definition lists do not go
+  in an item: when read from markup or made by an edit their text stays as paragraphs. An item with no text of its own that starts with a nested list shows no marker (its
+  placeholder); an item that starts with code keeps its bullet. Outdenting an item with a code child brings the code out with it. In the model the
+  field is `ListItem.children`, and a path to a child is `[block, item, child]` (or `[block, item, child, n, …]` inside a quote child), the same numbers a nested list already used.
 
 ## Tasks
 

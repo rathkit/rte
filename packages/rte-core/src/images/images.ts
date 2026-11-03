@@ -1,6 +1,7 @@
 // Helpers for the images inside blocks: finding them, measuring inline ones, and rewriting them. DOM-free.
 import type { Block, Image, Inline, List, ListItem } from "../model.ts";
 import { decodeBase64 } from "../base64.ts";
+import { asChildren } from "../path.ts";
 
 /** The decoded size, in bytes, of a base64 data address, without decoding it. Zero for anything else. */
 export function dataImageBytes(src: string): number {
@@ -36,8 +37,8 @@ export function mapImages(blocks: readonly Block[], fn: (image: Image) => Image 
   const list = (l: List): List | undefined => {
     const items = l.items.flatMap((item): ListItem[] => {
       const { content, emptied } = inline(item.content);
-      const sublists = item.sublists.map(list).filter((x): x is List => x !== undefined);
-      return emptied && sublists.length === 0 ? [] : [{ content, sublists }];
+      const children = asChildren(walk(item.children));
+      return emptied && children.length === 0 ? [] : [{ ...item, content, children }];
     });
     return items.length > 0 || l.items.length === 0 ? { ...l, items } : undefined;
   };
@@ -84,7 +85,7 @@ export async function rewriteImages(blocks: readonly Block[], fn: (image: Image)
 export function collectImages(blocks: readonly Block[]): Image[] {
   const found: Image[] = [];
   const inline = (content: readonly Inline[]): void => { for (const node of content) if (node.type === "image") found.push(node); };
-  const list = (l: List): void => l.items.forEach((item) => { inline(item.content); item.sublists.forEach(list); });
+  const list = (l: List): void => l.items.forEach((item) => { inline(item.content); walk(item.children); });
   const walk = (bs: readonly Block[]): void => {
     for (const block of bs) {
       if (block.type === "p" || block.type === "h") inline(block.content);

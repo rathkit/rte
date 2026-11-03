@@ -6,7 +6,7 @@ import {
 import type { Behaviors, ContainerKind } from "./behaviors.ts";
 import { fillTable } from "./tablefill.ts";
 import {
-  blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, sameCells, setContent,
+  asChildren, blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, sameCells, setContent,
   type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -278,6 +278,10 @@ function joinWithPrevious(doc: Doc, into: Path, from: Pos): EditResult {
   const intoKind = kindAt(doc, into);
   const fromKind = kindAt(doc, from.path);
   const joinable = (k: string | undefined): boolean => k === "p" || k === "h" || k === "li" || k === "dt" || k === "dd";
+  // An empty paragraph, heading or code block that cannot merge with what is before it (a code block, say) is just removed, so it can always be deleted.
+  if ((!joinable(intoKind) || !joinable(fromKind)) && inlineLength(getContent(doc, from.path)) === 0 && (fromKind === "p" || fromKind === "h" || fromKind === "pre") && intoKind !== undefined) {
+    return { doc: removeContainer(doc, from.path), selection: caret({ path: into, offset: inlineLength(getContent(doc, into)) }) };
+  }
   if (!joinable(intoKind) || !joinable(fromKind)) return { doc, selection: caret(from) };
   const head = getContent(doc, into);
   const tail = getContent(doc, from.path);
@@ -533,8 +537,9 @@ export function extractSelection(doc: Doc, sel: Selection): Block[] {
     const items = list.items.flatMap((item) => {
       const ordinal = n++;
       const content = inRange(ordinal) ? cut(item.content, ordinal) : [];
-      const sublists = item.sublists.map(cropList).filter((l): l is List => l !== undefined);
-      return inRange(ordinal) || sublists.length > 0 ? [{ content, sublists }] : [];
+      // What follows the item's text is cropped like any list of blocks; its containers come next in reading order.
+      const children = asChildren(cropBlocks(item.children));
+      return inRange(ordinal) || children.length > 0 ? [{ content, children, ...(item.checked !== undefined ? { checked: item.checked } : {}) }] : [];
     });
     return items.length > 0 ? { ...list, items } : undefined;
   };

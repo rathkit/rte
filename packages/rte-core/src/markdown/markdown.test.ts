@@ -34,10 +34,12 @@ test("lists: nested, ordered start, tasks, separate lists", () => {
   assert.equal(parseMarkdown("- a\n\n* b").length, 2);
 });
 
-test("what a list item cannot hold is flattened, not lost", () => {
-  const list = parseMarkdown("- first\n\n  second\n\n  ```\n  code\n  ```")[0] as Extract<Block, { type: "ul" | "ol" }>;
-  const text = list.items[0]?.content.map((n) => (n.type === "text" ? n.text : n.type === "br" ? (n.paragraph ? "¶" : "\n") : "")).join("");
-  assert.equal(text, "first¶second¶code");
+test("a list item keeps code, quotes, rules and later paragraphs, in order", () => {
+  assert.equal(html("- first\n\n  second\n\n  ```\n  code\n  ```\n\n  after\n\n  > quoted\n- next"),
+    "<ul><li><p>first</p><p>second</p><pre>code</pre><p>after</p><blockquote><p>quoted</p></blockquote></li><li>next</li></ul>");
+  assert.equal(html("1. step\n   ```\n   run\n   ```\n   - sub\n2. two"), '<ol><li>step<pre>run</pre><ul><li>sub</li></ul></li><li>two</li></ol>');
+  assert.equal(html("- # head\n  ---"), "<ul><li><h1>head</h1><hr></li></ul>");
+  assert.equal(html("- ```\n  only code\n  ```"), "<ul><li><pre>only code</pre></li></ul>");
 });
 
 test("quotes, code and tables", () => {
@@ -94,6 +96,8 @@ const CORPUS: string[] = [
   "<ul><li data-checked=\"true\"><input type=\"checkbox\" checked>done</li><li><input type=\"checkbox\">open</li></ul>",
   "<blockquote><p>q1</p><blockquote><p>nested</p></blockquote></blockquote>",
   "<pre>line 1\n    indented\n```\nfence</pre><hr><p>after</p>",
+  "<ul><li>a<pre>code\n```</pre><p>after code</p><blockquote><p>q</p></blockquote><ul><li>sub</li></ul><hr></li><li>b</li></ul>",
+  "<ol><li>x<pre>y</pre></li><li><pre>only</pre></li></ol>",
   "<table><tr><th>H1</th><th>H2</th></tr><tr><td>a | b</td><td><em>c</em></td></tr></table>",
   "<p>x<br>y<br>z</p>",
   "<p>back\\slash &lt;tag&gt; &amp;amp; ~tilde~ [br](acket) ![not image](x)</p>",
@@ -189,7 +193,7 @@ test("lazy continuation follows paragraph text only", () => {
   assert.equal(html("> ```\n> x\ny"), "<blockquote><pre>x</pre></blockquote><p>y</p>");
   assert.equal(html("> a\n2. b"), "<blockquote><p>a 2. b</p></blockquote>");
   assert.equal(html("- a\nb"), "<ul><li>a b</li></ul>");
-  assert.equal(html("- ```\n  x\ny"), "<ul><li><code>x</code></li></ul><p>y</p>".replace("<code>x</code>", "<code>x</code>"));
+  assert.equal(html("- ```\n  x\ny"), "<ul><li><pre>x</pre></li></ul><p>y</p>");
 });
 
 test("copy: the plugin adds text/markdown, can replace the plain text, or can be turned off", () => {

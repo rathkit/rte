@@ -51,8 +51,7 @@ continuation) is followed as the spec says: only when the container ends in para
 
 ### What the model cannot hold
 
-- **List items hold text and sublists only.** A second paragraph of an item becomes a paragraph break inside it. Code, a quote or
-  a heading inside an item is flattened to text in the item (code keeps its code mark). This is the document model's shape, not the reader's.
+- **List items** hold text, then (in order) nested lists, paragraphs, headings, code, quotes and rules, as in HTML. Tables do not go in an item: their text stays as paragraphs.
 - **Table cells and alignment.** The column alignment of a table is set on the paragraph in each cell.
 - **Not read, by design:** HTML (it stays text, so pasted markup can never run or style anything), footnotes (no footnote in the model), and nesting deeper than 24 levels (read as plain text, a bound that keeps hostile input cheap).
 - Reference definitions are not shown. A definition counts only where a paragraph could start, and not inside code.

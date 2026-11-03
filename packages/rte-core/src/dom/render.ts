@@ -104,7 +104,7 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
   list.items.forEach((item, i) => {
     const itemPath = [...path, i];
     const li = tag("li", itemPath);
-    if (item.content.length === 0 && item.sublists.length > 0) li.style.listStyleType = "none";
+    if (item.content.length === 0 && (item.children[0]?.type === "ul" || item.children[0]?.type === "ol")) li.style.listStyleType = "none";
     if (item.checked !== undefined) {
       // A task's checkbox: not text, so the mapping between page and model skips it (data-rte-check); it is a real checkbox to assistive technology.
       li.style.listStyleType = "none";
@@ -118,7 +118,7 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
       li.appendChild(box);
     }
     renderInline(li, item.content, options);
-    item.sublists.forEach((sub, k) => li.appendChild(renderList(sub, [...itemPath, k], options)));
+    item.children.forEach((child, k) => li.appendChild(renderBlock(child, [...itemPath, k], options)));
     el.appendChild(li);
   });
   return el;

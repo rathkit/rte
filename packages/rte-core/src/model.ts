@@ -57,10 +57,17 @@ export interface Heading {
 }
 export interface ListItem {
   readonly content: readonly Inline[];
-  readonly sublists: readonly List[];
+  /**
+   * What follows the item's own text, in order: nested lists, and also paragraphs, headings, code, quotes and rules. A paragraph
+   * that follows the text with nothing between is not a child but a paragraph break inside `content` (`br` with `paragraph`);
+   * a paragraph is a child only after another child (text, code, then more text).
+   */
+  readonly children: readonly ItemChild[];
   /** Present when the item is a task: whether it is done. Absent for an ordinary item. */
   readonly checked?: boolean;
 }
+/** What a list item may hold besides its own text. Tables and definition lists are not allowed in an item. */
+export type ItemChild = List | Paragraph | Heading | CodeBlock | Quote | Rule;
 export interface List {
   readonly type: "ul" | "ol";
   readonly start?: number;

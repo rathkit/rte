@@ -2,7 +2,7 @@
 // Pure functions over the document, like the rest of the edit operations.
 import type { ContainerBehavior } from "../behaviors.ts";
 import { deleteSelection, sliceInline } from "../edit.ts";
-import { inlineText, normalizeInline, type Block, type Doc, type Inline, type List, type ListItem } from "../model.ts";
+import { inlineText, normalizeInline, type Block, type Doc, type Inline, type ItemChild, type List, type ListItem } from "../model.ts";
 import {
   caret, clampPos, containerPaths, selectedContainers, fixup, getBlock, getContent, isCollapsed, kindAt, mapBlockList, pathKey, setContent,
   type EditResult, type Path, type Pos, type Selection,
@@ -26,11 +26,22 @@ interface ItemLocation {
 
 /** Splits the path of a list-item container into the path of its outermost list block and the way down inside it. */
 function locateItem(doc: Doc, path: Path): ItemLocation | undefined {
+  // Inside a list, the way down can pass through a quote that is a child of an item; a list in that quote starts a new location.
+  const inList = (list: List, rest: Path, listBlock: Path, steps: readonly number[]): ItemLocation | undefined => {
+    const [i, k, ...more] = rest;
+    if (i === undefined) return undefined;
+    if (k === undefined) return { listBlock, item: [...steps, i] };
+    const child = list.items[i]?.children[k];
+    if (!child) return undefined;
+    if (child.type === "ul" || child.type === "ol") return inList(child, more, listBlock, [...steps, i, k]);
+    if (child.type === "quote") return walk(child.blocks, more, [...listBlock, ...steps, i, k]);
+    return undefined;
+  };
   const walk = (blocks: readonly Block[], rest: Path, prefix: readonly number[]): ItemLocation | undefined => {
     const [n, ...more] = rest;
     const block = n === undefined ? undefined : blocks[n];
     if (!block) return undefined;
-    if (block.type === "ul" || block.type === "ol") return { listBlock: [...prefix, n as number], item: more };
+    if (block.type === "ul" || block.type === "ol") return inList(block, more, [...prefix, n as number], []);
     if (block.type === "quote") return walk(block.blocks, more, [...prefix, n as number]);
     if (block.type === "table") {
       const [r, c, ...inner] = more;
@@ -51,8 +62,8 @@ function listOfItem(doc: Doc, path: Path): { list: List; index: number } | undef
   const steps = loc.item;
   for (let at = 0; ; at += 2) {
     if (steps.length - at === 1) return { list, index: steps[at] as number };
-    const sub = list.items[steps[at] as number]?.sublists[steps[at + 1] as number];
-    if (!sub) return undefined;
+    const sub = list.items[steps[at] as number]?.children[steps[at + 1] as number];
+    if (sub?.type !== "ul" && sub?.type !== "ol") return undefined;
     list = sub;
   }
 }
@@ -80,8 +91,8 @@ function carry(before: Doc, after: Doc, sel: Selection): Selection {
 interface Split {
   readonly before: List | undefined;
   readonly content: readonly Inline[];
-  /** The item's own sublists, lifted out to sit where the item was, one level shallower. Only when asked for. */
-  readonly lifted: readonly List[];
+  /** The item's own children, lifted out to sit where the item was, one level shallower. Only when asked for. */
+  readonly lifted: readonly ItemChild[];
   readonly after: List | undefined;
 }
 
@@ -92,21 +103,21 @@ function splitList(list: List, path: readonly number[], liftChildren: boolean): 
   const numbering = (count: number): Partial<List> => (list.type === "ol" ? { start: (list.start ?? 1) + count } : {});
   if (k === undefined) {
     // Children either keep their depth under an empty placeholder, or come out with the item, one level shallower.
-    const placeholder: ListItem[] = item.sublists.length > 0 && !liftChildren ? [{ content: [], sublists: item.sublists }] : [];
+    const placeholder: ListItem[] = item.children.length > 0 && !liftChildren ? [{ content: [], children: item.children }] : [];
     const rest = [...placeholder, ...list.items.slice(i + 1)];
     return {
       before: i > 0 ? { ...list, items: list.items.slice(0, i) } : undefined,
       content: item.content,
-      lifted: liftChildren ? item.sublists : [],
+      lifted: liftChildren ? item.children : [],
       after: rest.length > 0 ? { ...list, ...numbering(i + 1), items: rest } : undefined,
     };
   }
-  const inner = splitList(item.sublists[k] as List, path.slice(2), liftChildren);
-  const keptSublists = [...item.sublists.slice(0, k), ...(inner.before ? [inner.before] : [])];
-  const afterSublists = [...(inner.after ? [inner.after] : []), ...item.sublists.slice(k + 1)];
-  const rest = [...(afterSublists.length > 0 ? [{ content: [], sublists: afterSublists }] : []), ...list.items.slice(i + 1)];
+  const inner = splitList(item.children[k] as List, path.slice(2), liftChildren);
+  const keptSublists = [...item.children.slice(0, k), ...(inner.before ? [inner.before] : [])];
+  const afterSublists = [...(inner.after ? [inner.after] : []), ...item.children.slice(k + 1)];
+  const rest = [...(afterSublists.length > 0 ? [{ content: [], children: afterSublists }] : []), ...list.items.slice(i + 1)];
   return {
-    before: { ...list, items: [...list.items.slice(0, i), { content: item.content, sublists: keptSublists }] },
+    before: { ...list, items: [...list.items.slice(0, i), { content: item.content, children: keptSublists }] },
     content: inner.content,
     lifted: inner.lifted,
     after: rest.length > 0 ? { ...list, ...numbering(i + 1), items: rest } : undefined,
@@ -146,7 +157,7 @@ function updateListOf(doc: Doc, itemPath: Path, change: (list: List) => List): D
   const edit = (list: List, steps: readonly number[]): List => {
     if (steps.length === 1) return change(list);
     const [i, k] = steps as [number, number];
-    return { ...list, items: list.items.map((item, idx) => (idx !== i ? item : { ...item, sublists: item.sublists.map((sub, s) => (s === k ? edit(sub, steps.slice(2)) : sub)) })) };
+    return { ...list, items: list.items.map((item, idx) => (idx !== i ? item : { ...item, children: item.children.map((sub, s) => (s === k && (sub.type === "ul" || sub.type === "ol") ? edit(sub, steps.slice(2)) : sub)) })) };
   };
   return replaceBlock(doc, loc.listBlock, [edit(root, loc.item)]);
 }
@@ -244,7 +255,7 @@ export function toggleList(doc: Doc, sel: Selection, type: "ul" | "ol", options:
   for (const run of [...runs].reverse()) {
     const first = run[0] as Path;
     next = fixup(mapBlockList(next, first, (blocks, index) => {
-      const items: ListItem[] = run.map((_, n) => ({ content: (blocks[index + n] as { content: readonly Inline[] }).content, sublists: [] }));
+      const items: ListItem[] = run.map((_, n) => ({ content: (blocks[index + n] as { content: readonly Inline[] }).content, children: [] }));
       let list: List = withOptions({ type, items }, options);
       let from = index;
       let to = index + run.length;
@@ -287,7 +298,7 @@ function mapListAt(doc: Doc, itemPath: Path, fn: (list: List, index: number) => 
     const [i, k] = steps as [number, number];
     return {
       ...list,
-      items: list.items.map((item, idx) => idx !== i ? item : { ...item, sublists: item.sublists.flatMap((sub, s) => (s !== k ? [sub] : [edit(sub, steps.slice(2))].filter((x): x is List => x !== undefined))) }),
+      items: list.items.map((item, idx) => idx !== i ? item : { ...item, children: item.children.flatMap((sub, s): ItemChild[] => (s !== k || (sub.type !== "ul" && sub.type !== "ol") ? [sub] : [edit(sub, steps.slice(2))].filter((x): x is List => x !== undefined))) }),
     };
   };
   const next = edit(root, loc.item);
@@ -320,15 +331,15 @@ export function indentItems(doc: Doc, sel: Selection, maxDepth = Number.POSITIVE
       const flat = moved;
       const previous = list.items[index - 1];
       const nested = (target: ListItem): ListItem => {
-        const last = target.sublists.at(-1);
-        const sublists = last && last.type === list.type
-          ? [...target.sublists.slice(0, -1), { ...last, items: [...last.items, ...flat] }]
-          : [...target.sublists, { type: list.type, items: flat }];
-        return { ...target, sublists };
+        const last = target.children.at(-1);
+        const children = last && last.type === list.type
+          ? [...target.children.slice(0, -1), { ...last, items: [...last.items, ...flat] }]
+          : [...target.children, { type: list.type, items: flat }];
+        return { ...target, children };
       };
       const rest = list.items.slice(index + group.length);
       if (previous) return { ...list, items: [...list.items.slice(0, index - 1), nested(previous), ...rest] };
-      return { ...list, items: [nested({ content: [], sublists: [] }), ...rest] };
+      return { ...list, items: [nested({ content: [], children: [] }), ...rest] };
     });
   }
   return { doc: next, selection: carry(doc, next, sel) };
@@ -355,16 +366,16 @@ export function outdentItems(doc: Doc, sel: Selection): EditResult {
     const itemIndex = path.at(-1) as number;
     next = mapListAt(next, parentPath, (list, parentIndex) => {
       const parent = list.items[parentIndex] as ListItem;
-      const sub = parent.sublists[sublistIndex] as List;
+      const sub = parent.children[sublistIndex] as List;
       const moved = sub.items[itemIndex] as ListItem;
       const followers = sub.items.slice(itemIndex + 1);
       const keptSub = itemIndex > 0 ? [{ ...sub, items: sub.items.slice(0, itemIndex) }] : [];
       const lifted: ListItem = {
         content: moved.content,
-        sublists: [...moved.sublists, ...(followers.length > 0 ? [{ type: sub.type, ...(sub.style !== undefined ? { style: sub.style } : {}), items: followers } as List] : [])],
+        children: [...moved.children, ...(followers.length > 0 ? [{ type: sub.type, ...(sub.style !== undefined ? { style: sub.style } : {}), items: followers } as List] : [])],
       };
-      const sublists = [...parent.sublists.slice(0, sublistIndex), ...keptSub, ...parent.sublists.slice(sublistIndex + 1)];
-      const items = [...list.items.slice(0, parentIndex), { content: parent.content, sublists }, lifted, ...list.items.slice(parentIndex + 1)];
+      const children = [...parent.children.slice(0, sublistIndex), ...keptSub, ...parent.children.slice(sublistIndex + 1)];
+      const items = [...list.items.slice(0, parentIndex), { content: parent.content, children }, lifted, ...list.items.slice(parentIndex + 1)];
       return { ...list, items };
     });
   }
@@ -450,16 +461,16 @@ export function splitListItem(doc: Doc, pos: Pos): EditResult | undefined {
   const held = listOfItem(doc, pos.path);
   const item = held?.list.items[held.index];
   if (!loc || !item) return undefined;
-  if (content.length === 0 && item.sublists.length === 0) return leaveListItem(doc, pos);
+  if (content.length === 0 && item.children.length === 0) return leaveListItem(doc, pos);
   const before = sliceInline(content, 0, pos.offset);
   const after = sliceInline(content, pos.offset);
   const ordinal = containerPaths(doc).findIndex((p) => pathKey(p) === pathKey(pos.path));
   const next = mapListAt(doc, pos.path, (list, index) => ({
     ...list,
     items: list.items.flatMap((candidate, i) => (i !== index ? [candidate] : [
-      { content: before, sublists: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
+      { content: before, children: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
       // The new item is a task too, and not yet done.
-      { content: after, sublists: item.sublists, ...(item.checked !== undefined ? { checked: false } : {}) },
+      { content: after, children: item.children, ...(item.checked !== undefined ? { checked: false } : {}) },
     ])),
   }));
   // The new item follows the old one directly in reading order.
@@ -478,11 +489,11 @@ export function insertIntoList(doc: Doc, pos: Pos, blocks: readonly Block[], bef
     const item = list.items[index];
     if (!item) return list;
     const rows = others.length === 0
-      ? [{ content: normalizeInline([...before, ...first, ...after]), sublists: item.sublists }]
+      ? [{ content: normalizeInline([...before, ...first, ...after]), children: item.children }]
       : [
-          { content: normalizeInline([...before, ...first]), sublists: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
-          ...others.slice(0, -1).map((content) => ({ content, sublists: [], ...(item.checked !== undefined ? { checked: false } : {}) })),
-          { content: normalizeInline([...lastText, ...after]), sublists: item.sublists, ...(item.checked !== undefined ? { checked: false } : {}) },
+          { content: normalizeInline([...before, ...first]), children: [], ...(item.checked !== undefined ? { checked: item.checked } : {}) },
+          ...others.slice(0, -1).map((content) => ({ content, children: [], ...(item.checked !== undefined ? { checked: false } : {}) })),
+          { content: normalizeInline([...lastText, ...after]), children: item.children, ...(item.checked !== undefined ? { checked: false } : {}) },
         ];
     landing = rows.length - 1;
     return { ...list, items: [...list.items.slice(0, index), ...rows, ...list.items.slice(index + 1)] };

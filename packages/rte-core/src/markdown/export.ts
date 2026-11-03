@@ -1,6 +1,6 @@
 // Document model to Markdown text, the same document always giving the same text. What Markdown cannot say is dropped, never
 // written as inline HTML (the reader here treats HTML as text, so it would not come back). The list of what is dropped is in docs/MARKDOWN.md.
-import type { Align, Block, Doc, Inline, List, Mark, Table, TableCell } from "../model.ts";
+import type { Align, Block, Doc, Inline, ItemChild, List, Mark, Table, TableCell } from "../model.ts";
 
 type Span = "bold" | "italic" | "strike" | "link";
 interface Segment { readonly text: string; readonly spans: readonly Mark[]; readonly code: boolean; readonly image?: Extract<Inline, { type: "image" }>; readonly br?: boolean }
@@ -163,17 +163,20 @@ function list(l: List, flip: boolean): string {
     const task = item.checked === undefined ? "" : item.checked ? "[x] " : "[ ] ";
     const paragraphs = inlineSplit(item.content).map((p) => guardLines(p));
     const body = [`${task}${paragraphs[0] ?? ""}`, ...paragraphs.slice(1)].join("\n\n");
+    // What follows the text, in order. A nested list sits right under the text; other blocks are set off by a blank line.
     // Lists side by side at one level would read back as one list, so they alternate their marker.
-    const subs: string[] = [];
-    let before: List | undefined;
+    let text = body;
+    let before: ItemChild | undefined;
     let beforeFlip = false;
-    for (const sub of item.sublists) {
-      const f: boolean = before !== undefined && before.type === sub.type ? !beforeFlip : false;
-      subs.push(list(sub, f));
-      before = sub;
-      beforeFlip = f;
+    for (const child of item.children) {
+      const isList = child.type === "ul" || child.type === "ol";
+      const flipNext: boolean = isList && before !== undefined && before.type === child.type ? !beforeFlip : false;
+      const rendered = child.type === "ul" || child.type === "ol" ? list(child, flipNext) : render(child, false);
+      const gap = isList && (before === undefined || before.type === "ul" || before.type === "ol") ? "\n" : "\n\n";
+      text = text === "" && before === undefined ? rendered : `${text}${gap}${rendered}`;
+      before = child;
+      beforeFlip = flipNext;
     }
-    const text = subs.length > 0 ? `${body}\n${subs.join("\n")}` : body;
     return indentLines(text, " ".repeat(mark.length + 1), `${mark} `).replace(/^(\S+) (\n|$)/, "$1$2");
   }).join("\n");
 }

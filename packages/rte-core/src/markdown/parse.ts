@@ -2,11 +2,12 @@
 // items, strikethrough, bare web addresses). Written from the two public specifications, for untrusted input.
 //
 // What the document model cannot hold, and what is done about it (also in docs/MARKDOWN.md):
-//  - A list item holds inline content and sublists only. A second paragraph of an item becomes a paragraph break inside it;
+//  - A list item holds inline content and children only. A second paragraph of an item becomes a paragraph break inside it;
 //    code, a quote or a heading inside an item is flattened to text in the item.
 //  - A table cell holds blocks, so a column's alignment is set on the paragraph in each cell.
 //  - Raw HTML, link reference definitions, footnotes and setext-style hard wrapping rules beyond the above are not interpreted; they stay text.
-import type { Align, Block, Inline, List, ListItem, TableCell } from "../model.ts";
+import type { Align, Block, Inline, ItemChild, List, ListItem, TableCell } from "../model.ts";
+import { asChildren } from "../path.ts";
 import { parseInline, refLabel, unescape, type InlineContext, type MarkdownOptions, type Refs } from "./inline.ts";
 
 const MAX_DEPTH = 24;
@@ -239,26 +240,6 @@ function paragraph(text: string, options: InlineContext, align?: Align): Block |
   return { type: "p", content, ...(align ? { align } : {}) };
 }
 
-/** Text of blocks, flattened into inline content: for what a list item cannot hold. */
-function flatten(blocks: readonly Block[]): Inline[] {
-  const out: Inline[] = [];
-  const add = (inline: readonly Inline[]): void => {
-    if (inline.length === 0) return;
-    if (out.length > 0) out.push({ type: "br", paragraph: true });
-    out.push(...inline);
-  };
-  for (const b of blocks) {
-    switch (b.type) {
-      case "p": case "h": add(b.content); break;
-      case "pre": add(b.text.split("\n").flatMap((line, i): Inline[] => [...(i > 0 ? [{ type: "br" } as Inline] : []), ...(line === "" ? [] : [{ type: "text", text: line, marks: [{ type: "code" }] } as Inline])])); break;
-      case "quote": add(flatten(b.blocks)); break;
-      case "ul": case "ol": for (const item of b.items) add(item.content); break;
-      default: break;
-    }
-  }
-  return out;
-}
-
 function listItem(lines: string[], depth: number, options: InlineContext): ListItem {
   let checked: boolean | undefined;
   const first = lines[0] ?? "";
@@ -268,17 +249,20 @@ function listItem(lines: string[], depth: number, options: InlineContext): ListI
     lines = [first.slice(task[0].length), ...lines.slice(1)];
   }
   const blocks = parseBlocks(lines, depth + 1, options);
+  // The item's text is its first paragraph, and any paragraphs that follow it directly are breaks inside that text. Everything after
+  // the first block that is not a paragraph is a child, in order (a paragraph after such a block is a child paragraph).
   let content: Inline[] = [];
-  const sublists: List[] = [];
-  const rest: Block[] = [];
+  const children: ItemChild[] = [];
+  let leading = true;
   blocks.forEach((b, i) => {
-    if (b.type === "p" && i === 0) content = [...b.content];
-    else if (b.type === "ul" || b.type === "ol") sublists.push(b);
-    else rest.push(b);
+    if (leading && b.type === "p" && (i === 0 || content.length > 0)) {
+      content = i === 0 ? [...b.content] : [...content, { type: "br", paragraph: true }, ...b.content];
+      return;
+    }
+    leading = false;
+    children.push(...asChildren([b]));
   });
-  const more = flatten(rest);
-  if (more.length > 0) content = content.length > 0 ? [...content, { type: "br", paragraph: true }, ...more] : more;
-  return { content, sublists, ...(checked !== undefined ? { checked } : {}) };
+  return { content, children, ...(checked !== undefined ? { checked } : {}) };
 }
 
 function parseList(lines: string[], start: number, depth: number, options: InlineContext): { list: List; next: number } {

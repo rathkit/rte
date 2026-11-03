@@ -73,7 +73,7 @@ function exportList(list: List, depth: number): string {
   const start = list.type === "ol" && list.start !== undefined ? ` start="${list.start}"` : "";
   // An item with no text of its own that only holds a nested list shows no marker, and neither does a task: it has its checkbox instead.
   const items = list.items.map((item) => {
-    const noMarker = item.checked !== undefined || (item.content.length === 0 && item.sublists.length > 0);
+    const noMarker = item.checked !== undefined || (item.content.length === 0 && (item.children[0]?.type === "ul" || item.children[0]?.type === "ol"));
     const box = item.checked === undefined ? "" : `<input type="checkbox" disabled${item.checked ? " checked" : ""}> `;
     // An item with paragraph breaks in it is written as paragraphs; the task's checkbox goes in the first.
     const paragraphs: Inline[][] = [[]];
@@ -82,7 +82,7 @@ function exportList(list: List, depth: number): string {
       else (paragraphs[paragraphs.length - 1] as Inline[]).push(node);
     }
     const text = paragraphs.length === 1 ? exportInline(item.content) : paragraphs.map((part, i) => `<p>${i === 0 ? box : ""}${exportInline(part)}</p>`).join("");
-    return `<li${noMarker ? ' style="list-style-type: none;"' : ""}>${paragraphs.length === 1 ? box : ""}${text}${item.sublists.map((sub) => exportList(sub, depth + 1)).join("")}</li>`;
+    return `<li${noMarker ? ' style="list-style-type: none;"' : ""}>${paragraphs.length === 1 ? box : ""}${text}${item.children.map((child) => (child.type === "ul" || child.type === "ol" ? exportList(child, depth + 1) : exportBlock(child))).join("")}</li>`;
   }).join("");
   return `<${list.type}${start}${style}>${items}</${list.type}>`;
 }

@@ -4,11 +4,13 @@
 //   [b]                      top-level block b (paragraph, heading, code block)
 //   [b, i]                   item i of list b
 //   [b, i, k, j, ...]        item j of sublist k of item i of list b (and so on, down)
+//   [b, i, k]                child k of item i of list b, when child k is a paragraph, heading or code block
+//   [b, i, k, n, ...]        block n inside child k of item i, when child k is a quote
 //   [b, i]                   entry i of definition list b
 //   [b, r, c, n, ...]        block n inside cell c of row r of table b (the rest continues inside that block)
 //   [b, n, ...]              block n inside quote b
 import {
-  inlineLength, inlineText, type Block, type DefinitionEntry, type Doc, type Inline, type List, type ListItem, type Table, type TableCell,
+  inlineLength, inlineText, type Block, type DefinitionEntry, type Doc, type Inline, type ItemChild, type List, type ListItem, type Table, type TableCell,
 } from "./model.ts";
 
 export type Path = readonly number[];
@@ -49,7 +51,7 @@ export function comparePath(a: Path, b: Path): number {
 function listPaths(list: List, prefix: readonly number[], out: Path[]): void {
   list.items.forEach((item, i) => {
     out.push([...prefix, i]);
-    item.sublists.forEach((sub, k) => listPaths(sub, [...prefix, i, k], out));
+    item.children.forEach((child, k) => blockPaths(child, [...prefix, i, k], out));
   });
 }
 
@@ -120,8 +122,8 @@ function slotInList(list: List, rest: Path): Slot | undefined {
   const item = i === undefined ? undefined : list.items[i];
   if (!item) return undefined;
   if (k === undefined) return { content: item.content, item };
-  const sub = item.sublists[k];
-  return sub ? slotInList(sub, more) : undefined;
+  const child = item.children[k];
+  return child ? slotInBlock(child, more) : undefined;
 }
 
 function slotInBlocks(blocks: readonly Block[], rest: Path): Slot | undefined {
@@ -153,7 +155,7 @@ function updateList(list: List, rest: Path, content: readonly Inline[]): List {
   const items = list.items.map((item, idx): ListItem => {
     if (idx !== i) return item;
     if (k === undefined) return { ...item, content };
-    return { ...item, sublists: item.sublists.map((sub, s) => (s === k ? updateList(sub, more, content) : sub)) };
+    return { ...item, children: item.children.map((child, s) => (s === k ? (updateBlock(child, more, content) as ItemChild) : child)) };
   });
   return { ...list, items };
 }
@@ -185,6 +187,23 @@ export const setContent = (doc: Doc, path: Path, content: readonly Inline[]): Do
 
 /** Replaces the block that holds a container (a paragraph, heading or code block) in its parent list of blocks. */
 export function mapBlockList(doc: Doc, path: Path, fn: (blocks: readonly Block[], index: number) => readonly Block[]): Doc {
+  const applyList = (list: List, rest: Path): List => {
+    const [i, k, ...more] = rest;
+    if (i === undefined || k === undefined) return list;
+    return { ...list, items: list.items.map((item, idx) => (idx !== i ? item : { ...item, children: applyChildren(item.children, [k, ...more]) })) };
+  };
+  /** The blocks that follow an item's text are a list of blocks too; what an edit puts there is limited to what an item may hold. */
+  const applyChildren = (children: readonly ItemChild[], rest: Path): ItemChild[] => {
+    const [k, ...more] = rest;
+    if (k === undefined) return [...children];
+    if (more.length === 0) return asChildren(fn(children, k));
+    return children.map((child, idx): ItemChild => {
+      if (idx !== k) return child;
+      if (child.type === "ul" || child.type === "ol") return applyList(child, more);
+      if (child.type === "quote") return { ...child, blocks: apply(child.blocks, more) };
+      return child;
+    });
+  };
   const apply = (blocks: readonly Block[], rest: Path): Block[] => {
     const [n, ...more] = rest;
     if (n === undefined) return [...blocks];
@@ -192,6 +211,7 @@ export function mapBlockList(doc: Doc, path: Path, fn: (blocks: readonly Block[]
     return blocks.map((block, idx) => {
       if (idx !== n) return block;
       if (block.type === "quote") return { ...block, blocks: apply(block.blocks, more) };
+      if (block.type === "ul" || block.type === "ol") return applyList(block, more);
       if (block.type === "table") {
         const [r, c, ...inner] = more;
         return { ...block, rows: block.rows.map((row, ri) => (ri !== r ? row : row.map((cell, ci) => (ci !== c ? cell : { ...cell, blocks: apply(cell.blocks, inner) })))) };
@@ -202,6 +222,17 @@ export function mapBlockList(doc: Doc, path: Path, fn: (blocks: readonly Block[]
   return { blocks: apply(doc.blocks, path) };
 }
 
+/** Blocks as list item children: a table or definition list cannot sit in an item, so its text stays as paragraphs. */
+export function asChildren(blocks: readonly Block[]): ItemChild[] {
+  return blocks.flatMap((block): ItemChild[] => {
+    switch (block.type) {
+      case "table": return block.rows.flatMap((row) => row.flatMap((cell) => asChildren(cell.blocks)));
+      case "dl": return block.entries.map((entry) => ({ type: "p" as const, content: entry.content }));
+      default: return [block];
+    }
+  });
+}
+
 /** The block at a path that ends at a block: `[b]`, `[b, n]` inside a quote, `[b, r, c, n]` inside a table cell. */
 export function getBlock(doc: Doc, path: Path): Block | undefined {
   const find = (blocks: readonly Block[], rest: Path): Block | undefined => {
@@ -209,12 +240,21 @@ export function getBlock(doc: Doc, path: Path): Block | undefined {
     const block = n === undefined ? undefined : blocks[n];
     if (!block || more.length === 0) return block;
     if (block.type === "quote") return find(block.blocks, more);
+    if (block.type === "ul" || block.type === "ol") return findInList(block, more);
     if (block.type === "table") {
       const [r, c, ...inner] = more;
       const cell = r === undefined || c === undefined ? undefined : block.rows[r]?.[c];
       return cell ? find(cell.blocks, inner) : undefined;
     }
     return undefined;
+  };
+  const findInList = (list: List, rest: Path): Block | undefined => {
+    const [i, k, ...inner] = rest;
+    const child = i === undefined || k === undefined ? undefined : list.items[i]?.children[k];
+    if (!child) return undefined;
+    if (inner.length === 0) return child;
+    if (child.type === "ul" || child.type === "ol") return findInList(child, inner);
+    return child.type === "quote" ? find(child.blocks, inner) : undefined;
   };
   return find(doc.blocks, path);
 }
@@ -237,7 +277,14 @@ export function mapListOf(doc: Doc, path: Path, fn: (list: List, index: number) 
     return {
       ...list,
       items: list.items.map((item, idx) =>
-        idx !== i ? item : { ...item, sublists: item.sublists.flatMap((sub, s) => (s === k ? [apply(sub, more)].filter((x): x is List => x !== undefined) : [sub])) }),
+        idx !== i ? item : {
+          ...item,
+          children: item.children.flatMap((sub, s): ItemChild[] => {
+            if (s !== k) return [sub];
+            if (sub.type === "ul" || sub.type === "ol") { const next = apply(sub, more); return next ? [next] : []; }
+            return sub.type === "quote" ? [{ ...sub, blocks: walk(sub.blocks, more) }] : [sub];
+          }),
+        }),
     };
   };
   const walk = (blocks: readonly Block[], rest: Path): Block[] => {
@@ -270,10 +317,22 @@ export function fixup(doc: Doc): Doc {
       if (block.type === "table") {
         return [{ ...block, rows: block.rows.map((row) => row.map((cell): TableCell => ({ ...cell, blocks: fixBlocks(cell.blocks, true) }))) }];
       }
+      if (block.type === "ul" || block.type === "ol") return [fixList(block)];
       return [block];
     });
     return out.length === 0 && needOne ? [{ type: "p", content: [] }] : out;
   };
+  const fixList = (list: List): List => ({
+    ...list,
+    items: list.items.map((item): ListItem => ({
+      ...item,
+      children: item.children.flatMap((child): ItemChild[] => {
+        if (child.type === "ul" || child.type === "ol") return [fixList(child)];
+        if (child.type === "quote") { const inner = fixBlocks(child.blocks, false); return inner.length > 0 ? [{ ...child, blocks: inner }] : []; }
+        return [child];
+      }),
+    })),
+  });
   return { blocks: fixBlocks(doc.blocks, true) };
 }
 
@@ -310,6 +369,7 @@ export function cellChain(doc: Doc, path: Path): Path[] {
     const block = n === undefined ? undefined : blocks[n];
     if (n === undefined || !block) return;
     if (block.type === "quote") walk(block.blocks, more, [...prefix, n]);
+    else if (block.type === "ul" || block.type === "ol") walkList(block, more, [...prefix, n]);
     else if (block.type === "table") {
       const [r, c, ...inner] = more;
       if (r === undefined || c === undefined) return;
@@ -317,6 +377,14 @@ export function cellChain(doc: Doc, path: Path): Path[] {
       const cell = block.rows[r]?.[c];
       if (cell) walk(cell.blocks, inner, [...prefix, n, r, c]);
     }
+  };
+  // A quote that sits in a list item can hold a table; follow the path through lists to find it.
+  const walkList = (list: List, rest: Path, prefix: Path): void => {
+    const [i, k, ...inner] = rest;
+    const child = i === undefined || k === undefined ? undefined : list.items[i]?.children[k];
+    if (i === undefined || k === undefined || !child) return;
+    if (child.type === "ul" || child.type === "ol") walkList(child, inner, [...prefix, i, k]);
+    else if (child.type === "quote") walk(child.blocks, inner, [...prefix, i, k]);
   };
   walk(doc.blocks, path, []);
   return chain;
