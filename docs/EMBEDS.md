@@ -1,6 +1,6 @@
 # Embeds: scope
 
-Status: **scope only, nothing built.** Written 2026-11-03 for the owner to decide the open questions at the end. This is about putting a web page or a video inside a document: an `iframe` from an approved provider, and later a plain `video` or `audio` file.
+Status: **scoped and decided, not started** (decisions of 2026-11-03 are at the end; work begins when the owner says). This is about putting a web page or a video inside a document: an `iframe` from an approved provider, and later a plain `video` or `audio` file.
 
 ## Where things stand
 
@@ -31,7 +31,7 @@ It is a block of its own, not an inline: like a figure, it sits between paragrap
 
 **Plugin `@rathkit/rte-core/embeds`.**
 
-- `embeds({ providers })`. A provider is `{ name, hosts, fromUrl(url) }`: it says which hosts it covers and turns a page address a person pastes (for example a watch link) into the address of the embeddable player. Ships a small default list; the host can replace it. **No providers means no embeds**, so the default is closed.
+- `embeds({ providers })`. A provider is `{ name, hosts, fromUrl(url) }`: it says which hosts it covers and turns a page address a person pastes (for example a watch link) into the address of the embeddable player. **The default list is empty, and an empty list means no embeds.** Presets for the two largest video hosts and a map host are exported by name (`embeds/providers`) for a host to import and pass in; none is on unless it is passed.
 - Command `embed.insert` (`{ url, title }`): checks the address against the providers, refuses anything else, and inserts the block. A toolbar item opens a small dialog (address, title) using the existing dialog pattern in `rte-headless`/`rte-ui`.
 - Paste: a pasted bare address that a provider recognizes becomes an embed, with one undo step back to a link. Everything else is pasted as before.
 - Normalize hook (already exists): drops an embed whose address no longer passes the provider list, so a list changed later cannot leave an unapproved frame in a loaded document.
@@ -87,10 +87,10 @@ Arbitrary `iframe` markup; scripts; social-post widgets that run their own scrip
 4. Browser checks, keyboard and screen-reader steps, docs.
 5. Phase 2 (`media`) as its own change.
 
-## Open questions for the owner
+## Decisions (owner, 2026-11-03)
 
-1. **Which providers ship in the default list?** Each is a third party the editor sends readers to. Smallest sensible start: the two largest video hosts, using their privacy-enhanced player addresses where one exists, and a map host. Or ship an empty list and document how to add one.
-2. **Standard editor or opt-in?** Footnotes went into `standard` because they are plain document content. An embed contacts third parties, so opt-in is the safer default and the docs would show the one line to turn it on.
-3. **Placeholder by default while editing?** The scope says yes (no request until asked). Hosts that want the live frame set `live: true`.
-4. **Free or paid?** Phase 1 is described as free. Whether phase 2 (media with upload) is free is a pricing question and not decided here.
-5. **Top level only at first?** Embeds inside list items, quotes and table cells need the container rules extended; the scope leaves them out of the first version.
+1. **Providers:** none by default. The presets for the two largest video hosts and a map host are written and tested (address matching, lookalike hosts, rewriting a watch link to the player address; no network in unit tests, a loopback stand-in in the browser checks), but a host has to pass them in. The docs show the CSP `frame-src` line each one needs.
+2. **Opt-in.** Not in `standard`. The docs show the one line that turns it on.
+3. **Placeholder card while editing** by default; `live: true` shows the frame.
+4. **Phase 2 (`media`, with upload) is a paid-tier offering.** Phase 1 stays free. The line follows the rule in `PASTE.md`: the free editor handles what the standard format can say; the paid tier adds what needs storage and more policy.
+5. **Top level only** in the first version.
