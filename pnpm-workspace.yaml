@@ -10,3 +10,8 @@ strictDepBuilds: true
 
 # Peer dependencies are optional and never installed here: wrappers are tested against stand-ins, so no framework enters the lockfile.
 autoInstallPeers: false
+
+# Patched versions of two packages that nx (a development tool, never shipped) pulls in, until nx itself moves to them.
+overrides:
+  undici: ">=7.30.1 <8"
+  minimatch: ">=11.0.1 <12"
