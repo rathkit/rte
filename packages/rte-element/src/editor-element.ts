@@ -144,7 +144,18 @@ export class RkEditor extends HTMLElement {
     if (this.hasAttribute("required") && this.isEmpty(html)) this.internals?.setValidity({ valueMissing: true }, "Please fill in this field.", this.surface);
     else this.internals?.setValidity({});
   }
-  private isEmpty(html: string): boolean { return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim() === "" && !html.includes("<img"); }
+  private isEmpty(html: string): boolean {
+    if (html.includes("<img")) return false;
+    // The text outside the tags, read once: a "<" that never closes counts as text.
+    let text = "";
+    let open = -1;
+    for (let i = 0; i < html.length; i++) {
+      const ch = html[i] as string;
+      if (open >= 0) { if (ch === ">") open = -1; } else if (ch === "<") open = i; else text += ch;
+    }
+    if (open >= 0) text += html.slice(open);
+    return text.replace(/&nbsp;/g, "").trim() === "";
+  }
 
   private onFocusIn = (): void => { this.atFocus = this.value; };
   // Like a text field, `change` fires when focus leaves and the value is not what it was when focus arrived.
