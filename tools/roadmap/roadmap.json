@@ -1,0 +1,867 @@
+{
+  "project": "RTE road to 1.0",
+  "description": "What is left before RTE 1.0: milestones, tracks and priorities. The plan is docs/ROADMAP.md.",
+  "milestones": [
+    {
+      "title": "0.1.0-alpha.5",
+      "description": "Stable base: the API surface and editing rules reviewed and written down, one error model, one content policy, read-only and disabled states complete."
+    },
+    {
+      "title": "0.2.0-beta.0",
+      "description": "Measure and gate: a benchmark suite with a stated method, numeric budgets, memory and leak tests, and CI gates for size and speed."
+    },
+    {
+      "title": "0.3.0-beta.0",
+      "description": "Platforms and accessibility: server rendering, touch, input methods, screen readers, the keyboard and contrast audit, language packs, the browser support window and clipboard completeness."
+    },
+    {
+      "title": "0.4.0-beta.0",
+      "description": "Content features: formatting decisions, links and anchors, image upload, code blocks, table properties, lists and collapsible sections."
+    },
+    {
+      "title": "0.5.0-beta.0",
+      "description": "Interface and modes: toolbar configuration, consistent dialogs, the suggestion popup and range decorations, editing modes, the textarea upgrade, and embeds (phase 1)."
+    },
+    {
+      "title": "0.6.0-beta.0",
+      "description": "Speed and size met: typing cost independent of document size, very large documents, load throughput, a smaller core, lazy interface parts."
+    },
+    {
+      "title": "0.7.0-beta.0",
+      "description": "Adoption kit: migration guide and tool, content profiles, the script-tag build, starters, a playground, and the decisions on mappings and a reference server."
+    },
+    {
+      "title": "0.8.0-beta.0",
+      "description": "Frozen surface: the plugin API frozen, the API reference, guides, the support and deprecation policy, and the compatibility check between releases."
+    },
+    {
+      "title": "1.0.0-rc.1",
+      "description": "Release candidate: security review, fuzzing, property tests, the accessibility conformance report, a soak test, reproducible builds, the alpha-only release rules lifted, two weeks with no new P0."
+    },
+    {
+      "title": "1.0.0",
+      "description": "The first stable release."
+    }
+  ],
+  "tracks": {
+    "behavior": "Editing rules, the API contract and the clipboard",
+    "features": "What people can write and make",
+    "interface": "Toolbars, dialogs, modes and plugin hooks for the interface",
+    "perf": "Speed, size and memory",
+    "docs": "Documentation, migration and adoption",
+    "platform": "Platforms, accessibility and languages",
+    "release": "Release, security and project health"
+  },
+  "issues": [
+    {
+      "id": "1.1",
+      "title": "Review the public exports of every package",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "List what each of the eleven packages exports, remove accidental exports, name things consistently, and check every exported type has a doc comment.\n\nDone when: an export snapshot is checked in and CI fails on an unreviewed change."
+    },
+    {
+      "id": "1.2",
+      "title": "Define the editor event and options contract",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Audit the events (`change`, `ready`, focus, blur, selection) and options (placeholder, max length, read-only, autofocus, spellcheck, direction) across the core, the element and each wrapper. Same names, same timing, same payloads, documented once.\n\nDone when: one table in the docs covers every option and event for every package, and a test per wrapper checks it."
+    },
+    {
+      "id": "1.3",
+      "title": "Audit undo and redo",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Check grouping of typing, one step per command, selection restore, the history limit, undo across plugin repairs (footnotes), across paste and across IME input.\n\nDone when: a written rule list and a test per rule; no known case where undo leaves the document in a state no edit produced."
+    },
+    {
+      "id": "1.4",
+      "title": "Audit selection and caret rules",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Atoms (images, footnote references), cell boundaries, quotes, code blocks, list items, right-to-left text, select-all, double and triple click, shift-arrow extension, caret before and after a block-level atom.\n\nDone when: a rule list with a browser check for each, in all three engines."
+    },
+    {
+      "id": "1.5",
+      "title": "Audit Enter, Shift+Enter, Backspace and Delete at block edges",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Every block type and nesting: list items (including an empty last child, which should exit the item), quotes, code, table cells, notes, headings, around atoms.\n\nDone when: a table of expected results is in the docs and each row is a test."
+    },
+    {
+      "id": "1.6",
+      "title": "Complete and document the content filtering policy",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "One page that states the allowed elements, attributes and style properties, URL schemes, nesting depth, input size limits, how unknown elements are handled, and what is kept or dropped on load versus paste. Add a configuration profile for stricter or looser hosts.\n\nDone when: the page matches the code (a test reads the policy tables), and hostile-markup tests cover each rule."
+    },
+    {
+      "id": "1.7",
+      "title": "Write the error and warning model",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P1",
+      "size": "S",
+      "flags": [],
+      "body": "What the editor does with bad input (invalid HTML, bad options, a failing plugin, a failing upload): never throw on content, one `warn` channel with codes, plugin failures isolated.\n\nDone when: documented, with tests for a throwing plugin and for malformed content."
+    },
+    {
+      "id": "1.8",
+      "title": "Read-only and disabled states",
+      "milestone": "0.1.0-alpha.5",
+      "track": "behavior",
+      "priority": "P1",
+      "size": "S",
+      "flags": [],
+      "body": "Read-only keeps selection and copy and blocks every edit path (commands, typing, paste, drop, cut, spellcheck replacements, plugin commands). Disabled also leaves the tab order.\n\nDone when: one browser check walks every input path in both states."
+    },
+    {
+      "id": "3.1",
+      "title": "Benchmark suite and method",
+      "milestone": "0.2.0-beta.0",
+      "track": "perf",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A fixed benchmark harness: load, typing, paste, undo, large tables, memory, cold start, run on a stated machine class with a stated method, reproducible by anyone from the repo.\n\nDone when: results and method are in `docs/MEASUREMENTS.md` and a CI job runs a reduced version."
+    },
+    {
+      "id": "3.2",
+      "title": "Write the budgets",
+      "milestone": "0.2.0-beta.0",
+      "track": "perf",
+      "priority": "P0",
+      "size": "S",
+      "flags": [],
+      "body": "Set numeric budgets after the baseline: bytes per entry point, keystroke latency at 1,000 and 10,000 paragraphs, load time, memory per undo step, cold start. Decision with a recommendation from the baseline. The targets may also be informed by measurements kept outside this repository; the docs publish only our own numbers and methods.\n\nDone when: the numbers are in the docs and in `package.json` budgets or the benchmark config."
+    },
+    {
+      "id": "3.3",
+      "title": "Memory and leaks",
+      "milestone": "0.2.0-beta.0",
+      "track": "perf",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Create and destroy the editor thousands of times with every plugin and wrapper, with no growth; per-step undo cost stays within budget.\n\nDone when: a leak test runs in CI in three engines."
+    },
+    {
+      "id": "3.4",
+      "title": "Regression gates in CI",
+      "milestone": "0.2.0-beta.0",
+      "track": "perf",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Fail a change that grows any budgeted number beyond a stated margin, with a way to record an approved increase.\n\nDone when: a deliberate regression in a test branch fails CI."
+    },
+    {
+      "id": "3.5",
+      "title": "Throttled-CPU and low-memory runs",
+      "milestone": "0.2.0-beta.0",
+      "track": "perf",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "Extend the 4× CPU slowdown runs to mobile-class settings and add a low-memory run.\n\nDone when: numbers are in `docs/MEASUREMENTS.md`."
+    },
+    {
+      "id": "3.6",
+      "title": "Decide how performance is described publicly",
+      "milestone": "0.2.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "S",
+      "flags": [
+        "maintainer"
+      ],
+      "body": "Owner decision: the docs state only measured numbers with methods; any statement that compares with other products waits for a benchmark anyone can run, and for the owner's rule on naming other products.\n\nDone when: the rule is written in `CONTRIBUTING.md` and the site copy follows it."
+    },
+    {
+      "id": "5.1",
+      "title": "Server-side use and server rendering",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Model, import and export run in Node with no DOM. Wrappers and the element render a safe placeholder on the server and attach on the client. Checks with a real Next.js, Nuxt, SvelteKit and Angular server-rendered app.\n\nDone when: each of the four renders and hydrates with no warning and no mismatch, and the docs say how to use each."
+    },
+    {
+      "id": "5.2",
+      "title": "Touch and mobile pass",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Soft keyboards, selection handles, long-press menus, the toolbar on narrow screens, tap targets of at least 24 px, orientation change. Real devices: iOS Safari and an Android Chromium browser.\n\nDone when: the steps in `docs/HAND-TESTING.md` are run on both, the results are in `docs/SUPPORT.md`, and the findings are fixed or listed."
+    },
+    {
+      "id": "5.3",
+      "title": "Input method (IME) pass",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Composition in Chromium, Firefox and WebKit for Japanese, Chinese and Korean input, plus Android keyboards: no lost text, no broken undo, composition over marks, atoms and cell edges.\n\nDone when: a scripted composition check runs in the three engines and hand results are recorded."
+    },
+    {
+      "id": "5.4",
+      "title": "Screen reader pass",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "NVDA and JAWS on Windows, VoiceOver on macOS and iOS, TalkBack on Android: the editing surface, toolbar, menus, dialogs, tables, lists, footnotes and live announcements.\n\nDone when: results are recorded per reader in `docs/SUPPORT.md` and every blocking finding is fixed."
+    },
+    {
+      "id": "5.5",
+      "title": "Keyboard, contrast, motion and zoom audit",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Every function reachable by keyboard with a visible focus, forced-colors and high-contrast themes, reduced motion, 400% zoom and 320 px reflow, WCAG 2.2 AA target size and contrast, no keyboard trap.\n\nDone when: an audit checklist is in the repo with a result per item, and failures are fixed."
+    },
+    {
+      "id": "5.6",
+      "title": "Localization: stable message ids and language packs",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Messages keyed by stable ids with an English fallback, a pack format, lazy loading, plural rules, mirrored interface for right-to-left, and a tool that reports missing or unused keys in a pack.\n\nDone when: two non-English packs ship in the repo (as tests, not a promise of translations) and the completeness tool runs in CI."
+    },
+    {
+      "id": "5.7",
+      "title": "Published compatibility matrix",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Browser, framework and Node versions with the result of the last full run, generated from CI so it cannot drift.\n\nDone when: in `docs/SUPPORT.md` and on the site, generated."
+    },
+    {
+      "id": "5.8",
+      "title": "Browser support window and older engines",
+      "milestone": "0.3.0-beta.0",
+      "track": "platform",
+      "priority": "P1",
+      "size": "L",
+      "flags": [],
+      "body": "Decide the support window (current and previous versions of Chromium, Firefox and WebKit, plus iOS and Android), test the oldest supported version in CI where possible, and say what happens below it.\n\nDone when: the window is in `docs/SUPPORT.md` and enforced by a CI job or a feature check with a clear message."
+    },
+    {
+      "id": "1.9",
+      "title": "Clipboard completeness",
+      "milestone": "0.3.0-beta.0",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Copy, cut, drag out and drop in: which formats are written and read (HTML, plain text, opt-in Markdown, files), large-paste limits, paste inside a code block, inside a table cell range, and between two editors on the same page.\n\nDone when: a matrix of source × target is in the docs and covered by browser checks."
+    },
+    {
+      "id": "1.10",
+      "title": "Grow the scrubbed paste captures",
+      "milestone": "0.3.0-beta.0",
+      "track": "behavior",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "More captures of word processors, online document editors, spreadsheets, mail and web pages, scrubbed and checked by `pnpm check:fixtures`. Keep the current conformance results from falling.\n\nDone when: the capture set doubles and the free-tier scenarios still all pass in three engines."
+    },
+    {
+      "id": "2.1",
+      "title": "Decide font family and font size",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P0",
+      "size": "S",
+      "flags": [
+        "maintainer",
+        "spike"
+      ],
+      "body": "Owner decision with a recommendation: allow font family and size as allow-listed values (a host-defined list, not arbitrary CSS), or leave them to host styles. Write the decision in the docs.\n\nDone when: the decision is recorded; if yes, build it under the next issue."
+    },
+    {
+      "id": "2.2",
+      "title": "Complete the link flows",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Link dialog (address, text, title, new tab, relationship), quick edit and remove from the caret, auto-link on paste and typing, address check with a clear message, link to a heading or anchor, and the URL policy as an option.\n\nDone when: every flow is in the docs and in browser checks."
+    },
+    {
+      "id": "2.3",
+      "title": "Image upload flow and editing",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Upload tab and drag position in the dialog, progress and error states, cancel, retry, alt-text requirement option, caption editing, figure handling, paste of images, responsive attributes, and lazy loading in output.\n\nDone when: it works against a loopback test server and the host contract is documented."
+    },
+    {
+      "id": "2.4",
+      "title": "Code blocks: language and highlighting",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Language attribute and menu, a tab-key policy, copy button option, and an opt-in syntax highlighting plugin with a small built-in tokenizer set (no dependencies) that other tokenizers can be added to.\n\nDone when: size budget kept, highlight output is plain classes that a theme can style, tested."
+    },
+    {
+      "id": "2.5",
+      "title": "Tables: properties and accessibility",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Caption, header column, header scope, cell alignment (horizontal and vertical), table width and alignment, row and column move, equalize widths, paste of a cell range, and nested tables behavior defined.\n\nDone when: documented in `docs/TABLES.md`, each feature tested, and a table passes a structure check for accessibility."
+    },
+    {
+      "id": "2.6",
+      "title": "Block style presets",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A host-defined list of named block and inline styles (a class name, a label, which blocks it applies to) in a menu, written as a class, validated against the list on load and paste.\n\nDone when: documented, tested, and a class not in the list is dropped."
+    },
+    {
+      "id": "2.7",
+      "title": "Font family and font size marks",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "If decided yes: marks with a host-defined list of values, toolbar menus, HTML and Markdown behavior, paste handling (values outside the list map to the nearest or are dropped).\n\nDone when: documented, tested in three engines."
+    },
+    {
+      "id": "2.8",
+      "title": "Named anchors and heading ids",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "Insert and edit anchors, stable ids for headings, an option to generate them, anchor links in the link dialog, and a table-of-contents helper that reads the document model.\n\nDone when: round-trips through HTML and is documented."
+    },
+    {
+      "id": "2.9",
+      "title": "Collapsible sections",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "A `details` and `summary` block: insert, edit the summary, open and close in the editor, keyboard and screen reader behavior, HTML in and out.\n\nDone when: documented and tested, with a decision on nesting."
+    },
+    {
+      "id": "2.10",
+      "title": "List polish",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P1",
+      "size": "S",
+      "flags": [],
+      "body": "Enter on an empty last child exits the item, list style and start-number controls in the interface, checklist toggling by keyboard, and list behavior inside quotes and table cells.\n\nDone when: each is a test."
+    },
+    {
+      "id": "2.11",
+      "title": "Decide the extra inline elements",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P2",
+      "size": "S",
+      "flags": [
+        "spike"
+      ],
+      "body": "Which of `kbd`, `abbr`, `q`, `cite`, `small`, `mark` and `del`/`ins` become marks. Write down the decision and keep the rest as text.\n\nDone when: the list is in the content filtering page and implemented."
+    },
+    {
+      "id": "2.12",
+      "title": "Find and replace extras",
+      "milestone": "0.4.0-beta.0",
+      "track": "features",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "Wrap-around, search inside the selection, optional accent folding, live count announcements.\n\nDone when: documented, tested, announcements checked with a screen reader."
+    },
+    {
+      "id": "6.1",
+      "title": "Toolbar configuration and responsive layout",
+      "milestone": "0.5.0-beta.0",
+      "track": "interface",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Choose, order and group items, an overflow menu on narrow widths, a sticky option, per-item visibility by state, and custom items from a plugin.\n\nDone when: a documented configuration object covers all of it and works in the element and in each wrapper."
+    },
+    {
+      "id": "6.2",
+      "title": "Dialogs: one consistent behavior",
+      "milestone": "0.5.0-beta.0",
+      "track": "interface",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Focus trap or inert background, return of focus, validation messages, error text, Escape and Enter rules, read-only behavior, responsive size.\n\nDone when: one browser check suite runs against every dialog."
+    },
+    {
+      "id": "6.3",
+      "title": "Range decoration API",
+      "milestone": "0.5.0-beta.0",
+      "track": "interface",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A public way for a plugin to draw over ranges without changing the document (the way find does with CSS highlights), with a position that follows edits.\n\nDone when: find uses the public API and the docs show a second example."
+    },
+    {
+      "id": "6.4",
+      "title": "Editing modes: inline, single-line and plain-text",
+      "milestone": "0.5.0-beta.0",
+      "track": "interface",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A mode with no block structure (inline text with marks), a single-line mode for short fields, and a plain-text mode that still gives find, counts and paste cleaning.\n\nDone when: each mode is an option on the standard editor, the element and each wrapper."
+    },
+    {
+      "id": "6.5",
+      "title": "Textarea upgrade path",
+      "milestone": "0.5.0-beta.0",
+      "track": "interface",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A helper that upgrades a `textarea` or a `div` with HTML into an editor and keeps the original field's name, form value and validation, and can destroy back to the original.\n\nDone when: tested with a native form, in three engines."
+    },
+    {
+      "id": "6.6",
+      "title": "Suggestion popup primitive",
+      "milestone": "0.5.0-beta.0",
+      "track": "interface",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "A generic popup for `@`-style completion that a plugin drives from `textTrigger`: anchored to the caret, keyboard and screen reader behavior, async results.\n\nDone when: a sample mention plugin in the docs uses only public API."
+    },
+    {
+      "id": "6.7",
+      "title": "Fullscreen, print and export",
+      "milestone": "0.5.0-beta.0",
+      "track": "interface",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "Fullscreen toggle, print styles, and export of HTML, plain text and (with the Markdown plugin) Markdown from a documented call.\n\nDone when: documented and tested."
+    },
+    {
+      "id": "2.13",
+      "title": "Embeds, phase 1 (opt-in plugin)",
+      "milestone": "0.5.0-beta.0",
+      "track": "features",
+      "priority": "P1",
+      "size": "L",
+      "flags": [],
+      "body": "Build `docs/EMBEDS.md` phase 1: the `embed` block, provider presets, insert command and dialog, paste of a recognized address, normalize step, placeholder card, hostile-input corpus.\n\nDone when: every rule in `docs/EMBEDS.md` has a test and the docs show the CSP line."
+    },
+    {
+      "id": "3.7",
+      "title": "Keystroke cost independent of document size",
+      "milestone": "0.6.0-beta.0",
+      "track": "perf",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Make typing, Enter and formatting cost proportional to the changed block, not the document: incremental redraw, per-block caches, no whole-document scans on edit.\n\nDone when: typing latency at 10,000 paragraphs is within the budget and a test fails if it grows with size."
+    },
+    {
+      "id": "3.8",
+      "title": "Shrink the core",
+      "milestone": "0.6.0-beta.0",
+      "track": "perf",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Measure with the real minifier, find dead and duplicate code, make sure each entry point is side-effect free and tree-shakes, and move rarely used code to a plugin.\n\nDone when: core and core-plus-view sizes meet the new budgets and a test checks tree-shaking per entry point."
+    },
+    {
+      "id": "3.9",
+      "title": "Very large documents",
+      "milestone": "0.6.0-beta.0",
+      "track": "perf",
+      "priority": "P1",
+      "size": "L",
+      "flags": [],
+      "body": "Defer drawing of blocks far from the viewport while keeping find, select-all, and print correct; define the supported size and warn beyond it.\n\nDone when: a 50,000-paragraph document loads and scrolls within budget."
+    },
+    {
+      "id": "3.10",
+      "title": "Load and import throughput",
+      "milestone": "0.6.0-beta.0",
+      "track": "perf",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "Remove any quadratic step in parse, import, export and Markdown; chunk long loads; measure with the largest fixtures.\n\nDone when: load time grows linearly in a test across four sizes."
+    },
+    {
+      "id": "3.11",
+      "title": "Lazy loading of interface parts",
+      "milestone": "0.6.0-beta.0",
+      "track": "perf",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "Load dialogs, menus, the emoji and special-character data, and syntax tokenizers on first use; measure time to first interaction.\n\nDone when: the first-paint bundle shrinks by the amount stated in the budget and lazy parts work offline."
+    },
+    {
+      "id": "3.12",
+      "title": "Style cost",
+      "milestone": "0.6.0-beta.0",
+      "track": "perf",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "Count style recalculations and layout passes during typing and toolbar updates; remove thrash; keep the stylesheet within budget.\n\nDone when: measured before and after in `docs/MEASUREMENTS.md`."
+    },
+    {
+      "id": "4.1",
+      "title": "Migration guide",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A guide for moving an existing integration: how options, content and plugins map to RTE, written without naming other products (decision on where product-specific mappings live is open).\n\nDone when: a team can follow it on a sample app."
+    },
+    {
+      "id": "4.2",
+      "title": "Content migration tool",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A command-line and library tool that reads a folder or a list of stored HTML, converts it to the editor's normalized HTML, and reports what would change or be dropped, without writing anything unless asked.\n\nDone when: dry run and write modes tested on a corpus of mixed HTML, zero dependencies."
+    },
+    {
+      "id": "4.3",
+      "title": "Script-tag build",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A single-file build for pages without a bundler, from `rathkit-pack`, with integrity hashes and a documented CDN URL pattern.\n\nDone when: a page with one script tag works offline and the file size is in the budget list."
+    },
+    {
+      "id": "4.4",
+      "title": "Content filtering profiles for legacy content",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "Named profiles (strict, standard, permissive) so existing stored content loads without loss where it is safe, with a report of what each profile drops.\n\nDone when: each profile documented and tested against the corpus."
+    },
+    {
+      "id": "4.5",
+      "title": "Compatibility layer, if decided",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "If the decision above says yes: an adapter that accepts a familiar options shape and returns an RTE instance, kept outside the zero-dependency core.\n\nDone when: shipped where the decision says, with its own tests."
+    },
+    {
+      "id": "4.6",
+      "title": "Starter templates and examples",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P1",
+      "size": "M",
+      "flags": [],
+      "body": "Vanilla, React, Vue, Svelte, Angular, jQuery, Next.js, Nuxt, SvelteKit, Astro, and a server-rendered form (Rails, Django, Laravel).\n\nDone when: each builds and passes a smoke check in CI."
+    },
+    {
+      "id": "4.7",
+      "title": "Reference server decision and upload contract",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P1",
+      "size": "L",
+      "flags": [
+        "maintainer",
+        "spike"
+      ],
+      "body": "Decide whether `rte-server` is part of 1.0. At minimum publish the upload and link-check contract as a specification with a tiny sample server in the docs.\n\nDone when: the decision and the specification are written."
+    },
+    {
+      "id": "4.8",
+      "title": "Interactive playground",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P2",
+      "size": "M",
+      "flags": [],
+      "body": "A page on the site that runs the editor with live options, plugin toggles, the HTML output, and a link that shares a configuration.\n\nDone when: it loads from the published packages only and works offline."
+    },
+    {
+      "id": "4.9",
+      "title": "One-package install",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "Decide on a meta-package that re-exports the standard editor and element, and document the install lines for each stack.\n\nDone when: decision recorded and, if yes, shipped."
+    },
+    {
+      "id": "4.10",
+      "title": "Contribution guide for plugins",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "How to write, test, size-check and propose a plugin; the review checklist.\n\nDone when: in `CONTRIBUTING.md` with a sample plugin."
+    },
+    {
+      "id": "4.11",
+      "title": "Decide how product-specific mappings are offered",
+      "milestone": "0.7.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "S",
+      "flags": [
+        "maintainer"
+      ],
+      "body": "Owner decision: the repository rule forbids naming other products. Choose where option mappings and a compatibility layer can live (private package, separate repository, paid migration kit) and who maintains them.\n\nDone when: decision recorded."
+    },
+    {
+      "id": "1.11",
+      "title": "Freeze the plugin API for beta",
+      "milestone": "0.8.0-beta.0",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Review every member of `PluginHost` and the hook types (`view`, `normalize`, `importOptions`, `pasteTransform`, `fileHandler`, `ui`). Mark each stable or experimental, remove what has no user, and write the compatibility rule that `PLUGIN_API_VERSION` follows.\n\nDone when: `docs/PLUGINS.md` lists every member with its status, the rule is in `docs/RELEASING.md`, and a test fails when a stable member changes shape."
+    },
+    {
+      "id": "1.12",
+      "title": "Public API compatibility check",
+      "milestone": "0.8.0-beta.0",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Compare the exported API of the new build with the last release and fail on an unlisted breaking change.\n\nDone when: the check runs in CI and in the release workflow."
+    },
+    {
+      "id": "4.12",
+      "title": "API reference",
+      "milestone": "0.8.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "Generated from the types at build time and published on the site: every export, option, command, event and plugin hook, with examples that are run as tests.\n\nDone when: complete, searchable, and linked from every package README."
+    },
+    {
+      "id": "4.13",
+      "title": "Guides and recipes",
+      "milestone": "0.8.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Custom plugin, custom toolbar, theming, upload endpoint, content security policy setup, forms and validation, server rendering, accessibility notes, saving and loading.\n\nDone when: each recipe has code that is checked by a test."
+    },
+    {
+      "id": "4.14",
+      "title": "Support, deprecation and version policy",
+      "milestone": "0.8.0-beta.0",
+      "track": "docs",
+      "priority": "P0",
+      "size": "S",
+      "flags": [],
+      "body": "How long a major version is supported, how deprecations are announced and removed, what a patch may change, and how security fixes are backported.\n\nDone when: published in `docs/RELEASING.md` and on the site."
+    },
+    {
+      "id": "1.13",
+      "title": "Stability policy for the options, events and plugin API",
+      "milestone": "0.8.0-beta.0",
+      "track": "behavior",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Which options, events, commands, hooks and CSS tokens are covered by the 1.0 promise, which are experimental, and how a change is announced.\n\nDone when: published in `docs/RELEASING.md` and enforced by the API compatibility check."
+    },
+    {
+      "id": "7.1",
+      "title": "Independent security review",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "L",
+      "flags": [],
+      "body": "An outside review of import, sanitization, paste, SVG cleaning, embeds, Markdown and the build pipeline, with a written report and fixes for every high finding.\n\nDone when: the report is summarized in `SECURITY.md` and no high finding is open."
+    },
+    {
+      "id": "7.2",
+      "title": "Fuzzing in CI",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Coverage-guided or grammar-based fuzzing of HTML import, Markdown, SVG cleaning and URL handling, with a corpus in the repo and a nightly run.\n\nDone when: it runs nightly and has run for two weeks without a crash."
+    },
+    {
+      "id": "7.3",
+      "title": "Property tests for the model",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Properties over random edits: undo and redo invert, normalization is idempotent, export then import is stable, selection stays valid.\n\nDone when: run in CI with a fixed seed set and a nightly random seed."
+    },
+    {
+      "id": "7.4",
+      "title": "Accessibility conformance statement",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "A WCAG 2.2 AA conformance report for the standard editor and the styled interface, from the audit and the screen reader results, with known gaps listed.\n\nDone when: published and linked from the docs."
+    },
+    {
+      "id": "7.5",
+      "title": "Reproducible build check",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Build the packages twice in clean environments and compare the tarballs, so the published files can be verified from source.\n\nDone when: a CI job fails on a difference."
+    },
+    {
+      "id": "7.6",
+      "title": "Long-session soak test",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "Eight hours of scripted typing, formatting and undo with memory and latency sampled.\n\nDone when: memory and latency stay flat and the run is repeatable."
+    },
+    {
+      "id": "7.7",
+      "title": "Copyright holder, trademark notice and security contact",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "S",
+      "flags": [
+        "maintainer"
+      ],
+      "body": "The copyright holder in `NOTICE` after the assignment to the company, trademark notices, and the security contact and policy.\n\nDone when: the owner closes it."
+    },
+    {
+      "id": "8.1",
+      "title": "Release candidate cycle: two weeks with no new P0",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "M",
+      "flags": [
+        "maintainer"
+      ],
+      "body": "Run the full suite, the hand-testing script and the soak test on the candidate; only fixes land; a second candidate is cut for any change.\n\nDone when: two weeks with no open blocker and a recorded sign-off."
+    },
+    {
+      "id": "8.2",
+      "title": "Lift the alpha-only release rules",
+      "milestone": "1.0.0-rc.1",
+      "track": "release",
+      "priority": "P0",
+      "size": "M",
+      "flags": [],
+      "body": "Change `tools/check-release.mjs`, `check:packages`, the `next` dist-tag rule and the README and site notices so a stable version is allowed and published to `latest`.\n\nDone when: a dry run of a stable tag passes every check."
+    },
+    {
+      "id": "8.3",
+      "title": "1.0.0 release",
+      "milestone": "1.0.0",
+      "track": "release",
+      "priority": "P0",
+      "size": "S",
+      "flags": [
+        "maintainer"
+      ],
+      "body": "Release notes, the `latest` tag moves, site and README say stable, and the support policy takes effect.\n\nDone when: published and verified in an empty project."
+    },
+    {
+      "id": "8.4",
+      "title": "After 1.0: the next roadmap",
+      "milestone": "1.0.0",
+      "track": "release",
+      "priority": "P2",
+      "size": "S",
+      "flags": [],
+      "body": "Collect what was deferred (collaboration, comments, native wrappers, media) into a new set of milestones.\n\nDone when: the next roadmap is in the repository."
+    },
+    {
+      "id": "8.5",
+      "title": "Announcement and the what-is-tested statement",
+      "milestone": "1.0.0",
+      "track": "release",
+      "priority": "P1",
+      "size": "S",
+      "flags": [
+        "maintainer"
+      ],
+      "body": "Draft the announcement and a plain statement of what is tested (browsers, devices, screen readers, framework versions) and what is not.\n\nDone when: the statement is on the site and in `docs/SUPPORT.md`, and the owner has approved the announcement."
+    }
+  ]
+}
