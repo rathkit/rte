@@ -1,6 +1,6 @@
 # @rathkit/rte-element
 
-> **Alpha** (0.1.0-alpha.0). Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
 The editor as custom elements, `<rk-editor>` and `<rk-toolbar>`, for any page or framework: form-associated (it submits its value, resets, restores), with properties, attributes and events.
 

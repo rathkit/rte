@@ -1,6 +1,6 @@
 # @rathkit/rte-themes
 
-> **Alpha** (0.1.0-alpha.0). Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
 Preset themes (light, dark, auto, high contrast) and a density setting, as CSS files of `--rk-*` custom properties, with tests that every pair of colors meets its contrast ratio.
 

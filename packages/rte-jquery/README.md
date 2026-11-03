@@ -1,6 +1,6 @@
 # @rathkit/rte-jquery
 
-> **Alpha** (0.1.0-alpha.0). Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
 The editor for jQuery: `$(el).rkEditor(options)` over the custom element, with `rk:change` events. Works with jQuery 3 and 4.
 

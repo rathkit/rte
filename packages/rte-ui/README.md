@@ -1,6 +1,6 @@
 # @rathkit/rte-ui
 
-> **Alpha** (0.1.0-alpha.0). Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
 The styled interface: a toolbar, menus, dialogs, find bar, status line and tooltips on the headless layer, with an optional selection toolbar and context menu, themeable by preset, tokens, icons, classes and messages.
 

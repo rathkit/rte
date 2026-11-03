@@ -1,6 +1,6 @@
 # @rathkit/rte-core
 
-> **Alpha** (0.1.0-alpha.0). Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
 The editor itself: the document model, HTML import and export, editing operations, commands and keys, the plugin host, the browser view, and the free plugins (lists, tables, find and replace, word-processor lists, SVG, images). The model does not touch the DOM, so it also runs in Node.
 

@@ -1,6 +1,6 @@
 # @rathkit/rte-vue
 
-> **Alpha** (0.1.0-alpha.0). Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
 The editor for Vue: a component and composables over the headless layer. A ref changes only when the value it holds does.
 
