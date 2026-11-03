@@ -102,7 +102,7 @@ if (problems.length === 0) {
 
   // The ones that run in Node import, entry point by entry point.
   const nodeSafe = {
-    "@rathkit/rte-core": ["", "/lists", "/tables", "/find", "/autoformat", "/word", "/svg", "/images"],
+    "@rathkit/rte-core": ["", "/lists", "/tables", "/find", "/autoformat", "/markdown", "/word", "/svg", "/images"],
     "@rathkit/rte-headless": [""],
     "@rathkit/rte-icons": [""],
     "@rathkit/rte-themes": [""],
@@ -122,7 +122,7 @@ if (problems.length === 0) {
   }
 
   // The types, for someone using TypeScript: everything that does not need a framework's own types.
-  const typed = ["@rathkit/rte-core", "@rathkit/rte-core/lists", "@rathkit/rte-core/tables", "@rathkit/rte-core/find", "@rathkit/rte-core/autoformat", "@rathkit/rte-core/word", "@rathkit/rte-core/svg", "@rathkit/rte-core/images", "@rathkit/rte-core/dom", "@rathkit/rte-core/standard", "@rathkit/rte-headless", "@rathkit/rte-icons", "@rathkit/rte-themes", "@rathkit/rte-ui", "@rathkit/rte-ui/element", "@rathkit/rte-element", "@rathkit/rte-jquery", "@rathkit/rte-svelte"];
+  const typed = ["@rathkit/rte-core", "@rathkit/rte-core/lists", "@rathkit/rte-core/tables", "@rathkit/rte-core/find", "@rathkit/rte-core/autoformat", "@rathkit/rte-core/markdown", "@rathkit/rte-core/word", "@rathkit/rte-core/svg", "@rathkit/rte-core/images", "@rathkit/rte-core/dom", "@rathkit/rte-core/standard", "@rathkit/rte-headless", "@rathkit/rte-icons", "@rathkit/rte-themes", "@rathkit/rte-ui", "@rathkit/rte-ui/element", "@rathkit/rte-element", "@rathkit/rte-jquery", "@rathkit/rte-svelte"];
   writeFileSync(join(project, "check.ts"), typed.map((name, i) => `import * as m${i} from ${JSON.stringify(name)};\nvoid m${i};`).join("\n") + "\nexport {};\n");
   writeFileSync(join(project, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ES2023", module: "NodeNext", moduleResolution: "NodeNext", strict: true, noEmit: true, skipLibCheck: false, lib: ["ES2023", "DOM"], types: [] }, files: ["check.ts"] }));
   try {

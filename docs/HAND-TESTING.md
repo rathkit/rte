@@ -72,6 +72,14 @@ iOS Safari, Android Chrome; one tablet with a keyboard attached.
 7. Paste from another app. Expect: formatting is kept as documented in
    `PASTE.md`; no raw markup shows.
 
+## Pasting from other tools
+
+With the Markdown plugin on (`markdown()` from `@rathkit/rte-core/markdown`):
+
+1. Copy a few lines of Markdown from a plain-text editor and paste. Expect: headings, lists and links are made.
+2. Copy the same text from a code editor with syntax coloring and paste. Expect: it pastes as colored HTML, not read as Markdown (code editors put HTML on the clipboard, and HTML always wins; see `MARKDOWN.md`).
+3. Copy a shell command with a `#` comment line from a terminal and paste. Expect: it stays as typed.
+
 ## Spell checking and speech
 
 1. Misspell a word. Expect: the browser underlines it; the context menu offers

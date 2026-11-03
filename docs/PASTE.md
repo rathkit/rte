@@ -13,6 +13,7 @@ Paid paste recovers information that HTML does not carry in a standard form.
 | Merge one-item lists from Word and Docs into real, nested lists | Free |
 | Add a scheme to scheme-less links; drop `file:` images | Free |
 | Keep `colspan`, `rowspan`, emphasis, links and heading tags | Free |
+| Read Markdown from plain text (opt-in plugin, [MARKDOWN.md](MARKDOWN.md)) | Free |
 | Resolve spreadsheet `<style>` classes (fills, bold, number formats) | Paid |
 | Typed cell values and formulas | Paid |
 | Infer headings from appearance (bold or large text) where the source declares none | Paid |

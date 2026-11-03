@@ -64,6 +64,10 @@
       "types": "./dist/find/index.d.ts",
       "default": "./dist/find/index.js"
     },
+    "./markdown": {
+      "types": "./dist/markdown/index.d.ts",
+      "default": "./dist/markdown/index.js"
+    },
     "./word": {
       "types": "./dist/word/index.d.ts",
       "default": "./dist/word/index.js"
@@ -92,6 +96,7 @@
       "tables",
       "find",
       "autoformat",
+      "markdown",
       "word",
       "svg",
       "images"
@@ -125,6 +130,12 @@
       {
         "name": "autoformat plugin",
         "entry": "dist/autoformat/index.js",
+        "gzipKB": 15,
+        "plugin": true
+      },
+      {
+        "name": "markdown plugin",
+        "entry": "dist/markdown/index.js",
         "gzipKB": 15,
         "plugin": true
       },

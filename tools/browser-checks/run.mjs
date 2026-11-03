@@ -282,6 +282,26 @@ for (const [name, type] of engines) {
   check(`${name} and one undo takes it all back`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>", await html());
   await page.evaluate(() => window.__editor.paste({ text: "P\tQ\nR\tS\n" }));
   check(`${name} tab-separated text pasted into a cell becomes cells filled from that cell`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>a</td><td>P</td><td>Q</td></tr><tr><td>c</td><td>R</td><td>S</td></tr></table>", await html());
+  // Markdown paste (an opt-in plugin): plain text that is clearly Markdown is read as Markdown; HTML on the clipboard and code blocks are left alone.
+  await page.evaluate(async () => { const m = await import("/dist/markdown/index.js"); window.__mdStop = window.__editor.use(m.markdown()); });
+  await reset("");
+  await page.evaluate(() => window.__editor.paste({ text: "# Title\n\n- one\n- **two**\n\n[site](https://x.test)" }));
+  check(`${name} Markdown in plain text pastes as headings, lists and links`, (await html()).includes('<h1>Title</h1><ul><li>one</li><li><strong>two</strong></li></ul><p><a href="https://x.test">site</a></p>'), await html());
+  await page.keyboard.press("ControlOrMeta+z");
+  check(`${name} and one undo takes the Markdown paste back`, (await html()) === "<p></p>", await html());
+  await reset("<p>x</p>");
+  await page.click("p");
+  await page.evaluate(() => window.__editor.paste({ text: "# Title\n\n- one\n- two", html: "<p>rich</p>" }));
+  check(`${name} HTML on the clipboard wins over Markdown in its plain text`, (await html()).includes("rich") && !(await html()).includes("<h1>"), await html());
+  await reset("<p>x</p>");
+  await page.click("p");
+  await page.evaluate(() => window.__editor.paste({ text: "snake_case_name and 2*3*4" }));
+  check(`${name} plain text that is not Markdown pastes as typed`, (await html()).includes("snake_case_name and 2*3*4") && !(await html()).includes("<em>"), await html());
+  await reset("<pre>code</pre>");
+  await page.click("pre");
+  await page.evaluate(() => window.__editor.paste({ text: "# Title\n\n- one\n- two" }));
+  check(`${name} pasting into a code block stays literal`, (await html()).startsWith("<pre>") && !(await html()).includes("<h1>") && !(await html()).includes("<ul>"), await html());
+  await page.evaluate(() => window.__mdStop());
   // Cell edges: Backspace at the start of a cell and Delete at the end of one leave the table whole.
   await reset("<p>x</p><table><tbody><tr><td>ab</td><td>cd</td></tr></tbody></table><p>y</p>");
   await page.click("td:nth-child(2)");
