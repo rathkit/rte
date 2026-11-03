@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-ui",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "The styled editor interface: a toolbar and dialogs on the headless layer, themeable with tokens, presets, icons and messages.",
   "keywords": [
     "rich-text",
@@ -61,10 +61,10 @@
     "./base.css": "./css/base.css"
   },
   "peerDependencies": {
-    "@rathkit/rte-core": ">=0.1.0-alpha.3 <0.2.0",
-    "@rathkit/rte-headless": ">=0.1.0-alpha.3 <0.2.0",
-    "@rathkit/rte-themes": ">=0.1.0-alpha.3 <0.2.0",
-    "@rathkit/rte-icons": ">=0.1.0-alpha.3 <0.2.0"
+    "@rathkit/rte-core": ">=0.1.0-alpha.4 <0.2.0",
+    "@rathkit/rte-headless": ">=0.1.0-alpha.4 <0.2.0",
+    "@rathkit/rte-themes": ">=0.1.0-alpha.4 <0.2.0",
+    "@rathkit/rte-icons": ">=0.1.0-alpha.4 <0.2.0"
   },
   "peerDependenciesMeta": {
     "@rathkit/rte-core": {

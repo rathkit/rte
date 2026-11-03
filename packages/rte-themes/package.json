@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-themes",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Preset themes for the Rathkit RTE interface: design token values, as plain CSS.",
   "keywords": [
     "rich-text",

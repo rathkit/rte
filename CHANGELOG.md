@@ -1,3 +1,45 @@
+## 0.1.0-alpha.4 (2026-11-03)
+
+Published to the `next` dist-tag only. Footnotes and Markdown are new, and the interface can now be had as one element.
+
+- **Footnotes are part of the standard editor.** Numbered references with an end list of notes, read and written in HTML (and in Markdown when that plugin is on). Pages built with `createEditor()` or the standard plugins get them; pass `footnotes: false` to leave them out. Pages assembled from single plugins are unchanged.
+- **Markdown is opt-in**: `@rathkit/rte-core/markdown` reads and writes it, and can handle paste and copy as Markdown.
+- **New plugin hooks**: `view` (a plugin brings its own code for the page) and `normalize` (repair the document after each edit, in the same undo step). Table and image handles moved out of the core into their plugins. The API may still change between alphas.
+
+### Features
+
+- **core:** read and write Markdown, with an opt-in paste plugin ([b981dd2](https://github.com/rathkit/rte/commit/b981dd2))
+- **core:** copy hook for plugins, copy as Markdown, and Markdown reference links ([161f6c2](https://github.com/rathkit/rte/commit/161f6c2))
+- **core:** list items hold code, quotes, paragraphs and rules after their text ([3968c62](https://github.com/rathkit/rte/commit/3968c62))
+- **core:** read and write inline HTML tags for underline, super and subscript in Markdown ([0f3546d](https://github.com/rathkit/rte/commit/0f3546d))
+- **footnotes:** add footnotes with numbered references and an end list of notes ([74a801e](https://github.com/rathkit/rte/commit/74a801e))
+- **standard:** add footnotes to the standard editor, with footnotes: false to leave them out ([b39deb7](https://github.com/rathkit/rte/commit/b39deb7))
+- **ui:** add an optional selection toolbar and context menu ([0345114](https://github.com/rathkit/rte/commit/0345114))
+- **ui:** add the rk-ui element for the styled interface ([cb9cf8b](https://github.com/rathkit/rte/commit/cb9cf8b))
+
+### Fixes
+
+- **core:** rename the per-block footnote scan helper ([983794b](https://github.com/rathkit/rte/commit/983794b))
+- **ui:** return focus to the editor after a dialog opened from the selection toolbar or context menu ([403e306](https://github.com/rathkit/rte/commit/403e306))
+
+### Internal changes
+
+- **view:** let plugins bring their own page code, moving table and image handles out of the core ([5b7992a](https://github.com/rathkit/rte/commit/5b7992a))
+
+### Documentation
+
+- bring the README up to date with what is on npm ([b2e3ac7](https://github.com/rathkit/rte/commit/b2e3ac7))
+- bring the release docs up to date with the first releases ([db12a48](https://github.com/rathkit/rte/commit/db12a48))
+- add the hand-testing script for screen readers, input methods and phones ([9e62b95](https://github.com/rathkit/rte/commit/9e62b95))
+- **changelog:** say which versions never reached npm ([2720f77](https://github.com/rathkit/rte/commit/2720f77))
+- **readiness:** mark the publish checklists as snapshots ([376a081](https://github.com/rathkit/rte/commit/376a081))
+- **readiness:** record that @rathkit-pro is claimed and secret scanning is on ([a060e7e](https://github.com/rathkit/rte/commit/a060e7e))
+
+### Tests
+
+- **ui:** check rk-ui from React, Vue and Angular templates ([263573e](https://github.com/rathkit/rte/commit/263573e))
+- **ui:** check rk-ui from a Svelte template ([cd6bcdc](https://github.com/rathkit/rte/commit/cd6bcdc))
+
 ## 0.1.0-alpha.3 (2026-10-31)
 
 The first version published to npm by the release workflow: staged with provenance and approved by the owner. Use this one.
