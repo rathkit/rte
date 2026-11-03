@@ -68,7 +68,7 @@ function inline(content: readonly Inline[], flat: boolean, table: boolean): stri
     const text = node.text;
     if (run.code) { segments.push({ text, spans: run.spans, code: true }); return; }
     const lead = /^\s*/.exec(text)?.[0] ?? "";
-    const trail = lead.length === text.length ? "" : /\s*$/.exec(text)?.[0] ?? "";
+    const trail = lead.length === text.length ? "" : text.slice(text.trimEnd().length);
     const core = text.slice(lead.length, text.length - trail.length);
     const prev = runs[r - 1];
     const next = runs[r + 1];

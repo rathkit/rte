@@ -104,3 +104,13 @@ test("a web address and a space become a link; trailing punctuation stays outsid
   type(off, "https://example.test ");
   assert.doesNotMatch(html(off), /<a /);
 });
+
+test("an address after others, each link on its own and punctuation after it stays outside; a long run of punctuation is quick", () => {
+  const e = make("<p></p>");
+  type(e, "(www.a.test http://b.test/x?). ");
+  assert.equal(html(e), '<p>(<a href="https://www.a.test">www.a.test</a> <a href="http://b.test/x">http://b.test/x</a>?).&nbsp;</p>');
+  const started = Date.now();
+  const long = make("<p></p>");
+  type(long, `http://${".".repeat(20_000)} `);
+  assert.ok(Date.now() - started < 4000);
+});

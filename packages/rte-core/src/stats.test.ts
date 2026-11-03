@@ -27,3 +27,9 @@ test("a selection counts only what is selected", () => {
   assert.deepEqual(countSelection(doc, { anchor: { path: [0], offset: 4 }, focus: { path: [0], offset: 13 } }), { words: 2, characters: 9 });
   assert.equal(countSelection(doc, { anchor: { path: [0], offset: 4 }, focus: { path: [0], offset: 4 } }).words, 0);
 });
+
+test("counting a long run of spaces takes linear time", () => {
+  const started = Date.now();
+  assert.deepEqual(countText(`${" ".repeat(300_000)}x`), { words: 1, characters: 1 });
+  assert.ok(Date.now() - started < 2000);
+});

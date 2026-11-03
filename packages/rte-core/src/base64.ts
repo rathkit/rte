@@ -3,7 +3,10 @@
 const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export function decodeBase64(input: string): Uint8Array | undefined {
-  const text = input.replace(/\s+/g, "").replace(/=+$/, "");
+  const spaced = input.replace(/\s+/g, "");
+  let end = spaced.length;
+  while (end > 0 && spaced[end - 1] === "=") end--;
+  const text = spaced.slice(0, end);
   if (/[^A-Za-z0-9+/]/.test(text)) return undefined;
   const out = new Uint8Array(Math.floor((text.length * 3) / 4));
   let bits = 0;

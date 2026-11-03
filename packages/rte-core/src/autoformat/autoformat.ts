@@ -77,7 +77,19 @@ export function spanShortcut(doc: Doc, sel: Selection, typed: string): TriggerRe
   return undefined;
 }
 
-const ADDRESS = /(?:https?:\/\/|www\.)[^\s￼<>"]+$/i;
+const ADDRESS_START = /(?:https?:\/\/|www\.)/gi;
+const ADDRESS_BREAK = /[\s￼<>"]/;
+
+/** The web address at the end of the text, if the text ends in one: where it starts, and the address. Reads the last word once, with no backtracking. */
+function addressAtEnd(text: string): { index: number; text: string } | undefined {
+  let from = text.length;
+  while (from > 0 && !ADDRESS_BREAK.test(text[from - 1] as string)) from--;
+  ADDRESS_START.lastIndex = from;
+  for (let m = ADDRESS_START.exec(text); m; m = ADDRESS_START.exec(text)) {
+    if (m.index + m[0].length < text.length) return { index: m.index, text: text.slice(m.index) };
+  }
+  return undefined;
+}
 
 /** A web address before the caret, then a space: the address becomes a link and the space is typed after it. */
 export function addressShortcut(doc: Doc, sel: Selection, typed: string): EditResult | undefined {
@@ -87,10 +99,12 @@ export function addressShortcut(doc: Doc, sel: Selection, typed: string): EditRe
   const content = getContent(doc, path);
   const offset = sel.anchor.offset;
   const before = inlineText(sliceInline(content, 0, offset));
-  const m = ADDRESS.exec(before);
+  const m = addressAtEnd(before);
   if (!m) return undefined;
   // Punctuation that ends a sentence is not part of the address.
-  const word = m[0].replace(/[.,;:!?)\]'"]+$/, "");
+  let stop = m.text.length;
+  while (stop > 0 && ".,;:!?)]'\"".includes(m.text[stop - 1] as string)) stop--;
+  const word = m.text.slice(0, stop);
   if (word.replace(/^(?:https?:\/\/|www\.)/i, "").length < 3 || !/[a-z0-9]/i.test(word.replace(/^(?:https?:\/\/|www\.)/i, ""))) return undefined;
   const start = m.index;
   const end = start + word.length;

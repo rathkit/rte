@@ -15,7 +15,7 @@ const WORD = /[\p{L}\p{M}\p{N}]+(?:['’\-‑][\p{L}\p{M}\p{N}]+)*/gu;
 /** The words and characters in a piece of text. */
 export function countText(text: string): Counts {
   const clean = text.replace(/￼/g, "").replace(/\n/g, " ");
-  return { words: (clean.match(WORD) ?? []).length, characters: [...clean.replace(/\s+$/g, "").replace(/^\s+/g, "")].length };
+  return { words: (clean.match(WORD) ?? []).length, characters: [...clean.trim()].length };
 }
 
 /** The words and characters in the whole document. Containers (paragraphs, list items, cells) are counted as separate runs of text. */
