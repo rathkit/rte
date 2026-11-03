@@ -3,7 +3,7 @@
 // where the images plugin is not installed). Keyboard users set the size in the image properties dialog.
 import type { Engine } from "../engine.ts";
 import { imageSelection, selectedImage } from "../imageselect.ts";
-import { domFromPos, posFromDom } from "./render.ts";
+import type { ViewExtension, ViewHost } from "../plugin.ts";
 
 /** The attribute on the selected image, for styling. */
 export const SELECTED_IMAGE = "data-rk-image-selected";
@@ -16,7 +16,14 @@ export class ImageSelection {
   private drag: { startX: number; startWidth: number; width: number; guide: HTMLElement } | undefined;
   private readonly stops: (() => void)[] = [];
 
-  constructor(private readonly root: HTMLElement, private readonly engine: Engine, private readonly quiet: () => void) {
+  private readonly root: HTMLElement;
+  private readonly engine: Engine;
+  private readonly quiet: () => void;
+
+  constructor(private readonly host: ViewHost) {
+    this.root = host.element as HTMLElement;
+    this.engine = host.engine;
+    this.quiet = () => host.quiet();
     const reposition = (): void => this.place();
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
@@ -25,7 +32,7 @@ export class ImageSelection {
     const select = (e: Event): void => {
       const target = e.target;
       if (!(target instanceof HTMLImageElement) || !this.root.contains(target) || this.engine.readOnly) return;
-      const at = posFromDom(this.root, target.parentNode as Node, [...(target.parentNode as Node).childNodes].indexOf(target));
+      const at = this.host.posFromDom(target.parentNode as Node, [...(target.parentNode as Node).childNodes].indexOf(target));
       if (at) this.engine.setSelection(imageSelection(at.path, at.offset));
     };
     this.root.addEventListener("mousedown", select);
@@ -39,7 +46,7 @@ export class ImageSelection {
     const picked = selectedImage(this.engine.document, this.engine.selection);
     if (!picked) return undefined;
     // The place just after the image; the image is what comes right before it.
-    const at = domFromPos(this.root, { path: picked.path, offset: picked.offset + 1 });
+    const at = this.host.domFromPos({ path: picked.path, offset: picked.offset + 1 }) as { node: Node; offset: number } | null;
     const el = !at ? undefined : at.node.nodeType === Node.TEXT_NODE ? at.node.previousSibling : at.node.childNodes[at.offset - 1];
     return el instanceof HTMLImageElement ? el : undefined;
   }
@@ -127,3 +134,10 @@ export class ImageSelection {
     this.marked?.removeAttribute(SELECTED_IMAGE);
   }
 }
+
+/** Images in the page: a click selects one, and its corner can be dragged to resize it. Comes with the images plugin. */
+export const imagesView: ViewExtension = (host) => {
+  const selection = new ImageSelection(host);
+  const stop = host.onChange(() => selection.update());
+  return () => { stop(); selection.destroy(); };
+};

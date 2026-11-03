@@ -89,6 +89,8 @@ export interface List {
   readonly notes?: true;
   readonly items: readonly ListItem[];
 }
+/** The marker a list has when it names none: numbers for an ordered list, and a bullet by depth for the rest. */
+export const DEFAULT_MARKER = (type: "ul" | "ol", depth: number): string => (type === "ol" ? "decimal" : (["disc", "circle", "square"] as const)[Math.min(depth, 2)] as string);
 export interface DefinitionEntry {
   /** A term (`dt`) or the detail that describes it (`dd`). */
   readonly kind: "term" | "detail";

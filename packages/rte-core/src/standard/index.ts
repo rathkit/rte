@@ -3,11 +3,11 @@
 import { autoformat, type AutoformatOptions } from "../autoformat/plugin.ts";
 import { Editor, type EditorOptions } from "../dom/view.ts";
 import { find } from "../find/plugin.ts";
-import { images, type ImagesOptions } from "../images/plugin.ts";
+import { images, type ImagesOptions } from "../images/index.ts";
 import { lists, type ListsOptions } from "../lists/plugin.ts";
 import type { Plugin } from "../plugin.ts";
 import { svg } from "../svg/plugin.ts";
-import { tables, type TablesOptions } from "../tables/plugin.ts";
+import { tables, type TablesOptions } from "../tables/index.ts";
 import { word } from "../word/plugin.ts";
 
 /** Which standard plugins to use, and how. */

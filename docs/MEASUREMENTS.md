@@ -9,16 +9,16 @@ Numbers are here only because they were measured, and each says how. They are no
 | Entry point | gzipped | budget |
 | --- | --- | --- |
 | `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 43.5 KB | 60 KB |
-| `@rathkit/rte-core/dom` (core + browser view) | 59.8 KB | 60 KB |
+| `@rathkit/rte-core/dom` (core + browser view) | 53.7 KB | 60 KB |
 | `@rathkit/rte-core/lists` | 9.1 KB | 15 KB |
-| `@rathkit/rte-core/tables` | 8.0 KB | 15 KB |
+| `@rathkit/rte-core/tables` | 12.8 KB | 15 KB |
 | `@rathkit/rte-core/autoformat` | 1.7 KB | 15 KB |
 | `@rathkit/rte-core/markdown` | 14.7 KB | 15 KB |
 | `@rathkit/rte-core/footnotes` | 3.8 KB | 15 KB |
 | `@rathkit/rte-core/find` | 2.4 KB | 15 KB |
 | `@rathkit/rte-core/word` | 1.9 KB | 15 KB |
 | `@rathkit/rte-core/svg` | 3.7 KB | 15 KB |
-| `@rathkit/rte-core/images` | 3.9 KB | 15 KB |
+| `@rathkit/rte-core/images` | 5.6 KB | 15 KB |
 | `@rathkit/rte-headless` | 7.4 KB | 12 KB |
 | `@rathkit/rte-element` | 2.8 KB | 4 KB |
 | `@rathkit/rte-ui` (without icons) | 9.7 KB | 25 KB |

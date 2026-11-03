@@ -8,6 +8,7 @@ import {
   type TableCell,
 } from "./model.ts";
 import { asChildren } from "./path.ts";
+import { DEFAULT_MARKER } from "./model.ts";
 
 /** Handed to a recognizer so it can read content without knowing how the importer works inside. */
 export interface ImportContext {
@@ -564,7 +565,6 @@ function listStyleOf(el: HElement): string | undefined {
 
 /** Whether a node is the checkbox of a task: an `<input type="checkbox">`. */
 const isCheckbox = (n: HNode): boolean => n.type === "el" && n.tag === "input" && (n.attrs.type ?? "").toLowerCase() === "checkbox";
-const blankText = (n: HNode): boolean => n.type === "text" && n.text.trim() === "";
 
 /**
  * Whether a list item is a task, and if so whether it is done, in the forms found in the wild:
@@ -578,11 +578,11 @@ function taskOf(li: HElement): { checked: boolean; children: HNode[] } | undefin
   const classes = (li.attrs.class ?? "").toLowerCase().split(/\s+/);
   const fromMarkup = own === "true" || classes.includes("checked") || classes.includes("task-done") ? true : own === "false" || classes.includes("unchecked") ? false : undefined;
   const kids = li.children;
-  const at = kids.findIndex((n) => !blankText(n));
+  const at = kids.findIndex((n) => !isBlank(n));
   const first = at === -1 ? undefined : kids[at];
   if (first && isCheckbox(first)) return { checked: "checked" in (first as HElement).attrs, children: [...kids.slice(0, at), ...kids.slice(at + 1)] };
   if (first && first.type === "el" && /^(label|p|span|div)$/.test(first.tag)) {
-    const inner = first.children.findIndex((n) => !blankText(n));
+    const inner = first.children.findIndex((n) => !isBlank(n));
     const box = inner === -1 ? undefined : first.children[inner];
     if (box && isCheckbox(box)) {
       const wrapper: HElement = { ...first, children: [...first.children.slice(0, inner), ...first.children.slice(inner + 1)] };
@@ -810,7 +810,6 @@ function padRows(rows: TableCell[][]): TableCell[][] {
   });
 }
 
-const DEFAULT_MARKER = (type: "ul" | "ol", depth: number): string => (type === "ol" ? "decimal" : (["disc", "circle", "square"] as const)[Math.min(depth, 2)] as string);
 
 const isList = (block: Out): block is L => block.type === "ul" || block.type === "ol";
 const hinted = (list: L): boolean => list.items.length > 0 && list.items.every((item) => item.level !== undefined);

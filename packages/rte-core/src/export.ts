@@ -3,7 +3,7 @@
 import { escapeAttribute, escapeText } from "./html/entities.ts";
 import { lineCss, SIDES } from "./cellborder.ts";
 import { noteIds } from "./notes.ts";
-import type { Block, CellBorder, Doc, Inline, List, ListItem, Mark, Table, TableCell } from "./model.ts";
+import { DEFAULT_MARKER, type Block, type CellBorder, type Doc, type Inline, type List, type ListItem, type Mark, type Table, type TableCell } from "./model.ts";
 
 const MARK_ORDER = ["link", "bold", "italic", "underline", "strike", "code", "sup", "sub", "color", "background"] as const;
 const TAGS = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", sup: "sup", sub: "sub" } as const;
@@ -71,7 +71,6 @@ const blockStyle = (block: { readonly align?: string | undefined; readonly inden
 };
 const dirAttr = (dir: string | undefined): string => (dir ? ` dir="${dir}"` : "");
 
-const DEFAULT_MARKER = (type: "ul" | "ol", depth: number): string => (type === "ol" ? "decimal" : (["disc", "circle", "square"] as const)[Math.min(depth, 2)] as string);
 
 function exportList(list: List, depth: number): string {
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? ` style="list-style-type: ${list.style};"` : "";

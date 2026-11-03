@@ -13,6 +13,12 @@
   ],
   "exclude": [
     "src/dom",
-    "src/standard"
+    "src/standard",
+    "src/tables/view.ts",
+    "src/tables/cells.ts",
+    "src/tables/grips.ts",
+    "src/tables/index.ts",
+    "src/images/view.ts",
+    "src/images/index.ts"
   ]
 }

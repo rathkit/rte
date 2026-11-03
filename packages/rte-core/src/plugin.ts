@@ -7,7 +7,7 @@ import type { Engine } from "./engine.ts";
 import type { ImportOptions } from "./import.ts";
 import type { KeyBinding } from "./keymap.ts";
 import type { Block, Doc } from "./model.ts";
-import type { EditResult, Selection } from "./path.ts";
+import type { EditResult, Pos, Selection } from "./path.ts";
 import type { UiItem, UiSlot } from "./ui.ts";
 import type { Ops } from "./ops.ts";
 import type { PasteHandler } from "./paste.ts";
@@ -30,6 +30,38 @@ export type CopyFormatter = (blocks: readonly Block[]) => Readonly<Record<string
  * must return the same document when there is nothing to put right.
  */
 export type Normalizer = (doc: Doc, selection: Selection) => EditResult;
+
+/** What changed in the editor, as the page-facing part of a plugin hears of it. */
+export interface ViewChange {
+  readonly docChanged: boolean;
+  readonly selectionChanged: boolean;
+  /** The editor gained or lost the focus. */
+  readonly focusMoved: boolean;
+}
+
+/**
+ * What the browser view gives the page-facing part of a plugin. Types that name the page (`HTMLElement`, `Node`) are written
+ * as `object` here so this file stays free of the DOM; the plugin's view file knows what they are.
+ */
+export interface ViewHost {
+  /** The element the editor is drawn in (an `HTMLElement`). */
+  readonly element: object;
+  readonly engine: Engine;
+  readonly ops: Ops;
+  /** Adds an event listener that is taken away again when the editor or the plugin is. */
+  listen(target: object, type: string, handler: (event: never) => void): void;
+  /** Called after the page was changed by the plugin itself, so the editor does not take it for a change from outside. */
+  quiet(): void;
+  /** Called after the editor has drawn each change. */
+  onChange(listener: (change: ViewChange) => void): Unsubscribe;
+  /** The position in the document for a place in the page (`Node`, offset), or null. */
+  posFromDom(node: object, offset: number): Pos | null;
+  /** The place in the page (`Node`, offset) for a position in the document, or null. */
+  domFromPos(pos: Pos): { readonly node: object; readonly offset: number } | null;
+}
+
+/** The page-facing part of a plugin: set up once the editor has a page, returns what takes it away again. */
+export type ViewExtension = (host: ViewHost) => void | Unsubscribe;
 
 /** What a plugin needs of a file that was pasted or dropped. A browser `File` fits. */
 export interface BlobLike {
@@ -80,6 +112,8 @@ export interface Plugin {
   /** The plugin API versions it supports: `1`, `1.x`, or a range such as `>=1 <3`. A mismatch fails when it is added. */
   readonly api: string;
   setup(host: PluginHost): void | Unsubscribe;
+  /** Only in a browser: the part that draws and handles things on the page (table handles, say). The engine never calls it. */
+  readonly view?: ViewExtension;
 }
 
 /** Whether a version satisfies a range written as `N`, `N.x`, `>=N`, `<N` or a pair like `>=1 <3`. */

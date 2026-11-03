@@ -3,7 +3,7 @@
 import type { Engine } from "../engine.ts";
 import { pathKey } from "../path.ts";
 import { inRow, locateCell, selectedCells } from "../tablegrid.ts";
-import { posFromDom } from "./render.ts";
+import type { ViewHost } from "../plugin.ts";
 
 /** The attribute on a cell that a selection covers, for styling. */
 export const SELECTED_CELL = "data-rk-cell-selected";
@@ -22,7 +22,15 @@ const MIN_HEIGHT = 16;
 export class CellMarks {
   private marked: HTMLElement[] = [];
 
-  constructor(private readonly root: HTMLElement, private readonly engine: Engine, private readonly quiet: () => void) {}
+  private readonly root: HTMLElement;
+  private readonly engine: Engine;
+
+  constructor(private readonly host: ViewHost) {
+    this.root = host.element as HTMLElement;
+    this.engine = host.engine;
+  }
+
+  private quiet(): void { this.host.quiet(); }
 
   update(): void {
     // A caret, or a selection inside one container, covers no cells to mark.
@@ -72,11 +80,15 @@ function rowEdgeAt(root: HTMLElement, event: PointerEvent | MouseEvent): HTMLEle
  * The bottom edge of a row works the same way through `table.rowHeight`.
  * Returns what takes it away again.
  */
-export function installColumnResize(root: HTMLElement, engine: Engine, listen: (target: EventTarget, type: string, handler: (event: Event) => void) => void, quiet: () => void): void {
+export function installColumnResize(host: ViewHost): void {
+  const root = host.element as HTMLElement;
+  const engine = host.engine;
+  const quiet = (): void => host.quiet();
+  const listen = (target: EventTarget, type: string, handler: (event: Event) => void): void => host.listen(target, type, handler);
   const available = (): boolean => !engine.readOnly && engine.commands.list().some((c) => c.name === "table.columnWidth");
   const cellPath = (cell: HTMLElement) => {
     const inside = cell.querySelector<HTMLElement>("[data-rte]");
-    return inside ? posFromDom(root, inside, 0)?.path : undefined;
+    return inside ? host.posFromDom(inside, 0)?.path : undefined;
   };
   const rowAvailable = (): boolean => !engine.readOnly && engine.commands.list().some((c) => c.name === "table.rowHeight");
   let rowDrag: { path: readonly number[]; startY: number; startHeight: number; top: number; line: HTMLElement; height: number } | undefined;

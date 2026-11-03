@@ -52,6 +52,25 @@ A plugin names the plugin API versions it supports (`api: ">=1 <2"`), and a mism
 everything it added away. A plugin file should contain only `import type` lines from the core (`mentions.sample.ts` is checked for that).
 The lists, tables, find, word, SVG and images plugins are built the same way, and a test (`plugins-use-host.test.ts`) fails if one of them takes anything from the core that is not also in `ops`, so an outside plugin can do everything these do through the host.
 
+## The part that draws on the page (`view`)
+
+A plugin can also carry a `view` function: the part that only makes sense in a browser, such as the handles at a table's edges or the
+corner that resizes an image. The engine never calls it; the browser view (`Editor`, and `createEditor` from `standard`) calls it when
+the plugin is added, hands it a `ViewHost`, and calls what it returns when the plugin or the editor is removed.
+
+| `ViewHost` | Use |
+| --- | --- |
+| `element`, `engine`, `ops` | The element the editor is drawn in, the engine, and the editing toolkit. |
+| `listen(target, type, handler)` | Add an event listener that is taken away with the plugin. |
+| `onChange(fn)` | Called after the editor has drawn each change, with `{ docChanged, selectionChanged, focusMoved }`. |
+| `quiet()` | Say that the page was just changed by this plugin, so the editor does not take it for an edit from outside. |
+| `posFromDom(node, offset)`, `domFromPos(pos)` | Map between a place in the page and a position in the document. |
+
+The tables and images entries use it (`tables/view.ts`, `images/view.ts`), so a page that does not use them does not pay for them:
+cell marks, row and column handles and resizing come with `tables()`, and image selection and the resize handle come with `images()`.
+The engine-only plugin without these is `./plugin.ts` inside the package. An editor built from the parts without those plugins
+still shows and edits tables and images; it just has no handles.
+
 ## Sharing a key
 
 Two plugins may want the same chord, as lists and tables both want Tab. A binding marked `stack: true` shares its chord with others that say so: they are tried in the order they were added, and the first whose command does something takes the key. A command that does not apply returns false, so the key falls to the next one, and finally to the browser. Without `stack`, the first binding keeps the chord and a warning names the second.

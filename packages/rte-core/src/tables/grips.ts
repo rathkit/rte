@@ -6,7 +6,7 @@
 import type { Engine } from "../engine.ts";
 import { getBlock } from "../path.ts";
 import { inRow, locateCell, toGrid } from "../tablegrid.ts";
-import { domFromPos } from "./render.ts";
+import type { ViewHost } from "../plugin.ts";
 
 const SIZE = 22;
 const COLOR = "#17408b";
@@ -22,7 +22,12 @@ export class TableGrips {
   private path: readonly number[] = [];
   private touch = false;
 
-  constructor(private readonly root: HTMLElement, private readonly engine: Engine) {
+  private readonly root: HTMLElement;
+  private readonly engine: Engine;
+
+  constructor(private readonly host: ViewHost) {
+    this.root = host.element as HTMLElement;
+    this.engine = host.engine;
     const reposition = (): void => this.place();
     window.addEventListener("scroll", reposition, true);
     window.addEventListener("resize", reposition);
@@ -46,7 +51,7 @@ export class TableGrips {
     const path = this.engine.selection.focus.path;
     const top = this.root.children[path[0] as number];
     if (!(top instanceof HTMLElement) || top.tagName !== "TABLE") return undefined;
-    const at = domFromPos(this.root, this.engine.selection.focus);
+    const at = this.host.domFromPos(this.engine.selection.focus) as { node: Node; offset: number } | null;
     const from = at ? (at.node instanceof Element ? at.node : at.node.parentElement) : null;
     const cell = from?.closest("td, th");
     return cell instanceof HTMLElement && cell.closest("table") === top ? { cell, table: top, path } : undefined;

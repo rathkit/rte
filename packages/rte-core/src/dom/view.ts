@@ -7,17 +7,15 @@ import {
   insertText, isCollapsed, moveSelection, selectedText, splitBlock, transposeChars, type EditResult,
 } from "../edit.ts";
 import type { Engine } from "../engine.ts";
-import type { Plugin } from "../plugin.ts";
+import type { Plugin, ViewChange, ViewHost } from "../plugin.ts";
 import { exportHtml } from "../export.ts";
+import { ops } from "../ops.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
 import { cellChain, getContent, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
 import { imageSelection } from "../imageselect.ts";
-import { ImageSelection } from "./imageview.ts";
-import { TableGrips } from "./tablegrips.ts";
-import { CellMarks, installColumnResize } from "./tableview.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
 /** Input types the browser may ask for that are commands here: the command, and what it is given ("data" is the event's text). */
@@ -82,9 +80,8 @@ export class Editor {
     }
   });
   private readonly cleanups: (() => void)[] = [];
-  private readonly cellMarks: CellMarks;
-  private readonly imageSelection: ImageSelection;
-  private readonly tableGrips: TableGrips;
+  private readonly changeListeners = new Set<(change: ViewChange) => void>();
+  private readonly viewHost: ViewHost;
 
   constructor(options: EditorOptions) {
     this.element = options.element;
@@ -98,13 +95,16 @@ export class Editor {
       ...(options.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
       ...(options.onMaxLength ? { onMaxLength: options.onMaxLength } : {}),
     });
-    this.cellMarks = new CellMarks(this.element, this.engine, () => this.observer.takeRecords());
-    this.imageSelection = new ImageSelection(this.element, this.engine, () => this.observer.takeRecords());
-    this.cleanups.push(() => this.imageSelection.destroy());
-    this.tableGrips = new TableGrips(this.element, this.engine);
-    this.cleanups.push(() => this.tableGrips.destroy());
+    this.viewHost = {
+      element: this.element, engine: this.engine, ops,
+      listen: (target, type, handler) => this.listen(target as EventTarget, type, handler as (e: Event) => void),
+      quiet: () => { this.observer.takeRecords(); },
+      onChange: (listener) => { this.changeListeners.add(listener); return () => this.changeListeners.delete(listener); },
+      posFromDom: (node, offset) => posFromDom(this.element, node as Node, offset),
+      domFromPos: (pos) => domFromPos(this.element, pos),
+    };
     this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
-    for (const plugin of options.plugins ?? []) this.engine.use(plugin);
+    for (const plugin of options.plugins ?? []) this.use(plugin);
     // The document is read once the plugins are in, so what they teach the importer applies to it.
     this.engine.setDocument(importHtml(options.html ?? "", this.engine.importOptions));
     this.element.setAttribute("contenteditable", this.engine.readOnly ? "false" : "true");
@@ -122,14 +122,8 @@ export class Editor {
       else if (change.selectionChanged && !this.reading) this.writeSelection();
       const focusMoved = snapshot.focused !== wasFocused;
       wasFocused = snapshot.focused;
-      if (change.docChanged || change.selectionChanged) {
-        this.cellMarks.update();
-        this.imageSelection.update();
-      }
-      // The table handles belong to the editor having the focus, so they follow it as well as the caret.
-      if (change.docChanged || change.selectionChanged || focusMoved) this.tableGrips.update();
+      if (change.docChanged || change.selectionChanged || focusMoved) for (const listener of [...this.changeListeners]) listener({ ...change, focusMoved });
     }));
-    installColumnResize(this.element, this.engine, (target, type, handler) => this.listen(target, type, handler), () => this.observer.takeRecords());
     this.listen(this.element, "focusin", () => this.engine.setFocused(true));
     this.listen(this.element, "focusout", () => this.engine.setFocused(false));
     this.listen(this.element, "beforeinput", (e) => this.onBeforeInput(e as InputEvent));
@@ -188,7 +182,12 @@ export class Editor {
   subscribe: Engine["subscribe"] = (listener) => this.engine.subscribe(listener);
   select: Engine["select"] = (selector, onChange, equals) => this.engine.select(selector, onChange, equals);
   /** Adds a plugin. Returns a function that removes it. */
-  use: Engine["use"] = (plugin) => this.engine.use(plugin);
+  /** Adds a plugin, with its page-facing part if it has one. Returns what takes both away again. */
+  use: Engine["use"] = (plugin) => {
+    const remove = this.engine.use(plugin);
+    const stop = plugin.view?.(this.viewHost);
+    return () => { if (stop) stop(); remove(); };
+  };
 
   /** The document as HTML. `separator` goes between blocks (a newline makes it readable). */
   getHtml(separator = ""): string { return exportHtml(this.engine.document, separator); }
