@@ -66,6 +66,7 @@ type Pos
 type Quote
 value ROW_HEIGHT
 type Rule
+type RuleAt
 value SLOTS
 type SelectedImage
 type Selection
@@ -104,6 +105,7 @@ value detectPlatform
 value directionAt
 value emptyDoc
 value encodeBase64
+value endAtBlockEnd
 value endOf
 value exportBlock
 value exportHtml
@@ -145,6 +147,7 @@ value pathKey
 value rangeHasMark
 value removeEntry
 value removeMarks
+value rulePaths
 value safeUrl
 value sameCells
 value sameMarks

@@ -4,7 +4,7 @@
 import { createEngine } from "../core.ts";
 import {
   caret, clampPos, deleteBackward, deleteForward, deleteSelection, deleteToEdge, deleteWord, extractSelection, insertBlocks, insertLineBreak,
-  insertText, isCollapsed, moveSelection, selectedText, splitBlock, transposeChars, type EditResult,
+  endAtBlockEnd, insertText, isCollapsed, moveSelection, selectedText, splitBlock, transposeChars, type EditResult,
 } from "../edit.ts";
 import type { Engine } from "../engine.ts";
 import type { Plugin, ViewChange, ViewHost } from "../plugin.ts";
@@ -168,6 +168,15 @@ export class Editor {
     // Chromium reports a click's `selectionchange` before the caret has landed and not again, so the place a click ends up is read when
     // the pointer is released (the focus is in by then, so the read is allowed).
     this.listen(this.element, "pointerup", () => this.readSelection());
+    // A triple click selects a block; Chrome and Safari run its end on to the start of the next one, Firefox does not. (A pointer event's
+    // `detail` is always 0 in Chrome, so the mouse event, which counts the clicks, is the one to ask.)
+    this.listen(this.element, "mouseup", (e) => {
+      if ((e as MouseEvent).detail >= 3) {
+        this.readSelection();
+        const trimmed = endAtBlockEnd(this.engine.document, this.engine.selection);
+        if (trimmed !== this.engine.selection) this.engine.setSelection(trimmed);
+      }
+    });
     this.observer.observe(this.element, { subtree: true, childList: true, characterData: true, attributes: true });
     if (options.autofocus) this.focus();
   }
@@ -378,6 +387,9 @@ export class Editor {
    * Brings the editor's selection up to date from the page. Only while the editor has the focus: when focus is somewhere else (a dialog,
    * a toolbar button) the page's selection is not the editor's business, and the editor keeps the selection it had.
    */
+  /** Set while a selection is read when some point had to be moved to a text position. */
+  private fellBack = false;
+
   private readSelection(force = false): void {
     if (!force && !this.element.contains(document.activeElement)) return;
     const domSel = document.getSelection();
@@ -386,6 +398,7 @@ export class Editor {
     // A drag from cell to cell makes Firefox select one range per cell: the selection runs from the start of the first to the end of the last.
     const first = domSel.rangeCount > 1 ? domSel.getRangeAt(0) : undefined;
     const last = first ? domSel.getRangeAt(domSel.rangeCount - 1) : undefined;
+    this.fellBack = false;
     const anchor = first ? this.posOf(first.startContainer, first.startOffset) : this.posOf(domSel.anchorNode, domSel.anchorOffset);
     const focus = last ? this.posOf(last.endContainer, last.endOffset) : this.posOf(domSel.focusNode, domSel.focusOffset);
     if (!anchor || !focus) return;
@@ -397,6 +410,8 @@ export class Editor {
     } finally {
       this.reading = false;
     }
+    // A caret the browser put between blocks (before a rule, after a table) has been moved to the nearest text: show it there too.
+    if (this.fellBack && isCollapsed(this.engine.selection)) this.writeSelection();
   }
 
   /**
@@ -408,10 +423,24 @@ export class Editor {
     const direct = node !== this.element ? posFromDom(this.element, node, offset) : null;
     if (direct || !(node instanceof Element)) return direct;
     const containers = (el: Element): Element[] => (el.hasAttribute("data-rte") ? [el, ...el.querySelectorAll("[data-rte]")] : [...el.querySelectorAll("[data-rte]")]);
-    const at = node.children[offset];
-    const first = at ? containers(at)[0] : undefined;
+    this.fellBack = true;
+    // The first container at or after the point; a rule or an empty gap has none, so the next block's start is meant.
+    let first: Element | undefined;
+    for (let i = offset; i < node.children.length && !first; i++) first = containers(node.children[i] as Element)[0];
     if (first) return posFromDom(this.element, first, 0);
     const all = containers(node);
+    if (all.length === 0 && node !== this.element) {
+      // A point on something with no text in it (a rule): the start of whatever comes next, else the end of the last block.
+      for (let from: Element | null = node; from && from !== this.element; from = from.parentElement) {
+        for (let next = from.nextElementSibling; next; next = next.nextElementSibling) {
+          const there = containers(next)[0];
+          if (there) return posFromDom(this.element, there, 0);
+        }
+      }
+      const every = [...this.element.querySelectorAll("[data-rte]")];
+      const end = every[every.length - 1];
+      return end ? posFromDom(this.element, end, end.childNodes.length) : null;
+    }
     const last = all[all.length - 1];
     return last ? posFromDom(this.element, last, last.childNodes.length) : null;
   }

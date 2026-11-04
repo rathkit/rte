@@ -186,6 +186,123 @@ for (const [name, type] of engines) {
   check(`${name} bold off`, (await html()) === "<p>one two</p>", await html());
   await page.keyboard.press("Control+Z");
   check(`${name} undo`, (await html()) === "<p>one <strong>two</strong></p>", await html());
+  // Selection and caret rules (docs/SELECTION.md): where the editor says the caret is must be where the page has it, in every engine.
+  const model = () => page.evaluate(() => { const s = window.__editor.selection; const f = (p) => `${p.path.join(".")}:${p.offset}`; return `${f(s.anchor)}>${f(s.focus)}`; });
+  const put = (selector, nth, offset, end = offset) => page.evaluate(([sel, n, a, b]) => { const first = (x) => (x.nodeType === 3 ? x : [...x.childNodes].map(first).find(Boolean)); const t = first(document.querySelectorAll(`#ed ${sel}`)[n]); window.__editor.selectDom(t, a, t, b); }, [selector, nth, offset, end]);
+  const key = async (...keys) => { for (const k of keys) await page.keyboard.press(k); await page.waitForTimeout(60); };
+  const png = onePixelPng();
+  // An inline image is one position: the caret passes it in one key, shift extends over exactly it, delete removes just it.
+  await reset(`<p>a<img src="${png}" alt="i">b</p>`);
+  await put("p", 0, 1);
+  await key("ArrowRight");
+  check(`${name} selection: one Right passes an inline image`, (await model()) === "0:2>0:2", await model());
+  await put("p", 0, 1);
+  await key("Shift+ArrowRight");
+  check(`${name} selection: Shift+Right selects exactly the image`, (await model()) === "0:1>0:2", await model());
+  await put("p", 0, 1);
+  await key("Delete");
+  check(`${name} selection: Delete before an image removes only the image`, (await html()) === "<p>ab</p>", await html());
+  // A footnote reference is the same.
+  await reset('<p>ab<sup data-note="q"><a href="#fn-q">1</a></sup>cd</p><section class="footnotes" role="doc-endnotes"><ol><li id="fn-q" data-note="q">Q. <a href="#fnref-q" role="doc-backlink">↩</a></li></ol></section>');
+  await put("p", 0, 2);
+  await key("ArrowRight");
+  check(`${name} selection: one Right passes a footnote reference`, (await model()) === "0:3>0:3", await model());
+  await put("p", 0, 2);
+  await key("Shift+ArrowRight");
+  check(`${name} selection: Shift+Right selects exactly the reference`, (await model()) === "0:2>0:3", await model());
+  // Select all runs from the start of the first block to the end of the last.
+  await reset("<p>one</p><p>two</p><ul><li>x</li></ul>");
+  await put("p", 0, 1);
+  await key("ControlOrMeta+a");
+  check(`${name} selection: select all spans the whole document`, (await model()) === "0:0>2.0:1", await model());
+  // Shift-arrow extends one character at a time, and back.
+  await reset("<p>hello</p>");
+  await put("p", 0, 1);
+  await key("Shift+ArrowRight", "Shift+ArrowRight", "Shift+ArrowRight");
+  check(`${name} selection: three Shift+Right extend by three`, (await model()) === "0:1>0:4", await model());
+  await key("Shift+ArrowLeft");
+  check(`${name} selection: Shift+Left takes one back`, (await model()) === "0:1>0:3", await model());
+  await key("Shift+ArrowDown");
+  check(`${name} selection: Shift+Down at the last line goes to the end`, (await model()).startsWith("0:1>0:") && (await model()).endsWith(":5"), await model());
+  // Across blocks: shift-down selects through to the same column of the next block.
+  await reset("<p>one</p><p>two</p>");
+  await put("p", 0, 1);
+  await key("Shift+ArrowDown");
+  check(`${name} selection: Shift+Down runs into the next block at the same column`, (await model()) === "0:1>1:1", await model());
+  // Right-to-left text: Right moves toward the end of the line on the screen, which is the start of the text.
+  await reset('<p dir="rtl">אבגד</p>');
+  await put("p", 0, 2);
+  await key("ArrowRight");
+  check(`${name} selection: in right-to-left text Right moves to the earlier letter`, (await model()) === "0:1>0:1", await model());
+  await key("ArrowLeft", "ArrowLeft");
+  check(`${name} selection: and Left to the later one`, (await model()) === "0:3>0:3", await model());
+  // Block edges: the caret moves on to the next container at its start, and Down keeps the column.
+  await reset("<ul><li>a</li><li>b</li></ul>");
+  await put("li", 0, 1);
+  await key("ArrowRight");
+  check(`${name} selection: Right at the end of a list item goes to the start of the next`, (await model()) === "0.1:0>0.1:0", await model());
+  await key("ArrowLeft");
+  check(`${name} selection: Left at the start goes back to the end`, (await model()) === "0.0:1>0.0:1", await model());
+  await reset("<blockquote><p>q</p></blockquote><p>after</p>");
+  await put("blockquote p", 0, 1);
+  await key("ArrowRight");
+  check(`${name} selection: Right at the end of a quote leaves it for the next block`, (await model()) === "1:0>1:0", await model());
+  await key("ArrowLeft");
+  check(`${name} selection: and Left comes back into the quote`, (await model()) === "0.0:1>0.0:1", await model());
+  await reset("<pre><code>ab</code></pre><p>x</p>");
+  await put("pre", 0, 2);
+  await key("ArrowRight");
+  check(`${name} selection: Right at the end of a code block leaves it`, (await model()) === "1:0>1:0", await model());
+  await reset("<table><tr><td>a</td><td>b</td></tr></table>");
+  await put("td", 0, 1);
+  await key("ArrowRight");
+  check(`${name} selection: Right at the end of a table cell goes to the next cell`, (await model()) === "0.0.1.0:0>0.0.1.0:0", await model());
+  await reset("<p>one</p><table><tr><td>a</td><td>b</td></tr></table>");
+  await put("p", 0, 1);
+  await key("ArrowDown");
+  check(`${name} selection: Down into a table lands in the cell below the column`, (await model()).startsWith("1.0.0.0:"), await model());
+  // A table with nothing after it: Down from its last cell leaves the caret in the cell, on the page as well as in the model.
+  await reset("<p>x</p><table><tr><td>a</td></tr></table>");
+  await put("td", 0, 1);
+  await key("ArrowDown");
+  check(`${name} selection: Down in the last cell of a last table keeps the caret in the cell`, (await model()) === "1.0.0.0:1>1.0.0.0:1" && (await page.evaluate(() => document.getSelection().anchorNode?.parentElement?.closest("td") !== null)), await model());
+  // A rule is skipped over by the caret and never holds it; the text on either side never jumps across it.
+  await reset("<p>one</p><hr><p>two</p>");
+  await put("p", 0, 1);
+  await key("ArrowDown");
+  check(`${name} selection: Down passes a rule to the next block`, (await model()).startsWith("2:"), await model());
+  await reset("<hr><p>two</p>");
+  await put("p", 0, 0);
+  await key("ArrowUp");
+  check(`${name} selection: Up from the block after a leading rule keeps the caret in that block's text`, (await model()) === "1:0>1:0" && (await page.evaluate(() => document.getSelection().anchorNode?.nodeType === 3)), await model());
+  await key("Backspace");
+  check(`${name} selection: Backspace there removes the rule`, (await html()) === "<p>two</p>", await html());
+  await reset("<p>one</p><hr><p>two</p>");
+  await put("p", 0, 3);
+  await key("Delete");
+  check(`${name} selection: Delete at the end of a block before a rule removes the rule, not the text order`, (await html()) === "<p>one</p><p>two</p>", await html());
+  // Double and triple click: a word, then the block, and typing replaces exactly that.
+  const clickAt = async (selector, nth, offset, count) => {
+    const box = await page.evaluate(([sel, n, off]) => { const first = (x) => (x.nodeType === 3 ? x : [...x.childNodes].map(first).find(Boolean)); const t = first(document.querySelectorAll(`#ed ${sel}`)[n]); const r = document.createRange(); r.setStart(t, off); r.setEnd(t, off + 1); const b = r.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }, [selector, nth, offset]);
+    await page.mouse.click(box.x, box.y, { clickCount: count });
+    await page.waitForTimeout(80);
+  };
+  await reset("<p>one two three</p>");
+  await clickAt("p", 0, 5, 2);
+  check(`${name} selection: double click selects the word`, (await model()) === "0:4>0:7", await model());
+  await reset("<p>one two</p><p>next</p>");
+  await clickAt("p", 0, 2, 3);
+  await page.keyboard.type("X");
+  check(`${name} selection: triple click selects the block, and typing leaves the next block alone`, (await html()) === "<p>X</p><p>next</p>", await html());
+  await reset("<ul><li>one</li><li>two</li></ul>");
+  await clickAt("li", 0, 1, 3);
+  await page.keyboard.type("X");
+  check(`${name} selection: triple click on a list item selects just that item`, (await html()) === "<ul><li>X</li><li>two</li></ul>", await html());
+  await reset("<table><tr><td>cell</td><td>b</td></tr></table>");
+  await clickAt("td", 0, 1, 3);
+  await page.keyboard.type("X");
+  check(`${name} selection: triple click in a table cell selects just that cell's text`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>X</td><td>b</td></tr></table>", await html());
+
   // History rules (docs/HISTORY.md): typing in a row is one step; moving the caret ends it; a composition is a step of its own.
   await reset("<p>one two</p>");
   await select({ start: "p", so: 3, eo: 3 });

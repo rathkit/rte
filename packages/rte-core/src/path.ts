@@ -48,23 +48,26 @@ export function comparePath(a: Path, b: Path): number {
   return a.length - b.length;
 }
 
-function listPaths(list: List, prefix: readonly number[], out: Path[]): void {
+/** A horizontal rule: where it is, and how many containers come before it in reading order. */
+export interface RuleAt { readonly path: Path; readonly before: number }
+
+function listPaths(list: List, prefix: readonly number[], out: Path[], rules?: RuleAt[]): void {
   list.items.forEach((item, i) => {
     out.push([...prefix, i]);
-    item.children.forEach((child, k) => blockPaths(child, [...prefix, i, k], out));
+    item.children.forEach((child, k) => blockPaths(child, [...prefix, i, k], out, rules));
   });
 }
 
-function blockPaths(block: Block, prefix: readonly number[], out: Path[]): void {
+function blockPaths(block: Block, prefix: readonly number[], out: Path[], rules?: RuleAt[]): void {
   switch (block.type) {
     case "p": case "h": case "pre": out.push(prefix); break;
-    case "ul": case "ol": listPaths(block, prefix, out); break;
+    case "ul": case "ol": listPaths(block, prefix, out, rules); break;
     case "dl": block.entries.forEach((_, i) => out.push([...prefix, i])); break;
     case "table":
-      block.rows.forEach((row, r) => row.forEach((cell, c) => cell.blocks.forEach((inner, n) => blockPaths(inner, [...prefix, r, c, n], out))));
+      block.rows.forEach((row, r) => row.forEach((cell, c) => cell.blocks.forEach((inner, n) => blockPaths(inner, [...prefix, r, c, n], out, rules))));
       break;
-    case "quote": block.blocks.forEach((inner, n) => blockPaths(inner, [...prefix, n], out)); break;
-    case "hr": break;
+    case "quote": block.blocks.forEach((inner, n) => blockPaths(inner, [...prefix, n], out, rules)); break;
+    case "hr": rules?.push({ path: prefix, before: out.length }); break;
   }
 }
 
@@ -80,6 +83,19 @@ export function containerPaths(doc: Doc): Path[] {
   const out: Path[] = [];
   doc.blocks.forEach((block, b) => blockPaths(block, [b], out));
   containerCache.set(doc, out);
+  return out;
+}
+
+const ruleCache = new WeakMap<Doc, RuleAt[]>();
+
+/** Every horizontal rule, in reading order, with the number of containers before it. A rule between container n-1 and n has `before` n. The array is shared. */
+export function rulePaths(doc: Doc): RuleAt[] {
+  const hit = ruleCache.get(doc);
+  if (hit) return hit;
+  const out: RuleAt[] = [];
+  const containers: Path[] = [];
+  doc.blocks.forEach((block, b) => blockPaths(block, [b], containers, out));
+  ruleCache.set(doc, out);
   return out;
 }
 

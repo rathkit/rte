@@ -6,7 +6,7 @@ import {
 import type { Behaviors, ContainerKind } from "./behaviors.ts";
 import { fillTable } from "./tablefill.ts";
 import {
-  asChildren, blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, sameCells, setContent,
+  asChildren, blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, rulePaths, sameCells, setContent,
   type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -253,6 +253,9 @@ export function deleteBackward(doc: Doc, sel: Selection, behaviors?: Behaviors):
   const leaving = behaviorOf(behaviors, kindAt(doc, pos.path))?.backspaceAtStart?.(doc, pos);
   if (leaving) return leaving;
   const ordinal = ordinalOf(doc, pos.path);
+  // A rule right before this block goes first: the text never jumps over it.
+  const rule = lastRule(doc, ordinal);
+  if (rule) return removeRule(doc, rule, ordinal, sel);
   if (ordinal <= 0) return { doc, selection: sel };
   const previous = ordinalToPath(doc, ordinal - 1);
   const depths = cellDepths(doc, previous, pos.path);
@@ -266,11 +269,45 @@ export function deleteForward(doc: Doc, sel: Selection): EditResult {
   const length = inlineLength(getContent(doc, pos.path));
   if (pos.offset < length) return deleteSelection(doc, { anchor: pos, focus: { path: pos.path, offset: pos.offset + 1 } });
   const paths = containerPaths(doc);
-  const next = paths[ordinalOf(doc, pos.path) + 1];
+  const ordinal = ordinalOf(doc, pos.path);
+  // A rule right after this block goes first: the text after it never jumps over it.
+  const rule = firstRule(doc, ordinal + 1);
+  if (rule) return removeRule(doc, rule, ordinal, sel);
+  const next = paths[ordinal + 1];
   if (!next) return { doc, selection: sel };
   const depths = cellDepths(doc, pos.path, next);
   if (depths) return depths[1] > depths[0] ? { doc, selection: caret({ path: next, offset: 0 }) } : { doc, selection: sel };
   return joinWithPrevious(doc, pos.path, { path: next, offset: 0 });
+}
+
+/**
+ * A selection of whole blocks that a browser made by running its end on to the start of the next block (a triple click in Chrome and
+ * Safari does this) ends at the end of the last selected block instead, so what is typed or deleted never reaches into the next one.
+ * Anything else is returned as it was.
+ */
+export function endAtBlockEnd(doc: Doc, sel: Selection): Selection {
+  if (isCollapsed(sel)) return sel;
+  const forward = comparePath(sel.anchor.path, sel.focus.path) < 0;
+  const [start, end] = forward ? [sel.anchor, sel.focus] : [sel.focus, sel.anchor];
+  if (end.offset !== 0 || start.offset !== 0 || pathKey(start.path) === pathKey(end.path)) return sel;
+  const ordinal = ordinalOf(doc, end.path);
+  const previous = ordinal > 0 ? ordinalToPath(doc, ordinal - 1) : undefined;
+  if (!previous || comparePath(previous, start.path) < 0) return sel;
+  const trimmed = { path: previous, offset: inlineLength(getContent(doc, previous)) };
+  return forward ? { anchor: sel.anchor, focus: trimmed } : { anchor: trimmed, focus: sel.focus };
+}
+
+/** The rule nearest before container `ordinal` that has no container between it and that one, if there is one. */
+const lastRule = (doc: Doc, ordinal: number) => rulePaths(doc).filter((r) => r.before === ordinal).pop();
+/** The rule nearest after the container before `ordinal`, if there is one. */
+const firstRule = (doc: Doc, ordinal: number) => rulePaths(doc).find((r) => r.before === ordinal);
+
+/** Takes a rule out. The caret stays in the same container (its path may change, as the rule's place closes up). */
+function removeRule(doc: Doc, rule: { readonly path: Path }, ordinal: number, sel: Selection): EditResult {
+  const next = fixup(mapBlockList(doc, rule.path, (blocks, index) => blocks.filter((_, i) => i !== index)));
+  const path = containerPaths(next)[ordinal];
+  const at = sel.anchor;
+  return { doc: next, selection: path ? caret({ path, offset: at.offset }) : sel };
 }
 
 /** Merges the container at `from` into the one at `into`; the caret lands at the join. */
