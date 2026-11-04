@@ -19,7 +19,8 @@ It draws the editing surface only (a `div` inside it, in the light DOM, so the p
 | --- | --- |
 | Starting content | the `value` attribute, else whatever is written inside the element |
 | `value` property | the document as HTML; setting it replaces the document and clears the undo history |
-| `readonly`, `disabled` | make the surface read-only (`disabled` also follows a disabled `<fieldset>`) |
+| `readonly` | the surface is read-only: no edits, but it can be focused, selected in and copied from (see [ACCESS.md](ACCESS.md)) |
+| `disabled` | read-only, and not focusable or in the tab order, and not submitted with the form. A disabled `<fieldset>` around the element does the same |
 | `label` | names the editing surface; without one (or `aria-label` / `aria-labelledby`) a warning is logged |
 | `required` | an empty document is invalid (`validity.valueMissing`), so the form will not submit |
 | `name` | the form field name; the value submitted is the HTML |

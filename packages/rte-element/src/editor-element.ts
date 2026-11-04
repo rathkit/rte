@@ -20,6 +20,8 @@ export class RteEditorElement extends HTMLElement {
   private opts: RteElementOptions = {};
   private stop: (() => void) | undefined;
   private atFocus = "";
+  /** Whether a disabled `<fieldset>` around the element disables it. */
+  private formDisabled = false;
   private resolveReady: ((editor: Editor) => void) | undefined;
   private ready: Promise<Editor> = new Promise((resolve) => { this.resolveReady = resolve; });
 
@@ -56,7 +58,7 @@ export class RteEditorElement extends HTMLElement {
     const known = profile === "strict" || profile === "standard" || profile === "loose";
     if (profile !== null && !known) this.warn({ code: "bad-option", message: `<rte-editor content="${profile}"> is not a content profile: use strict, standard or loose.` });
     const editor = createEditor({
-      ...this.opts, element: surface, html: this.html, readOnly: this.hasAttribute("readonly") || this.hasAttribute("disabled"),
+      ...this.opts, element: surface, html: this.html, readOnly: this.hasAttribute("readonly"), disabled: this.hasAttribute("disabled") || this.formDisabled,
       ...(this.hasAttribute("placeholder") ? { placeholder: this.getAttribute("placeholder") ?? "" } : {}),
       ...(known ? { content: { ...this.opts.content, profile } } : {}),
       ...(Number.isFinite(maxLength) && maxLength >= 0 ? { maxLength } : {}),
@@ -95,7 +97,8 @@ export class RteEditorElement extends HTMLElement {
     if (name === "value") {
       if (value !== null && value !== this.value) this.value = value;
     } else if (name === "readonly" || name === "disabled") {
-      this.current?.setReadOnly(this.hasAttribute("readonly") || this.hasAttribute("disabled"));
+      this.current?.setReadOnly(this.hasAttribute("readonly"));
+      this.current?.setDisabled(this.hasAttribute("disabled") || this.formDisabled);
     } else if (name === "placeholder") {
       this.current?.setPlaceholder(value ?? "");
     } else if (name === "label") {
@@ -108,7 +111,7 @@ export class RteEditorElement extends HTMLElement {
   // ---- form association -----------------------------------------------------------------------------------
 
   formResetCallback(): void { this.value = this.defaultHtml; }
-  formDisabledCallback(disabled: boolean): void { this.current?.setReadOnly(disabled || this.hasAttribute("readonly")); }
+  formDisabledCallback(disabled: boolean): void { this.formDisabled = disabled; this.current?.setDisabled(disabled || this.hasAttribute("disabled")); }
   formStateRestoreCallback(state: string | File | FormData | null): void { if (typeof state === "string") this.value = state; }
   get form(): HTMLFormElement | null { return this.internals?.form ?? null; }
   get name(): string { return this.getAttribute("name") ?? ""; }
@@ -129,6 +132,8 @@ export class RteEditorElement extends HTMLElement {
   }
   get readOnly(): boolean { return this.hasAttribute("readonly"); }
   set readOnly(value: boolean) { this.toggleAttribute("readonly", value); }
+  get disabled(): boolean { return this.hasAttribute("disabled") || this.formDisabled; }
+  set disabled(value: boolean) { this.toggleAttribute("disabled", value); }
   /** The editor inside, once it exists: for commands, plugins and subscriptions. */
   get editor(): Editor | undefined { return this.current; }
   /** Resolves with the editor once the element is connected and the editor is built. */

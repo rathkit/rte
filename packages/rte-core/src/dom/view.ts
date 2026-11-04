@@ -35,7 +35,10 @@ export interface EditorOptions {
   readonly element: HTMLElement;
   readonly html?: string;
   readonly pasteHandlers?: readonly PasteHandler[];
+  /** No edits; the page can still be focused, selected and copied from. Default false. */
   readonly readOnly?: boolean;
+  /** Read-only, and also out of the tab order and not focusable: for a field that does not apply now. Default false. */
+  readonly disabled?: boolean;
   /** Draw remote (`http`, `https`) images. Off by default, so pasting never makes the browser fetch anything. */
   readonly loadRemoteImages?: boolean;
   /** Called with the `inputType` of input the editor does not handle. That input is blocked, not applied. */
@@ -83,6 +86,10 @@ export class Editor {
   readonly engine: Engine;
   private composing = false;
   private reading = false;
+  private userReadOnly = false;
+  private isDisabled = false;
+  private ownTabindex = false;
+  private savedTabindex: string | null = null;
   private readonly loadRemoteImages: boolean;
   private readonly unhandled: ((inputType: string) => void) | undefined;
   private dragSource: Selection | null = null;
@@ -112,7 +119,7 @@ export class Editor {
     this.loadRemoteImages = options.loadRemoteImages ?? false;
     this.unhandled = options.onUnhandledInput;
     this.engine = createEngine({
-      readOnly: options.readOnly ?? false,
+      readOnly: (options.readOnly ?? false) || (options.disabled ?? false),
       // Before the engine reads the selection, bring it up to date from the page; asked to focus, focus the page.
       beforeAccess: () => this.readSelection(),
       focus: () => this.element.focus(),
@@ -136,7 +143,9 @@ export class Editor {
     }
     // The document is read once the plugins are in, so what they teach the importer applies to it.
     this.engine.setDocument(importHtml(options.html ?? "", this.engine.importOptions));
-    this.element.setAttribute("contenteditable", this.engine.readOnly ? "false" : "true");
+    this.userReadOnly = options.readOnly ?? false;
+    this.isDisabled = options.disabled ?? false;
+    this.applyAccess();
     this.element.setAttribute("role", "textbox");
     this.element.setAttribute("aria-multiline", "true");
     this.element.style.whiteSpace = "pre-wrap";
@@ -210,7 +219,10 @@ export class Editor {
   }
   get canUndo(): boolean { return this.engine.canUndo; }
   get canRedo(): boolean { return this.engine.canRedo; }
+  /** Whether edits are refused: read-only, or disabled. */
   get readOnly(): boolean { return this.engine.readOnly; }
+  /** Whether the editor is disabled: read-only and out of the tab order. */
+  get disabled(): boolean { return this.isDisabled; }
 
   /** Named commands and their state: `editor.commands.run("format.bold")`, `editor.commands.state("format.bold")`. */
   get commands(): Engine["commands"] { return this.engine.commands; }
@@ -291,9 +303,36 @@ export class Editor {
     return () => { this.resyncs.delete(resync); this.changeListeners.delete(handler); };
   }
 
+  /** Read-only on or off. While the editor is disabled it stays read-only whatever this says. */
   setReadOnly(value: boolean): void {
-    this.engine.setReadOnly(value);
-    this.element.setAttribute("contenteditable", value ? "false" : "true");
+    this.userReadOnly = value;
+    this.applyAccess();
+  }
+
+  /** Disabled on or off. Disabled is read-only, not focusable and out of the tab order. */
+  setDisabled(value: boolean): void {
+    this.isDisabled = value;
+    this.applyAccess();
+  }
+
+  /**
+   * The page attributes that say what the editor allows: editable, read-only (focusable, `aria-readonly`) or disabled (not
+   * focusable, `aria-disabled`). Only the attributes this sets are touched; a `tabindex` the page gave is its own.
+   */
+  private applyAccess(): void {
+    const el = this.element;
+    const off = this.userReadOnly || this.isDisabled;
+    this.engine.setReadOnly(off);
+    el.setAttribute("contenteditable", off ? "false" : "true");
+    if (this.userReadOnly && !this.isDisabled) el.setAttribute("aria-readonly", "true"); else el.removeAttribute("aria-readonly");
+    if (this.isDisabled) el.setAttribute("aria-disabled", "true"); else el.removeAttribute("aria-disabled");
+    // A read-only page is still a place to be: reachable by Tab, so it can be selected in and copied from. A disabled one is not.
+    if (off && !this.isDisabled) { if (!el.hasAttribute("tabindex")) { el.setAttribute("tabindex", "0"); this.ownTabindex = true; } }
+    else if (this.ownTabindex) { el.removeAttribute("tabindex"); this.ownTabindex = false; }
+    if (this.isDisabled) {
+      if (el.hasAttribute("tabindex")) { this.savedTabindex = el.getAttribute("tabindex"); el.removeAttribute("tabindex"); }
+      if (el.contains(el.ownerDocument.activeElement)) (el.ownerDocument.activeElement as HTMLElement | null)?.blur();
+    } else if (this.savedTabindex !== null) { el.setAttribute("tabindex", this.savedTabindex); this.savedTabindex = null; }
   }
 
   /** Calls back after the document or selection changed, once per turn. Same as `subscribe`, kept for older callers. */

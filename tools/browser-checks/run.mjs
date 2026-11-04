@@ -342,6 +342,143 @@ for (const [name, type] of engines) {
   await key("Delete");
   check(`${name} keys: Delete at the end of the body does not pull the note in`, (await html()) === before, await html());
 
+  // Read-only and disabled (docs/ACCESS.md): every way of changing the document, walked in both states.
+  const ACCESS_DOC = '<p>alpha beta</p><ul><li style="list-style-type: none;"><input type="checkbox" disabled> todo</li></ul><table><tr><td>a</td><td>b</td></tr></table><p>last</p>';
+  const fire = (fn, ...args) => page.evaluate(fn, ...args);
+  for (const state of ["readonly", "disabled"]) {
+    const tag = `${name} access (${state})`;
+    await reset(ACCESS_DOC);
+    // A history step exists before the editor is switched, so undo has something to refuse.
+    await page.click("#ed > p");
+    await page.keyboard.type("Q");
+    const typed = await html();
+    await page.evaluate((st) => { st === "readonly" ? window.__editor.setReadOnly(true) : window.__editor.setDisabled(true); }, state);
+    const same = async (what) => check(`${tag}: ${what}`, (await html()) === typed, await html());
+    // Keys and shortcuts.
+    await page.click("#ed > p", { force: true });
+    for (const k of ["X", "Enter", "Backspace", "Delete", "Tab", "Shift+Tab", "Control+b", "Control+i", "Control+u", "Control+z", "Control+y", "Control+Shift+z", "Control+x", "Control+k", "Control+Enter", "Alt+ArrowUp"]) {
+      await page.keyboard.press(k);
+    }
+    await same("typing, Enter, Backspace, Delete, Tab, shortcuts, undo, redo and cut change nothing");
+    await page.keyboard.type("hello");
+    await same("typing a word changes nothing");
+    // The input events a browser sends for spellcheck, autocorrect, dictation, drag, composition and menus.
+    const blocked = await fire(() => {
+      const el = document.getElementById("ed");
+      const out = [];
+      for (const inputType of ["insertText", "insertReplacementText", "insertFromPaste", "insertFromPasteAsQuotation", "insertFromDrop", "insertFromYank", "insertTranspose", "insertLineBreak", "insertParagraph", "insertCompositionText", "insertLink", "insertOrderedList", "insertUnorderedList", "insertHorizontalRule", "deleteContentBackward", "deleteContentForward", "deleteByCut", "deleteByDrag", "deleteWordBackward", "deleteHardLineBackward", "historyUndo", "historyRedo", "formatBold", "formatItalic", "formatUnderline", "formatStrikeThrough", "formatJustifyCenter", "formatIndent", "formatRemove", "formatSetBlockTextDirection"]) {
+        const ev = new InputEvent("beforeinput", { inputType, data: "ZZ", bubbles: true, cancelable: true });
+        el.dispatchEvent(ev);
+        if (!ev.defaultPrevented) out.push(inputType);
+      }
+      return out;
+    });
+    check(`${tag}: every kind of input event is refused`, blocked.length === 0, blocked);
+    await same("none of those input events changed anything");
+    // Composition.
+    await fire(() => {
+      const el = document.getElementById("ed");
+      el.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+      el.dispatchEvent(new CompositionEvent("compositionupdate", { data: "日", bubbles: true }));
+      el.dispatchEvent(new CompositionEvent("compositionend", { data: "日本", bubbles: true }));
+    });
+    await same("an input-method composition changes nothing");
+    // Paste (event and API), drop (text and files), drag, cut.
+    if (name !== "firefox") {
+      await fire(() => {
+        const dt = new DataTransfer();
+        dt.setData("text/html", "<p>PASTED</p>");
+        dt.setData("text/plain", "PASTED");
+        document.getElementById("ed").dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+        const cut = new DataTransfer();
+        document.getElementById("ed").dispatchEvent(new ClipboardEvent("cut", { clipboardData: cut, bubbles: true, cancelable: true }));
+      });
+      await same("a paste event and a cut event change nothing");
+    }
+    await fire(() => window.__editor.paste({ html: "<p>API</p>", text: "API" }));
+    await same("paste through the API changes nothing");
+    await fire(async () => {
+      const el = document.getElementById("ed");
+      const r = el.getBoundingClientRect();
+      for (const fill of [(dt) => dt.setData("text/plain", "DROPPED"), (dt) => dt.setData("text/html", "<p>DROPPED</p>"), (dt) => dt.items.add(new File(["x"], "a.txt", { type: "text/plain" })), (dt) => dt.items.add(new File([new Uint8Array([137, 80, 78, 71])], "a.png", { type: "image/png" }))]) {
+        const dt = new DataTransfer();
+        fill(dt);
+        el.dispatchEvent(new DragEvent("dragover", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.x + 5, clientY: r.y + 10 }));
+        el.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.x + 5, clientY: r.y + 10 }));
+      }
+    });
+    await page.waitForTimeout(80);
+    await same("dropping text, markup and files changes nothing");
+    // Dragging the page's own text.
+    await page.evaluate(() => window.__editor.selectDom(document.querySelector("#ed > p").firstChild, 0, document.querySelector("#ed > p").firstChild, 5));
+    const dragBox = await page.evaluate(() => { const r = document.querySelector("#ed > p:last-child").getBoundingClientRect(); return { x: r.x + 4, y: r.y + r.height / 2 }; });
+    await fire(([x, y]) => {
+      const el = document.getElementById("ed");
+      const dt = new DataTransfer();
+      el.dispatchEvent(new DragEvent("dragstart", { dataTransfer: dt, bubbles: true, cancelable: true }));
+      el.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: x, clientY: y }));
+      el.dispatchEvent(new DragEvent("dragend", { dataTransfer: dt, bubbles: true }));
+    }, [dragBox.x, dragBox.y]);
+    await same("dragging the page's own text somewhere else changes nothing");
+    // Commands, by name: the editor's own and the plugins'.
+    const ran = await fire(() => {
+      const ed = window.__editor;
+      const names = ed.commands.list().map((c) => c.name).filter((n) => !/^(document\.|history\.undo$)/.test(n) || n.startsWith("document.") === false);
+      const changed = [];
+      for (const n of names) {
+        if (/^(find\.|markdown\.copy|selection|document\.)/.test(n)) continue;
+        const state = ed.commands.state(n);
+        const before = ed.getHtml();
+        let result;
+        try { result = ed.commands.run(n, n === "link.set" ? { href: "https://x" } : n === "image.insert" ? { src: "https://x/y.png" } : undefined); } catch { result = "threw"; }
+        if (result === true || ed.getHtml() !== before) changed.push(n);
+        if (state.enabled && !/^(history\.|view\.)/.test(n) && ed.commands.list().find((c) => c.name === n)) changed.push(`${n} (enabled)`);
+      }
+      return { count: names.length, changed };
+    });
+    check(`${tag}: no command changes anything, and none of them reports itself as enabled`, ran.changed.length === 0 && ran.count > 30, ran);
+    await same("running every command changed nothing");
+    // The task checkbox.
+    await page.click("#ed [data-rte-check]", { force: true });
+    await same("clicking a task's checkbox changes nothing");
+    // Replacing text with the find bar's command.
+    await fire(() => { window.__editor.commands.run("find.replaceAll", { find: "alpha", replace: "ZED" }); window.__editor.commands.run("find.replace", { replace: "ZED" }); });
+    await same("replace and replace all change nothing");
+    // What stays: selection and copy.
+    await fire(() => window.__editor.selectDom(document.querySelector("#ed > p").firstChild, 0, document.querySelector("#ed > p").firstChild, 5));
+    const copied = await fire(() => {
+      const dt = new DataTransfer();
+      document.getElementById("ed").dispatchEvent(new ClipboardEvent("copy", { clipboardData: dt, bubbles: true, cancelable: true }));
+      return dt.getData("text/plain");
+    }).catch(() => null);
+    if (name !== "firefox") check(`${tag}: copy still gives the selected text`, copied === "alpha", copied);
+    const model = await page.evaluate(() => { const s = window.__editor.selection; return s.anchor.offset !== s.focus.offset; });
+    check(`${tag}: selection still moves in the model`, model, await page.evaluate(() => window.__editor.selection));
+    // Programmatic replacement by the host still works: it is not an edit by the user.
+    await fire(() => window.__editor.setHtml("<p>host set</p>"));
+    check(`${tag}: the host can still set the content`, (await html()) === "<p>host set</p>", await html());
+    // Focus and the page's own words about it.
+    const attrs = await page.evaluate(() => { const e = document.getElementById("ed"); return { ce: e.getAttribute("contenteditable"), ro: e.getAttribute("aria-readonly"), dis: e.getAttribute("aria-disabled"), tab: e.getAttribute("tabindex"), tabIndex: e.tabIndex }; });
+    if (state === "readonly") check(`${tag}: read-only is announced and stays in the tab order`, attrs.ce === "false" && attrs.ro === "true" && attrs.dis === null && attrs.tabIndex === 0, attrs);
+    else check(`${tag}: disabled is announced and leaves the tab order`, attrs.ce === "false" && attrs.ro === null && attrs.dis === "true" && attrs.tab === null && attrs.tabIndex === -1, attrs);
+    await page.evaluate(() => { const b = document.createElement("button"); b.id = "before"; b.textContent = "before"; document.body.insertBefore(b, document.getElementById("ed")); const a = document.createElement("button"); a.id = "after"; a.textContent = "after"; document.getElementById("ed").after(a); document.getElementById("before").focus(); });
+    await page.keyboard.press("Tab");
+    const landed = await page.evaluate(() => document.activeElement.id);
+    check(`${tag}: Tab ${state === "readonly" ? "lands on the editor" : "skips the editor"}`, landed === (state === "readonly" ? "ed" : "after"), landed);
+    await page.evaluate(() => { document.getElementById("before").remove(); document.getElementById("after").remove(); });
+    if (state === "disabled") {
+      await page.evaluate(() => { window.__editor.setDisabled(false); window.__editor.focus(); });
+      await page.evaluate(() => { window.__editor.setDisabled(true); });
+      check(`${tag}: disabling an editor that has the focus takes the focus away`, await page.evaluate(() => document.activeElement !== document.getElementById("ed")), await page.evaluate(() => document.activeElement.tagName));
+    }
+    // And back: everything works again.
+    await page.evaluate(() => { window.__editor.setReadOnly(false); window.__editor.setDisabled(false); });
+    await reset("<p>back</p>");
+    await page.keyboard.press("End");
+    await page.keyboard.type("!");
+    const again = await page.evaluate(() => { const e = document.getElementById("ed"); return { ce: e.getAttribute("contenteditable"), ro: e.getAttribute("aria-readonly"), dis: e.getAttribute("aria-disabled"), tab: e.getAttribute("tabindex") }; });
+    check(`${tag}: switched off again, the editor edits and its attributes are as they were`, (await html()) === "<p>back!</p>" && again.ce === "true" && again.ro === null && again.dis === null && again.tab === null, [await html(), again]);
+  }
   // History rules (docs/HISTORY.md): typing in a row is one step; moving the caret ends it; a composition is a step of its own.
   await reset("<p>one two</p>");
   await select({ start: "p", so: 3, eo: 3 });
@@ -1085,6 +1222,35 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(50);
   check(`${name} (element) moving the element keeps its content and it still works`, (await val("body")) === "<p><strong>one</strong> two</p>" && (await page.evaluate(() => !!document.getElementById("body").editor)), await val("body"));
   await page.evaluate(() => document.getElementById("second").remove());
+  // disabled: read-only, out of the tab order, not submitted; a disabled fieldset around it does the same.
+  const disabledState = await page.evaluate(() => {
+    const e = document.getElementById("limited");
+    e.setAttribute("disabled", "");
+    const s = e.querySelector("[data-rte-surface]");
+    const out = { ce: s.getAttribute("contenteditable"), dis: s.getAttribute("aria-disabled"), tab: s.tabIndex, prop: e.disabled, submitted: new FormData(document.getElementById("f")).has("limited") };
+    e.removeAttribute("disabled");
+    out.back = { ce: s.getAttribute("contenteditable"), dis: s.getAttribute("aria-disabled"), prop: e.disabled, submitted: new FormData(document.getElementById("f")).has("limited") };
+    return out;
+  });
+  check(`${name} (element) disabled makes the surface read-only and unfocusable, is not submitted, and removing it undoes all of that`, disabledState.ce === "false" && disabledState.dis === "true" && disabledState.tab === -1 && disabledState.prop === true && disabledState.submitted === false && disabledState.back.ce === "true" && disabledState.back.dis === null && disabledState.back.prop === false && disabledState.back.submitted === true, disabledState);
+  const fieldset = await page.evaluate(async () => {
+    const fs = document.createElement("fieldset");
+    const el = document.createElement("rte-editor");
+    el.setAttribute("label", "F"); el.setAttribute("name", "fs");
+    fs.appendChild(el);
+    document.getElementById("f").appendChild(fs);
+    await el.whenReady();
+    fs.disabled = true;
+    await new Promise((r) => setTimeout(r, 20));
+    const s = el.querySelector("[data-rte-surface]");
+    const on = { ce: s.getAttribute("contenteditable"), dis: s.getAttribute("aria-disabled"), prop: el.disabled };
+    fs.disabled = false;
+    await new Promise((r) => setTimeout(r, 20));
+    const off = { ce: s.getAttribute("contenteditable"), dis: s.getAttribute("aria-disabled"), prop: el.disabled };
+    fs.remove();
+    return { on, off };
+  });
+  check(`${name} (element) a disabled fieldset disables it, and enabling the fieldset undoes that`, fieldset.on.ce === "false" && fieldset.on.dis === "true" && fieldset.on.prop === true && fieldset.off.ce === "true" && fieldset.off.dis === null && fieldset.off.prop === false, fieldset);
   // Attributes: placeholder, maxlength, spellcheck.
   check(`${name} (element) placeholder and spellcheck attributes reach the editor`, await page.evaluate(() => { const s = document.querySelector("#limited [contenteditable=true]"); return s.getAttribute("aria-placeholder") === "Write something" && s.hasAttribute("data-rte-empty") && s.spellcheck === false; }), "attributes");
   await page.click("#limited [contenteditable=true]");

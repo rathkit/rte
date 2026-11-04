@@ -51,7 +51,7 @@ typing is never what they meant.
 | Option | Meaning | Core option | Element | React | Vue | Svelte | Angular | jQuery |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Starting HTML | the document the editor starts with | `html` | `value` attribute, or the element's children; `value` property is live | `defaultValue` | `defaultValue` | `html` | `defaultValue` | `html` |
-| Read-only | no edits; selection and copy still work | `readOnly` (`setReadOnly`, live) | `readonly`, `disabled` attributes (live) | `readOnly` (live) | `readOnly` (live) | `readOnly` (live, in `update`) | `readOnly` (live) | `readOnly` |
+| Read-only | no edits; selection and copy still work (see [ACCESS.md](ACCESS.md)) | `readOnly` (`setReadOnly`, live) | `readonly` attribute (live) | `readOnly` (live) | `readOnly` (live) | `readOnly` (live, in `update`) | `readOnly` (live) | `readOnly` |
 | Label | the name assistive technology announces | the surface's `aria-label` | `label` attribute (live) | `label` | `label` | `aria-label` on the element | `label` | `label` |
 | Placeholder | a hint while the document is empty | `placeholder` (`setPlaceholder`, live) | `placeholder` attribute (live) | `placeholder` | `options.placeholder` | `placeholder` | `options.placeholder` | `placeholder` |
 | Maximum length | typing and pasting past it are refused | `maxLength`, `onMaxLength` | `maxlength` attribute | `maxLength`, `onMaxLength` | `options.maxLength`, `options.onMaxLength` | `maxLength`, `onMaxLength` | `options.maxLength`, `options.onMaxLength` | `maxLength`, `onMaxLength` |
