@@ -4,7 +4,7 @@ A rich text editor built from scratch, with zero runtime dependencies.
 
 > Built from scratch. Ships with nothing else.
 
-**Status: alpha.** `0.1.0-alpha.4` of all eleven packages is on npm under the `next` tag. The APIs will change between releases, and there is no API reference yet. Do not build on this.
+**Status: alpha.** `0.1.0-alpha.5` of all eleven packages is on npm under the `next` tag. The APIs will change between releases, and there is no API reference yet. Do not build on this.
 
 ```sh
 npm install @rathkit/rte-core@next
@@ -40,7 +40,7 @@ Text with bold, italic, underline, strikethrough, code, super- and subscript, te
 | `@rathkit/rte-angular` | Early. The `rteEditor` directive, signals (`commandState`, `selected`) and an Angular forms value accessor (`@rathkit/rte-angular/forms`). Written in the compiled form, so it needs no Angular compiler |
 | `@rathkit/rte-jquery` | Early. `$(el).rteEditor(options)` over the custom element, with `rte:change` events |
 
-All eleven are on npm at `0.1.0-alpha.4` under `next`. Only the reference server package, `rte-server`, is still to come.
+All eleven are on npm at `0.1.0-alpha.5` under `next`. Only the reference server package, `rte-server`, is still to come.
 
 ## Development
 
