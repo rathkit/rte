@@ -125,7 +125,7 @@ export class Engine {
     const policy = contentPolicy(options.content);
     Object.assign(this.importOptions, {
       linkSchemes: policy.linkSchemes, styles: policy.styles, maxDataImageLength: policy.maxDataImageLength,
-      maxDepth: policy.maxDepth, maxInputLength: policy.maxInputLength,
+      maxDepth: policy.maxDepth, maxInputLength: policy.maxInputLength, pasteRelativeImages: policy.pasteRelativeImages,
       onLimit: (info: { readonly max: number; readonly length: number }) => this.warn(`Content of ${info.length} characters was not read: the limit is ${info.max} (content.maxInputLength).`),
     });
     this.keymap = new Keymap(options.platform ?? detectPlatform(), this.warn);

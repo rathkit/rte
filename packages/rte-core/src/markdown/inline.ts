@@ -12,6 +12,8 @@ export interface MarkdownOptions {
   readonly sanitizeSvg?: ((dataUrl: string) => string | undefined) | undefined;
   /** Largest `data:` image address, in characters. */
   readonly maxDataImageLength?: number;
+  /** Keep an image whose address is relative. Default true. */
+  readonly relativeImages?: boolean;
 }
 
 /** Link reference definitions found in the document: `[label]: address "title"`. Keys come from `refLabel`. */
@@ -297,7 +299,7 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
           }
           p.dead = true;
         }
-        const safe = checkImageSrc(decodeEntities(tailInfo.dest), options.maxDataImageLength, options.sanitizeSvg);
+        const safe = checkImageSrc(decodeEntities(tailInfo.dest), options.maxDataImageLength, options.sanitizeSvg, options.relativeImages ?? true);
         const img = top as unknown as Piece;
         if (safe) { Object.assign(img, { k: "img", src: safe, alt }); }
         else Object.assign(img, { k: "t", s: alt });

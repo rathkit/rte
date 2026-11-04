@@ -189,7 +189,7 @@ length is a number with a known unit. Anything else, `url()`, `expression()` and
 | Where | Allowed |
 | --- | --- |
 | Links (`href`) | Relative and fragment addresses, and the schemes in `linkSchemes` (standard: `http`, `https`, `mailto`, `tel`). Spaces, tabs, control characters and numeric entities inside the scheme do not hide it; an entity name the reader does not know stays as typed, so it cannot hide one either. An address with a backslash is refused. A link with no usable address is plain text |
-| Images (`src`) | `http` and `https`, relative addresses (`a.png`, `/a.png`) and `//host` addresses, kept as written; and `data:` images of PNG, JPEG, GIF, WebP and BMP whose first bytes match (the bytes are trusted, not the declared type) and that are no longer than `maxDataImageLength`. `data:image/svg+xml` only through the SVG plugin. Everything else (`file:`, `blob:`, `javascript:`, `ftp:`) is refused. A relative address is drawn as it is; an `http`, `https` or `//host` one is drawn only when the editor is set to `loadRemoteImages` |
+| Images (`src`) | `http` and `https`, relative addresses (`a.png`, `/a.png`) and `//host` addresses, kept as written; and `data:` images of PNG, JPEG, GIF, WebP and BMP whose first bytes match (the bytes are trusted, not the declared type) and that are no longer than `maxDataImageLength`. `data:image/svg+xml` only through the SVG plugin. Everything else (`file:`, `blob:`, `javascript:`, `ftp:`) is refused. A relative address is drawn as it is when a document is loaded, and refused when pasting (unless `pasteRelativeImages` is on). An `http`, `https` or `//host` one is drawn only when the editor is set to `loadRemoteImages` |
 
 ## Limits and profiles
 
@@ -199,6 +199,7 @@ The host picks a profile and may change single choices (`content: { profile: "st
 | --- | --- | --- | --- |
 | `linkSchemes` | http, https, mailto | http, https, mailto, tel | http, https, mailto, tel, sms, ftp, ftps |
 | `styles` when loading | semantic | allowlist | allowlist |
+| `pasteRelativeImages` | false | false | false |
 | `maxDataImageLength` (characters) | 0 (no `data:` images) | 12,000,000 | 25,000,000 |
 | `maxDepth` (nested elements) | 32 | 100 | 200 |
 | `maxInputLength` (characters) | 1,000,000 | 50,000,000 | 200,000,000 |
@@ -217,6 +218,7 @@ way, an image caption is cut at 1,000 characters, an indent is at most 8 steps, 
 | Style properties | The profile's `styles` | Always `semantic` |
 | Empty paragraphs | Kept (they were written) | Dropped |
 | A trailing run of non-breaking spaces | Kept | Dropped (a word processor's paragraph mark) |
+| Image with a relative address (`a.png`, `/a.png`) | Kept | Refused (a pasted path would be fetched from the page's own origin), unless `pasteRelativeImages` |
 | One-cell table | Kept | Unwrapped to its content |
 | Limits and schemes | The profile's | The profile's |
 
@@ -230,7 +232,7 @@ Each rule has a hostile-markup test, `rule N` in `policy.test.ts`.
    nothing about the result.
 3. **A link keeps only an allowed scheme.** Capitals, entities, spaces, tabs and control characters inside the scheme do not get
    `javascript:`, `vbscript:`, `data:` or `file:` through. A refused link leaves its text.
-4. **An image keeps only a remote address or real raster bytes.** A declared type that does not match the bytes, an SVG, a `file:`
+4. **An image keeps only a remote address or real raster bytes** (and, when loading, a relative address). A declared type that does not match the bytes, an SVG, a `file:`
    or `javascript:` address, and a `data:` image over the limit are all refused. The image is left out; text around it stays.
 5. **Hidden content is dropped.** An element with `hidden`, or `display: none` in its style, goes with its content.
 6. **A style value that is not a plain color or length is ignored.** `url()`, `expression()`, `var()`, a second declaration smuggled in

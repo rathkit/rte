@@ -67,6 +67,7 @@ test("the profiles table says what the profiles are", () => {
     const p = CONTENT_PROFILES[name];
     assert.equal(rows.get("linkSchemes")?.[i], p.linkSchemes.join(", "), `${name} linkSchemes`);
     assert.equal(rows.get("styles when loading")?.[i], p.styles, `${name} styles`);
+    assert.equal(rows.get("pasteRelativeImages")?.[i], String(p.pasteRelativeImages), `${name} pasteRelativeImages`);
     assert.equal(number(rows.get("maxDataImageLength (characters)")?.[i] as string), p.maxDataImageLength, `${name} maxDataImageLength`);
     assert.equal(number(rows.get("maxDepth (nested elements)")?.[i] as string), p.maxDepth, `${name} maxDepth`);
     assert.equal(number(rows.get("maxInputLength (characters)")?.[i] as string), p.maxInputLength, `${name} maxInputLength`);
@@ -140,6 +141,17 @@ test("rule 4: an image keeps only a remote address or real raster bytes", () => 
   assert.equal(load('<p>a<img src="https://x/y.png">b</p>').includes("<img"), true);
   for (const src of ["/a.png", "a/b.png", "//x/a.png"]) assert.equal(load(`<p><img src="${src}"></p>`).includes("<img"), true, `${src} is kept as written`);
   assert.equal(load('<p>a<img src="https://x/y.png">b</p>').replace(/<img[^>]*>/, ""), "<p>ab</p>");
+  // Relative addresses are kept when loading and refused when pasting, in HTML and in Markdown.
+  const pasted = (html: string, options: ImportOptions = {}): string => paste(html, options);
+  for (const src of ["a.png", "/a.png", "../a.png", "?x=1", " /a.png", "\t/a.png"]) {
+    assert.ok(load(`<p><img src="${src}"></p>`).includes("<img"), `${JSON.stringify(src)} loads`);
+    assert.ok(!pasted(`<p>x<img src="${src}"></p>`).includes("<img"), `${JSON.stringify(src)} is not pasted`);
+  }
+  for (const src of ["https://x/a.png", "//x/a.png"]) assert.ok(pasted(`<p>x<img src="${src}"></p>`).includes("<img"), `${src} is pasted`);
+  assert.ok(pasted('<p>x<img src="/a.png"></p>', { pasteRelativeImages: true }).includes("<img"), "the host can allow it");
+  assert.ok(exportHtml({ blocks: parseMarkdown("![a](/a.png)") }).includes("<img"));
+  assert.ok(!exportHtml({ blocks: parseMarkdown("![a](/a.png)", { relativeImages: false }) }).includes("<img"));
+  assert.ok(exportHtml({ blocks: parseMarkdown("![a](https://x/a.png)", { relativeImages: false }) }).includes("<img"));
   assert.deepEqual(DATA_IMAGE_SIGNATURES.map(([type]) => type), ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"]);
 });
 const src_ = (png: string): string => `data:image/png;base64,${png}`;

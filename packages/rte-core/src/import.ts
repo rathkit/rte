@@ -63,6 +63,10 @@ export interface ImportOptions {
   readonly maxDataImageLength?: number;
   /** Longest markup read, in characters. Longer markup is refused whole: nothing is read, `onLimit` is told. Default 50 million. */
   readonly maxInputLength?: number;
+  /** Keep an image whose address is relative (`a.png`, `/a.png`). Default true; pasting turns it off (see `pasteRelativeImages`). */
+  readonly relativeImages?: boolean;
+  /** Keep relative image addresses when pasting. Default false: a pasted `/path` would be fetched from the page's own origin. */
+  readonly pasteRelativeImages?: boolean;
   /** Deepest element nesting read; deeper elements are left out and their content kept. Default 100. */
   readonly maxDepth?: number;
   /** Told when markup was refused for being longer than `maxInputLength`. */
@@ -74,6 +78,7 @@ interface Settings {
   readonly schemes: ReadonlySet<string>;
   readonly keepEmpty: boolean;
   readonly maxData: number;
+  readonly relative: boolean;
   readonly svg: ((dataUrl: string) => string | undefined) | undefined;
   readonly recognizers: readonly ImportRecognizer[];
 }
@@ -128,7 +133,7 @@ export function safeUrl(raw: string | undefined, schemes: ReadonlySet<string>): 
 }
 
 /** Returns the image address when it is a remote address or a real raster image, otherwise undefined. */
-function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData" | "svg">): string | undefined {
+function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData" | "svg" | "relative">): string | undefined {
   if (raw === undefined) return undefined;
   const value = raw.trim();
   if (/^data:/i.test(value)) {
@@ -141,6 +146,8 @@ function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData
     // Trust the bytes, not the declared type: the start of the data must match a raster format.
     return DATA_IMAGE_SIGNATURES.some(([, magic]) => body.startsWith(magic)) ? value : undefined;
   }
+  // An address with no scheme and not starting with // is relative: the page's own origin, which a pasted address must not reach.
+  if (!settings.relative && !/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(value.replace(INVISIBLE, ""))) return undefined;
   return safeUrl(value, new Set(IMAGE_SCHEMES));
 }
 
@@ -905,6 +912,7 @@ export function importBlocks(html: string, options: ImportOptions = {}): Block[]
     schemes: new Set(options.linkSchemes ?? DEFAULT_LINK_SCHEMES),
     keepEmpty: options.keepEmptyBlocks ?? false,
     maxData: options.maxDataImageLength ?? CONTENT_PROFILES.standard.maxDataImageLength,
+    relative: options.relativeImages ?? true,
     svg: options.sanitizeSvg,
     recognizers: options.recognizers ?? [],
   };
@@ -944,5 +952,5 @@ const decodeLineBreaks = (value: string): string => value.replace(/\r\n?|\u2028|
 export { decodeEntities };
 
 /** Checks an image address the same way the importer does: remote, or a raster image whose bytes match its type. */
-export const checkImageSrc = (src: string, maxDataLength = 12_000_000, sanitizeSvg?: ImportOptions["sanitizeSvg"]): string | undefined =>
-  safeImageSrc(src, { maxData: maxDataLength, svg: sanitizeSvg });
+export const checkImageSrc = (src: string, maxDataLength = 12_000_000, sanitizeSvg?: ImportOptions["sanitizeSvg"], relative = true): string | undefined =>
+  safeImageSrc(src, { maxData: maxDataLength, svg: sanitizeSvg, relative });

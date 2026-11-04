@@ -37,6 +37,8 @@ export interface ContentPolicy extends ContentLimits {
   readonly linkSchemes: readonly string[];
   /** `semantic` keeps meaning only; `allowlist` also keeps text color, background and alignment. (Pasting is always `semantic`.) */
   readonly styles: "semantic" | "allowlist";
+  /** Keep relative image addresses (`a.png`, `/a.png`) when pasting. Loading always keeps them. Default false in every profile. */
+  readonly pasteRelativeImages: boolean;
 }
 
 /** The name of a profile in `CONTENT_PROFILES`. */
@@ -44,9 +46,9 @@ export type ContentProfile = "strict" | "standard" | "loose";
 
 /** The three profiles. `standard` is the default; `strict` is for hosts that take content from people they do not trust; `loose` for hosts that trust theirs. */
 export const CONTENT_PROFILES: Readonly<Record<ContentProfile, ContentPolicy>> = {
-  strict: { linkSchemes: ["http", "https", "mailto"], styles: "semantic", maxDataImageLength: 0, maxDepth: 32, maxInputLength: 1_000_000 },
-  standard: { linkSchemes: DEFAULT_LINK_SCHEMES, styles: "allowlist", maxDataImageLength: 12_000_000, maxDepth: 100, maxInputLength: 50_000_000 },
-  loose: { linkSchemes: ["http", "https", "mailto", "tel", "sms", "ftp", "ftps"], styles: "allowlist", maxDataImageLength: 25_000_000, maxDepth: 200, maxInputLength: 200_000_000 },
+  strict: { pasteRelativeImages: false, linkSchemes: ["http", "https", "mailto"], styles: "semantic", maxDataImageLength: 0, maxDepth: 32, maxInputLength: 1_000_000 },
+  standard: { pasteRelativeImages: false, linkSchemes: DEFAULT_LINK_SCHEMES, styles: "allowlist", maxDataImageLength: 12_000_000, maxDepth: 100, maxInputLength: 50_000_000 },
+  loose: { pasteRelativeImages: false, linkSchemes: ["http", "https", "mailto", "tel", "sms", "ftp", "ftps"], styles: "allowlist", maxDataImageLength: 25_000_000, maxDepth: 200, maxInputLength: 200_000_000 },
 };
 
 /** What a host may say: a profile to start from, then single choices on top of it. */
