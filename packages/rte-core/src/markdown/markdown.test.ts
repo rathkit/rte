@@ -152,7 +152,7 @@ test("detection: text that is not Markdown stays plain", () => {
 });
 
 const engineWith = (opts: Parameters<typeof markdown>[0], doc: string, at: number[] = [0]) => {
-  const e = createEngine({ doc: importHtml(doc), platform: "other", onWarning: (m) => { throw new Error(m); } });
+  const e = createEngine({ doc: importHtml(doc), platform: "other", onWarning: (w) => { throw new Error(w.message); } });
   e.use(markdown(opts));
   e.setSelection(caret({ path: at, offset: 0 }));
   return e;

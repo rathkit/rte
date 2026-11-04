@@ -9,7 +9,7 @@ import { lists } from "../lists/plugin.ts";
 import { autoformat, type AutoformatOptions } from "./plugin.ts";
 
 const make = (html: string, options: AutoformatOptions = {}) => {
-  const e = createEngine({ doc: importHtml(html), platform: "other", onWarning: (m) => { throw new Error(m); } });
+  const e = createEngine({ doc: importHtml(html), platform: "other", onWarning: (w) => { throw new Error(w.message); } });
   e.use(lists());
   e.use(autoformat(options));
   e.setSelection(caret({ path: [0], offset: e.document.blocks[0]?.type === "p" ? (e.document.blocks[0].content.map((n) => (n.type === "text" ? n.text.length : 1)).reduce((a, b) => a + b, 0)) : 0 }));

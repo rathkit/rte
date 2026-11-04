@@ -76,7 +76,7 @@ test("the profiles table says what the profiles are", () => {
 });
 
 test("a profile with single choices on top: the choice wins, the rest is the profile's", () => {
-  const p = contentPolicy({ profile: "strict", maxDepth: 5, linkSchemes: undefined });
+  const p = contentPolicy({ profile: "strict", maxDepth: 5 });
   assert.equal(p.maxDepth, 5);
   assert.deepEqual(p.linkSchemes, CONTENT_PROFILES.strict.linkSchemes);
   assert.equal(p.maxInputLength, CONTENT_PROFILES.strict.maxInputLength);

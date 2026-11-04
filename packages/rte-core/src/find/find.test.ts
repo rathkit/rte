@@ -7,7 +7,7 @@ import { caret, type Path } from "../path.ts";
 import { find, type FindInfo } from "./plugin.ts";
 
 const make = (html: string) => {
-  const e = createEngine({ doc: importHtml(html), platform: "other", onWarning: (m) => { throw new Error(m); } });
+  const e = createEngine({ doc: importHtml(html), platform: "other", onWarning: (w) => { throw new Error(w.message); } });
   e.use(find());
   return e;
 };

@@ -179,7 +179,7 @@ test("malformed markup never throws, loading or pasting, and always gives a docu
   for (let i = 0; i < 3000; i++) {
     const html = garbage(next, 1 + Math.floor(next() * 40));
     const label = JSON.stringify(html);
-    let doc;
+    let doc: unknown;
     assert.doesNotThrow(() => { doc = importHtml(html); }, label);
     assert.ok((doc as unknown as { blocks: unknown[] }).blocks.length > 0, label);
     assert.doesNotThrow(() => exportHtml(doc as never), label);
@@ -209,7 +209,7 @@ test("something that goes wrong inside the reader leaves the content out and is 
   const { e } = make("<p>x</p>", { onWarning: (w) => told.push(w) });
   const hostile = { element: () => { throw new Error("inside"); } };
   // A recognizer given straight to the importer (not through a plugin) is not isolated, so the reader's own net catches it.
-  const out = importBlocks("<p>a</p>", { recognizers: [hostile], onError: e.importOptions.onError });
+  const out = importBlocks("<p>a</p>", { recognizers: [hostile], ...(e.importOptions.onError ? { onError: e.importOptions.onError } : {}) });
   assert.deepEqual(out, []);
   assert.equal(told[0]?.code, "content-unreadable");
   assert.match(told[0]?.message ?? "", /inside/);
