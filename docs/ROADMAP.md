@@ -48,7 +48,7 @@ The *(maintainer)* items ask for these; each issue says what is being decided.
 1. **Font family and size** (2.1): allow-listed values from a host-defined list, or leave them to host styles.
 2. **Where product-specific migration mappings live** (4.11, 0.7.0-beta.0): the repository rule forbids naming other products, so option
    mappings and a compatibility layer need a home outside it (a private package, a separate repository, or a paid migration kit).
-3. **Whether `rte-server` is part of 1.0** (0.7.0-beta.0), or only the upload and link-check contract.
+3. **`rte-server` is part of 1.0** (decided; item 4.7, 0.7.0-beta.0): a zero-dependency reference server for uploads and link checks, not a hosted service.
 4. **How performance is described publicly** (3.6, 0.2.0-beta.0).
 5. **Whether beta follows the first four milestones or fewer.** The plan calls the first beta 0.2.0-beta.0 and keeps feature work
    in later betas, as the Pack roadmap does. Any milestone can be merged into its neighbor.
@@ -143,7 +143,7 @@ Speed and size met: typing cost independent of document size, very large documen
 
 ### 0.7.0-beta.0
 
-Adoption kit: migration guide and tool, content profiles, the script-tag build, starters, a playground, and the decisions on mappings and a reference server.
+Adoption kit: migration guide and tool, content profiles, the script-tag build, starters, a playground, the reference server and the decision on mappings.
 
 - [ ] [4.1](https://github.com/rathkit/rte/issues/51) Migration guide `P0`
 - [ ] [4.2](https://github.com/rathkit/rte/issues/52) Content migration tool `P0`
@@ -151,7 +151,7 @@ Adoption kit: migration guide and tool, content profiles, the script-tag build, 
 - [ ] [4.4](https://github.com/rathkit/rte/issues/54) Content filtering profiles for legacy content `P1`
 - [ ] [4.5](https://github.com/rathkit/rte/issues/55) Compatibility layer, if decided `P1`
 - [ ] [4.6](https://github.com/rathkit/rte/issues/56) Starter templates and examples `P1`
-- [ ] [4.7](https://github.com/rathkit/rte/issues/57) Reference server decision and upload contract *(maintainer)* *(spike)* `P1`
+- [ ] [4.7](https://github.com/rathkit/rte/issues/57) Reference server package (rte-server) `P0`
 - [ ] [4.8](https://github.com/rathkit/rte/issues/58) Interactive playground `P2`
 - [ ] [4.9](https://github.com/rathkit/rte/issues/59) One-package install `P2`
 - [ ] [4.10](https://github.com/rathkit/rte/issues/60) Contribution guide for plugins `P2`

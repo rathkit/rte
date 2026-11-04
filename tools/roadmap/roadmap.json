@@ -28,7 +28,7 @@
     },
     {
       "title": "0.7.0-beta.0",
-      "description": "Adoption kit: migration guide and tool, content profiles, the script-tag build, starters, a playground, and the decisions on mappings and a reference server."
+      "description": "Adoption kit: migration guide and tool, content profiles, the script-tag build, starters, a playground, the reference server and the decision on mappings."
     },
     {
       "title": "0.8.0-beta.0",
@@ -622,16 +622,13 @@
     },
     {
       "id": "4.7",
-      "title": "Reference server decision and upload contract",
+      "title": "Reference server package (rte-server)",
       "milestone": "0.7.0-beta.0",
-      "track": "docs",
-      "priority": "P1",
-      "size": "L",
-      "flags": [
-        "maintainer",
-        "spike"
-      ],
-      "body": "Decide whether `rte-server` is part of 1.0. At minimum publish the upload and link-check contract as a specification with a tiny sample server in the docs.\n\nDone when: the decision and the specification are written."
+      "track": "platform",
+      "priority": "P0",
+      "size": "XL",
+      "flags": [],
+      "body": "`rte-server` is part of 1.0 (decided by the maintainer). Publish `@rathkit/rte-server` with zero runtime dependencies: the upload and link-check contract as a written specification, a reference implementation of both, and the server-side clean-up an HTML value needs before it is stored. It is a reference to build on, not a hosted service.\n\nDone when: the package is published, its contract is documented, a sample server in the docs runs against it, and tests cover the contract."
     },
     {
       "id": "4.8",

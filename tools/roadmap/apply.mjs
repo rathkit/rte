@@ -46,7 +46,7 @@ const trackColor = { behavior: "1d76db", features: "5319e7", interface: "c2e0c6"
 for (const [t, d] of Object.entries(data.tracks)) labels.set(`track:${t}`, [trackColor[t] ?? "ededed", d]);
 const labelsOf = (i) => ["roadmap", `track:${i.track}`, i.priority, ...i.flags];
 
-console.log(`${data.milestones.length} milestones, ${labels.size} labels, ${data.issues.length} issues, 1 project "${data.project}" (private, fields Track, Priority, Size, Metric)`);
+console.log(`${data.milestones.length} milestones, ${labels.size} labels, ${data.issues.length} issues, 1 project "${data.project}" (public, fields Track, Priority, Size, Metric)`);
 if (!apply) {
   for (const m of data.milestones) console.log(`  ${m.title}: ${data.issues.filter((i) => i.milestone === m.title).length} issues`);
   console.log("Dry run. Nothing was created. Run with --apply to create it.");
@@ -59,11 +59,11 @@ for (const [name, [color, description]] of labels) if (!haveLabels.has(name)) gh
 const haveMilestones = new Set(JSON.parse(gh("api", `repos/${REPO}/milestones?state=all&per_page=100`)).map((m) => m.title));
 for (const m of data.milestones) if (!haveMilestones.has(m.title)) gh("api", `repos/${REPO}/milestones`, "-f", `title=${m.title}`, "-f", `description=${m.description}`);
 
-// The project: private, like the Pack one, with the same fields.
+// The project: public, like the Pack one, with the same fields.
 let project = JSON.parse(gh("project", "list", "--owner", OWNER, "--format", "json", "--limit", "100")).projects.find((p) => p.title === data.project);
 if (!project) {
   project = JSON.parse(gh("project", "create", "--owner", OWNER, "--title", data.project, "--format", "json"));
-  gh("project", "edit", String(project.number), "--owner", OWNER, "--description", data.description, "--visibility", "PRIVATE");
+  gh("project", "edit", String(project.number), "--owner", OWNER, "--description", data.description, "--visibility", "PUBLIC");
   gh("project", "link", String(project.number), "--owner", OWNER, "--repo", REPO);
 }
 const fieldsNow = () => JSON.parse(gh("project", "field-list", String(project.number), "--owner", OWNER, "--format", "json")).fields;
