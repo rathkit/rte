@@ -7,6 +7,8 @@ export interface RteJqueryOptions extends RteElementOptions {
   /** The starting HTML. */
   html?: string;
   readOnly?: boolean;
+  /** Read-only, and not focusable or in the tab order. */
+  disabled?: boolean;
   /** The name screen readers announce for the editing surface. */
   label: string;
 }
@@ -56,11 +58,12 @@ export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQue
     return this.each(function () {
       const host = this as Host;
       if (host.__rte) return;
-      const { html, readOnly, label, ...rest } = options;
+      const { html, readOnly, disabled, label, ...rest } = options;
       const el = document.createElement("rte-editor") as RteEditorElement;
       el.setAttribute("label", label);
       if (html !== undefined) el.setAttribute("value", html);
       if (readOnly) el.setAttribute("readonly", "");
+      if (disabled) el.setAttribute("disabled", "");
       el.options = rest;
       // Each event of the element comes out as `rte:` plus its name. Through the jQuery that was installed into (not a global one), so
       // handlers get the payload as their second argument: the html for `change`, the selection for `selection`, the editor otherwise.

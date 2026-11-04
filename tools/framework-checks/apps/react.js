@@ -15,10 +15,14 @@ function Bold({ editor }) {
 
 function App() {
   const [editor, setEditor] = useState(undefined);
+  const [access, setAccess] = useState({});
+  fw.access = (next) => setAccess(next);
   return h("div", null,
     h(Bold, { editor }),
     h(RteEditor, {
       label: "Body",
+      readOnly: access.readOnly ?? false,
+      disabled: access.disabled ?? false,
       defaultValue: "<p>one two three</p>",
       onChange: (html) => fw.changes.push(html),
       onFocus: () => fw.events.push("focus"),

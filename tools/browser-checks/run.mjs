@@ -351,7 +351,7 @@ for (const [name, type] of engines) {
     // A history step exists before the editor is switched, so undo has something to refuse.
     await page.click("#ed > p");
     await page.keyboard.type("Q");
-    const typed = await html();
+    let typed = await html();
     await page.evaluate((st) => { st === "readonly" ? window.__editor.setReadOnly(true) : window.__editor.setDisabled(true); }, state);
     const same = async (what) => check(`${tag}: ${what}`, (await html()) === typed, await html());
     // Keys and shortcuts.
@@ -441,6 +441,32 @@ for (const [name, type] of engines) {
     // The task checkbox.
     await page.click("#ed [data-rte-check]", { force: true });
     await same("clicking a task's checkbox changes nothing");
+    // Table sizing: the column and row edges and the grips do nothing, and the pointer does not offer them.
+    const grid = '<table><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td>b2</td></tr></table>';
+    await page.evaluate((g) => { window.__editor.setReadOnly(false); window.__editor.setDisabled(false); window.__editor.setHtml(g); }, grid);
+    const gridBefore = await html();
+    await page.evaluate((st) => { st === "readonly" ? window.__editor.setReadOnly(true) : window.__editor.setDisabled(true); }, state);
+    const cellGeometry = () => page.evaluate(() => { const b = document.querySelector("#ed tr:nth-child(1) td:nth-child(1)").getBoundingClientRect(); return { right: b.right, bottom: b.bottom, mid: b.top + b.height / 2, left: b.left + b.width / 2 }; });
+    const g = await cellGeometry();
+    await page.mouse.move(g.right - 2, g.mid);
+    check(`${tag}: the pointer on a column edge does not offer to resize`, (await page.evaluate(() => document.getElementById("ed").style.cursor)) === "", await page.evaluate(() => document.getElementById("ed").style.cursor));
+    await page.mouse.down();
+    await page.mouse.move(g.right + 40, g.mid, { steps: 4 });
+    check(`${tag}: dragging a column edge shows no guide`, (await page.evaluate(() => document.querySelectorAll("[data-rte-resize-line]").length)) === 0, "guide");
+    await page.mouse.up();
+    await page.mouse.move(g.left, g.bottom - 2);
+    await page.mouse.down();
+    await page.mouse.move(g.left, g.bottom + 30, { steps: 4 });
+    check(`${tag}: dragging a row edge shows no guide`, (await page.evaluate(() => document.querySelectorAll("[data-rte-resize-line]").length)) === 0, "guide");
+    await page.mouse.up();
+    await page.mouse.dblclick(g.right - 2, g.mid);
+    await page.click("#ed td", { force: true });
+    await page.waitForTimeout(60);
+    check(`${tag}: a table the caret is in has no grips`, (await page.evaluate(() => document.querySelectorAll("[data-rte-grip]").length)) === 0, "grips");
+    check(`${tag}: table edges, grips and double clicks changed nothing`, (await html()).replace(/<\/?tbody>/g, "") === gridBefore.replace(/<\/?tbody>/g, ""), await html());
+    await page.evaluate((a) => { window.__editor.setReadOnly(false); window.__editor.setDisabled(false); window.__editor.setHtml(a); }, ACCESS_DOC);
+    await page.evaluate((st) => { st === "readonly" ? window.__editor.setReadOnly(true) : window.__editor.setDisabled(true); }, state);
+    typed = await html();
     // Replacing text with the find bar's command.
     await fire(() => { window.__editor.commands.run("find.replaceAll", { find: "alpha", replace: "ZED" }); window.__editor.commands.run("find.replace", { replace: "ZED" }); });
     await same("replace and replace all change nothing");
@@ -1634,6 +1660,17 @@ for (const [name, type] of engines) {
   await page.evaluate(() => window.__one.editor.undo());
   await page.waitForTimeout(60);
   check(`${name} (ui) undo restores the old width`, await page.evaluate(() => window.__one.editor.getHtml().includes('width="100"')), await page.evaluate(() => window.__one.editor.getHtml()));
+  // Read-only and disabled: a click on the image selects nothing and shows no handle, and the properties command is not offered.
+  for (const state of ["readonly", "disabled"]) {
+    await page.evaluate((st) => { const e = window.__one.editor; e.setReadOnly(false); e.setDisabled(false); st === "readonly" ? e.setReadOnly(true) : e.setDisabled(true); }, state);
+    const before = await page.evaluate(() => window.__one.editor.getHtml());
+    const box = await page.locator("#root [data-rte-part=content] img").boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(80);
+    check(`${name} (ui) ${state}: a click on an image selects nothing and shows no resize handle`, (await page.locator("[data-rte-resize-handle]").count()) === 0 && (await page.evaluate(() => document.querySelectorAll("#root img[data-rte-image-selected]").length)) === 0, state);
+    check(`${name} (ui) ${state}: the image properties command is not enabled, and running it changes nothing`, await page.evaluate(() => { const c = window.__one.editor.commands; const ran = c.run("image.update", { width: 7 }); return !c.state("image.update").enabled && ran === false; }) && (await page.evaluate(() => window.__one.editor.getHtml())) === before, state);
+  }
+  await page.evaluate(() => { const e = window.__one.editor; e.setReadOnly(false); e.setDisabled(false); e.focus(); });
   await page.click('#root [data-rte-item="image-properties"]');
   await page.waitForTimeout(100);
   check(`${name} (ui) the properties dialog starts with the image's values`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rte-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rte-part=field]")]; return !!d && f.length === 5 && f[0].value === "dot" && f[1].value === "100" && f[2].value === "" && f[3].value === "" && f[4].value === ""; }));

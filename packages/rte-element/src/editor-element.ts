@@ -6,7 +6,7 @@ import type { Warning } from "@rathkit/rte-core";
 import { createEditor, type StandardOptions } from "@rathkit/rte-core/standard";
 
 /** Options an app can only pass as code (functions, plugin lists): everything in the standard editor's options except what attributes control. */
-export type RteElementOptions = Omit<StandardOptions, "element" | "html" | "readOnly">;
+export type RteElementOptions = Omit<StandardOptions, "element" | "html" | "readOnly" | "disabled">;
 
 export class RteEditorElement extends HTMLElement {
   static formAssociated = true;

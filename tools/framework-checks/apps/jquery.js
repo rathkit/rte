@@ -25,4 +25,7 @@ $("#host").rteEditor("editor").then((editor) => {
   $("#bold").on("click", () => editor.commands.run("format.bold"));
   fw.ready = true;
 });
+fw.access = (next) => { const el = document.querySelector("rte-editor"); el.readOnly = !!next.readOnly; el.disabled = !!next.disabled; };
+// The plugin's own `disabled` option, on a second host.
+$("<div id=\"host2\"></div>").appendTo(document.body).rteEditor({ label: "Off", html: "<p>off</p>", disabled: true });
 fw.destroy = () => $("#host").rteEditor("destroy");

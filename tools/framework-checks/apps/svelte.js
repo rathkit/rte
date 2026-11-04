@@ -8,14 +8,16 @@ fw.commits = () => fw.commitCount;
 const surface = document.getElementById("surface");
 const bold = document.getElementById("bold");
 surface.setAttribute("aria-label", "Body");
-const action = rteEditor(surface, {
+const config = {
   html: "<p>one two three</p>",
   onChange: (html) => fw.changes.push(html),
   onFocus: () => fw.events.push("focus"),
   onBlur: () => fw.events.push("blur"),
   onSelection: (s) => fw.events.push(s.anchor && s.focus ? "selection" : "bad"),
   onReady: (editor) => { fw.readies++; fw.editor = editor; },
-});
+};
+const action = rteEditor(surface, config);
+fw.access = (next) => action.update({ ...config, ...next });
 const state = command(fw.editor, "format.bold");
 const active = derived(state, (s) => s.active);
 const count = selector(fw.editor, (s) => s.doc.blocks.length);

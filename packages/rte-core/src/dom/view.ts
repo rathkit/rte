@@ -333,6 +333,8 @@ export class Editor {
       if (el.hasAttribute("tabindex")) { this.savedTabindex = el.getAttribute("tabindex"); el.removeAttribute("tabindex"); }
       if (el.contains(el.ownerDocument.activeElement)) (el.ownerDocument.activeElement as HTMLElement | null)?.blur();
     } else if (this.savedTabindex !== null) { el.setAttribute("tabindex", this.savedTabindex); this.savedTabindex = null; }
+    // The page parts of plugins (table grips, the image handle) draw only while editing is allowed, so they are told it changed.
+    for (const listener of [...this.changeListeners]) listener({ docChanged: false, selectionChanged: false, focusMoved: false });
   }
 
   /** Calls back after the document or selection changed, once per turn. Same as `subscribe`, kept for older callers. */

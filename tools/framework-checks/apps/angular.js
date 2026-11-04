@@ -10,10 +10,12 @@ fw.commits = () => fw.commitCount;
 
 class App {
   editor = signal(undefined);
+  access = signal({});
   bold = commandState(this.editor, "format.bold");
   constructor() {
     // Counts how often the bold state changes, which is how often anything reading it is woken.
     effect(() => { this.bold(); fw.commitCount++; });
+    fw.access = (next) => this.access.set(next);
   }
   onReady(editor) { fw.readies++; fw.editor = editor; this.editor.set(editor); }
   onChange(html) { fw.changes.push(html); }
@@ -24,7 +26,7 @@ Component({
   selector: "app-root",
   imports: [RteEditor],
   template: `<button id="bold" [attr.aria-pressed]="bold().active" [disabled]="!bold().enabled" (click)="run()">Bold</button>
-    <div rteEditor label="Body" defaultValue="<p>one two three</p>" (ready)="onReady($event)" (change)="onChange($event)"
+    <div rteEditor label="Body" defaultValue="<p>one two three</p>" [readOnly]="!!access().readOnly" [disabled]="!!access().disabled" (ready)="onReady($event)" (change)="onChange($event)"
       (rteFocus)="onEvent('focus', $event)" (rteBlur)="onEvent('blur', $event)" (rteSelection)="onEvent('selection', $event)"></div>`,
 })(App);
 

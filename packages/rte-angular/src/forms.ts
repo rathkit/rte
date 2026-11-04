@@ -17,7 +17,7 @@ export class RteValueAccessor {
   writeValue(value: string | null): void { this.host.setValue(value ?? ""); }
   registerOnChange(fn: (html: string) => void): void { this.changed = fn; }
   registerOnTouched(fn: () => void): void { this.touched = fn; }
-  setDisabledState(disabled: boolean): void { this.host.readOnly = disabled; }
+  setDisabledState(disabled: boolean): void { this.host.disabled = disabled; }
   onTouched(): void { this.touched(); }
 
   static ɵfac: i0.ɵɵFactoryDeclaration<RteValueAccessor, never> = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: RteValueAccessor, deps: [], target: i0.ɵɵFactoryTarget.Directive });

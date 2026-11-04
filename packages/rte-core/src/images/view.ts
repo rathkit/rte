@@ -52,7 +52,8 @@ export class ImageSelection {
   }
 
   update(): void {
-    const img = this.find();
+    // Nothing is selected for editing while the editor is read-only or disabled: no mark, no handle.
+    const img = this.engine.readOnly ? undefined : this.find();
     if (img === this.marked) {
       this.place();
       return;

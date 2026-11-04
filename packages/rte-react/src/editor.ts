@@ -5,12 +5,15 @@ import type { Editor } from "@rathkit/rte-core/dom";
 import type { Selection } from "@rathkit/rte-core";
 import { createEditor, type StandardOptions } from "@rathkit/rte-core/standard";
 
-export type RteOptions = Omit<StandardOptions, "element" | "html" | "readOnly">;
+export type RteOptions = Omit<StandardOptions, "element" | "html" | "readOnly" | "disabled">;
 
 export interface RteEditorProps extends RteOptions {
   /** The starting HTML. Later changes to this prop are ignored: call `editor.setHtml` to replace the document. */
   defaultValue?: string;
+  /** No edits; the editor can still be focused, selected in and copied from. Live. */
   readOnly?: boolean;
+  /** Read-only, and not focusable or in the tab order. Live. */
+  disabled?: boolean;
   /** The name screen readers announce for the editing surface. Required: an unnamed editor is an accessibility fault. */
   label: string;
   className?: string;
@@ -35,8 +38,8 @@ export function useRteEditor(props: Omit<RteEditorProps, "label" | "className">)
   // Built in an effect so that React's development double-run (build, tear down, build) is harmless.
   useEffect(() => {
     if (!element) return;
-    const { defaultValue, readOnly, onChange: _c, onReady: _r, onFocus: _f, onBlur: _b, onSelection: _s, ...options } = latest.current;
-    const made = createEditor({ ...(options as RteOptions), element, html: defaultValue ?? "", readOnly: readOnly ?? false });
+    const { defaultValue, readOnly, disabled, onChange: _c, onReady: _r, onFocus: _f, onBlur: _b, onSelection: _s, ...options } = latest.current;
+    const made = createEditor({ ...(options as RteOptions), element, html: defaultValue ?? "", readOnly: readOnly ?? false, disabled: disabled ?? false });
     const offs = [
       made.on("change", (html) => latest.current.onChange?.(html)),
       made.on("focus", (e) => latest.current.onFocus?.(e)),
@@ -53,6 +56,7 @@ export function useRteEditor(props: Omit<RteEditorProps, "label" | "className">)
     };
   }, [element]);
   useEffect(() => { editor?.setReadOnly(props.readOnly ?? false); }, [editor, props.readOnly]);
+  useEffect(() => { editor?.setDisabled(props.disabled ?? false); }, [editor, props.disabled]);
   return { ref, editor };
 }
 

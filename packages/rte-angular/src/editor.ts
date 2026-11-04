@@ -7,7 +7,7 @@ import type { Editor } from "@rathkit/rte-core/dom";
 import type { Selection } from "@rathkit/rte-core";
 import { createEditor, type StandardOptions } from "@rathkit/rte-core/standard";
 
-export type RteOptions = Omit<StandardOptions, "element" | "html" | "readOnly">;
+export type RteOptions = Omit<StandardOptions, "element" | "html" | "readOnly" | "disabled">;
 
 export class RteEditor {
   /** The name screen readers announce for the editing surface. */
@@ -31,12 +31,20 @@ export class RteEditor {
   private readonly element = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
   private readonly zone = inject(NgZone);
   private readOnlyNow = false;
+  private disabledNow = false;
   private stop = (): void => undefined;
 
   get readOnly(): boolean { return this.readOnlyNow; }
   set readOnly(value: boolean) {
     this.readOnlyNow = !!value;
     this.editor()?.setReadOnly(this.readOnlyNow);
+  }
+
+  /** Read-only, and not focusable or in the tab order. A form control's disabled state sets it. */
+  get disabled(): boolean { return this.disabledNow; }
+  set disabled(value: boolean) {
+    this.disabledNow = !!value;
+    this.editor()?.setDisabled(this.disabledNow);
   }
 
   /** Replaces the document without reporting it as an edit. Before the editor exists it is the starting document. */
@@ -47,7 +55,7 @@ export class RteEditor {
   }
 
   ngOnInit(): void {
-    const made = this.zone.runOutsideAngular(() => createEditor({ ...this.options, element: this.element, html: this.defaultValue, readOnly: this.readOnlyNow }));
+    const made = this.zone.runOutsideAngular(() => createEditor({ ...this.options, element: this.element, html: this.defaultValue, readOnly: this.readOnlyNow, disabled: this.disabledNow }));
     const offs = [
       made.on("change", (html) => this.zone.run(() => this.change.emit(html))),
       made.on("focus", (e) => this.zone.run(() => this.rteFocus.emit(e))),
@@ -67,7 +75,7 @@ export class RteEditor {
   // The types are what an Angular build reads from the .d.ts file to know this is a directive, and which inputs and outputs it has.
   static ɵfac: i0.ɵɵFactoryDeclaration<RteEditor, never> = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: RteEditor, deps: [], target: i0.ɵɵFactoryTarget.Directive });
   static ɵdir: i0.ɵɵDirectiveDeclaration<RteEditor, "[rteEditor]", ["rteEditor"],
-    { "label": { "alias": "label"; "required": true }; "defaultValue": { "alias": "defaultValue"; "required": false }; "options": { "alias": "options"; "required": false }; "readOnly": { "alias": "readOnly"; "required": false } },
+    { "label": { "alias": "label"; "required": true }; "defaultValue": { "alias": "defaultValue"; "required": false }; "options": { "alias": "options"; "required": false }; "readOnly": { "alias": "readOnly"; "required": false }; "disabled": { "alias": "disabled"; "required": false } },
     { "change": "change"; "ready": "ready"; "rteFocus": "rteFocus"; "rteBlur": "rteBlur"; "rteSelection": "rteSelection" }, never, never, true, never> = i0.ɵɵngDeclareDirective({
     minVersion: "17.1.0",
     version: "20.0.0",
@@ -79,6 +87,7 @@ export class RteEditor {
       defaultValue: { classPropertyName: "defaultValue", publicName: "defaultValue", isSignal: false, isRequired: false, transformFunction: null },
       options: { classPropertyName: "options", publicName: "options", isSignal: false, isRequired: false, transformFunction: null },
       readOnly: { classPropertyName: "readOnly", publicName: "readOnly", isSignal: false, isRequired: false, transformFunction: null },
+      disabled: { classPropertyName: "disabled", publicName: "disabled", isSignal: false, isRequired: false, transformFunction: null },
     },
     outputs: { change: "change", ready: "ready", rteFocus: "rteFocus", rteBlur: "rteBlur", rteSelection: "rteSelection" },
     host: { attributes: { "data-rte-surface": "" }, properties: { "attr.aria-label": "label" } },

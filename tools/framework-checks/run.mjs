@@ -86,6 +86,21 @@ for (const [engine, type] of engines) {
       await page.waitForTimeout(100);
       check(`${name} typing in the controlled editor reaches the control`, await page.evaluate(() => window.__fw.control.value.includes("controlq") && window.__fw.control.dirty), await page.evaluate(() => window.__fw.control.value));
     }
+    // Read-only and disabled (docs/ACCESS.md), changed live through the wrapper's own props.
+    const body = page.locator("[role=textbox][aria-label=Body]");
+    const access = async (next) => { await page.evaluate((n) => window.__fw.access(n), next); await page.waitForTimeout(80); return body.evaluate((e) => ({ ce: e.getAttribute("contenteditable"), ro: e.getAttribute("aria-readonly"), dis: e.getAttribute("aria-disabled"), tab: e.getAttribute("tabindex") })); };
+    const ro = await access({ readOnly: true });
+    check(`${name} readOnly makes the editor read-only and keeps it in the tab order`, ro.ce === "false" && ro.ro === "true" && ro.dis === null && ro.tab === "0", ro);
+    const dis = await access({ disabled: true });
+    check(`${name} disabled makes it read-only, announced as disabled and out of the tab order`, dis.ce === "false" && dis.ro === null && dis.dis === "true" && dis.tab === null, dis);
+    const both = await access({ readOnly: true, disabled: true });
+    check(`${name} disabled wins over read-only`, both.ce === "false" && both.dis === "true" && both.tab === null, both);
+    const back = await access({});
+    check(`${name} turning both off makes it editable again`, back.ce === "true" && back.ro === null && back.dis === null && back.tab === null, back);
+    if (app === "jquery") {
+      const off = await page.locator("#host2 [data-rte-surface]").evaluate((e) => ({ ce: e.getAttribute("contenteditable"), dis: e.getAttribute("aria-disabled") }));
+      check(`${name} the plugin's disabled option disables its editor`, off.ce === "false" && off.dis === "true", off);
+    }
     await page.evaluate(() => document.activeElement && document.activeElement.blur());
     await page.waitForTimeout(50);
     check(`${name} blur is reported when the editor loses the focus`, await page.evaluate(() => window.__fw.events.includes("blur")), await page.evaluate(() => window.__fw.events));
@@ -259,10 +274,10 @@ for (const [engine, type] of engines) {
   check(`${name} and nothing more arrives afterwards`, (await page.evaluate(() => window.__fw.values.length)) === seen, seen);
   await page.evaluate(() => window.__fw.control.disable());
   await page.waitForTimeout(100);
-  check(`${name} a disabled control makes the editor read-only`, (await surface("Control").getAttribute("contenteditable")) === "false", null);
+  check(`${name} a disabled control makes the editor disabled`, (await surface("Control").getAttribute("contenteditable")) === "false" && (await surface("Control").getAttribute("aria-disabled")) === "true" && (await surface("Control").getAttribute("tabindex")) === null, null);
   await page.evaluate(() => window.__fw.control.enable());
   await page.waitForTimeout(100);
-  check(`${name} and enabling it makes it editable again`, (await surface("Control").getAttribute("contenteditable")) === "true", null);
+  check(`${name} and enabling it makes it editable again`, (await surface("Control").getAttribute("contenteditable")) === "true" && (await surface("Control").getAttribute("aria-disabled")) === null, null);
   await page.evaluate(() => window.__fw.control.markAsUntouched());
   await surface("Control").click();
   await page.waitForTimeout(50);

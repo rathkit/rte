@@ -26,8 +26,10 @@ Every way a person can change the document, in both states. One browser check (`
 - drop of text, markup and files, and dragging the document's own text
 - every command, by name, the editor's and the plugins' (each reports itself as not enabled, which is what a toolbar draws), and
   Replace and Replace all in find
-- clicking a task's checkbox (the plugins' sizing handles for tables and images check the state before they start, but the walk does not
-  drive them)
+- clicking a task's checkbox
+- the table column and row edges (no resize cursor, no guide, no change), the table grips, and a double click on an edge
+- the image: a click selects nothing and shows no resize handle; an image that was selected when the editor was switched off loses its
+  mark and handle; the properties command is not enabled
 - undo and redo
 
 ## What still works
@@ -45,7 +47,9 @@ Every way a person can change the document, in both states. One browser check (`
 | --- | --- | --- |
 | `createEditor` / `Editor` | `readOnly` option, `setReadOnly(boolean)`, `readOnly` | `disabled` option, `setDisabled(boolean)`, `disabled` |
 | `<rte-editor>` | `readonly` attribute and `readOnly` property | `disabled` attribute and `disabled` property; a disabled `<fieldset>` |
-| Framework wrappers | `readOnly` prop | Not yet |
+| React, Vue, Angular | `readOnly` prop or input (live) | `disabled` prop or input (live); an Angular form control's disabled state sets it |
+| Svelte action | `readOnly` option (live, in `update`) | `disabled` option (live, in `update`) |
+| jQuery | `readOnly` option | `disabled` option |
 
 `editor.readOnly` is true in both states: it says whether edits are refused. `editor.disabled` says whether it is disabled.
 While disabled, `setReadOnly(false)` is remembered but the editor stays read-only until it is enabled.

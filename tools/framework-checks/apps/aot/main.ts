@@ -15,19 +15,21 @@ fw["commits"] = () => fw["commitCount"];
   imports: [RteEditor, RteValueAccessor, ReactiveFormsModule],
   template: `
     <button id="bold" [attr.aria-pressed]="bold().active" [disabled]="!bold().enabled" (click)="run()">Bold</button>
-    <div rteEditor label="Body" defaultValue="<p>one two three</p>" [readOnly]="false" (ready)="onReady($event)" (change)="onChange($event)"
+    <div rteEditor label="Body" defaultValue="<p>one two three</p>" [readOnly]="!!access().readOnly" [disabled]="!!access().disabled" (ready)="onReady($event)" (change)="onChange($event)"
       (rteFocus)="onEvent('focus')" (rteBlur)="onEvent('blur')" (rteSelection)="onEvent('selection')"></div>
     <div rteEditor label="Control" [formControl]="control"></div>
   `,
 })
 class App {
   readonly editor = signal<Editor | undefined>(undefined);
+  readonly access = signal<{ readOnly?: boolean; disabled?: boolean }>({});
   readonly bold = commandState(this.editor, "format.bold");
   readonly control = new FormControl<string | null>("<p>control</p>");
   constructor() {
     effect(() => { this.bold(); fw["commitCount"]++; });
     this.control.valueChanges.subscribe((v) => fw["values"].push(v));
     fw["control"] = this.control;
+    fw["access"] = (next: { readOnly?: boolean; disabled?: boolean }) => this.access.set(next);
   }
   onReady(editor: Editor): void { fw["readies"]++; fw["editor"] = editor; this.editor.set(editor); }
   onChange(html: string): void { fw["changes"].push(html); }
