@@ -32,7 +32,7 @@ Moving the element keeps its content; removing it takes the editor down.
 
 ### Options as attributes
 
-`placeholder` (a hint shown while empty; changing it takes effect), `maxlength` (the most characters; typing and pasting past it are refused), `spellcheck` (`true` or `false`), `autofocus`, as well as `label`, `value`, `readonly`, `disabled` and `required`. The same options are `placeholder`, `maxLength`, `onMaxLength`, `spellcheck` and `autofocus` on `createEditor`, and pass through the wrappers. The empty editor is marked `data-rte-empty` and carries `aria-placeholder`; the styled interface draws the hint, and a custom look can draw it from the custom property `--rte-placeholder` on that same element.
+`placeholder` (a hint shown while empty; changing it takes effect), `maxlength` (the most characters; typing and pasting past it are refused), `spellcheck` (`true` or `false`), `content` (`strict`, `standard` or `loose`: what is kept and dropped when HTML is read, see [CONTENT-POLICY.md](CONTENT-POLICY.md); read when the editor is built, and single choices such as `maxDepth` go in `options.content`, with the attribute's profile laid under them), `autofocus`, as well as `label`, `value`, `readonly`, `disabled` and `required`. The same options are `placeholder`, `maxLength`, `onMaxLength`, `spellcheck`, `content` and `autofocus` on `createEditor`, and pass through the wrappers. The empty editor is marked `data-rte-empty` and carries `aria-placeholder`; the styled interface draws the hint, and a custom look can draw it from the custom property `--rte-placeholder` on that same element.
 
 ## `<rte-toolbar>`
 

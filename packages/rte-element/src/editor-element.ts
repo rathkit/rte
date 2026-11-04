@@ -45,9 +45,14 @@ export class RteEditorElement extends HTMLElement {
     else if (!this.hasAttribute("aria-label") && !this.hasAttribute("aria-labelledby")) console.warn("[rte] <rte-editor> has no name: give it a label attribute.");
     const maxLength = Number.parseInt(this.getAttribute("maxlength") ?? "", 10);
     const spellcheck = this.getAttribute("spellcheck");
+    // `content="strict"` (or standard, loose) picks the content profile; single choices given as the `content` option still apply on top of it.
+    const profile = this.getAttribute("content");
+    const known = profile === "strict" || profile === "standard" || profile === "loose";
+    if (profile !== null && !known) console.warn(`[rte] <rte-editor content="${profile}"> is not a content profile: use strict, standard or loose.`);
     const editor = createEditor({
       ...this.opts, element: surface, html: this.html, readOnly: this.hasAttribute("readonly") || this.hasAttribute("disabled"),
       ...(this.hasAttribute("placeholder") ? { placeholder: this.getAttribute("placeholder") ?? "" } : {}),
+      ...(known ? { content: { ...this.opts.content, profile } } : {}),
       ...(Number.isFinite(maxLength) && maxLength >= 0 ? { maxLength } : {}),
       ...(spellcheck === "true" || spellcheck === "false" ? { spellcheck: spellcheck === "true" } : {}),
       ...(this.hasAttribute("autofocus") ? { autofocus: true } : {}),

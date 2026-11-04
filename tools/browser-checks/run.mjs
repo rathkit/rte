@@ -1090,6 +1090,29 @@ for (const [name, type] of engines) {
   await page.click("#limited [contenteditable=true]");
   await page.keyboard.type("0123456789abcdef");
   check(`${name} (element) maxlength stops typing at the limit`, (await val("limited")) === "<p>0123456789</p>", await val("limited"));
+  // content="strict|standard|loose" picks the content profile; a property adds single choices on top; a name that is not a profile is ignored with a warning.
+  const profiled = (attr) => page.evaluate(async (a) => {
+    const el = document.createElement("rte-editor");
+    el.setAttribute("label", "P"); if (a) el.setAttribute("content", a);
+    document.getElementById("f").appendChild(el);
+    await el.whenReady();
+    el.value = '<p><a href="tel:1">t</a><a href="ftp://x/f">f</a><span style="color:red">c</span></p>';
+    const out = el.value; el.remove(); return out;
+  }, attr);
+  const links = (h) => (h.match(/<a /g) ?? []).length;
+  const strictOut = await profiled("strict"); const standardOut = await profiled("standard"); const looseOut = await profiled("loose"); const noneOut = await profiled(null);
+  check(`${name} (element) content="strict" drops tel links and colors, standard keeps tel, loose keeps ftp too`, links(strictOut) === 0 && !strictOut.includes("color") && links(standardOut) === 1 && standardOut.includes("color") && links(looseOut) === 2, [strictOut, standardOut, looseOut]);
+  const layered = await page.evaluate(async () => {
+    const el = document.createElement("rte-editor"); el.setAttribute("label", "P"); el.setAttribute("content", "strict");
+    el.options = { content: { linkSchemes: ["tel"] } };
+    document.getElementById("f").appendChild(el); await el.whenReady();
+    el.value = '<p><a href="tel:1">t</a><a href="mailto:a@b.c">m</a><span style="color:red">c</span></p>';
+    const out = el.value; el.remove(); return out;
+  });
+  check(`${name} (element) options.content lays single choices over the attribute's profile`, (layered.match(/<a /g) ?? []).length === 1 && layered.includes("tel:") && !layered.includes("color"), layered);
+  check(`${name} (element) with no content attribute the standard profile applies`, noneOut === standardOut, noneOut);
+  const warned = await page.evaluate(async () => { const seen = []; const w = console.warn; console.warn = (m) => seen.push(String(m)); const el = document.createElement("rte-editor"); el.setAttribute("label", "P"); el.setAttribute("content", "paranoid"); document.getElementById("f").appendChild(el); await el.whenReady(); console.warn = w; el.remove(); return seen; });
+  check(`${name} (element) a content value that is not a profile is warned about and ignored`, warned.some((m) => m.includes("not a content profile")), warned);
   await page.evaluate(() => document.getElementById("limited").setAttribute("placeholder", "Changed"));
   check(`${name} (element) changing the placeholder attribute takes effect`, await page.evaluate(() => document.querySelector("#limited [contenteditable=true]").getAttribute("aria-placeholder") === "Changed"), "changed");
   check(`${name} (element) removing an element leaves no page errors`, t.errors.length === 0, t.errors);
