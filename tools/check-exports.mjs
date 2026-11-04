@@ -2,6 +2,8 @@
 // The list comes from the built type files (pnpm build first): for each entry point of each package, every exported name, whether it
 // is a value or a type, and whether its declaration has a doc comment. A change to the public surface shows up in review as a change
 // to the snapshot; `node tools/check-exports.mjs --update` rewrites it.
+// Also fails when one name is exported from two entry points (they read as the same thing and clash when both are imported). The
+// framework wrappers are the exception among themselves: each repeats RteEditor, useCommand and so on on purpose, because a page uses one.
 // Also fails when an exported declaration has no doc comment, except the ones listed in tools/exports.undocumented.txt (a shrinking
 // list: remove a line when its declaration gets a comment).
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -71,9 +73,22 @@ function entries(dir, pkg) {
   return list;
 }
 
+const WRAPPERS = /^@rathkit\/rte-(react|vue|svelte|angular|jquery)(\/|$)/;
+
+/** Names exported from more than one entry point, wrappers excluded from each other: [name, specifiers]. */
+export function duplicates(byName) {
+  const found = [];
+  for (const [name, specifiers] of byName) {
+    const clashing = specifiers.filter((s, i) => specifiers.some((t, j) => i !== j && !(WRAPPERS.test(s) && WRAPPERS.test(t))));
+    if (clashing.length) found.push([name, clashing]);
+  }
+  return found;
+}
+
 export function collect() {
   const lines = [];
   const missing = [];
+  const byName = new Map();
   const packagesDir = join(root, "packages");
   for (const name of readdirSync(packagesDir).sort()) {
     const dir = join(packagesDir, name);
@@ -85,18 +100,22 @@ export function collect() {
       lines.push(`# ${specifier}`);
       for (const [exported, info] of [...exportsOf(file)].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
         lines.push(`${info.kind} ${exported}`);
+        byName.set(exported, [...(byName.get(exported) ?? []), specifier]);
         if (!info.doc) missing.push(`${specifier} ${exported}`);
       }
     }
   }
-  return { snapshot: `${lines.join("\n")}\n`, missing: [...new Set(missing)] };
+  return { snapshot: `${lines.join("\n")}\n`, missing: [...new Set(missing)], clashes: duplicates(byName) };
 }
 
 if (import.meta.main) {
   const update = process.argv.includes("--update");
-  const { snapshot, missing } = collect();
+  const { snapshot, missing, clashes } = collect();
   const problems = [];
-  if (update) {
+  if (clashes.length) {
+    problems.push(`a name is exported from more than one entry point (export it from one, or rename):\n${clashes.map(([n, where]) => `  ${n}: ${where.join(", ")}`).join("\n")}`);
+  }
+  if (update && problems.length === 0) {
     writeFileSync(snapshotFile, snapshot);
     writeFileSync(undocumentedFile, missing.length ? `${missing.join("\n")}\n` : "");
     console.log(`exports: snapshot written (${snapshot.split("\n").length - 1} lines, ${missing.length} without a doc comment)`);

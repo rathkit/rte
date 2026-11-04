@@ -84,6 +84,6 @@ export class RkUi extends HTMLElement {
 }
 
 /** Registers <rk-ui>. Safe to call more than once. */
-export function define(name = "rk-ui"): void {
+export function defineUi(name = "rk-ui"): void {
   if (!customElements.get(name)) customElements.define(name, RkUi);
 }

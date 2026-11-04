@@ -134,7 +134,6 @@
 @rathkit/rte-headless ToolbarOptions
 @rathkit/rte-headless Tooltip
 @rathkit/rte-headless TooltipOptions
-@rathkit/rte-headless Unsubscribe
 @rathkit/rte-headless createAnnouncer
 @rathkit/rte-headless createDialog
 @rathkit/rte-headless createDisclosure

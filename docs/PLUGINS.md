@@ -86,3 +86,7 @@ Every name each package exports is listed in `tools/exports.snapshot.txt`, one l
 is a reviewed change: run `node tools/check-exports.mjs --update` and commit the new list with the change. The check also fails for a new
 export with no doc comment; the names that still lack one are in `tools/exports.undocumented.txt`, and the check asks for a line to be
 removed once its declaration has a comment.
+
+A name is exported from one entry point only, so two imports in one file never clash and one name never means two things. The check fails
+on a repeat. The one exception is among the framework wrappers (React, Vue, Svelte, Angular, jQuery), which share names such as
+`RteEditor` and `useCommand` on purpose: a page uses one of them.

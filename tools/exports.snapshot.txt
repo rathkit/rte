@@ -270,8 +270,6 @@ value mapImages
 value readDataImage
 value rewriteImages
 # @rathkit/rte-core/standard
-value Editor
-type EditorOptions
 type StandardOptions
 type StandardPluginOptions
 value createEditor
@@ -300,7 +298,6 @@ type Toolbar
 type ToolbarOptions
 type Tooltip
 type TooltipOptions
-type Unsubscribe
 value checkFields
 value commandStore
 value createAnnouncer
@@ -388,14 +385,10 @@ type UiEditor
 type UiOptions
 value createUi
 # @rathkit/rte-ui/standard
-type Ui
-type UiEditor
-type UiOptions
 value createStandardUi
-value createUi
 # @rathkit/rte-ui/element
 value RkUi
-value define
+value defineUi
 # @rathkit/rte-ui/element/define
 # @rathkit/rte-vue
 value RteEditor

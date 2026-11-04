@@ -7,6 +7,3 @@ import type { Ui, UiEditor, UiOptions } from "./types.ts";
 export function createStandardUi(editor: UiEditor, options: UiOptions): Ui {
   return createUi(editor, { ...options, defaults: { ...options.defaults, icons: { ...defaultIcons, ...options.defaults?.icons } } });
 }
-
-export { createUi };
-export type { Ui, UiEditor, UiOptions };

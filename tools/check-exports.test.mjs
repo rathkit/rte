@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { exportsOf } from "./check-exports.mjs";
+import { duplicates, exportsOf } from "./check-exports.mjs";
 
 test("reads declarations, re-exports and star exports from type files", () => {
   const dir = mkdtempSync(join(tmpdir(), "rte-exports-"));
@@ -27,4 +27,15 @@ test("reads declarations, re-exports and star exports from type files", () => {
   assert.equal(found.get("Shape")?.kind, "type");
   assert.equal(found.get("Other")?.kind, "type");
   assert.equal(found.get("renamed")?.doc, true);
+});
+
+test("a name in two entry points is a clash, except between framework wrappers", () => {
+  const byName = new Map([
+    ["Editor", ["@rathkit/rte-core/dom", "@rathkit/rte-core/standard"]],
+    ["define", ["@rathkit/rte-element", "@rathkit/rte-ui/element"]],
+    ["RteEditor", ["@rathkit/rte-react", "@rathkit/rte-vue", "@rathkit/rte-angular"]],
+    ["useStore", ["@rathkit/rte-react", "@rathkit/rte-core"]],
+    ["once", ["@rathkit/rte-core"]],
+  ]);
+  assert.deepEqual(duplicates(byName).map(([name]) => name), ["Editor", "define", "useStore"]);
 });

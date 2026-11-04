@@ -55,5 +55,3 @@ export function createEditor(options: StandardOptions): Editor {
   void [_lists, _tables, _find, _autoformat, _footnotes, _plugins, _u, _m, _f, _r];
   return new Editor({ ...editorOptions, plugins: standardPlugins(options) });
 }
-
-export { Editor, type EditorOptions };
