@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-element",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "The editor as a custom element, <rte-editor>, for any page or framework: form-associated, with properties, attributes and events.",
   "keywords": [
     "rich-text",
@@ -50,8 +50,8 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": ">=0.1.0-alpha.4 <0.2.0",
-    "@rathkit/rte-headless": ">=0.1.0-alpha.4 <0.2.0"
+    "@rathkit/rte-core": ">=0.1.0-alpha.5 <0.2.0",
+    "@rathkit/rte-headless": ">=0.1.0-alpha.5 <0.2.0"
   },
   "peerDependenciesMeta": {
     "@rathkit/rte-core": {

@@ -1,3 +1,73 @@
+## 0.1.0-alpha.5 (2026-11-04)
+
+Published to the `next` dist-tag only. This alpha renames things and tightens how content and problems are handled, so expect to change code that uses earlier alphas.
+
+- **Breaking: the `rk-` prefix is now `rte-`** (elements, attributes, CSS classes and custom properties), custom element classes end in `Element`, and each exported name now comes from one entry point only (`tools/exports.snapshot.txt` lists them).
+- **A written content policy** (`docs/CONTENT-POLICY.md`) with `strict`, `standard` and `loose` profiles, limits on nesting depth and input size, and a `content` attribute on the element. Pasting an image with a relative address is refused unless the host opts in with `pasteRelativeImages`.
+- **One warning channel**: problems are reported as `{ code, message }` through `onWarning`, and a plugin that fails is isolated and rolled back instead of taking the editor down.
+- **Read-only and disabled** are real states, with the right ARIA and focus behavior, and the React, Vue, Svelte, Angular and jQuery wrappers take a `disabled` option.
+- A nested list item that holds only a sub-list now shows its bullet.
+
+### Features
+
+- report ready, change, focus, blur and selection the same way everywhere ([#2](https://github.com/rathkit/rte/issues/2))
+- add a disabled prop to the framework wrappers and check the sizing handles ([456734d](https://github.com/rathkit/rte/commit/456734d))
+- **core:** write down the content policy, bound depth and input size, add profiles ([#6](https://github.com/rathkit/rte/issues/6))
+- **core:** report problems on one channel with codes and isolate failing plugins ([#7](https://github.com/rathkit/rte/issues/7))
+- **core:** make read-only reachable, add a disabled state, and check every input path ([#8](https://github.com/rathkit/rte/issues/8))
+- **element:** choose the content profile with a content attribute ([3613647](https://github.com/rathkit/rte/commit/3613647))
+- **tools:** check the public exports of every package against a snapshot ([#1](https://github.com/rathkit/rte/issues/1))
+
+### Fixes
+
+- **core:** read trailing spaces, equals signs and addresses in one pass ([9d946e8](https://github.com/rathkit/rte/commit/9d946e8))
+- **core:** end an undo step when the caret moves, give compositions their own step, restore redo caret ([#3](https://github.com/rathkit/rte/issues/3))
+- **core:** keep the caret in text next to rules, delete rules first, end a triple click at the block ([#4](https://github.com/rathkit/rte/issues/4))
+- **core:** make Enter, Backspace and Delete finish at block edges ([#5](https://github.com/rathkit/rte/issues/5))
+- **core:** show the marker on an empty list item that holds a nested list ([1415dfc](https://github.com/rathkit/rte/commit/1415dfc))
+- **core:** refuse images with a relative address when pasting ([ecc244b](https://github.com/rathkit/rte/commit/ecc244b))
+- **deps:** use patched undici and minimatch in the development tools ([8a616f7](https://github.com/rathkit/rte/commit/8a616f7))
+- **deps:** keep minimatch at the version nx can use ([19500d0](https://github.com/rathkit/rte/commit/19500d0))
+- **element:** check for an empty value without a backtracking pattern ([532d7f4](https://github.com/rathkit/rte/commit/532d7f4))
+- **svg:** refuse a comment nested in a comment ([3bebbbe](https://github.com/rathkit/rte/commit/3bebbbe))
+- **svg:** cut comments out until none is left ([bf1dad6](https://github.com/rathkit/rte/commit/bf1dad6))
+- **svg:** cut comments out in a bounded number of passes ([4e29dee](https://github.com/rathkit/rte/commit/4e29dee))
+- **tools:** read each fixture once and encode every @ in a package url ([97c743c](https://github.com/rathkit/rte/commit/97c743c))
+
+### Internal changes
+
+- ⚠️  export each name from one entry point only ([fffac2a](https://github.com/rathkit/rte/commit/fffac2a))
+- ⚠️  name custom element classes with an Element suffix ([457f9fc](https://github.com/rathkit/rte/commit/457f9fc))
+- ⚠️  rename the rk- prefix to rte- ([9c46bed](https://github.com/rathkit/rte/commit/9c46bed))
+
+### Documentation
+
+- update the status line for the public alpha ([55138ad](https://github.com/rathkit/rte/commit/55138ad))
+- **embeds:** scope embedded pages, videos and media ([85ef0f0](https://github.com/rathkit/rte/commit/85ef0f0))
+- **embeds:** record the owner's decisions ([20cf65e](https://github.com/rathkit/rte/commit/20cf65e))
+- **packages:** drop the version from the alpha notice in the package READMEs ([521eb60](https://github.com/rathkit/rte/commit/521eb60))
+- **readme:** say alpha.4 is on npm and list footnotes and Markdown ([481fb0c](https://github.com/rathkit/rte/commit/481fb0c))
+- **roadmap:** draft the road to 1.0 in the shape of the Pack roadmap ([964b6ed](https://github.com/rathkit/rte/commit/964b6ed))
+- **roadmap:** link the roadmap items to their issues and project ([7b5436f](https://github.com/rathkit/rte/commit/7b5436f))
+- **roadmap:** rte-server is part of 1.0; the project is public ([df158b6](https://github.com/rathkit/rte/commit/df158b6))
+- **support:** record the run on the oldest React, Vue and jQuery the wrappers allow ([6b660d2](https://github.com/rathkit/rte/commit/6b660d2))
+- **support:** record the Angular 20 and 21 runs ([08f77f1](https://github.com/rathkit/rte/commit/08f77f1))
+
+### Tests
+
+- **core:** keep long runs of one character fast in four places ([33b3e5b](https://github.com/rathkit/rte/commit/33b3e5b))
+- **core:** fix test typing so typecheck passes again ([0f33477](https://github.com/rathkit/rte/commit/0f33477))
+
+### Continuous integration
+
+- run the release dry run on every change ([545130d](https://github.com/rathkit/rte/commit/545130d))
+
+### ⚠️  Breaking Changes
+
+- rename the rk- prefix to rte-  ([9c46bed](https://github.com/rathkit/rte/commit/9c46bed))
+- name custom element classes with an Element suffix  ([457f9fc](https://github.com/rathkit/rte/commit/457f9fc))
+- export each name from one entry point only  ([fffac2a](https://github.com/rathkit/rte/commit/fffac2a))
+
 ## 0.1.0-alpha.4 (2026-11-03)
 
 Published to the `next` dist-tag only. Footnotes and Markdown are new, and the interface can now be had as one element.

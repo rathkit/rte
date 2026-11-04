@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-angular",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "The editor for Angular: a directive, signals and an Angular forms value accessor over the headless layer, with no editor or accessibility logic of its own.",
   "keywords": [
     "rich-text",
@@ -48,8 +48,8 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": ">=0.1.0-alpha.4 <0.2.0",
-    "@rathkit/rte-headless": ">=0.1.0-alpha.4 <0.2.0",
+    "@rathkit/rte-core": ">=0.1.0-alpha.5 <0.2.0",
+    "@rathkit/rte-headless": ">=0.1.0-alpha.5 <0.2.0",
     "@angular/core": ">=20.0.0",
     "@angular/forms": ">=20.0.0"
   },

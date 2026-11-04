@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-jquery",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "The editor for jQuery: $(el).rteEditor(options) over the custom element, with rte:change events.",
   "keywords": [
     "rich-text",
@@ -44,8 +44,8 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": ">=0.1.0-alpha.4 <0.2.0",
-    "@rathkit/rte-element": ">=0.1.0-alpha.4 <0.2.0"
+    "@rathkit/rte-core": ">=0.1.0-alpha.5 <0.2.0",
+    "@rathkit/rte-element": ">=0.1.0-alpha.5 <0.2.0"
   },
   "peerDependenciesMeta": {
     "@rathkit/rte-core": {
