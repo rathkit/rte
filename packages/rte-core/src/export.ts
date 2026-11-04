@@ -75,9 +75,9 @@ const dirAttr = (dir: string | undefined): string => (dir ? ` dir="${dir}"` : ""
 function exportList(list: List, depth: number): string {
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? ` style="list-style-type: ${list.style};"` : "";
   const start = list.type === "ol" && list.start !== undefined ? ` start="${list.start}"` : "";
-  // An item with no text of its own that only holds a nested list shows no marker, and neither does a task: it has its checkbox instead.
+  // A bare item (no text, only a nested list) shows no marker, and neither does a task: it has its checkbox instead.
   const items = list.items.map((item): string => {
-    const noMarker = item.checked !== undefined || (item.content.length === 0 && (item.children[0]?.type === "ul" || item.children[0]?.type === "ol"));
+    const noMarker = item.checked !== undefined || (item.bare === true && item.content.length === 0 && (item.children[0]?.type === "ul" || item.children[0]?.type === "ol"));
     const box = item.checked === undefined ? "" : `<input type="checkbox" disabled${item.checked ? " checked" : ""}> `;
     // An item with paragraph breaks in it is written as paragraphs; the task's checkbox goes in the first.
     const paragraphs: Inline[][] = [[]];

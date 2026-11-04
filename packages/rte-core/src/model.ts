@@ -77,6 +77,11 @@ export interface ListItem {
   readonly checked?: boolean;
   /** In a notes list: the id of the reference this note belongs to. */
   readonly id?: string;
+  /**
+   * Set on an item that has no text and holds only a nested list, and shows no marker of its own: the nested list sits under it
+   * without a bullet or number above it. Without this an item with no text still shows its marker. Ignored once the item has text.
+   */
+  readonly bare?: true;
 }
 /** What a list item may hold besides its own text. Tables and definition lists are not allowed in an item. */
 export type ItemChild = List | Paragraph | Heading | CodeBlock | Quote | Rule;

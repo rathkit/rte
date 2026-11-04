@@ -40,8 +40,10 @@ What the list commands do, in the terms of the requirements.
   anywhere else (Enter in code adds a line, Enter in a paragraph adds a paragraph there, copy keeps them, find searches them). A paragraph
   directly after the item's text is a paragraph break inside the text, as above; a paragraph is a child only after another child (text, code, more text).
   Backspace in an empty child that cannot merge with what is before it (after a code block, say) removes it. Tables and definition lists do not go
-  in an item: when read from markup or made by an edit their text stays as paragraphs. An item with no text of its own that starts with a nested list shows no marker (its
-  placeholder); an item that starts with code keeps its bullet. Outdenting an item with a code child brings the code out with it. In the model the
+  in an item: when read from markup or made by an edit their text stays as paragraphs. An item with no text of its own that starts with a nested list shows its marker like any other (Enter at the end of an item that has a
+  nested list makes one, and so does deleting all of an item's text). It is a bare placeholder, with no marker, only when it is marked `bare` in the model
+  (written `<li style="list-style-type: none;">`): indenting the first item makes one, and Backspace at the start of an empty item with a nested list
+  turns it into one. Shift+Tab on such an item moves it out a level, and at the left margin it stays. An item that starts with code keeps its bullet. Outdenting an item with a code child brings the code out with it. In the model the
   field is `ListItem.children`, and a path to a child is `[block, item, child]` (or `[block, item, child, n, …]` inside a quote child), the same numbers a nested list already used.
 
 ## Tasks

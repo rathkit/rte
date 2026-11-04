@@ -323,6 +323,11 @@ for (const [name, type] of engines) {
   await edge("Delete before a rule removes the rule and not the text", "<p>a</p><hr><p>b</p>", 1, "p", ["Delete"], "<p>a</p><p>b</p>");
   await edge("Backspace in a table cell's first paragraph does nothing to the table", "<table><tr><td>a</td><td>b</td></tr></table>", 0, "td", ["Backspace"], "<table><tr><td>a</td><td>b</td></tr></table>", 1);
   await edge("Enter in a table cell starts a paragraph in that cell", "<table><tr><td>ab</td><td>c</td></tr></table>", 1, "td", ["Enter", "X"], "<table><tr><td><p>a</p><p>Xb</p></td><td>c</td></tr></table>");
+  // An empty item that holds a nested list shows a marker; Backspace in it takes the marker away.
+  await edge("Enter at the end of an item with a nested list gives an item with a bullet", "<ul><li>a<ul><li>b</li></ul></li></ul>", 1, "ul > li", ["Enter"], "<ul><li>a</li><li><ul><li>b</li></ul></li></ul>");
+  check(`${name} keys: that item shows its bullet`, await page.evaluate(() => getComputedStyle(document.querySelectorAll("#ed > ul > li")[1]).listStyleType) !== "none");
+  await key("Backspace");
+  check(`${name} keys: Backspace in it takes the bullet away`, (await page.evaluate(() => getComputedStyle(document.querySelectorAll("#ed > ul > li")[1]).listStyleType)) === "none", await html());
   // A footnote's text stays in the notes list.
   await reset('<p>a<sup data-note="q"><a href="#fn-q">1</a></sup>b</p><section class="footnotes" role="doc-endnotes"><ol><li id="fn-q" data-note="q">Q. <a href="#fnref-q" role="doc-backlink">↩</a></li></ol></section>');
   const before = await html();

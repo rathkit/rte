@@ -103,7 +103,7 @@ function splitList(list: List, path: readonly number[], liftChildren: boolean): 
   const numbering = (count: number): Partial<List> => (list.type === "ol" ? { start: (list.start ?? 1) + count } : {});
   if (k === undefined) {
     // Children either keep their depth under an empty placeholder, or come out with the item, one level shallower.
-    const placeholder: ListItem[] = item.children.length > 0 && !liftChildren ? [{ content: [], children: item.children }] : [];
+    const placeholder: ListItem[] = item.children.length > 0 && !liftChildren ? [{ content: [], children: item.children, bare: true }] : [];
     const rest = [...placeholder, ...list.items.slice(i + 1)];
     return {
       before: i > 0 ? { ...list, items: list.items.slice(0, i) } : undefined,
@@ -115,7 +115,7 @@ function splitList(list: List, path: readonly number[], liftChildren: boolean): 
   const inner = splitList(item.children[k] as List, path.slice(2), liftChildren);
   const keptSublists = [...item.children.slice(0, k), ...(inner.before ? [inner.before] : [])];
   const afterSublists = [...(inner.after ? [inner.after] : []), ...item.children.slice(k + 1)];
-  const rest = [...(afterSublists.length > 0 ? [{ content: [], children: afterSublists }] : []), ...list.items.slice(i + 1)];
+  const rest = [...(afterSublists.length > 0 ? [{ content: [], children: afterSublists, bare: true as const }] : []), ...list.items.slice(i + 1)];
   return {
     before: { ...list, items: [...list.items.slice(0, i), { content: item.content, children: keptSublists }] },
     content: inner.content,
@@ -339,7 +339,7 @@ export function indentItems(doc: Doc, sel: Selection, maxDepth = Number.POSITIVE
       };
       const rest = list.items.slice(index + group.length);
       if (previous) return { ...list, items: [...list.items.slice(0, index - 1), nested(previous), ...rest] };
-      return { ...list, items: [nested({ content: [], children: [] }), ...rest] };
+      return { ...list, items: [nested({ content: [], children: [], bare: true }), ...rest] };
     });
   }
   return { doc: next, selection: carry(doc, next, sel) };
@@ -357,6 +357,10 @@ export function outdentItems(doc: Doc, sel: Selection): EditResult {
     const loc = locateItem(next, path);
     if (!loc) continue;
     if (loc.item.length === 1) {
+      // An empty item that holds a nested list stays at the left margin: leaving would strand an empty paragraph above its list.
+      const here = listOfItem(next, path);
+      const held = here?.list.items[here.index];
+      if (held && held.content.length === 0 && held.children.length > 0) continue;
       next = takeOutOfList(next, path, true);
       continue;
     }
@@ -372,6 +376,7 @@ export function outdentItems(doc: Doc, sel: Selection): EditResult {
       const keptSub = itemIndex > 0 ? [{ ...sub, items: sub.items.slice(0, itemIndex) }] : [];
       const lifted: ListItem = {
         content: moved.content,
+        ...(moved.bare ? { bare: true as const } : {}),
         children: [...moved.children, ...(followers.length > 0 ? [{ type: sub.type, ...(sub.style !== undefined ? { style: sub.style } : {}), items: followers } as List] : [])],
       };
       const children = [...parent.children.slice(0, sublistIndex), ...keptSub, ...parent.children.slice(sublistIndex + 1)];
@@ -450,6 +455,12 @@ export function backspaceAtItemStart(doc: Doc, pos: Pos): EditResult | undefined
   const held = listOfItem(doc, pos.path);
   // Backspace at the start of a task first takes its checkbox away, leaving an ordinary item.
   if (held?.list.items[held.index]?.checked !== undefined) return { doc: setChecked(doc, pos.path, undefined), selection: caret(pos) };
+  // An empty item that holds a nested list loses its marker first; the nested list stays where it is.
+  const only = held?.list.items[held.index];
+  if (only && only.content.length === 0 && only.bare !== true && (only.children[0]?.type === "ul" || only.children[0]?.type === "ol")) {
+    const next = mapListAt(doc, pos.path, (list, index) => ({ ...list, items: list.items.map((item, i) => (i === index ? { ...item, bare: true as const } : item)) }));
+    return { doc: next, selection: caret(pos) };
+  }
   if (!held || held.index !== 0) return undefined;
   return leaveListItem(doc, pos);
 }
@@ -470,7 +481,7 @@ export function splitListItem(doc: Doc, pos: Pos): EditResult | undefined {
     items: list.items.flatMap((candidate, i) => (i !== index ? [candidate] : [
       { content: before, children: [], ...(item.checked !== undefined ? { checked: item.checked } : {}), ...(item.id !== undefined ? { id: item.id } : {}) },
       // The new item is a task too, and not yet done.
-      { content: after, children: item.children, ...(item.checked !== undefined ? { checked: false } : {}) },
+      { content: after, children: item.children, ...(item.checked !== undefined ? { checked: false } : {}), ...(item.bare && after.length === 0 ? { bare: true as const } : {}) },
     ])),
   }));
   // The new item follows the old one directly in reading order.

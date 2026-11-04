@@ -160,6 +160,7 @@ interface Li {
   listId?: string;
   checked?: boolean;
   id?: string;
+  bare?: true;
 }
 interface L {
   type: "ul" | "ol";
@@ -603,7 +604,7 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings, notes = false):
     if (child.tag === "ul" || child.tag === "ol") {
       // A list placed directly inside a list belongs to the item before it.
       const nested = convertList(child, ctx, settings);
-      const last = list.items[list.items.length - 1] ?? (list.items[list.items.push({ content: [], children: [] }) - 1] as Li);
+      const last = list.items[list.items.length - 1] ?? (list.items[list.items.push({ content: [], children: [], bare: true }) - 1] as Li);
       last.children.push(nested);
       continue;
     }
@@ -638,6 +639,8 @@ function convertList(el: HElement, ctx: Ctx, settings: Settings, notes = false):
       const id = noteId(child.attrs["data-note"], false) ?? noteId(child.attrs.id, true);
       if (id !== undefined) item.id = id;
     }
+    // An item with no text that holds a nested list shows a marker unless its style says it does not.
+    if (item.content.length === 0 && !task && item.children.length > 0 && /list-style(-type)?\s*:\s*none/i.test(child.attrs.style ?? "")) item.bare = true;
     const level = levelOf(child.attrs["data-aria-level"] ?? child.attrs["aria-level"]);
     if (level !== undefined) item.level = level;
     const listId = child.attrs["data-listid"];
@@ -858,7 +861,7 @@ function nestByLevel(lists: readonly L[]): List[] {
         const fresh: L = { type: list.type, items: [] };
         const parent = stack[stack.length - 1];
         if (parent) {
-          const host = parent.items[parent.items.length - 1] ?? (parent.items[parent.items.push({ content: [], children: [] }) - 1] as Li);
+          const host = parent.items[parent.items.length - 1] ?? (parent.items[parent.items.push({ content: [], children: [], bare: true }) - 1] as Li);
           host.children.push(fresh);
         } else {
           result.push(fresh);
@@ -875,7 +878,7 @@ function nestByLevel(lists: readonly L[]): List[] {
 }
 
 function freezeList(list: L, depth: number): List {
-  const items: ListItem[] = list.items.map((item) => ({ content: item.content, children: item.children.map((child): ItemChild => (child.type === "ul" || child.type === "ol" ? freezeList(child as L, depth + 1) : child)), ...(item.checked !== undefined ? { checked: item.checked } : {}), ...(item.id !== undefined ? { id: item.id } : {}) }));
+  const items: ListItem[] = list.items.map((item) => ({ content: item.content, children: item.children.map((child): ItemChild => (child.type === "ul" || child.type === "ol" ? freezeList(child as L, depth + 1) : child)), ...(item.checked !== undefined ? { checked: item.checked } : {}), ...(item.id !== undefined ? { id: item.id } : {}), ...(item.bare ? { bare: true as const } : {}) }));
   const style = list.style !== undefined && list.style !== DEFAULT_MARKER(list.type, depth) ? list.style : undefined;
   return { type: list.type, ...(list.notes ? { notes: true as const } : {}), ...(list.start !== undefined ? { start: list.start } : {}), ...(style !== undefined ? { style } : {}), items };
 }
