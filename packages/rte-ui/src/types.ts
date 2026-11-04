@@ -2,7 +2,7 @@ import type { Toolbar, ItemState, HeadlessEditor } from "@rathkit/rte-headless";
 import type { Counts, UiItem } from "@rathkit/rte-core";
 import type { TokenName } from "@rathkit/rte-themes";
 
-/** The parts the interface is made of. Selectors and `classes` address them by these names (as `data-rk-part`). */
+/** The parts the interface is made of. Selectors and `classes` address them by these names (as `data-rte-part`). */
 export type PartName =
   | "root" | "toolbar" | "button" | "select" | "separator" | "icon" | "label" | "content"
   | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status" | "source" | "shortcuts" | "floating" | "findbar" | "find-line" | "find-row" | "find-label" | "find-field" | "find-count"
@@ -55,7 +55,7 @@ export type UiEditor = HeadlessEditor & {
 };
 
 export interface UiOptions {
-  /** The element the interface is built in. It gets the `rk-root` class. */
+  /** The element the interface is built in. It gets the `rte-root` class. */
   readonly root: HTMLElement;
   readonly style?: StyleProvider;
   /** A line under the writing area with the number of words and characters. Default: on, when the editor can count. */

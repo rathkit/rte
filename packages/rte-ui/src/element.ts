@@ -1,15 +1,15 @@
-// <rk-ui>: the styled interface as a custom element. It wraps an <rk-editor> (from @rathkit/rte-element) and gives it the toolbar, find bar,
+// <rte-ui>: the styled interface as a custom element. It wraps an <rte-editor> (from @rathkit/rte-element) and gives it the toolbar, find bar,
 // status line, dialogs and, when asked for, the selection toolbar and context menu: the same interface `createUi` builds, by attributes.
 //
-//   <rk-ui theme="light" selection-toolbar context-menu>
-//     <rk-editor label="Notes"></rk-editor>
-//   </rk-ui>
+//   <rte-ui theme="light" selection-toolbar context-menu>
+//     <rte-editor label="Notes"></rte-editor>
+//   </rte-ui>
 //
-// It draws inside the <rk-editor>, so the editor's form value, events and properties are unchanged. Load `base.css` and a theme's CSS.
+// It draws inside the <rte-editor>, so the editor's form value, events and properties are unchanged. Load `base.css` and a theme's CSS.
 import { createStandardUi } from "./standard.ts";
 import type { StyleProvider, Ui, UiEditor } from "./types.ts";
 
-/** The part of <rk-editor> this needs: the editor once it exists. */
+/** The part of <rte-editor> this needs: the editor once it exists. */
 type Host = HTMLElement & { readonly editor?: unknown };
 
 const STYLE_ATTRIBUTES = ["theme", "scheme", "density"] as const;
@@ -22,12 +22,12 @@ export class RteUiElement extends HTMLElement {
 
   connectedCallback(): void {
     // The editor inside says when it is built (it may be defined after this element).
-    this.addEventListener("rk-ready", this.onReady);
+    this.addEventListener("rte-ready", this.onReady);
     this.attach();
   }
 
   disconnectedCallback(): void {
-    this.removeEventListener("rk-ready", this.onReady);
+    this.removeEventListener("rte-ready", this.onReady);
     this.detach();
   }
 
@@ -66,7 +66,7 @@ export class RteUiElement extends HTMLElement {
   }
 
   private attach(): void {
-    const host = this.querySelector<Host>("rk-editor");
+    const host = this.querySelector<Host>("rte-editor");
     const editor = host?.editor;
     if (!host || !editor || this.current) return;
     this.current = createStandardUi(editor as UiEditor, {
@@ -83,7 +83,7 @@ export class RteUiElement extends HTMLElement {
   }
 }
 
-/** Registers <rk-ui>. Safe to call more than once. */
-export function defineUi(name = "rk-ui"): void {
+/** Registers <rte-ui>. Safe to call more than once. */
+export function defineUi(name = "rte-ui"): void {
   if (!customElements.get(name)) customElements.define(name, RteUiElement);
 }

@@ -27,12 +27,12 @@ const contrast = (a: string, b: string): number => {
 };
 
 const sets: Record<string, Map<string, string>> = {
-  light: declarations(css("light"), '[data-rk-theme="light"]'),
-  dark: declarations(css("dark"), '[data-rk-theme="dark"]'),
-  "auto (light)": declarations(css("auto"), '[data-rk-theme="auto"]'),
-  "auto (dark)": new Map([...declarations(css("auto"), '[data-rk-theme="auto"]'), ...declarations(css("auto"), '[data-rk-theme="auto"]:not([data-rk-scheme="light"])', true)]),
-  "auto (forced dark)": new Map([...declarations(css("auto"), '[data-rk-theme="auto"]'), ...declarations(css("auto"), '[data-rk-scheme="dark"]')]),
-  "high-contrast": declarations(css("high-contrast"), '[data-rk-theme="high-contrast"]'),
+  light: declarations(css("light"), '[data-rte-theme="light"]'),
+  dark: declarations(css("dark"), '[data-rte-theme="dark"]'),
+  "auto (light)": declarations(css("auto"), '[data-rte-theme="auto"]'),
+  "auto (dark)": new Map([...declarations(css("auto"), '[data-rte-theme="auto"]'), ...declarations(css("auto"), '[data-rte-theme="auto"]:not([data-rte-scheme="light"])', true)]),
+  "auto (forced dark)": new Map([...declarations(css("auto"), '[data-rte-theme="auto"]'), ...declarations(css("auto"), '[data-rte-scheme="dark"]')]),
+  "high-contrast": declarations(css("high-contrast"), '[data-rte-theme="high-contrast"]'),
 };
 
 test("there are at most 50 tokens", () => assert.ok(TOKENS.length <= 50, String(TOKENS.length)));
@@ -55,12 +55,12 @@ test("each theme file is small, and scoped to a theme, never :root", () => {
 
 // WCAG 2.2: 4.5:1 for text, 3:1 for the edges of controls and the focus ring.
 const TEXT: [string, string][] = [
-  ["--rk-fg", "--rk-bg"], ["--rk-fg", "--rk-surface"], ["--rk-fg", "--rk-surface-raised"], ["--rk-fg-muted", "--rk-bg"], ["--rk-fg-muted", "--rk-surface"],
-  ["--rk-accent-fg", "--rk-accent"], ["--rk-accent", "--rk-bg"], ["--rk-accent", "--rk-surface-raised"], ["--rk-accent", "--rk-accent-subtle"], ["--rk-fg", "--rk-accent-subtle"],
-  ["--rk-brand-text", "--rk-bg"], ["--rk-danger", "--rk-bg"], ["--rk-danger", "--rk-surface-raised"], ["--rk-fg", "--rk-selection-bg"],
-  ["--rk-fg", "--rk-control-hover"], ["--rk-fg", "--rk-control-active"], ["--rk-fg-muted", "--rk-control-hover"],
+  ["--rte-fg", "--rte-bg"], ["--rte-fg", "--rte-surface"], ["--rte-fg", "--rte-surface-raised"], ["--rte-fg-muted", "--rte-bg"], ["--rte-fg-muted", "--rte-surface"],
+  ["--rte-accent-fg", "--rte-accent"], ["--rte-accent", "--rte-bg"], ["--rte-accent", "--rte-surface-raised"], ["--rte-accent", "--rte-accent-subtle"], ["--rte-fg", "--rte-accent-subtle"],
+  ["--rte-brand-text", "--rte-bg"], ["--rte-danger", "--rte-bg"], ["--rte-danger", "--rte-surface-raised"], ["--rte-fg", "--rte-selection-bg"],
+  ["--rte-fg", "--rte-control-hover"], ["--rte-fg", "--rte-control-active"], ["--rte-fg-muted", "--rte-control-hover"],
 ];
-const EDGES: [string, string][] = [["--rk-border", "--rk-bg"], ["--rk-border", "--rk-surface"], ["--rk-focus-color", "--rk-bg"], ["--rk-focus-color", "--rk-surface"], ["--rk-focus-color", "--rk-surface-raised"], ["--rk-accent", "--rk-surface"]];
+const EDGES: [string, string][] = [["--rte-border", "--rte-bg"], ["--rte-border", "--rte-surface"], ["--rte-focus-color", "--rte-bg"], ["--rte-focus-color", "--rte-surface"], ["--rte-focus-color", "--rte-surface-raised"], ["--rte-accent", "--rte-surface"]];
 
 test("text keeps 4.5:1 against its background in every theme", () => {
   for (const [name, set] of Object.entries(sets)) {
@@ -81,7 +81,7 @@ test("control edges and the focus ring keep 3:1 in every theme", () => {
 });
 
 test("a control is at least 24 CSS pixels (WCAG 2.2 target size), in every density", () => {
-  const sizes = [...css("light").matchAll(/--rk-control-size:\s*(\d+)px/g), ...css("density").matchAll(/--rk-control-size:\s*(\d+)px/g)].map((m) => Number(m[1]));
+  const sizes = [...css("light").matchAll(/--rte-control-size:\s*(\d+)px/g), ...css("density").matchAll(/--rte-control-size:\s*(\d+)px/g)].map((m) => Number(m[1]));
   assert.ok(sizes.length >= 3);
   for (const size of sizes) assert.ok(size >= 24, String(size));
 });

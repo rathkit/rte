@@ -3,7 +3,7 @@
 // without it vanishing, and it stays until the pointer or focus leaves or it is dismissed. The words are on the control already (its
 // accessible name), so the tooltip is a visual aid and is not announced a second time.
 //
-// Mark each control with `data-rk-tip="text"`. The caller owns the popup element and decides where it goes (`onShow`).
+// Mark each control with `data-rte-tip="text"`. The caller owns the popup element and decides where it goes (`onShow`).
 import { uniqueId } from "./disclosure.ts";
 import type { Unsubscribe } from "./types.ts";
 
@@ -27,13 +27,13 @@ export interface Tooltip {
   destroy: Unsubscribe;
 }
 
-const TIP = "[data-rk-tip]";
+const TIP = "[data-rte-tip]";
 
 export function createTooltip(options: TooltipOptions): Tooltip {
   const { container, popup } = options;
   const delay = options.delay ?? 500;
   const grace = options.grace ?? 150;
-  if (!popup.id) popup.id = uniqueId("rk-tooltip");
+  if (!popup.id) popup.id = uniqueId("rte-tooltip");
   popup.setAttribute("role", "tooltip");
   popup.hidden = true;
   let shown: HTMLElement | undefined;
@@ -52,7 +52,7 @@ export function createTooltip(options: TooltipOptions): Tooltip {
   };
   const show = (target: HTMLElement): void => {
     clear();
-    const text = target.getAttribute("data-rk-tip");
+    const text = target.getAttribute("data-rte-tip");
     if (!text) return;
     shown = target;
     popup.textContent = text;

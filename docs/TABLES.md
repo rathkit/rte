@@ -56,7 +56,7 @@ out again (typing in a 500-cell table: about 5 ms, against 15 before).
 
 ## Selecting cells and resizing columns
 
-When a selection starts in one cell and ends in another cell of the same table, the tables plugin's view part puts `data-rk-cell-selected` on every cell of the
+When a selection starts in one cell and ends in another cell of the same table, the tables plugin's view part puts `data-rte-cell-selected` on every cell of the
 rectangle between them (taken out to whole cells, as Merge does), so a theme can show what Merge would act on. The styled interface tints
 those cells and outlines them. The marks are attributes on the drawn cells, not part of the document.
 

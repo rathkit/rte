@@ -78,7 +78,7 @@ export class RteEditor {
       readOnly: { classPropertyName: "readOnly", publicName: "readOnly", isSignal: false, isRequired: false, transformFunction: null },
     },
     outputs: { change: "change", ready: "ready" },
-    host: { attributes: { "data-rk-surface": "" }, properties: { "attr.aria-label": "label" } },
+    host: { attributes: { "data-rte-surface": "" }, properties: { "attr.aria-label": "label" } },
     exportAs: ["rteEditor"],
     ngImport: i0,
   });

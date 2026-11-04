@@ -29,23 +29,23 @@ export function createSourceView(options: SourceViewOptions): SourceView {
   let original = "";
   let opener: HTMLElement | undefined;
 
-  const button = (): HTMLElement | null => toolbar.querySelector('[data-rk-item="source"]');
+  const button = (): HTMLElement | null => toolbar.querySelector('[data-rte-item="source"]');
   const close = (apply: boolean): void => {
     if (area.hidden) return;
     const changed = area.value !== original;
     area.hidden = true;
-    content.removeAttribute("data-rk-source");
+    content.removeAttribute("data-rte-source");
     button()?.setAttribute("aria-pressed", "false");
     if (apply && changed) editor.commands.run("document.setHtml", { html: area.value });
     editor.focus();
-    (opener ?? button())?.removeAttribute("data-rk-busy");
+    (opener ?? button())?.removeAttribute("data-rte-busy");
   };
   const open = (from: HTMLElement): void => {
     opener = from;
     original = editor.getHtml?.("\n") ?? "";
     area.value = original;
     area.hidden = false;
-    content.setAttribute("data-rk-source", "");
+    content.setAttribute("data-rte-source", "");
     button()?.setAttribute("aria-pressed", "true");
     area.focus();
     area.setSelectionRange(0, 0);
@@ -54,8 +54,8 @@ export function createSourceView(options: SourceViewOptions): SourceView {
   // The other buttons would act on a writing area that is not showing, so they are ignored while this is open.
   const guard = (e: Event): void => {
     if (area.hidden) return;
-    const control = (e.target as Element | null)?.closest<HTMLElement>("[data-rk-item]");
-    if (!control || control.getAttribute("data-rk-item") === "source") return;
+    const control = (e.target as Element | null)?.closest<HTMLElement>("[data-rte-item]");
+    if (!control || control.getAttribute("data-rte-item") === "source") return;
     if (e.type === "keydown" && !["Enter", " "].includes((e as KeyboardEvent).key)) return;
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -73,7 +73,7 @@ export function createSourceView(options: SourceViewOptions): SourceView {
       toolbar.removeEventListener("click", guard, true);
       toolbar.removeEventListener("keydown", guard, true);
       area.remove();
-      content.removeAttribute("data-rk-source");
+      content.removeAttribute("data-rte-source");
     },
   };
 }

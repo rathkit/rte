@@ -39,7 +39,7 @@ It is a block of its own, not an inline: like a figure, it sits between paragrap
 
 **Import and export.**
 
-- Export writes `<figure class="rk-embed"><iframe src title loading="lazy" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="" allowfullscreen></iframe><figcaption>…</figcaption></figure>`, from the validated fields only. Never stored markup, never any other attribute.
+- Export writes `<figure class="rte-embed"><iframe src title loading="lazy" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="" allowfullscreen></iframe><figcaption>…</figcaption></figure>`, from the validated fields only. Never stored markup, never any other attribute.
 - Import reads that exact shape back, and only when the plugin's provider list is passed in (`embedHosts` in `ImportOptions`). Without the list every `iframe` is dropped as today. A foreign `iframe` that matches a provider (the usual copy-the-embed-code case) is read into the same block; one that does not is dropped.
 - Markdown (opt-in plugin): an embed writes as its address on a line of its own, and reads back through the same provider check.
 

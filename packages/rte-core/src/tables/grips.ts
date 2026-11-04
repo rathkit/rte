@@ -84,7 +84,7 @@ export class TableGrips {
 
   private make(kind: Kind): HTMLElement {
     const el = document.createElement("div");
-    el.setAttribute("data-rk-grip", kind);
+    el.setAttribute("data-rte-grip", kind);
     el.setAttribute("role", "presentation");
     const cursor = kind === "row" ? "ns-resize" : kind === "column" ? "ew-resize" : kind === "width" ? "col-resize" : "row-resize";
     el.style.cssText = `position:fixed;z-index:2147483646;width:${SIZE}px;height:${SIZE}px;box-sizing:border-box;background:${COLOR};border:2px solid #fff;border-radius:${kind === "row" || kind === "column" ? "4px" : "50%"};cursor:${cursor};touch-action:none;opacity:0.9`;
@@ -119,7 +119,7 @@ export class TableGrips {
     const t = table.getBoundingClientRect();
     const horizontal = kind === "column" || kind === "width";
     const line = document.createElement("div");
-    line.setAttribute("data-rk-resize-line", "");
+    line.setAttribute("data-rte-resize-line", "");
     line.style.cssText = `position:fixed;z-index:2147483645;pointer-events:none;background:${COLOR};${horizontal ? `width:2px;top:${t.top}px;height:${t.height}px` : `height:2px;left:${t.left}px;width:${t.width}px`}`;
     document.body.appendChild(line);
     this.guide = line;

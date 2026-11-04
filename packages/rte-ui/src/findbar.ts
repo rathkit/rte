@@ -37,7 +37,7 @@ export function createFindBar(options: FindBarOptions): FindBar {
   bar.hidden = true;
 
   const field = (label: string, name: string): { wrap: HTMLElement; input: HTMLInputElement; text: HTMLLabelElement } => {
-    const id = `rk-find-${++counter}`;
+    const id = `rte-find-${++counter}`;
     const wrap = part(document.createElement("div"), "find-row");
     const text = part(document.createElement("label"), "find-label");
     text.htmlFor = id;
@@ -59,7 +59,7 @@ export function createFindBar(options: FindBarOptions): FindBar {
     if (setIcon(i, options.icon(name))) b.appendChild(i);
     else b.textContent = label;
     b.setAttribute("aria-label", label);
-    b.setAttribute("data-rk-tip", label);
+    b.setAttribute("data-rte-tip", label);
     return b;
   };
   const textButton = (label: string): HTMLButtonElement => {
@@ -94,7 +94,7 @@ export function createFindBar(options: FindBarOptions): FindBar {
     replace.text.textContent = message("find.replaceWith");
     for (const [el, key] of [[previous, "find.previous"], [next, "find.next"], [close, "find.close"], [matchCase, "find.matchCase"], [wholeWord, "find.wholeWord"]] as const) {
       el.setAttribute("aria-label", message(key));
-      el.setAttribute("data-rk-tip", message(key));
+      el.setAttribute("data-rte-tip", message(key));
     }
     replaceOne.textContent = message("find.replace");
     replaceAll.textContent = message("find.replaceAll");
@@ -111,8 +111,8 @@ export function createFindBar(options: FindBarOptions): FindBar {
     const Highlight = HighlightCtor();
     if (!highlights || !Highlight || !editor.rangeFor) return;
     if (!state.open || state.matches.length === 0) {
-      highlights.delete("rk-find");
-      highlights.delete("rk-find-current");
+      highlights.delete("rte-find");
+      highlights.delete("rte-find-current");
       return;
     }
     const ranges: Range[] = [];
@@ -123,9 +123,9 @@ export function createFindBar(options: FindBarOptions): FindBar {
       if (i === state.index) current = range;
       else ranges.push(range);
     });
-    highlights.set("rk-find", new Highlight(...ranges));
-    if (current) highlights.set("rk-find-current", new Highlight(current));
-    else highlights.delete("rk-find-current");
+    highlights.set("rte-find", new Highlight(...ranges));
+    if (current) highlights.set("rte-find-current", new Highlight(current));
+    else highlights.delete("rte-find-current");
   };
 
   const render = (): void => {
@@ -195,8 +195,8 @@ export function createFindBar(options: FindBarOptions): FindBar {
       stop();
       if (announceTimer) clearTimeout(announceTimer);
       const highlights = registry();
-      highlights?.delete("rk-find");
-      highlights?.delete("rk-find-current");
+      highlights?.delete("rte-find");
+      highlights?.delete("rte-find-current");
       bar.remove();
     },
   };

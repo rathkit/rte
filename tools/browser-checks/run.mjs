@@ -354,7 +354,7 @@ for (const [name, type] of engines) {
   for (let k = 0; k < 5; k++) await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ControlOrMeta+Alt+f");
   await page.keyboard.type("The source.");
-  check(`${name} the footnote key puts a numbered reference in the text and the caret in the new note`, JSON.stringify(await refs()) === '["1"]' && (await page.evaluate(() => document.querySelector("#ed ol[data-rk-notes] li")?.textContent)) === "The source.", await html());
+  check(`${name} the footnote key puts a numbered reference in the text and the caret in the new note`, JSON.stringify(await refs()) === '["1"]' && (await page.evaluate(() => document.querySelector("#ed ol[data-rte-notes] li")?.textContent)) === "The source.", await html());
   check(`${name} the note is written as a section with its address and a way back`, (await html()).includes('<section class="footnotes" role="doc-endnotes"><ol><li id="fn-n1" data-note="n1">The source. <a href="#fnref-n1" role="doc-backlink">'), await html());
   check(`${name} the reference is announced as a footnote reference`, await page.evaluate(() => { const e = document.querySelector("#ed sup[data-rte-note]"); return e?.getAttribute("role") === "doc-noteref" && e.getAttribute("aria-label") === "Footnote 1" && e.getAttribute("contenteditable") === "false"; }));
   await page.keyboard.press("ControlOrMeta+Alt+Shift+f");
@@ -372,10 +372,10 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Home");
   await page.keyboard.press("ControlOrMeta+Alt+f");
   await page.keyboard.type("First.");
-  check(`${name} a reference put before another takes number 1 and the old one becomes 2, in the list too`, JSON.stringify(await refs()) === '["1","2"]' && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("#ed ol[data-rk-notes] li")].map((e) => e.textContent))) === '["First.","The source."]', await html());
+  check(`${name} a reference put before another takes number 1 and the old one becomes 2, in the list too`, JSON.stringify(await refs()) === '["1","2"]' && JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("#ed ol[data-rte-notes] li")].map((e) => e.textContent))) === '["First.","The source."]', await html());
   await page.keyboard.press("Enter");
   await page.keyboard.type("Second paragraph.");
-  check(`${name} Enter in a note starts another paragraph of that note, not another note`, (await page.evaluate(() => document.querySelectorAll("#ed ol[data-rk-notes] li").length)) === 2 && (await html()).includes("<p>First.</p><p>Second paragraph.</p>"), await html());
+  check(`${name} Enter in a note starts another paragraph of that note, not another note`, (await page.evaluate(() => document.querySelectorAll("#ed ol[data-rte-notes] li").length)) === 2 && (await html()).includes("<p>First.</p><p>Second paragraph.</p>"), await html());
   await page.evaluate(() => window.__editor.commands.run("footnote.goto"));
   await page.keyboard.press("ControlOrMeta+a");
   await page.evaluate(() => document.addEventListener("copy", (e) => { window.__copied = e.clipboardData.getData("text/html"); }, { once: true }));
@@ -384,12 +384,12 @@ for (const [name, type] of engines) {
   await reset("<p>x</p>");
   await page.click("p");
   await page.evaluate(() => window.__editor.paste({ html: '<p>A<sup data-note="q"><a href="#fn-q">1</a></sup></p><section class="footnotes" role="doc-endnotes"><ol><li id="fn-q" data-note="q">Quoted. <a href="#fnref-q" role="doc-backlink">\u21A9</a></li></ol></section>' }));
-  check(`${name} pasting HTML that carries notes makes notes`, JSON.stringify(await refs()) === '["1"]' && (await page.evaluate(() => document.querySelector("#ed ol[data-rk-notes] li")?.textContent)) === "Quoted.", await html());
+  check(`${name} pasting HTML that carries notes makes notes`, JSON.stringify(await refs()) === '["1"]' && (await page.evaluate(() => document.querySelector("#ed ol[data-rte-notes] li")?.textContent)) === "Quoted.", await html());
   await page.evaluate(async () => { const m = await import("/dist/markdown/index.js"); window.__mdStop = window.__editor.use(m.markdown()); });
   await reset("<p>x</p>");
   await page.click("p");
   await page.evaluate(() => window.__editor.paste({ text: "Claim[^1] and more[^2].\n\n[^1]: First *source*.\n[^2]: Second." }));
-  check(`${name} Markdown with footnotes pastes as references and notes`, JSON.stringify(await refs()) === '["1","2"]' && (await page.evaluate(() => [...document.querySelectorAll("#ed ol[data-rk-notes] li")].map((e) => e.textContent))).join("|") === "First source.|Second.", await html());
+  check(`${name} Markdown with footnotes pastes as references and notes`, JSON.stringify(await refs()) === '["1","2"]' && (await page.evaluate(() => [...document.querySelectorAll("#ed ol[data-rte-notes] li")].map((e) => e.textContent))).join("|") === "First source.|Second.", await html());
   await page.evaluate(() => document.addEventListener("copy", (e) => { window.__copied = e.clipboardData.getData("text/markdown"); }, { once: true }));
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("ControlOrMeta+c");
@@ -413,7 +413,7 @@ for (const [name, type] of engines) {
   check(`${name} a selection across two cells deletes in each without joining them`, (await html()) === "<p>x</p><table><tbody><tr><td></td><td>cd</td></tr></tbody></table><p>y</p>" || (await html()) === "<p>x</p><table><tbody><tr><td></td><td>d</td></tr></tbody></table><p>y</p>", await html());
   // Cells a selection runs across are marked; a caret marks none.
   await reset("<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>");
-  const marked = () => page.evaluate(() => document.querySelectorAll("#ed [data-rk-cell-selected]").length);
+  const marked = () => page.evaluate(() => document.querySelectorAll("#ed [data-rte-cell-selected]").length);
   await page.evaluate(() => { const a = document.querySelector("#ed tr:nth-child(1) td:nth-child(1) p").firstChild; const d = document.querySelector("#ed tr:nth-child(2) td:nth-child(2) p").firstChild; window.__editor.selectDom(a, 1, d, 1); });
   await page.waitForTimeout(60);
   check(`${name} a selection across cells marks the rectangle of cells`, (await marked()) === 4, await marked());
@@ -442,12 +442,12 @@ for (const [name, type] of engines) {
   check(`${name} the pointer on a column edge shows the resize cursor`, (await page.evaluate(() => document.getElementById("ed").style.cursor)) === "col-resize", "cursor");
   await page.mouse.down();
   await page.mouse.move(box.right + 40, box.mid, { steps: 4 });
-  check(`${name} dragging shows a guide line`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === true, "line");
+  check(`${name} dragging shows a guide line`, (await page.evaluate(() => !!document.querySelector("[data-rte-resize-line]"))) === true, "line");
   await page.mouse.up();
   await page.waitForTimeout(60);
   const wide = await cellBox();
   check(`${name} letting go sets the column width`, /<col style="width: \d+px"><col>/.test(await html()) && Math.abs(wide.width - (box.width + 42)) < 8, { html: await html(), before: box.width, after: wide.width });
-  check(`${name} and the guide line is gone`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === false, "line");
+  check(`${name} and the guide line is gone`, (await page.evaluate(() => !!document.querySelector("[data-rte-resize-line]"))) === false, "line");
   await page.keyboard.press("ControlOrMeta+z");
   check(`${name} one undo takes the width back`, !(await html()).includes("<colgroup>"), await html());
   await page.evaluate(() => window.__editor.commands.run("table.columnWidth", { width: "150px" }));
@@ -465,14 +465,14 @@ for (const [name, type] of engines) {
   await reset("<table><tbody><tr><td>a1</td><td>a2</td><td>a3</td></tr><tr><td>b1</td><td>b2</td><td>b3</td></tr><tr><td>c1</td><td>c2</td><td>c3</td></tr></tbody></table><p>z</p>");
   await page.click("#ed tr:nth-child(1) td:nth-child(1)");
   await page.waitForTimeout(60);
-  const gripBox = (kind) => page.evaluate((k) => { const g = document.querySelector(`[data-rk-grip="${k}"]`); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }, kind);
+  const gripBox = (kind) => page.evaluate((k) => { const g = document.querySelector(`[data-rte-grip="${k}"]`); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; }, kind);
   check(`${name} a table with the caret in it has a row grip and a column grip, and no resize grips for a mouse`, !!(await gripBox("row")) && !!(await gripBox("column")) && !(await gripBox("width")) && !(await gripBox("height")), [await gripBox("row"), await gripBox("column")]);
   const rowStart = await gripBox("row");
   const lastRow = await centerOf("#ed tr:nth-child(3) td:nth-child(1)");
   await page.mouse.move(rowStart.x, rowStart.y);
   await page.mouse.down();
   await page.mouse.move(lastRow.x, lastRow.y + 14, { steps: 5 });
-  check(`${name} dragging the row grip shows a guide`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === true, "line");
+  check(`${name} dragging the row grip shows a guide`, (await page.evaluate(() => !!document.querySelector("[data-rte-resize-line]"))) === true, "line");
   await page.mouse.up();
   await page.waitForTimeout(80);
   check(`${name} letting go moves the row there`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>b1</td><td>b2</td><td>b3</td></tr><tr><td>c1</td><td>c2</td><td>c3</td></tr><tr><td>a1</td><td>a2</td><td>a3</td></tr></table><p>z</p>", await html());
@@ -500,7 +500,7 @@ for (const [name, type] of engines) {
   check(`${name} the pointer on a row's bottom edge shows the resize cursor`, (await page.evaluate(() => document.getElementById("ed").style.cursor)) === "row-resize", "cursor");
   await page.mouse.down();
   await page.mouse.move(rb.left + 10, rb.bottom + 40, { steps: 4 });
-  check(`${name} dragging a row edge shows a guide line`, (await page.evaluate(() => !!document.querySelector("[data-rk-resize-line]"))) === true, "line");
+  check(`${name} dragging a row edge shows a guide line`, (await page.evaluate(() => !!document.querySelector("[data-rte-resize-line]"))) === true, "line");
   await page.mouse.up();
   await page.waitForTimeout(60);
   const tall = await rowBox();
@@ -711,45 +711,45 @@ for (const [name, type] of engines) {
   const q = (sel) => page.evaluate((s) => { const e = document.querySelector(s); return e && { tabindex: e.tabIndex, disabled: e.disabled, ariaDisabled: e.getAttribute("aria-disabled"), pressed: e.getAttribute("aria-pressed"), label: e.getAttribute("aria-label"), keys: e.getAttribute("aria-keyshortcuts") }; }, sel);
   const active = () => page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName));
   check(`${name} (headless) the toolbar is named and has the toolbar role`, await page.evaluate(() => { const b = document.getElementById("bar"); return b.getAttribute("role") === "toolbar" && b.getAttribute("aria-label") === "Formatting" && b.getAttribute("aria-orientation") === "horizontal"; }), "role");
-  check(`${name} (headless) exactly one control is a tab stop`, (await page.evaluate(() => [...document.querySelectorAll("[data-rk-item]")].filter((e) => e.tabIndex === 0).length)) === 1, "tab stops");
-  check(`${name} (headless) icon-only buttons get a name`, (await q("#rk-bold"))?.label === "Bold", await q("#rk-bold"));
-  check(`${name} (headless) a shortcut is announced`, (await q("#rk-bold"))?.keys === "Control+B", await q("#rk-bold"));
+  check(`${name} (headless) exactly one control is a tab stop`, (await page.evaluate(() => [...document.querySelectorAll("[data-rte-item]")].filter((e) => e.tabIndex === 0).length)) === 1, "tab stops");
+  check(`${name} (headless) icon-only buttons get a name`, (await q("#rte-bold"))?.label === "Bold", await q("#rte-bold"));
+  check(`${name} (headless) a shortcut is announced`, (await q("#rte-bold"))?.keys === "Control+B", await q("#rte-bold"));
   await t.reset("<p>one two three</p>");
   await page.evaluate(() => window.__demo.editor.focus());
   await page.waitForTimeout(60);
   // Redo is unavailable until something has been undone.
-  const off = await q("#rk-redo");
+  const off = await q("#rte-redo");
   check(`${name} (headless) an unavailable control is aria-disabled, not disabled, so it can still be found`, off?.ariaDisabled === "true" && off?.disabled === false, off);
   // Select "two", press Bold with the mouse: the editor keeps the focus and the selection, and the button shows it is on.
   await t.select({ start: "p", so: 4, eo: 7 });
   await page.waitForTimeout(60);
-  await page.click("#rk-bold");
+  await page.click("#rte-bold");
   await page.waitForTimeout(60);
   check(`${name} (headless) pressing Bold bolds the selection`, (await t.html()) === "<p>one <strong>two</strong> three</p>", await t.html());
   check(`${name} (headless) and the focus stays in the editor`, (await active()) === "ed", await active());
-  check(`${name} (headless) and the button reports it is pressed`, (await q("#rk-bold"))?.pressed === "true", await q("#rk-bold"));
+  check(`${name} (headless) and the button reports it is pressed`, (await q("#rte-bold"))?.pressed === "true", await q("#rte-bold"));
   // A native select for the block type.
-  await page.selectOption("#rk-block", "2");
+  await page.selectOption("#rte-block", "2");
   await page.waitForTimeout(60);
   check(`${name} (headless) choosing Heading 2 in the select changes the block`, (await t.html()).startsWith("<h2>"), await t.html());
   check(`${name} (headless) and returns the focus to the editor`, (await active()) === "ed", await active());
   // Keyboard: Tab into the toolbar lands on its one tab stop, arrows move, Home and End jump, Escape goes back to the editor.
-  await page.evaluate(() => document.getElementById("rk-undo").focus());
+  await page.evaluate(() => document.getElementById("rte-undo").focus());
   await page.keyboard.press("ArrowRight");
-  check(`${name} (headless) ArrowRight moves along the toolbar`, (await active()) === "rk-redo", await active());
-  check(`${name} (headless) and moves the tab stop with it`, (await q("#rk-redo"))?.tabindex === 0 && (await q("#rk-undo"))?.tabindex === -1, [await q("#rk-redo"), await q("#rk-undo")]);
+  check(`${name} (headless) ArrowRight moves along the toolbar`, (await active()) === "rte-redo", await active());
+  check(`${name} (headless) and moves the tab stop with it`, (await q("#rte-redo"))?.tabindex === 0 && (await q("#rte-undo"))?.tabindex === -1, [await q("#rte-redo"), await q("#rte-undo")]);
   await page.keyboard.press("End");
-  const last = await page.evaluate(() => [...document.querySelectorAll("[data-rk-item]")].at(-1).id);
+  const last = await page.evaluate(() => [...document.querySelectorAll("[data-rte-item]")].at(-1).id);
   check(`${name} (headless) End jumps to the last control`, (await active()) === last, [await active(), last]);
   await page.keyboard.press("ArrowRight");
-  check(`${name} (headless) and the toolbar wraps round`, (await active()) === "rk-undo", await active());
+  check(`${name} (headless) and the toolbar wraps round`, (await active()) === "rte-undo", await active());
   await page.keyboard.press("Escape");
   check(`${name} (headless) Escape returns to the editor`, (await active()) === "ed", await active());
   // A dialog item does not run a command by itself: it asks the page to open something.
   await page.evaluate(() => { window.__opened.length = 0; });
   await t.select({ start: "h2", so: 0, eo: 3 });
   await page.waitForTimeout(60);
-  await page.click("#rk-link");
+  await page.click("#rte-link");
   check(`${name} (headless) a dialog item asks the page to open its dialog`, JSON.stringify(await page.evaluate(() => window.__opened)) === '["link"]', await page.evaluate(() => window.__opened));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
@@ -795,20 +795,20 @@ for (const [name, type] of engines) {
   await t.reset("<p>one two</p>");
   await t.select({ start: "p", so: 0, eo: 3 });
   await page.waitForTimeout(60);
-  await page.click("#rk-link");
+  await page.click("#rte-link");
   await page.waitForTimeout(60);
   check(`${name} (headless) a dialog opens, is modal, named, and takes the focus`, await page.evaluate(() => { const d = document.getElementById("dlg"); return d.open && d.getAttribute("aria-modal") === "true" && d.getAttribute("aria-labelledby") === "dlg-title" && document.activeElement.name === "href"; }), await active());
   await page.click("#dlg-ok");
   await page.waitForTimeout(60);
-  const bad = await page.evaluate(() => { const i = document.querySelector("[name=href]"); const e = document.querySelector("[data-rk-error=href]"); return { invalid: i.getAttribute("aria-invalid"), by: i.getAttribute("aria-describedby") === e.id, text: e.textContent, focused: document.activeElement === i, open: document.getElementById("dlg").open }; });
+  const bad = await page.evaluate(() => { const i = document.querySelector("[name=href]"); const e = document.querySelector("[data-rte-error=href]"); return { invalid: i.getAttribute("aria-invalid"), by: i.getAttribute("aria-describedby") === e.id, text: e.textContent, focused: document.activeElement === i, open: document.getElementById("dlg").open }; });
   check(`${name} (headless) an empty required field is flagged, explained, focused, and the dialog stays open`, bad.invalid === "true" && bad.by && bad.text === "Address is required." && bad.focused && bad.open, bad);
   await page.waitForTimeout(120);
   check(`${name} (headless) and the problem is announced`, (await page.evaluate(() => document.querySelector("[role=status]").textContent)) === "Address is required.", "announce");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
-  check(`${name} (headless) Escape cancels and focus returns to the control that opened it`, JSON.stringify(await page.evaluate(() => window.__closed)) === '["cancel"]' && (await active()) === "rk-link", [await page.evaluate(() => window.__closed), await active()]);
+  check(`${name} (headless) Escape cancels and focus returns to the control that opened it`, JSON.stringify(await page.evaluate(() => window.__closed)) === '["cancel"]' && (await active()) === "rte-link", [await page.evaluate(() => window.__closed), await active()]);
   await page.evaluate(() => { window.__closed.length = 0; });
-  await page.click("#rk-link");
+  await page.click("#rte-link");
   await page.waitForTimeout(60);
   await page.fill("[name=href]", "https://x.test");
   await page.click("#dlg-ok");
@@ -826,26 +826,26 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
-// --- the custom element <rk-editor> and <rk-toolbar>, in a real form
+// --- the custom element <rte-editor> and <rte-toolbar>, in a real form
 for (const [name, type] of engines) {
   const t = await open(type, {}, "", "element");
   const { page } = t;
   const val = (id) => page.evaluate((i) => document.getElementById(i).value, id);
   const form = () => page.evaluate(() => Object.fromEntries(new FormData(document.getElementById("f"))));
   const events = () => page.evaluate(() => window.__events.splice(0).map((e) => e.join(":")));
-  check(`${name} (element) both elements are defined and the editors are ready`, await page.evaluate(() => !!customElements.get("rk-editor") && !!customElements.get("rk-toolbar") && window.__events.filter((e) => e[0] === "rk-ready").length === 4), "defined");
+  check(`${name} (element) both elements are defined and the editors are ready`, await page.evaluate(() => !!customElements.get("rte-editor") && !!customElements.get("rte-toolbar") && window.__events.filter((e) => e[0] === "rte-ready").length === 4), "defined");
   check(`${name} (element) the value attribute and the element's own children are the starting content`, (await val("body")) === "<p>Hello</p>" && (await val("second")) === "<p>from children</p>", [await val("body"), await val("second")]);
-  check(`${name} (element) the editing surface is named from the label attribute`, await page.evaluate(() => document.querySelector("#body [data-rk-surface]").getAttribute("aria-label") === "Body"), "label");
+  check(`${name} (element) the editing surface is named from the label attribute`, await page.evaluate(() => document.querySelector("#body [data-rte-surface]").getAttribute("aria-label") === "Body"), "label");
   const f0 = await form();
   check(`${name} (element) the editors take part in the form`, f0.body === "<p>Hello</p>" && f0.second === "<p>from children</p>", f0);
   await events();
-  await page.click("#body [data-rk-surface]");
+  await page.click("#body [data-rte-surface]");
   await page.keyboard.press("End");
   await page.keyboard.type("!");
   const ev = await events();
-  check(`${name} (element) typing sends rk-change and input, and updates the form`, ev.includes('rk-change:body:<p>Hello!</p>') && ev.includes("input:body") && (await form()).body === "<p>Hello!</p>", [ev, await form()]);
+  check(`${name} (element) typing sends rte-change and input, and updates the form`, ev.includes('rte-change:body:<p>Hello!</p>') && ev.includes("input:body") && (await form()).body === "<p>Hello!</p>", [ev, await form()]);
   check(`${name} (element) and the other editor is untouched`, (await val("second")) === "<p>from children</p>", await val("second"));
-  await page.click("#second [data-rk-surface]");
+  await page.click("#second [data-rte-surface]");
   check(`${name} (element) leaving an editor whose value changed sends change`, (await events()).includes("change:body"), "change");
   await page.click("#reset");
   await page.waitForTimeout(50);
@@ -855,21 +855,21 @@ for (const [name, type] of engines) {
   await page.evaluate(() => document.getElementById("body").setAttribute("value", "<p>Attr</p>"));
   check(`${name} (element) changing the value attribute does too`, (await val("body")) === "<p>Attr</p>", await val("body"));
   await page.evaluate(() => document.getElementById("second").setAttribute("readonly", ""));
-  check(`${name} (element) readonly makes the surface read-only, and removing it makes it editable again`, await page.evaluate(() => { const e = document.getElementById("second"); const a = e.editor.readOnly && e.querySelector("[data-rk-surface]").getAttribute("contenteditable") === "false"; e.removeAttribute("readonly"); return a && !e.editor.readOnly; }), "readonly");
+  check(`${name} (element) readonly makes the surface read-only, and removing it makes it editable again`, await page.evaluate(() => { const e = document.getElementById("second"); const a = e.editor.readOnly && e.querySelector("[data-rte-surface]").getAttribute("contenteditable") === "false"; e.removeAttribute("readonly"); return a && !e.editor.readOnly; }), "readonly");
   check(`${name} (element) a required editor that is empty is invalid, and valid once it has text`, await (async () => {
     const bad = await page.evaluate(() => document.getElementById("req").validity.valueMissing && !document.getElementById("f").checkValidity());
-    await page.click("#req [data-rk-surface]");
+    await page.click("#req [data-rte-surface]");
     await page.keyboard.type("text");
     const good = await page.evaluate(() => !document.getElementById("req").validity.valueMissing);
     return bad && good;
   })(), "required");
   // The toolbar: built from the editor's items, behaving through the headless layer.
-  check(`${name} (element) the toolbar draws a control for each item and names it`, await page.evaluate(() => { const b = document.querySelector("rk-toolbar"); const bold = b.querySelector('[data-rk-item="bold"]'); return b.getAttribute("role") === "toolbar" && bold && bold.textContent === "Bold" && b.querySelectorAll("[data-rk-item]").length > 10; }), "toolbar");
+  check(`${name} (element) the toolbar draws a control for each item and names it`, await page.evaluate(() => { const b = document.querySelector("rte-toolbar"); const bold = b.querySelector('[data-rte-item="bold"]'); return b.getAttribute("role") === "toolbar" && bold && bold.textContent === "Bold" && b.querySelectorAll("[data-rte-item]").length > 10; }), "toolbar");
   await page.evaluate(() => { document.getElementById("body").value = "<p>one two</p>"; });
-  await page.click("#body [data-rk-surface]");
-  await page.evaluate(() => { const n = document.querySelector("#body [data-rk-surface] p").firstChild; document.getElementById("body").editor.selectDom(n, 0, n, 3); });
+  await page.click("#body [data-rte-surface]");
+  await page.evaluate(() => { const n = document.querySelector("#body [data-rte-surface] p").firstChild; document.getElementById("body").editor.selectDom(n, 0, n, 3); });
   await page.waitForTimeout(60);
-  await page.click('rk-toolbar [data-rk-item="bold"]');
+  await page.click('rte-toolbar [data-rte-item="bold"]');
   await page.waitForTimeout(60);
   check(`${name} (element) pressing Bold in the toolbar bolds the selection in its editor`, (await val("body")) === "<p><strong>one</strong> two</p>", await val("body"));
   // Moving an element in the page keeps what it holds. Removing one cleans up.
@@ -878,7 +878,7 @@ for (const [name, type] of engines) {
   check(`${name} (element) moving the element keeps its content and it still works`, (await val("body")) === "<p><strong>one</strong> two</p>" && (await page.evaluate(() => !!document.getElementById("body").editor)), await val("body"));
   await page.evaluate(() => document.getElementById("second").remove());
   // Attributes: placeholder, maxlength, spellcheck.
-  check(`${name} (element) placeholder and spellcheck attributes reach the editor`, await page.evaluate(() => { const s = document.querySelector("#limited [contenteditable=true]"); return s.getAttribute("aria-placeholder") === "Write something" && s.hasAttribute("data-rk-empty") && s.spellcheck === false; }), "attributes");
+  check(`${name} (element) placeholder and spellcheck attributes reach the editor`, await page.evaluate(() => { const s = document.querySelector("#limited [contenteditable=true]"); return s.getAttribute("aria-placeholder") === "Write something" && s.hasAttribute("data-rte-empty") && s.spellcheck === false; }), "attributes");
   await page.click("#limited [contenteditable=true]");
   await page.keyboard.type("0123456789abcdef");
   check(`${name} (element) maxlength stops typing at the limit`, (await val("limited")) === "<p>0123456789</p>", await val("limited"));
@@ -896,17 +896,17 @@ for (const [name, type] of engines) {
   const rootBg = (id) => page.evaluate((i) => getComputedStyle(document.getElementById(i)).backgroundColor, id);
   const setStyle = (which, style) => page.evaluate(([w, st]) => window[w].ui.setStyle(st), [which, style]);
   const active = () => page.evaluate(() => document.activeElement && (document.activeElement.id || document.activeElement.tagName));
-  check(`${name} (ui) the root, toolbar and content are parts, and every control is a part`, await page.evaluate(() => { const r = document.getElementById("root"); return r.classList.contains("rk-root") && r.getAttribute("data-rk-part") === "root" && !!r.querySelector('[data-rk-part=toolbar]') && !!r.querySelector('[data-rk-part=content]') && [...r.querySelectorAll("[data-rk-item]")].every((e) => e.hasAttribute("data-rk-part")); }), "parts");
-  check(`${name} (ui) groups of controls are separated`, (await page.evaluate(() => document.querySelectorAll('#root [data-rk-part=separator]').length)) >= 4, "separators");
-  check(`${name} (ui) every button has an icon, a name and a tooltip with its key`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rk-item]')].every((b) => b.querySelector('[data-rk-part=icon] svg') && b.getAttribute("aria-label") && b.getAttribute("data-rk-tip")) && document.querySelector('#root [data-rk-item=bold]').getAttribute("data-rk-tip") === "Bold (Ctrl+B)"), "icons");
-  check(`${name} (ui) the block-type select is named`, (await page.evaluate(() => document.querySelector("#root select[data-rk-item=block]").getAttribute("aria-label"))) === "Block type", "select");
+  check(`${name} (ui) the root, toolbar and content are parts, and every control is a part`, await page.evaluate(() => { const r = document.getElementById("root"); return r.classList.contains("rte-root") && r.getAttribute("data-rte-part") === "root" && !!r.querySelector('[data-rte-part=toolbar]') && !!r.querySelector('[data-rte-part=content]') && [...r.querySelectorAll("[data-rte-item]")].every((e) => e.hasAttribute("data-rte-part")); }), "parts");
+  check(`${name} (ui) groups of controls are separated`, (await page.evaluate(() => document.querySelectorAll('#root [data-rte-part=separator]').length)) >= 4, "separators");
+  check(`${name} (ui) every button has an icon, a name and a tooltip with its key`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rte-item]')].every((b) => b.querySelector('[data-rte-part=icon] svg') && b.getAttribute("aria-label") && b.getAttribute("data-rte-tip")) && document.querySelector('#root [data-rte-item=bold]').getAttribute("data-rte-tip") === "Bold (Ctrl+B)"), "icons");
+  check(`${name} (ui) the block-type select is named`, (await page.evaluate(() => document.querySelector("#root select[data-rte-item=block]").getAttribute("aria-label"))) === "Block type", "select");
   // Themes: two editors in two themes on one page, and a switch at run time.
   check(`${name} (ui) light and dark themes color their own editor`, (await rootBg("root")) === "rgb(255, 255, 255)" && (await rootBg("second")) === "rgb(16, 21, 29)", [await rootBg("root"), await rootBg("second")]);
   await setStyle("__one", { theme: "dark" });
-  check(`${name} (ui) the default icons survive a theme switch`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rk-item]')].every((b) => b.querySelector("svg"))), "icons after switch");
+  check(`${name} (ui) the default icons survive a theme switch`, await page.evaluate(() => [...document.querySelectorAll('#root button[data-rte-item]')].every((b) => b.querySelector("svg"))), "icons after switch");
   check(`${name} (ui) switching theme at run time changes the look without rebuilding`, (await rootBg("root")) === "rgb(16, 21, 29)", await rootBg("root"));
   await setStyle("__one", { theme: "high-contrast" });
-  check(`${name} (ui) the high-contrast theme is black and white`, (await rootBg("root")) === "rgb(0, 0, 0)" && (await css("#root [data-rk-part=content]", "color")) === "rgb(255, 255, 255)", await rootBg("root"));
+  check(`${name} (ui) the high-contrast theme is black and white`, (await rootBg("root")) === "rgb(0, 0, 0)" && (await css("#root [data-rte-part=content]", "color")) === "rgb(255, 255, 255)", await rootBg("root"));
   await setStyle("__one", { theme: "auto" });
   await page.emulateMedia({ colorScheme: "dark" });
   check(`${name} (ui) the auto theme follows the system's dark setting`, (await rootBg("root")) === "rgb(16, 21, 29)", await rootBg("root"));
@@ -915,129 +915,129 @@ for (const [name, type] of engines) {
   await page.emulateMedia({ colorScheme: "light" });
   await setStyle("__one", { theme: "light" });
   // Tokens, density, classes, messages, icons.
-  await setStyle("__one", { theme: "light", tokens: { "--rk-bg": "#ffeedd" } });
+  await setStyle("__one", { theme: "light", tokens: { "--rte-bg": "#ffeedd" } });
   check(`${name} (ui) a token beats the preset`, (await rootBg("root")) === "rgb(255, 238, 221)", await rootBg("root"));
   await setStyle("__one", { theme: "light" });
   check(`${name} (ui) and takes itself off again when it is no longer asked for`, (await rootBg("root")) === "rgb(255, 255, 255)", await rootBg("root"));
-  const size = async (d) => { await setStyle("__one", { theme: "light", ...(d ? { density: d } : {}) }); return css("#root [data-rk-item=bold]", "height"); };
+  const size = async (d) => { await setStyle("__one", { theme: "light", ...(d ? { density: d } : {}) }); return css("#root [data-rte-item=bold]", "height"); };
   check(`${name} (ui) density changes control size: compact 28px, default 32px, comfortable 40px`, [await size("compact"), await size(undefined), await size("comfortable")].join() === "28px,32px,40px", "density");
   await setStyle("__one", { theme: "light", classes: { button: "u-btn u-big", content: "u-body" } });
-  check(`${name} (ui) extra classes land on every element of a part`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=button]")].every((b) => b.classList.contains("u-btn") && b.classList.contains("u-big")) && document.querySelector("#root [data-rk-part=content]").classList.contains("u-body")), "classes");
+  check(`${name} (ui) extra classes land on every element of a part`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rte-part=button]")].every((b) => b.classList.contains("u-btn") && b.classList.contains("u-big")) && document.querySelector("#root [data-rte-part=content]").classList.contains("u-body")), "classes");
   await setStyle("__one", { theme: "light" });
   check(`${name} (ui) and are taken away again`, await page.evaluate(() => !document.querySelector("#root .u-btn, #root .u-body")), "classes gone");
   await setStyle("__one", { theme: "light", messages: { "item.bold": "Gras" } });
-  check(`${name} (ui) messages rename an item for assistive technology and the tooltip`, await page.evaluate(() => { const b = document.querySelector("#root [data-rk-item=bold]"); return b.getAttribute("aria-label") === "Gras" && b.getAttribute("data-rk-tip").startsWith("Gras"); }), "messages");
+  check(`${name} (ui) messages rename an item for assistive technology and the tooltip`, await page.evaluate(() => { const b = document.querySelector("#root [data-rte-item=bold]"); return b.getAttribute("aria-label") === "Gras" && b.getAttribute("data-rte-tip").startsWith("Gras"); }), "messages");
   await setStyle("__one", { theme: "light", icons: { bold: '<svg viewBox="0 0 24 24" id="custom-bold"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>', italic: '<svg viewBox="0 0 24 24"><script>alert(1)</script></svg>' } });
-  check(`${name} (ui) a given icon replaces the default`, await page.evaluate(() => !!document.querySelector("#root [data-rk-item=bold] svg#custom-bold")), "custom icon");
-  check(`${name} (ui) and an icon that is not plain svg is refused, leaving the words`, await page.evaluate(() => { const b = document.querySelector("#root [data-rk-item=italic]"); return !b.querySelector("svg") && b.textContent === "Italic"; }), "unsafe icon");
+  check(`${name} (ui) a given icon replaces the default`, await page.evaluate(() => !!document.querySelector("#root [data-rte-item=bold] svg#custom-bold")), "custom icon");
+  check(`${name} (ui) and an icon that is not plain svg is refused, leaving the words`, await page.evaluate(() => { const b = document.querySelector("#root [data-rte-item=italic]"); return !b.querySelector("svg") && b.textContent === "Italic"; }), "unsafe icon");
   await setStyle("__one", { theme: "light" });
   // Non-color cues, focus, forced colors, reduced motion.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="bold"]');
+  await page.click('#root [data-rte-item="bold"]');
   await page.waitForTimeout(60);
-  check(`${name} (ui) a pressed button has a thicker bottom edge, not only a different color`, (await css('#root [data-rk-item="bold"]', "borderBottomWidth")) === "3px" && (await css('#root [data-rk-item="italic"]', "borderBottomWidth")) === "1px", [await css('#root [data-rk-item="bold"]', "borderBottomWidth"), await css('#root [data-rk-item="italic"]', "borderBottomWidth")]);
-  await page.evaluate(() => document.querySelector('#root [data-rk-item="bold"]').focus());
+  check(`${name} (ui) a pressed button has a thicker bottom edge, not only a different color`, (await css('#root [data-rte-item="bold"]', "borderBottomWidth")) === "3px" && (await css('#root [data-rte-item="italic"]', "borderBottomWidth")) === "1px", [await css('#root [data-rte-item="bold"]', "borderBottomWidth"), await css('#root [data-rte-item="italic"]', "borderBottomWidth")]);
+  await page.evaluate(() => document.querySelector('#root [data-rte-item="bold"]').focus());
   await page.keyboard.press("ArrowRight");
   const ring = await page.evaluate(() => { const c = getComputedStyle(document.activeElement); return { style: c.outlineStyle, width: c.outlineWidth, color: c.outlineColor }; });
   check(`${name} (ui) keyboard focus draws a 2px solid ring in the focus color`, ring.style === "solid" && ring.width === "2px" && ring.color === "rgb(23, 64, 139)", ring);
   await page.emulateMedia({ forcedColors: "active" });
-  const forced = await page.evaluate(() => { const b = document.querySelector('#root [data-rk-item="bold"]'); const c = getComputedStyle(b); return { bottom: c.borderBottomWidth, style: c.borderBottomStyle }; });
+  const forced = await page.evaluate(() => { const b = document.querySelector('#root [data-rte-item="bold"]'); const c = getComputedStyle(b); return { bottom: c.borderBottomWidth, style: c.borderBottomStyle }; });
   check(`${name} (ui) in forced colors a pressed button keeps a real border, thicker still`, forced.bottom === "4px" && forced.style === "solid", forced);
   await page.emulateMedia({ forcedColors: "none" });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  check(`${name} (ui) reduced motion turns the button transitions off`, (await css('#root [data-rk-item="italic"]', "transitionDuration")) === "0s", await css('#root [data-rk-item="italic"]', "transitionDuration"));
+  check(`${name} (ui) reduced motion turns the button transitions off`, (await css('#root [data-rte-item="italic"]', "transitionDuration")) === "0s", await css('#root [data-rte-item="italic"]', "transitionDuration"));
   await page.emulateMedia({ reducedMotion: "no-preference" });
   // Announcements and the link dialog.
   check(`${name} (ui) pressing a toggle announces it`, await page.evaluate(() => new Promise((resolve) => setTimeout(() => resolve(document.querySelector("#root [role=status]").textContent === "Bold on"), 150))), "announce");
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 4, n, 7); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 4, n, 7); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="link"]');
+  await page.click('#root [data-rte-item="link"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) the link dialog opens with its title, a labelled field, and focus in the field`, await page.evaluate(() => { const d = document.querySelector("#root [data-rk-part=dialog]:not([data-rk-shortcuts])"); const f = d.querySelector("[data-rk-part=field]"); return d.open && d.querySelector("[data-rk-part=dialog-title]").textContent === "Link" && f.labels[0].textContent === "Address" && document.activeElement === f; }), await active());
+  check(`${name} (ui) the link dialog opens with its title, a labelled field, and focus in the field`, await page.evaluate(() => { const d = document.querySelector("#root [data-rte-part=dialog]:not([data-rte-shortcuts])"); const f = d.querySelector("[data-rte-part=field]"); return d.open && d.querySelector("[data-rte-part=dialog-title]").textContent === "Link" && f.labels[0].textContent === "Address" && document.activeElement === f; }), await active());
   await page.keyboard.type("javascript:alert(1)");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(60);
-  check(`${name} (ui) an unsafe address is refused with a message tied to the field`, await page.evaluate(() => { const f = document.querySelector("#root [data-rk-part=field]"); const e = document.querySelector("#root [data-rk-part=field-error]"); return f.getAttribute("aria-invalid") === "true" && f.getAttribute("aria-describedby") === e.id && e.textContent.length > 0 && document.querySelector("#root [data-rk-part=dialog]:not([data-rk-shortcuts])").open; }), "unsafe");
-  await page.fill("#root [data-rk-part=field]", "https://x.test");
+  check(`${name} (ui) an unsafe address is refused with a message tied to the field`, await page.evaluate(() => { const f = document.querySelector("#root [data-rte-part=field]"); const e = document.querySelector("#root [data-rte-part=field-error]"); return f.getAttribute("aria-invalid") === "true" && f.getAttribute("aria-describedby") === e.id && e.textContent.length > 0 && document.querySelector("#root [data-rte-part=dialog]:not([data-rte-shortcuts])").open; }), "unsafe");
+  await page.fill("#root [data-rte-part=field]", "https://x.test");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(80);
-  check(`${name} (ui) a good address closes the dialog and links the selected text`, (await page.evaluate(() => window.__one.editor.getHtml())) === '<p>one <a href="https://x.test">two</a> three</p>' && !(await page.evaluate(() => document.querySelector("#root [data-rk-part=dialog]:not([data-rk-shortcuts])").open)), await page.evaluate(() => window.__one.editor.getHtml()));
-  check(`${name} (ui) focus goes back to the control that opened it`, (await active()) === "rk-link" || (await page.evaluate(() => document.activeElement.getAttribute("data-rk-item"))) === "link", await active());
-  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rk-part=content] a").firstChild; e.selectDom(n, 1, n, 1); });
+  check(`${name} (ui) a good address closes the dialog and links the selected text`, (await page.evaluate(() => window.__one.editor.getHtml())) === '<p>one <a href="https://x.test">two</a> three</p>' && !(await page.evaluate(() => document.querySelector("#root [data-rte-part=dialog]:not([data-rte-shortcuts])").open)), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) focus goes back to the control that opened it`, (await active()) === "rte-link" || (await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"))) === "link", await active());
+  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rte-part=content] a").firstChild; e.selectDom(n, 1, n, 1); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="link"]');
+  await page.click('#root [data-rte-item="link"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rk-part=field]").value));
-  check(`${name} (ui) and the new-tab box is unticked for a link that opens in the same tab`, (await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]:not([data-rk-shortcuts])")].find((x) => x.open); const box = d.querySelector('input[name=newTab]'); return box.type === "checkbox" && box.checked === false && box.labels[0].textContent === "Open in a new tab"; })), "checkbox");
+  check(`${name} (ui) opened on an existing link, the dialog shows its address`, (await page.evaluate(() => document.querySelector("#root [data-rte-part=field]").value)) === "https://x.test", await page.evaluate(() => document.querySelector("#root [data-rte-part=field]").value));
+  check(`${name} (ui) and the new-tab box is unticked for a link that opens in the same tab`, (await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rte-part=dialog]:not([data-rte-shortcuts])")].find((x) => x.open); const box = d.querySelector('input[name=newTab]'); return box.type === "checkbox" && box.checked === false && box.labels[0].textContent === "Open in a new tab"; })), "checkbox");
   await page.click('#root dialog[open] input[name=newTab]');
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
   check(`${name} (ui) ticking it and submitting makes the link open in a new tab`, (await page.evaluate(() => window.__one.editor.getHtml())).includes('<a href="https://x.test" target="_blank" rel="noopener noreferrer">two</a>'), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="link"]');
+  await page.click('#root [data-rte-item="link"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) reopened, the box is ticked`, await page.evaluate(() => [...document.querySelectorAll("#root dialog")].find((x) => x.open).querySelector("input[name=newTab]").checked), "ticked");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
   // Special characters and the shortcuts list.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>price 5</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 7, n, 7); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>price 5</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 7, n, 7); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="symbols"]');
+  await page.click('#root [data-rte-item="symbols"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) the special characters menu lists each symbol with its name`, await page.evaluate(() => { const e = document.querySelector('#root [data-rk-menu-item="symbol-euro"]'); return !!e && e.textContent.includes("€") && e.textContent.includes("Euro"); }), "menu");
-  await page.click('#root [data-rk-menu-item="symbol-euro"]');
+  check(`${name} (ui) the special characters menu lists each symbol with its name`, await page.evaluate(() => { const e = document.querySelector('#root [data-rte-menu-item="symbol-euro"]'); return !!e && e.textContent.includes("€") && e.textContent.includes("Euro"); }), "menu");
+  await page.click('#root [data-rte-menu-item="symbol-euro"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) choosing one types it at the caret`, await page.evaluate(() => window.__one.editor.getHtml() === "<p>price 5€</p>"), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="shortcuts"]');
+  await page.click('#root [data-rte-item="shortcuts"]');
   await page.waitForTimeout(100);
-  check(`${name} (ui) the shortcuts dialog lists the editor's keys from its key map`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root dialog")].find((x) => x.open); const rows = d && [...d.querySelectorAll("tbody tr")].map((r) => r.textContent); return !!d && d.querySelector("[data-rk-part=dialog-title]").textContent === "Keyboard shortcuts" && rows.some((r) => r.startsWith("Bold") && r.includes("Ctrl+B")) && rows.some((r) => r.startsWith("Find and replace")) && d.querySelector("th").scope === "col"; }), "dialog");
+  check(`${name} (ui) the shortcuts dialog lists the editor's keys from its key map`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root dialog")].find((x) => x.open); const rows = d && [...d.querySelectorAll("tbody tr")].map((r) => r.textContent); return !!d && d.querySelector("[data-rte-part=dialog-title]").textContent === "Keyboard shortcuts" && rows.some((r) => r.startsWith("Bold") && r.includes("Ctrl+B")) && rows.some((r) => r.startsWith("Find and replace")) && d.querySelector("th").scope === "col"; }), "dialog");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(80);
-  check(`${name} (ui) Escape closes it and focus goes back to its button`, await page.evaluate(() => ![...document.querySelectorAll("#root dialog")].some((x) => x.open) && document.activeElement === document.querySelector('#root [data-rk-item="shortcuts"]')), await active());
+  check(`${name} (ui) Escape closes it and focus goes back to its button`, await page.evaluate(() => ![...document.querySelectorAll("#root dialog")].some((x) => x.open) && document.activeElement === document.querySelector('#root [data-rte-item="shortcuts"]')), await active());
   // Indent.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>indent me</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 2, n, 2); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>indent me</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 2, n, 2); });
   await page.waitForTimeout(60);
-  check(`${name} (ui) outdent is off until something is indented`, (await page.getAttribute('#root [data-rk-item="outdent"]', "aria-disabled")) === "true", "outdent");
-  await page.click('#root [data-rk-item="indent"]');
+  check(`${name} (ui) outdent is off until something is indented`, (await page.getAttribute('#root [data-rte-item="outdent"]', "aria-disabled")) === "true", "outdent");
+  await page.click('#root [data-rte-item="indent"]');
   await page.waitForTimeout(60);
-  check(`${name} (ui) the indent button moves the paragraph in by a step and draws it so`, await page.evaluate(() => window.__one.editor.getHtml() === '<p style="margin-left: 2em;">indent me</p>' && document.querySelector("#root [data-rk-part=content] p").style.marginLeft === "2em"), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="outdent"]');
+  check(`${name} (ui) the indent button moves the paragraph in by a step and draws it so`, await page.evaluate(() => window.__one.editor.getHtml() === '<p style="margin-left: 2em;">indent me</p>' && document.querySelector("#root [data-rte-part=content] p").style.marginLeft === "2em"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rte-item="outdent"]');
   await page.waitForTimeout(60);
   check(`${name} (ui) and outdent takes it back`, await page.evaluate(() => window.__one.editor.getHtml() === "<p>indent me</p>"), await page.evaluate(() => window.__one.editor.getHtml()));
   // Text direction.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>مرحبا</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 1, n, 1); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>مرحبا</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 1, n, 1); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="direction-rtl"]');
+  await page.click('#root [data-rte-item="direction-rtl"]');
   await page.waitForTimeout(60);
-  check(`${name} (ui) the right-to-left button sets the paragraph's direction and shows as on`, await page.evaluate(() => window.__one.editor.getHtml() === '<p dir="rtl">مرحبا</p>' && document.querySelector("#root [data-rk-part=content] p").dir === "rtl" && document.querySelector('#root [data-rk-item="direction-rtl"]').getAttribute("aria-pressed") === "true" && document.querySelector('#root [data-rk-item="direction-ltr"]').getAttribute("aria-pressed") === "false"), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="direction-rtl"]');
+  check(`${name} (ui) the right-to-left button sets the paragraph's direction and shows as on`, await page.evaluate(() => window.__one.editor.getHtml() === '<p dir="rtl">مرحبا</p>' && document.querySelector("#root [data-rte-part=content] p").dir === "rtl" && document.querySelector('#root [data-rte-item="direction-rtl"]').getAttribute("aria-pressed") === "true" && document.querySelector('#root [data-rte-item="direction-ltr"]').getAttribute("aria-pressed") === "false"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rte-item="direction-rtl"]');
   await page.waitForTimeout(60);
   check(`${name} (ui) pressing it again does not toggle it off (it sets it); left to right sets that`, await page.evaluate(() => window.__one.editor.getHtml() === '<p dir="rtl">مرحبا</p>'), await page.evaluate(() => window.__one.editor.getHtml()));
   // The HTML source view.
-  const src = '#root [data-rk-part="source"]';
+  const src = '#root [data-rte-part="source"]';
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<h2>Title</h2><p>Some <strong>bold</strong> text</p>"); e.focus(); });
   await page.waitForTimeout(60);
-  check(`${name} (ui) the source button is named and starts off`, await page.evaluate(() => { const b = document.querySelector('#root [data-rk-item="source"]'); return b.getAttribute("aria-label") === "HTML source" && !!b.querySelector("svg") && document.querySelector('#root [data-rk-part="source"]').hidden; }), "button");
-  await page.click('#root [data-rk-item="source"]');
+  check(`${name} (ui) the source button is named and starts off`, await page.evaluate(() => { const b = document.querySelector('#root [data-rte-item="source"]'); return b.getAttribute("aria-label") === "HTML source" && !!b.querySelector("svg") && document.querySelector('#root [data-rte-part="source"]').hidden; }), "button");
+  await page.click('#root [data-rte-item="source"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) it shows the HTML, a block to a line, in place of the writing area`, await page.evaluate((q) => { const a = document.querySelector(q); return !a.hidden && a.value === "<h2>Title</h2>\n<p>Some <strong>bold</strong> text</p>" && getComputedStyle(document.getElementById("root").querySelector("[data-rk-part=content] > :first-child")).display === "none" && document.activeElement === a && document.querySelector('#root [data-rk-item="source"]').getAttribute("aria-pressed") === "true"; }, src), await page.evaluate((q) => document.querySelector(q).value, src));
-  await page.click('#root [data-rk-item="bold"]', { force: true }).catch(() => undefined);
+  check(`${name} (ui) it shows the HTML, a block to a line, in place of the writing area`, await page.evaluate((q) => { const a = document.querySelector(q); return !a.hidden && a.value === "<h2>Title</h2>\n<p>Some <strong>bold</strong> text</p>" && getComputedStyle(document.getElementById("root").querySelector("[data-rte-part=content] > :first-child")).display === "none" && document.activeElement === a && document.querySelector('#root [data-rte-item="source"]').getAttribute("aria-pressed") === "true"; }, src), await page.evaluate((q) => document.querySelector(q).value, src));
+  await page.click('#root [data-rte-item="bold"]', { force: true }).catch(() => undefined);
   check(`${name} (ui) the other buttons do nothing while it is open`, await page.evaluate(() => window.__one.editor.getHtml() === "<h2>Title</h2><p>Some <strong>bold</strong> text</p>"), "guard");
   await page.fill(src, "<h1>New</h1>\n<p>parsed <em>again</em></p>");
-  await page.click('#root [data-rk-item="source"]');
+  await page.click('#root [data-rte-item="source"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) closing it applies the HTML and returns to the editor`, await page.evaluate((q) => window.__one.editor.getHtml() === "<h1>New</h1><p>parsed <em>again</em></p>" && document.querySelector(q).hidden && document.querySelector("#root [data-rk-part=content]").contains(document.activeElement), src), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) closing it applies the HTML and returns to the editor`, await page.evaluate((q) => window.__one.editor.getHtml() === "<h1>New</h1><p>parsed <em>again</em></p>" && document.querySelector(q).hidden && document.querySelector("#root [data-rte-part=content]").contains(document.activeElement), src), await page.evaluate(() => window.__one.editor.getHtml()));
   await page.keyboard.press("ControlOrMeta+z");
   check(`${name} (ui) and it is one undo step`, await page.evaluate(() => window.__one.editor.getHtml() === "<h2>Title</h2><p>Some <strong>bold</strong> text</p>"), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="source"]');
+  await page.click('#root [data-rte-item="source"]');
   await page.waitForTimeout(60);
   await page.fill(src, "<p>discard me</p>");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
   check(`${name} (ui) Escape closes it and throws the changes away`, await page.evaluate((q) => window.__one.editor.getHtml() === "<h2>Title</h2><p>Some <strong>bold</strong> text</p>" && document.querySelector(q).hidden, src), await page.evaluate(() => window.__one.editor.getHtml()));
   // Find and replace.
-  const bar = '#root [data-rk-part="findbar"]';
-  const barText = () => page.evaluate((b) => ({ hidden: document.querySelector(b).hidden, count: document.querySelector(b + " [data-rk-part=find-count]").textContent, active: document.activeElement?.name ?? document.activeElement?.tagName }), bar);
+  const bar = '#root [data-rte-part="findbar"]';
+  const barText = () => page.evaluate((b) => ({ hidden: document.querySelector(b).hidden, count: document.querySelector(b + " [data-rte-part=find-count]").textContent, active: document.activeElement?.name ?? document.activeElement?.tagName }), bar);
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three Two</p>"); e.focus(); });
   await page.waitForTimeout(80);
   check(`${name} (ui) the find bar starts hidden`, (await barText()).hidden === true, await barText());
@@ -1048,7 +1048,7 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(80);
   check(`${name} (ui) typing a search counts the matches, ignoring case`, (await barText()).count === "2 matches", await barText());
   const hasHighlights = await page.evaluate(() => !!(globalThis.CSS && CSS.highlights));
-  if (hasHighlights) check(`${name} (ui) matches are painted with the highlight registry`, await page.evaluate(() => CSS.highlights.has("rk-find") && [...CSS.highlights.get("rk-find")].length + ([...(CSS.highlights.get("rk-find-current") ?? [])].length) === 2), "highlights");
+  if (hasHighlights) check(`${name} (ui) matches are painted with the highlight registry`, await page.evaluate(() => CSS.highlights.has("rte-find") && [...CSS.highlights.get("rte-find")].length + ([...(CSS.highlights.get("rte-find-current") ?? [])].length) === 2), "highlights");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(80);
   check(`${name} (ui) Enter goes to the first match, selects it and says which`, (await barText()).count === "1 of 2" && (await page.evaluate(() => { const s = window.__one.editor.selection; return s.anchor.offset === 4 && s.focus.offset === 7; })), await barText());
@@ -1058,57 +1058,57 @@ for (const [name, type] of engines) {
   await page.keyboard.press("Shift+Enter");
   await page.waitForTimeout(60);
   check(`${name} (ui) Shift+Enter goes back`, (await barText()).count === "1 of 2", await barText());
-  await page.click('#root [data-rk-part=findbar] button[aria-label="Match case"]');
+  await page.click('#root [data-rte-part=findbar] button[aria-label="Match case"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) match case narrows it to one`, (await barText()).count === "1 matches" || (await barText()).count.startsWith("1 "), await barText());
-  await page.click('#root [data-rk-part=findbar] button[aria-label="Match case"]');
-  await page.fill('#root [data-rk-part=findbar] input[name=replace]', "2");
-  await page.click('#root [data-rk-part=findbar] [data-rk-part=action]:nth-of-type(2)');
+  await page.click('#root [data-rte-part=findbar] button[aria-label="Match case"]');
+  await page.fill('#root [data-rte-part=findbar] input[name=replace]', "2");
+  await page.click('#root [data-rte-part=findbar] [data-rte-part=action]:nth-of-type(2)');
   await page.waitForTimeout(100);
   check(`${name} (ui) Replace all puts the text in place of every match`, (await page.evaluate(() => window.__one.editor.getHtml())) === "<p>one 2 three 2</p>", await page.evaluate(() => window.__one.editor.getHtml()));
   await page.keyboard.press("Escape");
   await page.waitForTimeout(80);
-  check(`${name} (ui) Escape closes the bar and returns to the editor`, (await barText()).hidden === true && (await page.evaluate(() => document.querySelector("#root [data-rk-part=content]").contains(document.activeElement))), await barText());
-  if (hasHighlights) check(`${name} (ui) and the highlights are gone`, await page.evaluate(() => !CSS.highlights.has("rk-find")), "cleared");
-  await page.click('#root [data-rk-item="find"]');
+  check(`${name} (ui) Escape closes the bar and returns to the editor`, (await barText()).hidden === true && (await page.evaluate(() => document.querySelector("#root [data-rte-part=content]").contains(document.activeElement))), await barText());
+  if (hasHighlights) check(`${name} (ui) and the highlights are gone`, await page.evaluate(() => !CSS.highlights.has("rte-find")), "cleared");
+  await page.click('#root [data-rte-item="find"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) the toolbar button opens it too, and shows as on`, (await barText()).hidden === false && (await page.getAttribute('#root [data-rk-item="find"]', "aria-pressed")) === "true", await barText());
-  await page.click('#root [data-rk-item="find"]');
+  check(`${name} (ui) the toolbar button opens it too, and shows as on`, (await barText()).hidden === false && (await page.getAttribute('#root [data-rte-item="find"]', "aria-pressed")) === "true", await barText());
+  await page.click('#root [data-rte-item="find"]');
   await page.waitForTimeout(60);
   check(`${name} (ui) and closes it again`, (await barText()).hidden === true, await barText());
   // The status line.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p><p>four</p>"); e.focus(); });
   await page.waitForTimeout(300);
-  const statusText = () => page.evaluate(() => document.querySelector("#root [data-rk-part=status]")?.textContent ?? null);
+  const statusText = () => page.evaluate(() => document.querySelector("#root [data-rte-part=status]")?.textContent ?? null);
   check(`${name} (ui) the status line counts words and characters`, (await statusText()) === "4 words · 17 characters", await statusText());
-  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 7); });
+  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 0, n, 7); });
   await page.waitForTimeout(300);
   check(`${name} (ui) and counts the selection against the whole`, (await statusText()) === "2 of 4 words", await statusText());
   await page.evaluate(() => window.__one.editor.setHtml("<p>solo</p>"));
   await page.waitForTimeout(300);
   check(`${name} (ui) one word is singular`, (await statusText()) === "1 word · 4 characters", await statusText());
   // Tooltips: shown on hover after a pause and at once on keyboard focus; dismissed with Escape; the pointer may move onto them.
-  const tip = '#root [data-rk-part="tooltip"]';
+  const tip = '#root [data-rte-part="tooltip"]';
   const tipText = () => page.evaluate((t) => { const e = document.querySelector(t); return e.hidden ? null : e.textContent; }, tip);
   // Start from rest: the pointer away from the toolbar, and the focus in the editor.
   await page.mouse.move(5, 400);
   await page.evaluate(() => window.__one.editor.focus());
   await page.waitForTimeout(400);
-  check(`${name} (ui) tooltips are a role, hidden until needed, and the controls no longer carry a title`, await page.evaluate((t) => document.querySelector(t).getAttribute("role") === "tooltip" && document.querySelector(t).hidden && ![...document.querySelectorAll("#root [data-rk-item]")].some((e) => e.hasAttribute("title")), tip), "role");
-  await page.hover('#root [data-rk-item="italic"]');
+  check(`${name} (ui) tooltips are a role, hidden until needed, and the controls no longer carry a title`, await page.evaluate((t) => document.querySelector(t).getAttribute("role") === "tooltip" && document.querySelector(t).hidden && ![...document.querySelectorAll("#root [data-rte-item]")].some((e) => e.hasAttribute("title")), tip), "role");
+  await page.hover('#root [data-rte-item="italic"]');
   await page.waitForTimeout(150);
   check(`${name} (ui) hovering does not show the tip at once`, (await tipText()) === null, await tipText());
   await page.waitForTimeout(600);
   check(`${name} (ui) it shows after a pause, with the name and the key`, (await tipText()) === "Italic (Ctrl+I)", await tipText());
-  check(`${name} (ui) and sits below its control, inside the editor`, await page.evaluate((t) => { const p = document.querySelector(t).getBoundingClientRect(); const c = document.querySelector('#root [data-rk-item="italic"]').getBoundingClientRect(); const r = document.getElementById("root").getBoundingClientRect(); return p.top >= c.bottom && p.left >= r.left && p.right <= r.right + 1; }, tip), "placement");
+  check(`${name} (ui) and sits below its control, inside the editor`, await page.evaluate((t) => { const p = document.querySelector(t).getBoundingClientRect(); const c = document.querySelector('#root [data-rte-item="italic"]').getBoundingClientRect(); const r = document.getElementById("root").getBoundingClientRect(); return p.top >= c.bottom && p.left >= r.left && p.right <= r.right + 1; }, tip), "placement");
   await page.mouse.move(5, 300);
   await page.waitForTimeout(400);
   check(`${name} (ui) it goes when the pointer leaves`, (await tipText()) === null, await tipText());
-  await page.hover('#root [data-rk-item="italic"]');
+  await page.hover('#root [data-rte-item="italic"]');
   await page.waitForTimeout(700);
   await page.keyboard.press("Escape");
   check(`${name} (ui) Escape puts the tip away without moving the focus or the pointer`, (await tipText()) === null, await tipText());
-  await page.evaluate(() => document.querySelector('#root [data-rk-item="bold"]').focus());
+  await page.evaluate(() => document.querySelector('#root [data-rte-item="bold"]').focus());
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(60);
   check(`${name} (ui) keyboard focus shows the tip at once`, (await tipText()) === "Italic (Ctrl+I)", await tipText());
@@ -1121,13 +1121,13 @@ for (const [name, type] of engines) {
   // The table menu: a button that opens a list of commands.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>text</p>"); e.focus(); });
   await page.waitForTimeout(60);
-  const menu = '#root [data-rk-item="table"] + [data-rk-part="menu"]';
-  const trigger = '#root [data-rk-item="table"]';
+  const menu = '#root [data-rte-item="table"] + [data-rte-part="menu"]';
+  const trigger = '#root [data-rte-item="table"]';
   check(`${name} (ui) the menu button is named, announces a menu, and starts closed`, await page.evaluate(([t, m]) => { const b = document.querySelector(t); return b.getAttribute("aria-haspopup") === "menu" && b.getAttribute("aria-expanded") === "false" && b.getAttribute("aria-label") === "Table" && document.querySelector(m).hidden; }, [trigger, menu]), "closed");
   await page.click(trigger);
   await page.waitForTimeout(80);
-  check(`${name} (ui) clicking it opens the menu and focus goes to the first entry`, await page.evaluate(([t, m]) => document.querySelector(t).getAttribute("aria-expanded") === "true" && !document.querySelector(m).hidden && document.activeElement.getAttribute("data-rk-menu-item") === "table-insert", [trigger, menu]), await page.evaluate(() => document.activeElement.outerHTML.slice(0, 160)));
-  check(`${name} (ui) entries outside a table say they are unavailable but can still be reached`, await page.evaluate(() => { const e = document.querySelector('#root [data-rk-menu-item="table-row-after"]'); return e.getAttribute("aria-disabled") === "true" && e.tabIndex !== undefined && e.getAttribute("role") === "menuitem"; }), "disabled entries");
+  check(`${name} (ui) clicking it opens the menu and focus goes to the first entry`, await page.evaluate(([t, m]) => document.querySelector(t).getAttribute("aria-expanded") === "true" && !document.querySelector(m).hidden && document.activeElement.getAttribute("data-rte-menu-item") === "table-insert", [trigger, menu]), await page.evaluate(() => document.activeElement.outerHTML.slice(0, 160)));
+  check(`${name} (ui) entries outside a table say they are unavailable but can still be reached`, await page.evaluate(() => { const e = document.querySelector('#root [data-rte-menu-item="table-row-after"]'); return e.getAttribute("aria-disabled") === "true" && e.tabIndex !== undefined && e.getAttribute("role") === "menuitem"; }), "disabled entries");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(60);
   check(`${name} (ui) Escape closes the menu and focus returns to its button`, await page.evaluate(([t, m]) => document.querySelector(m).hidden && document.activeElement === document.querySelector(t), [trigger, menu]), await active());
@@ -1135,51 +1135,51 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(60);
   await page.keyboard.press("Enter");
   await page.waitForTimeout(80);
-  check(`${name} (ui) choosing "Insert table" from the keyboard inserts a table and returns to the editor`, await page.evaluate(() => window.__one.editor.getHtml().includes("<table>") && document.querySelector("#root [data-rk-part=content]").contains(document.activeElement)), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) choosing "Insert table" from the keyboard inserts a table and returns to the editor`, await page.evaluate(() => window.__one.editor.getHtml().includes("<table>") && document.querySelector("#root [data-rte-part=content]").contains(document.activeElement)), await page.evaluate(() => window.__one.editor.getHtml()));
   await page.click(trigger);
   await page.waitForTimeout(80);
-  check(`${name} (ui) inside a table the row entries are available and "Header row" is a checkbox entry`, await page.evaluate(() => { const row = document.querySelector('#root [data-rk-menu-item="table-row-after"]'); const head = document.querySelector('#root [data-rk-menu-item="table-header"]'); return row.getAttribute("aria-disabled") === "false" && head.getAttribute("role") === "menuitemcheckbox" && head.getAttribute("aria-checked") === "false"; }), "enabled entries");
-  await page.click('#root [data-rk-menu-item="table-header"]');
+  check(`${name} (ui) inside a table the row entries are available and "Header row" is a checkbox entry`, await page.evaluate(() => { const row = document.querySelector('#root [data-rte-menu-item="table-row-after"]'); const head = document.querySelector('#root [data-rte-menu-item="table-header"]'); return row.getAttribute("aria-disabled") === "false" && head.getAttribute("role") === "menuitemcheckbox" && head.getAttribute("aria-checked") === "false"; }), "enabled entries");
+  await page.click('#root [data-rte-menu-item="table-header"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) choosing it turns the header row on, closes the menu and announces it`, await page.evaluate(() => window.__one.editor.getHtml().includes('<th scope="col">') && document.querySelector('#root [data-rk-item="table"] + [data-rk-part="menu"]').hidden && document.querySelector("#root [role=status]").textContent === "Header row on"), await page.evaluate(() => document.querySelector("#root [role=status]").textContent));
+  check(`${name} (ui) choosing it turns the header row on, closes the menu and announces it`, await page.evaluate(() => window.__one.editor.getHtml().includes('<th scope="col">') && document.querySelector('#root [data-rte-item="table"] + [data-rte-part="menu"]').hidden && document.querySelector("#root [role=status]").textContent === "Header row on"), await page.evaluate(() => document.querySelector("#root [role=status]").textContent));
   await page.click(trigger);
   await page.waitForTimeout(80);
-  check(`${name} (ui) and now shows it as checked, with a visible check mark`, await page.evaluate(() => { const head = document.querySelector('#root [data-rk-menu-item="table-header"]'); return head.getAttribute("aria-checked") === "true" && getComputedStyle(head, "::before").content.includes("\u2713"); }), "checked");
+  check(`${name} (ui) and now shows it as checked, with a visible check mark`, await page.evaluate(() => { const head = document.querySelector('#root [data-rte-menu-item="table-header"]'); return head.getAttribute("aria-checked") === "true" && getComputedStyle(head, "::before").content.includes("\u2713"); }), "checked");
   await page.mouse.click(5, 5);
   await page.waitForTimeout(60);
   check(`${name} (ui) a click elsewhere closes the menu`, await page.evaluate((m) => document.querySelector(m).hidden, menu), "outside click");
   // Block buttons and the color menus.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two three</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="quote"]');
+  await page.click('#root [data-rte-item="quote"]');
   await page.waitForTimeout(60);
-  check(`${name} (ui) the quote button wraps the paragraph and shows as on`, await page.evaluate(() => window.__one.editor.getHtml() === "<blockquote><p>one two three</p></blockquote>" && document.querySelector('#root [data-rk-item="quote"]').getAttribute("aria-pressed") === "true"), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="quote"]');
+  check(`${name} (ui) the quote button wraps the paragraph and shows as on`, await page.evaluate(() => window.__one.editor.getHtml() === "<blockquote><p>one two three</p></blockquote>" && document.querySelector('#root [data-rte-item="quote"]').getAttribute("aria-pressed") === "true"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rte-item="quote"]');
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="code-block"]');
+  await page.click('#root [data-rte-item="code-block"]');
   await page.waitForTimeout(60);
   check(`${name} (ui) the code block button makes a code block`, await page.evaluate(() => window.__one.editor.getHtml() === "<pre>one two three</pre>"), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="code-block"]');
-  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
+  await page.click('#root [data-rte-item="code-block"]');
+  await page.evaluate(() => { const e = window.__one.editor; const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 0, n, 3); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="text-color"]');
+  await page.click('#root [data-rte-item="text-color"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) the color menu shows named swatches`, await page.evaluate(() => { const e = document.querySelector('#root [data-rk-menu-item="text-color-red"]'); const sw = e.querySelector("[data-rk-part=swatch]"); return e.textContent.includes("Red") && getComputedStyle(sw).backgroundColor === "rgb(198, 40, 40)" && e.getAttribute("role") === "menuitemcheckbox"; }), "swatch");
-  await page.click('#root [data-rk-menu-item="text-color-red"]');
+  check(`${name} (ui) the color menu shows named swatches`, await page.evaluate(() => { const e = document.querySelector('#root [data-rte-menu-item="text-color-red"]'); const sw = e.querySelector("[data-rte-part=swatch]"); return e.textContent.includes("Red") && getComputedStyle(sw).backgroundColor === "rgb(198, 40, 40)" && e.getAttribute("role") === "menuitemcheckbox"; }), "swatch");
+  await page.click('#root [data-rte-menu-item="text-color-red"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) choosing a color colors the selected text`, await page.evaluate(() => window.__one.editor.getHtml().includes('<span style="color: #c62828;">one</span>')), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="text-color"]');
+  await page.click('#root [data-rte-item="text-color"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) and that color shows as the chosen one`, await page.evaluate(() => document.querySelector('#root [data-rk-menu-item="text-color-red"]').getAttribute("aria-checked") === "true" && document.querySelector('#root [data-rk-menu-item="text-color-blue"]').getAttribute("aria-checked") === "false"), "checked");
-  await page.click('#root [data-rk-menu-item="text-color-none"]');
+  check(`${name} (ui) and that color shows as the chosen one`, await page.evaluate(() => document.querySelector('#root [data-rte-menu-item="text-color-red"]').getAttribute("aria-checked") === "true" && document.querySelector('#root [data-rte-menu-item="text-color-blue"]').getAttribute("aria-checked") === "false"), "checked");
+  await page.click('#root [data-rte-menu-item="text-color-none"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) Automatic takes the color away`, await page.evaluate(() => !window.__one.editor.getHtml().includes("color")), await page.evaluate(() => window.__one.editor.getHtml()));
   // The image dialog: an address and a description; a bad address is refused with a message, a good one inserts the image without loading it.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 3, n, 3); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>one two</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 3, n, 3); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="image"]');
+  await page.click('#root [data-rte-item="image"]');
   await page.waitForTimeout(100);
-  check(`${name} (ui) the image dialog has an address field and a description field, and focus is in the first`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rk-part=field]")]; return !!d && f.length === 2 && d.querySelector("[data-rk-part=dialog-title]").textContent === "Image" && document.activeElement === f[0]; }), await active());
+  check(`${name} (ui) the image dialog has an address field and a description field, and focus is in the first`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rte-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rte-part=field]")]; return !!d && f.length === 2 && d.querySelector("[data-rte-part=dialog-title]").textContent === "Image" && document.activeElement === f[0]; }), await active());
   await page.keyboard.type("javascript:alert(1)");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(80);
@@ -1196,28 +1196,28 @@ for (const [name, type] of engines) {
   const pixel = onePixelPng();
   await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>one<img src="${src}" alt="dot" width="100"> two</p>`); e.focus(); }, pixel);
   await page.waitForTimeout(80);
-  check(`${name} (ui) no handle before an image is selected`, (await page.locator("[data-rk-resize-handle]").count()) === 0);
-  const imgBox = await page.locator("#root [data-rk-part=content] img").boundingBox();
+  check(`${name} (ui) no handle before an image is selected`, (await page.locator("[data-rte-resize-handle]").count()) === 0);
+  const imgBox = await page.locator("#root [data-rte-part=content] img").boundingBox();
   await page.mouse.click(imgBox.x + imgBox.width / 2, imgBox.y + imgBox.height / 2);
   await page.waitForTimeout(80);
-  check(`${name} (ui) a click selects the image and marks it`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 1), await page.evaluate(() => window.__one.editor.getHtml()));
-  check(`${name} (ui) the marker is not part of the document`, await page.evaluate(() => !window.__one.editor.getHtml().includes("data-rk")));
-  check(`${name} (ui) a resize handle shows on its corner`, (await page.locator("[data-rk-resize-handle]").count()) === 1);
-  const handle = await page.locator("[data-rk-resize-handle]").boundingBox();
+  check(`${name} (ui) a click selects the image and marks it`, await page.evaluate(() => document.querySelectorAll("#root img[data-rte-image-selected]").length === 1), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) the marker is not part of the document`, await page.evaluate(() => !window.__one.editor.getHtml().includes("data-rte")));
+  check(`${name} (ui) a resize handle shows on its corner`, (await page.locator("[data-rte-resize-handle]").count()) === 1);
+  const handle = await page.locator("[data-rte-resize-handle]").boundingBox();
   await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
   await page.mouse.down();
   await page.mouse.move(handle.x + handle.width / 2 + 60, handle.y + handle.height / 2 + 10, { steps: 4 });
-  check(`${name} (ui) a guide shows while dragging, and the document is unchanged until release`, (await page.locator("[data-rk-resize-line]").count()) === 1 && (await page.evaluate(() => window.__one.editor.getHtml())).includes('width="100"'));
+  check(`${name} (ui) a guide shows while dragging, and the document is unchanged until release`, (await page.locator("[data-rte-resize-line]").count()) === 1 && (await page.evaluate(() => window.__one.editor.getHtml())).includes('width="100"'));
   await page.mouse.up();
   await page.waitForTimeout(80);
   check(`${name} (ui) releasing sets the new width (one undo step)`, await page.evaluate(() => /<img [^>]*width="16\d"/.test(window.__one.editor.getHtml()) && !window.__one.editor.getHtml().includes("height=")), await page.evaluate(() => window.__one.editor.getHtml()));
-  check(`${name} (ui) the guide is gone`, (await page.locator("[data-rk-resize-line]").count()) === 0);
+  check(`${name} (ui) the guide is gone`, (await page.locator("[data-rte-resize-line]").count()) === 0);
   await page.evaluate(() => window.__one.editor.undo());
   await page.waitForTimeout(60);
   check(`${name} (ui) undo restores the old width`, await page.evaluate(() => window.__one.editor.getHtml().includes('width="100"')), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="image-properties"]');
+  await page.click('#root [data-rte-item="image-properties"]');
   await page.waitForTimeout(100);
-  check(`${name} (ui) the properties dialog starts with the image's values`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rk-part=field]")]; return !!d && f.length === 5 && f[0].value === "dot" && f[1].value === "100" && f[2].value === "" && f[3].value === "" && f[4].value === ""; }));
+  check(`${name} (ui) the properties dialog starts with the image's values`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rte-part=dialog]")].find((x) => x.open); const f = d && [...d.querySelectorAll("[data-rte-part=field]")]; return !!d && f.length === 5 && f[0].value === "dot" && f[1].value === "100" && f[2].value === "" && f[3].value === "" && f[4].value === ""; }));
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.type("A dot");
   await page.keyboard.press("Tab");
@@ -1227,20 +1227,20 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(100);
   check(`${name} (ui) the dialog sets the description and width`, await page.evaluate(() => /<img [^>]*alt="A dot"[^>]*width="40"/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
   // The keyboard: Shift+Right from just before an image selects it; moving on with the arrow alone does not.
-  await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>one<img src="${src}" alt="dot" width="20"> two</p>`); e.focus(); const n = document.querySelector("#root [data-rk-part=content] p").firstChild; e.selectDom(n, 3, n, 3); }, pixel);
+  await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>one<img src="${src}" alt="dot" width="20"> two</p>`); e.focus(); const n = document.querySelector("#root [data-rte-part=content] p").firstChild; e.selectDom(n, 3, n, 3); }, pixel);
   await page.waitForTimeout(60);
-  check(`${name} (ui) a caret beside an image does not select it`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 0));
+  check(`${name} (ui) a caret beside an image does not select it`, await page.evaluate(() => document.querySelectorAll("#root img[data-rte-image-selected]").length === 0));
   await page.keyboard.press("Shift+ArrowRight");
   await page.waitForTimeout(80);
-  check(`${name} (ui) Shift+Right over an image selects it and shows the handle`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 1) && (await page.locator("[data-rk-resize-handle]").count()) === 1, await page.evaluate(() => JSON.stringify(window.__one.editor.engine.selection)));
+  check(`${name} (ui) Shift+Right over an image selects it and shows the handle`, await page.evaluate(() => document.querySelectorAll("#root img[data-rte-image-selected]").length === 1) && (await page.locator("[data-rte-resize-handle]").count()) === 1, await page.evaluate(() => JSON.stringify(window.__one.editor.engine.selection)));
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(80);
-  check(`${name} (ui) the arrow key alone moves past it and drops the selection`, await page.evaluate(() => document.querySelectorAll("#root img[data-rk-image-selected]").length === 0) && (await page.locator("[data-rk-resize-handle]").count()) === 0);
+  check(`${name} (ui) the arrow key alone moves past it and drops the selection`, await page.evaluate(() => document.querySelectorAll("#root img[data-rte-image-selected]").length === 0) && (await page.locator("[data-rte-resize-handle]").count()) === 0);
   // An image can be dragged to another place in the text.
   await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>first<img src="${src}" alt="dot" width="40"></p><p>second line</p>`); e.focus(); }, pixel);
   await page.waitForTimeout(80);
-  const moving = await page.locator("#root [data-rk-part=content] img").boundingBox();
-  const target = await page.locator("#root [data-rk-part=content] p").nth(1).boundingBox();
+  const moving = await page.locator("#root [data-rte-part=content] img").boundingBox();
+  const target = await page.locator("#root [data-rte-part=content] p").nth(1).boundingBox();
   await page.mouse.click(moving.x + moving.width / 2, moving.y + moving.height / 2);
   await page.waitForTimeout(60);
   await page.mouse.move(moving.x + moving.width / 2, moving.y + moving.height / 2);
@@ -1250,17 +1250,17 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(100);
   check(`${name} (ui) dragging an image moves it to where it is dropped`, await page.evaluate(() => /^<p>first<\/p><p>.*<img [^>]*>.*<\/p>$/.test(window.__one.editor.getHtml()) && !/^<p>first<img/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml().replace(/src="[^"]*"/g, "src=…")));
   // The list style menu: a marker style for the list the caret is in, and where it starts counting.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<ol><li>one</li><li>two</li></ol><p>after</p>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] li").firstChild; e.selectDom(n, 1, n, 1); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<ol><li>one</li><li>two</li></ol><p>after</p>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] li").firstChild; e.selectDom(n, 1, n, 1); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="list-style"]');
+  await page.click('#root [data-rte-item="list-style"]');
   await page.waitForTimeout(80);
-  await page.click('#root [data-rk-menu-item="list-style-lower-roman"]');
+  await page.click('#root [data-rte-menu-item="list-style-lower-roman"]');
   await page.waitForTimeout(80);
   check(`${name} (ui) the list style menu sets the marker`, await page.evaluate(() => window.__one.editor.getHtml() === '<ol style="list-style-type: lower-roman;"><li>one</li><li>two</li></ol><p>after</p>'), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="list-style"]');
+  await page.click('#root [data-rte-item="list-style"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) and that style shows as the chosen one`, await page.evaluate(() => document.querySelector('#root [data-rk-menu-item="list-style-lower-roman"]').getAttribute("aria-checked") === "true"));
-  await page.click('#root [data-rk-menu-item="list-start"]');
+  check(`${name} (ui) and that style shows as the chosen one`, await page.evaluate(() => document.querySelector('#root [data-rte-menu-item="list-style-lower-roman"]').getAttribute("aria-checked") === "true"));
+  await page.click('#root [data-rte-menu-item="list-start"]');
   await page.waitForTimeout(100);
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.type("4");
@@ -1270,106 +1270,106 @@ for (const [name, type] of engines) {
   // Position and caption, from the properties dialog.
   await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p><img src="${src}" alt="dot" width="40"></p><p>after</p>`); e.focus(); }, pixel);
   await page.waitForTimeout(60);
-  const dotBox = await page.locator("#root [data-rk-part=content] img").boundingBox();
+  const dotBox = await page.locator("#root [data-rte-part=content] img").boundingBox();
   await page.mouse.click(dotBox.x + dotBox.width / 2, dotBox.y + dotBox.height / 2);
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="image-properties"]');
+  await page.click('#root [data-rte-item="image-properties"]');
   await page.waitForTimeout(100);
-  check(`${name} (ui) the properties dialog has a position list and a caption field`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); const sel = d && d.querySelector("select[name=align]"); return !!sel && sel.options.length === 4 && !!d.querySelector("[name=caption]"); }));
-  await page.selectOption('#root [data-rk-part=dialog][open] select[name=align]', "center");
-  await page.fill('#root [data-rk-part=dialog][open] [name=caption]', "A dot");
+  check(`${name} (ui) the properties dialog has a position list and a caption field`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rte-part=dialog]")].find((x) => x.open); const sel = d && d.querySelector("select[name=align]"); return !!sel && sel.options.length === 4 && !!d.querySelector("[name=caption]"); }));
+  await page.selectOption('#root [data-rte-part=dialog][open] select[name=align]', "center");
+  await page.fill('#root [data-rte-part=dialog][open] [name=caption]', "A dot");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
   check(`${name} (ui) a captioned image is written as a figure`, await page.evaluate(() => /<figure><img [^>]*alt="dot"[^>]*><figcaption>A dot<\/figcaption><\/figure><p>after<\/p>/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
-  check(`${name} (ui) and the caption shows under the picture without being text of the document`, await page.evaluate(() => { const c = document.querySelector("#root [data-rk-part=content] [data-rte-caption]"); return !!c && c.textContent === "A dot" && c.getAttribute("contenteditable") === "false"; }));
+  check(`${name} (ui) and the caption shows under the picture without being text of the document`, await page.evaluate(() => { const c = document.querySelector("#root [data-rte-part=content] [data-rte-caption]"); return !!c && c.textContent === "A dot" && c.getAttribute("contenteditable") === "false"; }));
   // Typing beside the picture makes it no longer alone in its paragraph, and a caption is kept only for an image alone.
-  await page.locator("#root [data-rk-part=content] p").nth(1).click();
+  await page.locator("#root [data-rte-part=content] p").nth(1).click();
   await page.keyboard.press("Home");
   await page.keyboard.press("ArrowLeft");
   await page.keyboard.type("x");
   check(`${name} (ui) the caret passes the caption; typing next to the picture ends the figure`, await page.evaluate(() => { const h = window.__one.editor.getHtml(); return !h.includes("<figure>") && h.includes("x") && h.includes("<p>after</p>"); }), await page.evaluate(() => window.__one.editor.getHtml()));
   await page.evaluate((src) => { const e = window.__one.editor; e.setHtml(`<p>a<img src="${src}" width="40">b</p>`); e.focus(); }, pixel);
   await page.waitForTimeout(60);
-  const inlineBox = await page.locator("#root [data-rk-part=content] img").boundingBox();
+  const inlineBox = await page.locator("#root [data-rte-part=content] img").boundingBox();
   await page.mouse.click(inlineBox.x + inlineBox.width / 2, inlineBox.y + inlineBox.height / 2);
   await page.waitForTimeout(60);
   await page.evaluate(() => window.__one.editor.commands.run("image.update", { align: "right" }));
   await page.waitForTimeout(80);
-  check(`${name} (ui) an image beside text floats to the side`, await page.evaluate(() => getComputedStyle(document.querySelector("#root [data-rk-part=content] img")).cssFloat === "right" && /style="float: right;/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) an image beside text floats to the side`, await page.evaluate(() => getComputedStyle(document.querySelector("#root [data-rte-part=content] img")).cssFloat === "right" && /style="float: right;/.test(window.__one.editor.getHtml())), await page.evaluate(() => window.__one.editor.getHtml()));
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<p>plain text</p>"); e.focus(); });
   await page.waitForTimeout(80);
-  check(`${name} (ui) the handle goes when no image is selected`, (await page.locator("[data-rk-resize-handle]").count()) === 0);
+  check(`${name} (ui) the handle goes when no image is selected`, (await page.locator("[data-rte-resize-handle]").count()) === 0);
 
   // A menu entry that asks for something opens a dialog.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
   await page.waitForTimeout(60);
   await page.click(trigger);
   await page.waitForTimeout(80);
-  await page.click('#root [data-rk-menu-item="table-column-width"]');
+  await page.click('#root [data-rte-menu-item="table-column-width"]');
   await page.waitForTimeout(100);
-  check(`${name} (ui) the column width entry opens a dialog with its field focused`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rk-part=dialog]")].find((x) => x.open); return !!d && d.querySelector("[data-rk-part=dialog-title]").textContent === "Column width…" && document.activeElement === d.querySelector("[data-rk-part=field]"); }), await active());
+  check(`${name} (ui) the column width entry opens a dialog with its field focused`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root [data-rte-part=dialog]")].find((x) => x.open); return !!d && d.querySelector("[data-rte-part=dialog-title]").textContent === "Column width…" && document.activeElement === d.querySelector("[data-rte-part=field]"); }), await active());
   await page.keyboard.type("30%");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
   check(`${name} (ui) submitting it sets the width of the column`, await page.evaluate(() => window.__one.editor.getHtml().includes('<col style="width: 30%">') || window.__one.editor.getHtml().includes("<col><col style=\"width: 30%\">")), await page.evaluate(() => window.__one.editor.getHtml()));
-  check(`${name} (ui) and the column is drawn at that width`, await page.evaluate(() => { const col = document.querySelector("#root [data-rk-part=content] col"); return !!col && col.style.width === "30%"; }), "col");
+  check(`${name} (ui) and the column is drawn at that width`, await page.evaluate(() => { const col = document.querySelector("#root [data-rte-part=content] col"); return !!col && col.style.width === "30%"; }), "col");
   // The Cell style menu: color behind, line round, row height.
-  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rk-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
+  await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></tbody></table>"); e.focus(); const n = document.querySelector("#root [data-rte-part=content] td p").firstChild; e.selectDom(n, 0, n, 0); });
   await page.waitForTimeout(60);
-  await page.click('#root [data-rk-item="cell-style"]');
+  await page.click('#root [data-rte-item="cell-style"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) the cell style menu has tinted swatches, line choices and a row height entry`, await page.evaluate(() => { const m = document.querySelector('#root [data-rk-item="cell-style"] + [data-rk-part=menu]'); const sw = m.querySelector('[data-rk-menu-item="cell-fill-green"] [data-rk-part=swatch]'); return !!sw && getComputedStyle(sw).backgroundColor === "rgb(200, 230, 201)" && !!m.querySelector('[data-rk-menu-item="cell-border-dashed"]') && m.querySelector('[data-rk-menu-item="cell-border-default"]').getAttribute("aria-checked") === "true" && !!m.querySelector('[data-rk-menu-item="cell-row-height"]'); }), "menu");
-  await page.click('#root [data-rk-menu-item="cell-fill-green"]');
+  check(`${name} (ui) the cell style menu has tinted swatches, line choices and a row height entry`, await page.evaluate(() => { const m = document.querySelector('#root [data-rte-item="cell-style"] + [data-rte-part=menu]'); const sw = m.querySelector('[data-rte-menu-item="cell-fill-green"] [data-rte-part=swatch]'); return !!sw && getComputedStyle(sw).backgroundColor === "rgb(200, 230, 201)" && !!m.querySelector('[data-rte-menu-item="cell-border-dashed"]') && m.querySelector('[data-rte-menu-item="cell-border-default"]').getAttribute("aria-checked") === "true" && !!m.querySelector('[data-rte-menu-item="cell-row-height"]'); }), "menu");
+  await page.click('#root [data-rte-menu-item="cell-fill-green"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) choosing a fill colors the cell, in the document and on the page`, await page.evaluate(() => window.__one.editor.getHtml().includes('<td style="background-color: #c8e6c9;">a</td>') && getComputedStyle(document.querySelector("#root [data-rk-part=content] td")).backgroundColor === "rgb(200, 230, 201)"), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="cell-style"]');
+  check(`${name} (ui) choosing a fill colors the cell, in the document and on the page`, await page.evaluate(() => window.__one.editor.getHtml().includes('<td style="background-color: #c8e6c9;">a</td>') && getComputedStyle(document.querySelector("#root [data-rte-part=content] td")).backgroundColor === "rgb(200, 230, 201)"), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rte-item="cell-style"]');
   await page.waitForTimeout(80);
-  await page.click('#root [data-rk-menu-item="cell-border-thick"]');
+  await page.click('#root [data-rte-menu-item="cell-border-thick"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) choosing a line draws it round the cell`, await page.evaluate(() => { const td = document.querySelector("#root [data-rk-part=content] td"); const c = getComputedStyle(td); return window.__one.editor.getHtml().includes("border: 3px solid currentcolor") && c.borderTopWidth === "3px" && c.borderTopStyle === "solid"; }), "border");
-  await page.click('#root [data-rk-item="cell-style"]');
+  check(`${name} (ui) choosing a line draws it round the cell`, await page.evaluate(() => { const td = document.querySelector("#root [data-rte-part=content] td"); const c = getComputedStyle(td); return window.__one.editor.getHtml().includes("border: 3px solid currentcolor") && c.borderTopWidth === "3px" && c.borderTopStyle === "solid"; }), "border");
+  await page.click('#root [data-rte-item="cell-style"]');
   await page.waitForTimeout(80);
-  await page.click('#root [data-rk-menu-item="cell-border-none"]');
+  await page.click('#root [data-rte-menu-item="cell-border-none"]');
   await page.waitForTimeout(80);
-  await page.click('#root [data-rk-item="cell-style"]');
+  await page.click('#root [data-rte-item="cell-style"]');
   await page.waitForTimeout(80);
-  await page.click('#root [data-rk-menu-item="cell-edge-bottom"]');
+  await page.click('#root [data-rte-menu-item="cell-edge-bottom"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) a line along one edge: no lines, then the bottom one, in the document and on the page`, await page.evaluate(() => { const td = document.querySelector("#root [data-rk-part=content] td"); const c = getComputedStyle(td); return window.__one.editor.getHtml().includes("border-top: none; border-right: none; border-bottom: 1px solid currentcolor; border-left: none") && c.borderBottomStyle === "solid" && c.borderTopStyle === "none"; }), await page.evaluate(() => window.__one.editor.getHtml()));
-  await page.click('#root [data-rk-item="cell-style"]');
+  check(`${name} (ui) a line along one edge: no lines, then the bottom one, in the document and on the page`, await page.evaluate(() => { const td = document.querySelector("#root [data-rte-part=content] td"); const c = getComputedStyle(td); return window.__one.editor.getHtml().includes("border-top: none; border-right: none; border-bottom: 1px solid currentcolor; border-left: none") && c.borderBottomStyle === "solid" && c.borderTopStyle === "none"; }), await page.evaluate(() => window.__one.editor.getHtml()));
+  await page.click('#root [data-rte-item="cell-style"]');
   await page.waitForTimeout(80);
-  check(`${name} (ui) and the menu shows the bottom line as on and the top as off`, await page.evaluate(() => document.querySelector('#root [data-rk-menu-item="cell-edge-bottom"]').getAttribute("aria-checked") === "true" && document.querySelector('#root [data-rk-menu-item="cell-edge-top"]').getAttribute("aria-checked") === "false"), "edges");
-  await page.click('#root [data-rk-menu-item="cell-row-height"]');
+  check(`${name} (ui) and the menu shows the bottom line as on and the top as off`, await page.evaluate(() => document.querySelector('#root [data-rte-menu-item="cell-edge-bottom"]').getAttribute("aria-checked") === "true" && document.querySelector('#root [data-rte-menu-item="cell-edge-top"]').getAttribute("aria-checked") === "false"), "edges");
+  await page.click('#root [data-rte-menu-item="cell-row-height"]');
   await page.waitForTimeout(100);
   await page.keyboard.type("80");
   await page.keyboard.press("Enter");
   await page.waitForTimeout(100);
-  check(`${name} (ui) the row height dialog sets the least height of the row`, await page.evaluate(() => window.__one.editor.getHtml().includes('<tr style="height: 80px">') && document.querySelector("#root [data-rk-part=content] tr").getBoundingClientRect().height >= 79), await page.evaluate(() => window.__one.editor.getHtml()));
+  check(`${name} (ui) the row height dialog sets the least height of the row`, await page.evaluate(() => window.__one.editor.getHtml().includes('<tr style="height: 80px">') && document.querySelector("#root [data-rte-part=content] tr").getBoundingClientRect().height >= 79), await page.evaluate(() => window.__one.editor.getHtml()));
   // The placeholder and the length limit, on a third editor made with those options.
-  const third = '#third [data-rk-part=content] > :first-child';
-  check(`${name} (ui) an empty editor shows its placeholder: marked empty, said to assistive technology, and drawn`, await page.evaluate((q) => { const e = document.querySelector(q); return e.hasAttribute("data-rk-empty") && e.getAttribute("aria-placeholder") === "Type here" && getComputedStyle(e.firstElementChild, "::before").content === '"Type here"'; }, third), "placeholder");
+  const third = '#third [data-rte-part=content] > :first-child';
+  check(`${name} (ui) an empty editor shows its placeholder: marked empty, said to assistive technology, and drawn`, await page.evaluate((q) => { const e = document.querySelector(q); return e.hasAttribute("data-rte-empty") && e.getAttribute("aria-placeholder") === "Type here" && getComputedStyle(e.firstElementChild, "::before").content === '"Type here"'; }, third), "placeholder");
   await page.click(third);
   await page.keyboard.type("abcdefghijklmnop");
   check(`${name} (ui) typing past maxLength is refused at the limit`, (await page.evaluate(() => window.__three.editor.getHtml())) === "<p>abcdefghijkl</p>", await page.evaluate(() => window.__three.editor.getHtml()));
-  check(`${name} (ui) once there is text the placeholder is gone`, await page.evaluate((q) => { const e = document.querySelector(q); return !e.hasAttribute("data-rk-empty") && getComputedStyle(e.firstElementChild, "::before").content === "none"; }, third), "gone");
+  check(`${name} (ui) once there is text the placeholder is gone`, await page.evaluate((q) => { const e = document.querySelector(q); return !e.hasAttribute("data-rte-empty") && getComputedStyle(e.firstElementChild, "::before").content === "none"; }, third), "gone");
   check(`${name} (ui) spellcheck can be switched off`, (await page.evaluate((q) => document.querySelector(q).spellcheck, third)) === false, "spellcheck");
   await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
-  check(`${name} (ui) deleting everything brings the placeholder back`, await page.evaluate((q) => document.querySelector(q).hasAttribute("data-rk-empty"), third), "back");
+  check(`${name} (ui) deleting everything brings the placeholder back`, await page.evaluate((q) => document.querySelector(q).hasAttribute("data-rte-empty"), third), "back");
   // Cleaning up.
   // The selection toolbar and the context menu (the second editor has both switched on).
   {
-    const bar = "#second [data-rk-part=floating]";
-    const para = "#second [data-rk-part=content] p";
+    const bar = "#second [data-rte-part=floating]";
+    const para = "#second [data-rte-part=content] p";
     const pick = (from, to) => page.evaluate(([a, b, q]) => { const e = window.__two.editor; e.focus(); const n = document.querySelector(q).lastChild; e.selectDom(n, a, n, b); }, [from, to, para]);
     const shown = () => page.evaluate((q) => { const b = document.querySelector(q); return !!b && !b.hidden && b.getBoundingClientRect().width > 0; }, bar);
     check(`${name} (ui) the selection toolbar is not there until text is selected`, !(await shown()), "shown");
     await pick(2, 9);
     await page.waitForTimeout(250);
-    check(`${name} (ui) selecting text shows a named toolbar of formatting controls over it`, await page.evaluate((q) => { const b = document.querySelector(q); const ids = [...b.querySelectorAll("[data-rk-item]")].map((x) => x.getAttribute("data-rk-item")); return b.getAttribute("role") === "toolbar" && !!b.getAttribute("aria-label") && ["bold", "italic", "underline", "link"].every((i) => ids.includes(i)) && [...b.querySelectorAll("button")].every((x) => x.getAttribute("aria-label")); }, bar), "toolbar");
+    check(`${name} (ui) selecting text shows a named toolbar of formatting controls over it`, await page.evaluate((q) => { const b = document.querySelector(q); const ids = [...b.querySelectorAll("[data-rte-item]")].map((x) => x.getAttribute("data-rte-item")); return b.getAttribute("role") === "toolbar" && !!b.getAttribute("aria-label") && ["bold", "italic", "underline", "link"].every((i) => ids.includes(i)) && [...b.querySelectorAll("button")].every((x) => x.getAttribute("aria-label")); }, bar), "toolbar");
     check(`${name} (ui) the selection toolbar sits over the selected text and inside the editor`, await page.evaluate(([q, p]) => { const b = document.querySelector(q).getBoundingClientRect(); const r = document.getElementById("second").getBoundingClientRect(); const n = document.querySelector(p).firstChild; const range = document.createRange(); range.setStart(n, 2); range.setEnd(n, 9); const s = range.getBoundingClientRect(); return b.bottom <= s.top + 1 && b.left >= r.left - 1 && b.right <= r.right + 1; }, [bar, para]), "placement");
-    await page.click(`${bar} [data-rk-item=bold]`);
-    check(`${name} (ui) a control in the selection toolbar formats the selection and shows it as on, and the selection stays`, await page.evaluate(([q, p]) => { const e = window.__two.editor; return e.getHtml().includes("<strong>") && document.querySelector(q + " [data-rk-item=bold]").getAttribute("aria-pressed") === "true" && document.querySelector(p + " strong") !== null && e.snapshot.selection.anchor.offset !== e.snapshot.selection.focus.offset; }, [bar, para]), await page.evaluate(() => window.__two.editor.getHtml()));
+    await page.click(`${bar} [data-rte-item=bold]`);
+    check(`${name} (ui) a control in the selection toolbar formats the selection and shows it as on, and the selection stays`, await page.evaluate(([q, p]) => { const e = window.__two.editor; return e.getHtml().includes("<strong>") && document.querySelector(q + " [data-rte-item=bold]").getAttribute("aria-pressed") === "true" && document.querySelector(p + " strong") !== null && e.snapshot.selection.anchor.offset !== e.snapshot.selection.focus.offset; }, [bar, para]), await page.evaluate(() => window.__two.editor.getHtml()));
     check(`${name} (ui) after using the selection toolbar the focus is back in the editor`, await page.evaluate(() => document.getElementById("second").contains(document.activeElement) && document.activeElement.isContentEditable), "focus");
     await page.keyboard.press("Alt+F10");
     check(`${name} (ui) Alt+F10 moves the focus into the selection toolbar`, await page.evaluate((q) => document.querySelector(q).contains(document.activeElement), bar), "focus");
@@ -1388,11 +1388,11 @@ for (const [name, type] of engines) {
     check(`${name} (ui) moving the focus away from the editor hides the selection toolbar`, !(await shown()), "shown");
 
     // the context menu
-    const menu = "#second [data-rk-context]";
+    const menu = "#second [data-rte-context]";
     await pick(0, 0);
     await page.click(para, { button: "right" });
     await page.waitForTimeout(150);
-    check(`${name} (ui) a right click opens a menu of commands at the pointer, and the browser's own menu is not used`, await page.evaluate((q) => { const m = document.querySelector(q); const names = [...m.querySelectorAll("[data-rk-menu-item]")].map((x) => x.querySelector("[data-rk-part=label]").textContent); return m.getAttribute("role") === "menu" && !m.hidden && names.includes("Undo") && names.includes("Bold") && !!m.getAttribute("aria-labelledby"); }, menu), "menu");
+    check(`${name} (ui) a right click opens a menu of commands at the pointer, and the browser's own menu is not used`, await page.evaluate((q) => { const m = document.querySelector(q); const names = [...m.querySelectorAll("[data-rte-menu-item]")].map((x) => x.querySelector("[data-rte-part=label]").textContent); return m.getAttribute("role") === "menu" && !m.hidden && names.includes("Undo") && names.includes("Bold") && !!m.getAttribute("aria-labelledby"); }, menu), "menu");
     check(`${name} (ui) the context menu stays inside the window`, await page.evaluate((q) => { const r = document.querySelector(q).getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight; }, menu), "bounds");
     check(`${name} (ui) the first entry of the context menu has the focus`, await page.evaluate((q) => document.querySelector(q).contains(document.activeElement), menu), "focus");
     await page.keyboard.press("Escape");
@@ -1401,7 +1401,7 @@ for (const [name, type] of engines) {
     await pick(2, 9);
     await page.click(para, { button: "right" });
     await page.waitForTimeout(150);
-    await page.click(`${menu} [data-rk-menu-item=italic]`);
+    await page.click(`${menu} [data-rte-menu-item=italic]`);
     check(`${name} (ui) choosing an entry runs its command on the selection, closes the menu and returns the focus`, await page.evaluate(([q]) => window.__two.editor.getHtml().includes("<em>") && document.querySelector(q).hidden && document.activeElement.isContentEditable, [menu]), await page.evaluate(() => window.__two.editor.getHtml()));
     await pick(0, 0);
     await page.click(para, { button: "right", modifiers: ["Shift"] });
@@ -1409,12 +1409,12 @@ for (const [name, type] of engines) {
     check(`${name} (ui) Shift with the right button does not open the menu, which leaves the browser's own`, await page.evaluate((q) => document.querySelector(q).hidden, menu), "opened");
     await page.keyboard.press("Escape");
     // The link dialog, opened from each of the two surfaces: it applies to the selected text and the focus comes back to the editor.
-    const field = "#second [data-rk-part=dialog]:not([data-rk-shortcuts]) [data-rk-part=field]";
+    const field = "#second [data-rte-part=dialog]:not([data-rte-shortcuts]) [data-rte-part=field]";
     const fresh = () => page.evaluate(() => { const e = window.__two.editor; e.setHtml("<p>one two three four five six seven</p>"); });
     await fresh();
     await pick(4, 7);
     await page.waitForTimeout(250);
-    await page.click(`${bar} [data-rk-item=link]`);
+    await page.click(`${bar} [data-rte-item=link]`);
     await page.waitForTimeout(100);
     await page.fill(field, "https://x.test/a");
     await page.keyboard.press("Enter");
@@ -1424,7 +1424,7 @@ for (const [name, type] of engines) {
     await pick(8, 13);
     await page.click(para, { button: "right" });
     await page.waitForTimeout(150);
-    await page.click(`${menu} [data-rk-menu-item=link]`);
+    await page.click(`${menu} [data-rte-menu-item=link]`);
     await page.waitForTimeout(100);
     await page.fill(field, "https://x.test/b");
     await page.keyboard.press("Enter");
@@ -1450,26 +1450,26 @@ for (const [name, type] of engines) {
     await page.waitForTimeout(250);
     check(`${name} (ui) the selection toolbar waits for the pointer to be released when text is selected by dragging`, !during && (await shown()), JSON.stringify([during, await shown()]));
   }
-  // <rk-ui>: the interface around an <rk-editor>, by attributes.
+  // <rte-ui>: the interface around an <rte-editor>, by attributes.
   {
     const q = (sel) => page.evaluate((s) => document.querySelectorAll(s).length, sel);
-    const host = "#fourth rk-editor";
-    check(`${name} (ui element) <rk-ui> builds the interface inside the editor element, with one toolbar and the surface in the content`, (await q(`${host} > [data-rk-part=toolbar] [data-rk-item=bold]`)) === 1 && (await q(`${host} > [data-rk-part=content] [contenteditable=true]`)) === 1 && (await page.evaluate((h) => document.querySelector(h).classList.contains("rk-root"), host)), "built");
+    const host = "#fourth rte-editor";
+    check(`${name} (ui element) <rte-ui> builds the interface inside the editor element, with one toolbar and the surface in the content`, (await q(`${host} > [data-rte-part=toolbar] [data-rte-item=bold]`)) === 1 && (await q(`${host} > [data-rte-part=content] [contenteditable=true]`)) === 1 && (await page.evaluate((h) => document.querySelector(h).classList.contains("rte-root"), host)), "built");
     check(`${name} (ui element) the editor element's value is still the document`, await page.evaluate((h) => document.querySelector(h).value === "<p>An editor made from custom elements, with its interface.</p>", host), await page.evaluate((h) => document.querySelector(h).value, host));
-    await page.evaluate((h) => { const e = document.querySelector(h).editor; e.focus(); const n = document.querySelector(h + " [data-rk-part=content] p").lastChild; e.selectDom(n, 3, n, 9); }, host);
+    await page.evaluate((h) => { const e = document.querySelector(h).editor; e.focus(); const n = document.querySelector(h + " [data-rte-part=content] p").lastChild; e.selectDom(n, 3, n, 9); }, host);
     await page.waitForTimeout(250);
-    check(`${name} (ui element) the selection-toolbar attribute turns the selection toolbar on`, await page.evaluate((h) => { const b = document.querySelector(h + " [data-rk-part=floating]"); return !!b && !b.hidden; }, host), "shown");
+    check(`${name} (ui element) the selection-toolbar attribute turns the selection toolbar on`, await page.evaluate((h) => { const b = document.querySelector(h + " [data-rte-part=floating]"); return !!b && !b.hidden; }, host), "shown");
     await page.evaluate(() => document.getElementById("fourth").setAttribute("theme", "dark"));
-    check(`${name} (ui element) changing the theme attribute restyles without rebuilding`, await page.evaluate((h) => document.querySelector(h).getAttribute("data-rk-theme") === "dark" && document.querySelectorAll(h + " [data-rk-part=toolbar]").length === 1, host), "theme");
+    check(`${name} (ui element) changing the theme attribute restyles without rebuilding`, await page.evaluate((h) => document.querySelector(h).getAttribute("data-rte-theme") === "dark" && document.querySelectorAll(h + " [data-rte-part=toolbar]").length === 1, host), "theme");
     await page.evaluate(() => document.getElementById("fourth").removeAttribute("selection-toolbar"));
-    check(`${name} (ui element) removing the attribute rebuilds the interface without that part and keeps the document`, (await q(`${host} [data-rk-part=floating]`)) === 0 && (await q(`${host} [data-rk-part=toolbar]`)) === 1 && (await q(`${host} [data-rk-part=content] [contenteditable=true]`)) === 1 && (await q(`${host} [data-rk-part=content]`)) === 1 && (await page.evaluate((h) => document.querySelector(h).value.includes("custom elements"), host)), "rebuilt");
+    check(`${name} (ui element) removing the attribute rebuilds the interface without that part and keeps the document`, (await q(`${host} [data-rte-part=floating]`)) === 0 && (await q(`${host} [data-rte-part=toolbar]`)) === 1 && (await q(`${host} [data-rte-part=content] [contenteditable=true]`)) === 1 && (await q(`${host} [data-rte-part=content]`)) === 1 && (await page.evaluate((h) => document.querySelector(h).value.includes("custom elements"), host)), "rebuilt");
     await page.evaluate(() => { const r = document.getElementById("fourth"); const p = r.parentNode; r.remove(); p.appendChild(r); });
     await page.waitForTimeout(150);
-    check(`${name} (ui element) moving the element in the page leaves one interface`, (await q(`${host} [data-rk-part=toolbar]`)) === 1 && (await q(`${host} [data-rk-part=content] [contenteditable=true]`)) === 1, `${await q(`${host} [data-rk-part=toolbar]`)}`);
+    check(`${name} (ui element) moving the element in the page leaves one interface`, (await q(`${host} [data-rte-part=toolbar]`)) === 1 && (await q(`${host} [data-rte-part=content] [contenteditable=true]`)) === 1, `${await q(`${host} [data-rte-part=toolbar]`)}`);
     await page.evaluate(() => document.getElementById("fourth").remove());
   }
   await page.evaluate(() => window.__two.ui.destroy());
-  check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rk-root") && !r.hasAttribute("data-rk-theme") && !r.querySelector("[data-rk-part=toolbar]") && document.getElementById("root").classList.contains("rk-root"); }), "destroy");
+  check(`${name} (ui) destroying an interface removes what it added and leaves the other one alone`, await page.evaluate(() => { const r = document.getElementById("second"); return !r.classList.contains("rte-root") && !r.hasAttribute("data-rte-theme") && !r.querySelector("[data-rte-part=toolbar]") && document.getElementById("root").classList.contains("rte-root"); }), "destroy");
   check(`${name} (ui) no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
@@ -1516,7 +1516,7 @@ for (const [name, type] of engines) {
       await page.keyboard.press("Enter");
       await page.keyboard.press("Escape");
       for (const id of ["source", "table", "symbols", "text-color", "link", "image", "shortcuts"]) {
-        await page.click(`#root [data-rk-item="${id}"]`).catch(() => undefined);
+        await page.click(`#root [data-rte-item="${id}"]`).catch(() => undefined);
         await page.keyboard.press("Escape");
       }
     }
@@ -1543,9 +1543,9 @@ for (const [name, type] of engines) {
   const { page } = t;
   // Open everything that can be opened, so the audit sees it all.
   await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>a</td><td>b</td></tr></tbody></table><p>text</p>"); e.focus(); });
-  await page.click('#root [data-rk-item="find"]');
-  await page.click('#root [data-rk-item="source"]');
-  await page.click('#root [data-rk-item="source"]');
+  await page.click('#root [data-rte-item="find"]');
+  await page.click('#root [data-rte-item="source"]');
+  await page.click('#root [data-rte-item="source"]');
   const audit = await page.evaluate(() => {
     const root = document.getElementById("root");
     const problems = [];
@@ -1557,7 +1557,7 @@ for (const [name, type] of engines) {
     };
     for (const el of root.querySelectorAll("button, input, select, textarea, dialog, [role=menu], [role=toolbar], [role=search], [role=textbox]")) {
       if (el.type === "hidden") continue;
-      if (!nameOf(el)) problems.push(`no name: ${el.tagName.toLowerCase()}[${el.getAttribute("data-rk-item") ?? el.getAttribute("data-rk-part") ?? el.getAttribute("role")}]`);
+      if (!nameOf(el)) problems.push(`no name: ${el.tagName.toLowerCase()}[${el.getAttribute("data-rte-item") ?? el.getAttribute("data-rte-part") ?? el.getAttribute("role")}]`);
     }
     const ids = new Map();
     for (const el of root.querySelectorAll("[id]")) ids.set(el.id, (ids.get(el.id) ?? 0) + 1);
@@ -1566,7 +1566,7 @@ for (const [name, type] of engines) {
       for (const el of root.querySelectorAll(`[${attr}]`)) for (const id of el.getAttribute(attr).split(/\s+/)) if (id && !document.getElementById(id)) problems.push(`${attr} points at a missing id ${id}`);
     }
     // Roving focus: exactly one tab stop in the toolbar.
-    const stops = [...root.querySelectorAll("[data-rk-part=toolbar] [data-rk-item]")].filter((e) => e.tabIndex === 0).length;
+    const stops = [...root.querySelectorAll("[data-rte-part=toolbar] [data-rte-item]")].filter((e) => e.tabIndex === 0).length;
     if (stops !== 1) problems.push(`toolbar has ${stops} tab stops`);
     for (const el of root.querySelectorAll("[role=menuitem], [role=menuitemcheckbox]")) if (!el.closest("[role=menu]")) problems.push("a menu item outside a menu");
     for (const el of root.querySelectorAll("[aria-pressed]")) if (!["true", "false", "mixed"].includes(el.getAttribute("aria-pressed"))) problems.push("bad aria-pressed");
@@ -1585,46 +1585,46 @@ for (const [name, type] of engines) {
   const { page } = t;
   const tap = (sel) => (touch ? page.tap(sel) : page.click(sel));
   check(`${name} (narrow) the page does not scroll sideways`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]));
-  check(`${name} (narrow) the toolbar wraps onto more rows and every control is on the screen`, await page.evaluate(() => { const bar = document.querySelector("#root [data-rk-part=toolbar]"); const items = [...bar.querySelectorAll("[data-rk-item]")]; return bar.getBoundingClientRect().height > 80 && items.every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }); }), "toolbar");
-  check(`${name} (narrow) every control is at least 24px square (the smallest target WCAG allows)`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=toolbar] button[data-rk-item]")].every((b) => { const r = b.getBoundingClientRect(); return r.width >= 24 && r.height >= 24; })), "targets");
+  check(`${name} (narrow) the toolbar wraps onto more rows and every control is on the screen`, await page.evaluate(() => { const bar = document.querySelector("#root [data-rte-part=toolbar]"); const items = [...bar.querySelectorAll("[data-rte-item]")]; return bar.getBoundingClientRect().height > 80 && items.every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; }); }), "toolbar");
+  check(`${name} (narrow) every control is at least 24px square (the smallest target WCAG allows)`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rte-part=toolbar] button[data-rte-item]")].every((b) => { const r = b.getBoundingClientRect(); return r.width >= 24 && r.height >= 24; })), "targets");
   for (const id of ["text-color", "highlight", "symbols", "table", "find"]) {
     if (id === "find") {
       // A mouse or focus left on the last button would keep its tooltip up, which can sit over the next row.
       await page.mouse.move(0, 0);
       await page.evaluate(() => document.activeElement?.blur());
       await page.waitForTimeout(100);
-      await tap('#root [data-rk-item="find"]');
+      await tap('#root [data-rte-item="find"]');
       await page.waitForTimeout(150);
-      check(`${name} (narrow) the find bar fits the screen`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rk-part=findbar] *")].every((e) => e.getBoundingClientRect().right <= innerWidth + 1)), "findbar");
+      check(`${name} (narrow) the find bar fits the screen`, await page.evaluate(() => [...document.querySelectorAll("#root [data-rte-part=findbar] *")].every((e) => e.getBoundingClientRect().right <= innerWidth + 1)), "findbar");
       break;
     }
-    await tap(`#root [data-rk-item="${id}"]`);
+    await tap(`#root [data-rte-item="${id}"]`);
     await page.waitForTimeout(150);
-    check(`${name} (narrow) the ${id} menu opens inside the screen`, await page.evaluate((id) => { const m = document.querySelector(`#root [data-rk-item="${id}"] + [data-rk-part=menu]`).getBoundingClientRect(); return !document.querySelector(`#root [data-rk-item="${id}"] + [data-rk-part=menu]`).hidden && m.left >= 0 && m.right <= innerWidth; }, id), await page.evaluate((id) => JSON.stringify(document.querySelector(`#root [data-rk-item="${id}"] + [data-rk-part=menu]`).getBoundingClientRect()), id));
+    check(`${name} (narrow) the ${id} menu opens inside the screen`, await page.evaluate((id) => { const m = document.querySelector(`#root [data-rte-item="${id}"] + [data-rte-part=menu]`).getBoundingClientRect(); return !document.querySelector(`#root [data-rte-item="${id}"] + [data-rte-part=menu]`).hidden && m.left >= 0 && m.right <= innerWidth; }, id), await page.evaluate((id) => JSON.stringify(document.querySelector(`#root [data-rte-item="${id}"] + [data-rte-part=menu]`).getBoundingClientRect()), id));
     await page.keyboard.press("Escape");
   }
-  await tap('#root [data-rk-item="image"]');
+  await tap('#root [data-rte-item="image"]');
   await page.waitForTimeout(150);
   check(`${name} (narrow) a dialog fits the screen`, await page.evaluate(() => { const d = [...document.querySelectorAll("#root dialog")].find((x) => x.open); const r = d.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }), "dialog");
   await page.keyboard.press("Escape");
   if (touch) {
-    await tap('#root [data-rk-item="bold"]');
+    await tap('#root [data-rte-item="bold"]');
     await page.waitForTimeout(800);
-    check(`${name} (narrow) tapping a button leaves no tooltip over it`, await page.evaluate(() => document.querySelector("#root [data-rk-part=tooltip]").hidden), "tip");
+    check(`${name} (narrow) tapping a button leaves no tooltip over it`, await page.evaluate(() => document.querySelector("#root [data-rte-part=tooltip]").hidden), "tip");
   }
   if (touch) {
     // A finger brings up grips on the cell's right and bottom edges, which a finger can hold where a thin edge could not be.
     await page.evaluate(() => { const e = window.__one.editor; e.setHtml("<table><tbody><tr><td>ab</td><td>cd</td></tr><tr><td>ef</td><td>gh</td></tr></tbody></table><p>z</p>"); });
     await page.waitForTimeout(80);
-    await page.tap("#root [data-rk-part=content] td");
+    await page.tap("#root [data-rte-part=content] td");
     await page.waitForTimeout(100);
-    const grip = (kind) => page.evaluate((k) => { const g = document.querySelector(`[data-rk-grip="${k}"]`); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, w: b.width }; }, kind);
+    const grip = (kind) => page.evaluate((k) => { const g = document.querySelector(`[data-rte-grip="${k}"]`); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, w: b.width }; }, kind);
     check(`${name} (narrow) a touch on a table cell shows the width and height grips, big enough for a finger`, !!(await grip("width")) && !!(await grip("height")) && (await grip("width")).w >= 22, [await grip("width"), await grip("height")]);
     if (name === "chromium") {
       const cdp = await page.context().newCDPSession(page);
       const touch = (type, x, y) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] });
       const g = await grip("width");
-      const before = await page.evaluate(() => document.querySelector("#root [data-rk-part=content] td").getBoundingClientRect().width);
+      const before = await page.evaluate(() => document.querySelector("#root [data-rte-part=content] td").getBoundingClientRect().width);
       await touch("touchStart", g.x, g.y);
       for (let i = 1; i <= 5; i++) await touch("touchMove", g.x + i * 8, g.y);
       await touch("touchEnd", 0, 0);
@@ -1640,9 +1640,9 @@ for (const [name, type] of engines) {
       // The same with an image: a tap selects it, and its corner handle follows a finger.
       await page.evaluate((src) => { window.__one.editor.setHtml(`<p>a<img src="${src}" alt="dot" width="60">b</p>`); }, onePixelPng());
       await page.waitForTimeout(80);
-      await page.tap("#root [data-rk-part=content] img");
+      await page.tap("#root [data-rte-part=content] img");
       await page.waitForTimeout(100);
-      const corner = await page.evaluate(() => { const g = document.querySelector("[data-rk-resize-handle]"); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+      const corner = await page.evaluate(() => { const g = document.querySelector("[data-rte-resize-handle]"); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
       check(`${name} (narrow) a tap on an image selects it and shows the resize handle`, !!corner, corner);
       if (corner) {
         await touch("touchStart", corner.x, corner.y);

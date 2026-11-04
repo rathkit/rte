@@ -6,7 +6,7 @@ import { imageSelection, selectedImage } from "../imageselect.ts";
 import type { ViewExtension, ViewHost } from "../plugin.ts";
 
 /** The attribute on the selected image, for styling. */
-export const SELECTED_IMAGE = "data-rk-image-selected";
+export const SELECTED_IMAGE = "data-rte-image-selected";
 /** The smallest an image can be dragged to, in pixels. */
 const MIN = 16;
 
@@ -74,7 +74,7 @@ export class ImageSelection {
     }
     if (!this.handle) {
       const handle = document.createElement("div");
-      handle.setAttribute("data-rk-resize-handle", "");
+      handle.setAttribute("data-rte-resize-handle", "");
       handle.style.cssText = "position:fixed;z-index:2147483646;width:12px;height:12px;background:#17408b;border:2px solid #fff;border-radius:3px;cursor:nwse-resize;touch-action:none;box-sizing:border-box";
       handle.addEventListener("pointerdown", (e) => this.start(e));
       document.body.appendChild(handle);
@@ -95,7 +95,7 @@ export class ImageSelection {
     event.preventDefault();
     const box = img.getBoundingClientRect();
     const guide = document.createElement("div");
-    guide.setAttribute("data-rk-resize-line", "");
+    guide.setAttribute("data-rte-resize-line", "");
     guide.style.cssText = `position:fixed;z-index:2147483645;pointer-events:none;border:2px dashed #17408b;left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px;box-sizing:border-box`;
     document.body.appendChild(guide);
     this.drag = { startX: event.clientX, startWidth: box.width, width: box.width, guide };

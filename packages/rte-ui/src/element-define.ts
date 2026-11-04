@@ -1,4 +1,4 @@
-// Importing this module registers <rk-ui>.
+// Importing this module registers <rte-ui>.
 import { defineUi } from "./element.ts";
 
 defineUi();

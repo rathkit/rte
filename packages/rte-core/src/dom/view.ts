@@ -41,8 +41,8 @@ export interface EditorOptions {
   /** Plugins to add: lists, for one (`@rathkit/rte-core/lists`). With none, the editor has only what is built in. */
   readonly plugins?: readonly Plugin[];
   /**
-   * A hint shown while the document is empty. The editor marks itself `data-rk-empty` when empty, says the hint to assistive
-   * technology (`aria-placeholder`) and puts it in the custom property `--rk-placeholder`; the styled interface draws it.
+   * A hint shown while the document is empty. The editor marks itself `data-rte-empty` when empty, says the hint to assistive
+   * technology (`aria-placeholder`) and puts it in the custom property `--rte-placeholder`; the styled interface draws it.
    */
   readonly placeholder?: string;
   /** The most text the document may hold, in characters. Typing and pasting past it are refused (see `onMaxLength`). */
@@ -211,11 +211,11 @@ export class Editor {
   setPlaceholder(text: string): void {
     if (text === "") {
       this.element.removeAttribute("aria-placeholder");
-      this.element.style.removeProperty("--rk-placeholder");
+      this.element.style.removeProperty("--rte-placeholder");
     } else {
       this.element.setAttribute("aria-placeholder", text);
       // A CSS string: quoted, with quotes and backslashes escaped, and a line break as a line break.
-      this.element.style.setProperty("--rk-placeholder", `"${text.replace(/[\\"]/g, "\\$&").replace(/\n/g, "\\A ")}"`);
+      this.element.style.setProperty("--rte-placeholder", `"${text.replace(/[\\"]/g, "\\$&").replace(/\n/g, "\\A ")}"`);
     }
   }
 
@@ -319,7 +319,7 @@ export class Editor {
   private draw(): void {
     renderDoc(this.engine.document, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
     const blocks = this.engine.document.blocks;
-    this.element.toggleAttribute("data-rk-empty", blocks.length === 1 && blocks[0]?.type === "p" && blocks[0].content.length === 0);
+    this.element.toggleAttribute("data-rte-empty", blocks.length === 1 && blocks[0]?.type === "p" && blocks[0].content.length === 0);
     // Changes drawing just made are not disturbances; throw their records away.
     this.observer.takeRecords();
     this.writeSelection();

@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>rk-editor demo</title>
+<title>rte-editor demo</title>
 <script type="importmap">
 { "imports": {
   "@rathkit/rte-core/standard": "/dist/standard/index.js",
@@ -10,20 +10,20 @@
 } }
 </script>
 <form id="f">
-  <rk-toolbar for="body"></rk-toolbar>
-  <rk-editor id="body" name="body" label="Body" value="&lt;p&gt;Hello&lt;/p&gt;"></rk-editor>
-  <rk-editor id="second" name="second" label="Second"><p>from children</p></rk-editor>
-  <rk-editor id="limited" name="limited" label="Limited" placeholder="Write something" maxlength="10" spellcheck="false"></rk-editor>
-  <rk-editor id="req" name="req" label="Required" required></rk-editor>
+  <rte-toolbar for="body"></rte-toolbar>
+  <rte-editor id="body" name="body" label="Body" value="&lt;p&gt;Hello&lt;/p&gt;"></rte-editor>
+  <rte-editor id="second" name="second" label="Second"><p>from children</p></rte-editor>
+  <rte-editor id="limited" name="limited" label="Limited" placeholder="Write something" maxlength="10" spellcheck="false"></rte-editor>
+  <rte-editor id="req" name="req" label="Required" required></rte-editor>
   <button type="reset" id="reset">Reset</button>
 </form>
 <script type="module">
 import { define } from "@rathkit/rte-element";
 window.__events = [];
-document.addEventListener("rk-change", (e) => window.__events.push(["rk-change", e.target.id, e.detail.html]));
+document.addEventListener("rte-change", (e) => window.__events.push(["rte-change", e.target.id, e.detail.html]));
 document.addEventListener("input", (e) => window.__events.push(["input", e.target.id]));
 document.addEventListener("change", (e) => window.__events.push(["change", e.target.id]));
-document.addEventListener("rk-ready", (e) => window.__events.push(["rk-ready", e.target.id]));
+document.addEventListener("rte-ready", (e) => window.__events.push(["rte-ready", e.target.id]));
 define();
 await Promise.all(["body", "second", "req"].map((id) => document.getElementById(id).whenReady()));
 window.__elementReady = true;

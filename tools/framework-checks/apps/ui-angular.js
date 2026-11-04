@@ -1,4 +1,4 @@
-// <rk-ui> and <rk-editor> used from an Angular template with CUSTOM_ELEMENTS_SCHEMA, as any custom element is.
+// <rte-ui> and <rte-editor> used from an Angular template with CUSTOM_ELEMENTS_SCHEMA, as any custom element is.
 import "@angular/compiler";
 import { Component, CUSTOM_ELEMENTS_SCHEMA, signal } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
@@ -15,7 +15,7 @@ Component({
   selector: "app-root",
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   template: `<button id="flip" (click)="flip()">Flip</button>
-    <rk-ui [attr.theme]="theme()" selection-toolbar context-menu><rk-editor label="Body" value="<p>one two three</p>"></rk-editor></rk-ui>`,
+    <rte-ui [attr.theme]="theme()" selection-toolbar context-menu><rte-editor label="Body" value="<p>one two three</p>"></rte-editor></rte-ui>`,
 })(App);
 
 bootstrapApplication(App).then((ref) => {

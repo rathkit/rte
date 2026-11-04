@@ -108,16 +108,16 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
   const el = document.createElement(list.type);
   if (list.start !== undefined) el.setAttribute("start", String(list.start));
   if (list.style !== undefined) el.style.listStyleType = list.style;
-  if (list.notes) { el.setAttribute("data-rk-notes", ""); el.setAttribute("role", "doc-endnotes"); el.setAttribute("aria-label", "Notes"); }
+  if (list.notes) { el.setAttribute("data-rte-notes", ""); el.setAttribute("role", "doc-endnotes"); el.setAttribute("aria-label", "Notes"); }
   list.items.forEach((item, i) => {
     const itemPath = [...path, i];
     const li = tag("li", itemPath);
-    if (list.notes && item.id) li.setAttribute("data-rk-note-id", item.id);
+    if (list.notes && item.id) li.setAttribute("data-rte-note-id", item.id);
     if (item.content.length === 0 && (item.children[0]?.type === "ul" || item.children[0]?.type === "ol")) li.style.listStyleType = "none";
     if (item.checked !== undefined) {
       // A task's checkbox: not text, so the mapping between page and model skips it (data-rte-check); it is a real checkbox to assistive technology.
       li.style.listStyleType = "none";
-      li.setAttribute("data-rk-task", item.checked ? "done" : "open");
+      li.setAttribute("data-rte-task", item.checked ? "done" : "open");
       const box = document.createElement("span");
       box.setAttribute("data-rte-check", "");
       box.setAttribute("role", "checkbox");

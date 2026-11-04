@@ -2,7 +2,7 @@
 
 > **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
-The editor for jQuery: `$(el).rkEditor(options)` over the custom element, with `rk:change` events. Works with jQuery 3 and 4.
+The editor for jQuery: `$(el).rteEditor(options)` over the custom element, with `rte:change` events. Works with jQuery 3 and 4.
 
 ## Install
 
@@ -21,9 +21,9 @@ import { install } from "@rathkit/rte-jquery";
 
 install($);
 // in a page with <div id="editor"></div>
-$("#editor").rkEditor({ label: "Body", html: "<p>Hello</p>" });
-$("#editor").on("rk:change", (event, html) => console.log(html));
-$("#editor").rkEditor("html");               // read it; rkEditor("html", "<p>x</p>") replaces it
+$("#editor").rteEditor({ label: "Body", html: "<p>Hello</p>" });
+$("#editor").on("rte:change", (event, html) => console.log(html));
+$("#editor").rteEditor("html");               // read it; rteEditor("html", "<p>x</p>") replaces it
 ```
 
 ## More

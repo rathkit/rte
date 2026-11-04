@@ -1,7 +1,7 @@
 {
   "name": "@rathkit/rte-jquery",
   "version": "0.1.0-alpha.4",
-  "description": "The editor for jQuery: $(el).rkEditor(options) over the custom element, with rk:change events.",
+  "description": "The editor for jQuery: $(el).rteEditor(options) over the custom element, with rte:change events.",
   "keywords": [
     "rich-text",
     "editor",

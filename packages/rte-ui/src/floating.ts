@@ -93,11 +93,11 @@ export function createFloating(options: FloatingOptions): Floating {
         group = next;
         const button = part(document.createElement("button"), "button");
         button.type = "button";
-        button.setAttribute("data-rk-item", item.id);
+        button.setAttribute("data-rte-item", item.id);
         const state = toolbar.state(item.id);
         const label = message(`item.${item.id}`, state?.label ?? item.id);
         button.setAttribute("aria-label", label);
-        button.setAttribute("data-rk-tip", state?.shortcutLabel ? `${label} (${state.shortcutLabel})` : label);
+        button.setAttribute("data-rte-tip", state?.shortcutLabel ? `${label} (${state.shortcutLabel})` : label);
         if (!iconInto(button, state?.icon)) {
           const words = part(document.createElement("span"), "label");
           words.textContent = label;
@@ -113,7 +113,7 @@ export function createFloating(options: FloatingOptions): Floating {
     draw();
     const stopItems = toolbar.subscribe(() => {
       // A change in which controls exist needs drawing again; a change in state is the toolbar's own business.
-      const drawn = [...bar.querySelectorAll("[data-rk-item]")].map((el) => el.getAttribute("data-rk-item")).join("\u0000");
+      const drawn = [...bar.querySelectorAll("[data-rte-item]")].map((el) => el.getAttribute("data-rte-item")).join("\u0000");
       if (drawn !== toolbar.items.filter((i) => i.kind === "button" || i.kind === "toggle" || i.kind === "dialog").map((i) => i.id).join("\u0000")) draw();
     });
 
@@ -176,7 +176,7 @@ export function createFloating(options: FloatingOptions): Floating {
       touched = false;
       if (e.key === "F10" && e.altKey && !bar.hidden) {
         e.preventDefault();
-        bar.querySelector<HTMLElement>("[data-rk-item][tabindex='0']")?.focus();
+        bar.querySelector<HTMLElement>("[data-rte-item][tabindex='0']")?.focus();
       }
     });
     on<KeyboardEvent>(bar, "keydown", (e) => { if (e.key === "Escape") { e.preventDefault(); dismissedFor = selectionKey(); bar.hidden = true; editor.focus(); } });
@@ -189,13 +189,13 @@ export function createFloating(options: FloatingOptions): Floating {
     seed(CONTEXT_SLOT, CONTEXT_DEFAULTS);
     const toolbar: Toolbar = createToolbar(editor, { slot: CONTEXT_SLOT });
     const popup = part(document.createElement("div"), "menu");
-    popup.setAttribute("data-rk-context", "");
+    popup.setAttribute("data-rte-context", "");
     // The menu is opened by a button, as far as the headless menu knows. This one is never seen; the focus it is asked to take goes to the editor.
     const anchor = document.createElement("button");
     anchor.type = "button";
     anchor.hidden = true;
     anchor.setAttribute("aria-label", message("context.label"));
-    anchor.id = `rk-context-anchor-${++counter}`;
+    anchor.id = `rte-context-anchor-${++counter}`;
     anchor.focus = () => editor.focus();
     root.append(anchor, popup);
     const entries = new Map<string, UiItem>();
@@ -219,8 +219,8 @@ export function createFloating(options: FloatingOptions): Floating {
         entries.set(item.id, item);
         const entry = part(document.createElement("button"), "menu-item");
         entry.type = "button";
-        entry.setAttribute("data-rk-menuitem", "");
-        entry.setAttribute("data-rk-menu-item", item.id);
+        entry.setAttribute("data-rte-menuitem", "");
+        entry.setAttribute("data-rte-menu-item", item.id);
         if (item.kind === "toggle") entry.setAttribute("role", "menuitemcheckbox");
         entry.append(part(document.createElement("span"), "label"), part(document.createElement("span"), "menu-keys"));
         children.push(entry);
@@ -239,7 +239,7 @@ export function createFloating(options: FloatingOptions): Floating {
           popup.style.top = `${Math.max(4, Math.min(at.y, view.clientHeight - h - 4))}px`;
         },
         onSelect: (entry) => {
-          const id = entry.getAttribute("data-rk-menu-item") ?? "";
+          const id = entry.getAttribute("data-rte-menu-item") ?? "";
           const item = entries.get(id);
           if (item?.kind === "dialog") { options.openDialog(item, returnTo); return; }
           toolbar.activate(id);
@@ -250,15 +250,15 @@ export function createFloating(options: FloatingOptions): Floating {
     };
     const words = (): void => {
       anchor.setAttribute("aria-label", message("context.label"));
-      for (const entry of popup.querySelectorAll<HTMLElement>("[data-rk-menu-item]")) {
-        const id = entry.getAttribute("data-rk-menu-item") ?? "";
+      for (const entry of popup.querySelectorAll<HTMLElement>("[data-rte-menu-item]")) {
+        const id = entry.getAttribute("data-rte-menu-item") ?? "";
         const item = entries.get(id);
         const state = toolbar.state(id);
         if (!item || !state) continue;
         const label = message(`item.${id}`, state.label);
-        const name = entry.querySelector<HTMLElement>('[data-rk-part="label"]');
+        const name = entry.querySelector<HTMLElement>('[data-rte-part="label"]');
         if (name) name.textContent = label;
-        const keys = entry.querySelector<HTMLElement>('[data-rk-part="menu-keys"]');
+        const keys = entry.querySelector<HTMLElement>('[data-rte-part="menu-keys"]');
         if (keys) keys.textContent = state.shortcutLabel ?? "";
         entry.setAttribute("aria-disabled", String(state.disabled));
         if (item.kind === "toggle") entry.setAttribute("aria-checked", String(state.pressed === true));
@@ -266,7 +266,7 @@ export function createFloating(options: FloatingOptions): Floating {
     };
     draw();
     const stopState = toolbar.subscribe(() => {
-      const drawn = [...popup.querySelectorAll("[data-rk-menu-item]")].map((el) => el.getAttribute("data-rk-menu-item")).join("\u0000");
+      const drawn = [...popup.querySelectorAll("[data-rte-menu-item]")].map((el) => el.getAttribute("data-rte-menu-item")).join("\u0000");
       if (drawn !== toolbar.items.filter((i) => i.kind === "button" || i.kind === "toggle" || i.kind === "dialog").map((i) => i.id).join("\u0000")) draw();
       else words();
     });

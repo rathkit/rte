@@ -8,9 +8,9 @@ install($);
 const fw = (window.__fw = { ready: false, changes: [], readies: 0, commitCount: 0 });
 fw.commits = () => fw.commitCount;
 
-$("#host").on("rk:change", (_event, html) => fw.changes.push(html));
-$("#host").rkEditor({ label: "Body", html: "<p>one two three</p>" });
-$("#host").rkEditor("editor").then((editor) => {
+$("#host").on("rte:change", (_event, html) => fw.changes.push(html));
+$("#host").rteEditor({ label: "Body", html: "<p>one two three</p>" });
+$("#host").rteEditor("editor").then((editor) => {
   fw.readies++;
   fw.editor = editor;
   const paint = (s) => {
@@ -22,4 +22,4 @@ $("#host").rkEditor("editor").then((editor) => {
   $("#bold").on("click", () => editor.commands.run("format.bold"));
   fw.ready = true;
 });
-fw.destroy = () => $("#host").rkEditor("destroy");
+fw.destroy = () => $("#host").rteEditor("destroy");

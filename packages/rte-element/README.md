@@ -2,7 +2,7 @@
 
 > **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
 
-The editor as custom elements, `<rk-editor>` and `<rk-toolbar>`, for any page or framework: form-associated (it submits its value, resets, restores), with properties, attributes and events.
+The editor as custom elements, `<rte-editor>` and `<rte-toolbar>`, for any page or framework: form-associated (it submits its value, resets, restores), with properties, attributes and events.
 
 ## Install
 
@@ -20,10 +20,10 @@ This package has no dependencies of its own. It works with `@rathkit/rte-core`, 
 </script>
 
 <form>
-  <rk-editor name="body" label="Body"><p>Start here</p></rk-editor>
+  <rte-editor name="body" label="Body"><p>Start here</p></rte-editor>
 </form>
 <script>
-  document.querySelector("rk-editor").addEventListener("rk-change", (e) => console.log(e.detail.html));
+  document.querySelector("rte-editor").addEventListener("rte-change", (e) => console.log(e.detail.html));
 </script>
 ```
 

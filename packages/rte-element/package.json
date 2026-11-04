@@ -1,7 +1,7 @@
 {
   "name": "@rathkit/rte-element",
   "version": "0.1.0-alpha.4",
-  "description": "The editor as a custom element, <rk-editor>, for any page or framework: form-associated, with properties, attributes and events.",
+  "description": "The editor as a custom element, <rte-editor>, for any page or framework: form-associated, with properties, attributes and events.",
   "keywords": [
     "rich-text",
     "editor",

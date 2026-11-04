@@ -1,5 +1,5 @@
 // A menu button: a disclosure whose popup is a list of commands you move through with the arrow keys, jump through by typing, and
-// choose from with Enter or Space. Mark each choice in the popup with `data-rk-menuitem`.
+// choose from with Enter or Space. Mark each choice in the popup with `data-rte-menuitem`.
 import { createDisclosure, uniqueId, type Disclosure } from "./disclosure.ts";
 import type { Unsubscribe } from "./types.ts";
 
@@ -18,10 +18,10 @@ export interface Menu extends Pick<Disclosure, "isOpen" | "open" | "close" | "to
 
 export function createMenu(options: MenuOptions): Menu {
   const { trigger, menu } = options;
-  if (!trigger.id) trigger.id = uniqueId("rk-menu-button");
+  if (!trigger.id) trigger.id = uniqueId("rte-menu-button");
   menu.setAttribute("role", "menu");
   menu.setAttribute("aria-labelledby", trigger.id);
-  const items = (): HTMLElement[] => [...menu.querySelectorAll<HTMLElement>("[data-rk-menuitem]")];
+  const items = (): HTMLElement[] => [...menu.querySelectorAll<HTMLElement>("[data-rte-menuitem]")];
   let typed = "";
   let typedTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -79,7 +79,7 @@ export function createMenu(options: MenuOptions): Menu {
     }
   };
   const onClick = (e: MouseEvent): void => {
-    const item = (e.target as Element | null)?.closest<HTMLElement>("[data-rk-menuitem]");
+    const item = (e.target as Element | null)?.closest<HTMLElement>("[data-rte-menuitem]");
     if (item && menu.contains(item)) choose(item);
   };
   menu.addEventListener("keydown", onMenuKey);

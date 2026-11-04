@@ -1,18 +1,18 @@
-/* Density: set data-rk-density="compact" or "comfortable" on the root. It changes space and control size only, whatever the theme. */
-:where([data-rk-density="compact"]) {
-  --rk-space-1: 2px;
-  --rk-space-2: 4px;
-  --rk-space-3: 8px;
-  --rk-space-4: 12px;
-  --rk-control-size: 28px;
-  --rk-font-size: 15px;
-  --rk-line-height: 1.5;
+/* Density: set data-rte-density="compact" or "comfortable" on the root. It changes space and control size only, whatever the theme. */
+:where([data-rte-density="compact"]) {
+  --rte-space-1: 2px;
+  --rte-space-2: 4px;
+  --rte-space-3: 8px;
+  --rte-space-4: 12px;
+  --rte-control-size: 28px;
+  --rte-font-size: 15px;
+  --rte-line-height: 1.5;
 }
 
-:where([data-rk-density="comfortable"]) {
-  --rk-space-1: 6px;
-  --rk-space-2: 10px;
-  --rk-space-3: 14px;
-  --rk-space-4: 20px;
-  --rk-control-size: 40px;
+:where([data-rte-density="comfortable"]) {
+  --rte-space-1: 6px;
+  --rte-space-2: 10px;
+  --rte-space-3: 14px;
+  --rte-space-4: 20px;
+  --rte-control-size: 40px;
 }

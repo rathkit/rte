@@ -44,7 +44,7 @@ export interface Toolbar {
   activate(id: string, value?: unknown): boolean;
   /** Called, once per turn, when the items or the state of any of them change. */
   subscribe(callback: () => void): Unsubscribe;
-  /** Makes the elements a person's own interface drew behave. Mark each with `data-rk-item="<id>"`. */
+  /** Makes the elements a person's own interface drew behave. Mark each with `data-rte-item="<id>"`. */
   bind(root: HTMLElement, options?: BindOptions): Unsubscribe;
   destroy(): void;
 }
@@ -131,13 +131,13 @@ export function createToolbar(editor: HeadlessEditor, options: ToolbarOptions = 
     root.setAttribute("role", "toolbar");
     root.setAttribute("aria-orientation", options.orientation ?? "horizontal");
     if (options.label) root.setAttribute("aria-label", options.label);
-    const controls = (): HTMLElement[] => [...root.querySelectorAll<HTMLElement>("[data-rk-item]")];
+    const controls = (): HTMLElement[] => [...root.querySelectorAll<HTMLElement>("[data-rte-item]")];
     let current = 0;
 
     const sync = (): void => {
       const all = controls();
       all.forEach((control, index) => {
-        const s = state(control.getAttribute("data-rk-item") ?? "");
+        const s = state(control.getAttribute("data-rte-item") ?? "");
         if (!s) return;
         // Disabled controls stay in the tab order with aria-disabled, so a person can find out they exist and why they are unavailable.
         control.setAttribute("aria-disabled", String(s.disabled));
@@ -159,9 +159,9 @@ export function createToolbar(editor: HeadlessEditor, options: ToolbarOptions = 
       all.forEach((c, i) => { c.tabIndex = i === current ? 0 : -1; });
       all[current]?.focus();
     };
-    const control = (target: EventTarget | null): HTMLElement | null => (target instanceof Element ? target.closest<HTMLElement>("[data-rk-item]") : null);
+    const control = (target: EventTarget | null): HTMLElement | null => (target instanceof Element ? target.closest<HTMLElement>("[data-rte-item]") : null);
     const press = (el: HTMLElement): void => {
-      const id = el.getAttribute("data-rk-item") ?? "";
+      const id = el.getAttribute("data-rte-item") ?? "";
       const item = find(id);
       if (!item || el.getAttribute("aria-disabled") === "true") return;
       if (item.kind === "dialog" || item.kind === "menu" || item.kind === "panel") {
@@ -183,7 +183,7 @@ export function createToolbar(editor: HeadlessEditor, options: ToolbarOptions = 
     const onChange = (e: Event): void => {
       const el = control(e.target);
       if (!el || el.tagName !== "SELECT") return;
-      const item = find(el.getAttribute("data-rk-item") ?? "");
+      const item = find(el.getAttribute("data-rte-item") ?? "");
       if (item?.kind !== "select") return;
       const chosen = item.options.find((o) => String(o.value) === (el as HTMLSelectElement).value);
       if (chosen && activate(item.id, chosen.value)) editor.focus();

@@ -53,5 +53,5 @@ export function useRteEditor(props: Omit<RteEditorProps, "label" | "className">)
 export function RteEditor(props: RteEditorProps): unknown {
   const { label, className, ...rest } = props;
   const { ref } = useRteEditor(rest);
-  return createElement("div", { ref, "aria-label": label, className, "data-rk-surface": "" });
+  return createElement("div", { ref, "aria-label": label, className, "data-rte-surface": "" });
 }

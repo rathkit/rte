@@ -1,40 +1,40 @@
 /* Rathkit RTE theme: high-contrast. Token values only: no rules for any part. Load it after the base styles of @rathkit/rte-ui.
-   Scope: any element with data-rk-theme="high-contrast" (normally the .rk-root of an editor), never :root. */
-:where([data-rk-theme="high-contrast"]) {
-  --rk-space-1: 4px;
-  --rk-space-2: 8px;
-  --rk-space-3: 12px;
-  --rk-space-4: 16px;
-  --rk-control-size: 32px;
-  --rk-radius-s: 4px;
-  --rk-radius-m: 8px;
-  --rk-border-width: 2px;
-  --rk-focus-width: 3px;
-  --rk-focus-offset: 2px;
-  --rk-font-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --rk-font-content: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --rk-font-heading: "Archivo", "Instrument Sans", system-ui, sans-serif;
-  --rk-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --rk-font-size: 16px;
-  --rk-line-height: 1.55;
-  --rk-motion-duration: 0ms;
-  --rk-shadow-popover: none;
-  --rk-bg: #000000;
-  --rk-surface: #000000;
-  --rk-surface-raised: #000000;
-  --rk-fg: #ffffff;
-  --rk-fg-muted: #e6e6e6;
-  --rk-border: #ffffff;
-  --rk-border-subtle: #ffffff;
-  --rk-accent: #ffd54a;
-  --rk-accent-fg: #000000;
-  --rk-accent-subtle: #2a2a00;
-  --rk-danger: #ff9a9a;
-  --rk-selection-bg: #0a3cff;
-  --rk-control-hover: #1f1f1f;
-  --rk-control-active: #3a3a3a;
-  --rk-brand: #ffd54a;
-  --rk-brand-text: #ffd54a;
-  --rk-focus-color: #ffd54a;
+   Scope: any element with data-rte-theme="high-contrast" (normally the .rte-root of an editor), never :root. */
+:where([data-rte-theme="high-contrast"]) {
+  --rte-space-1: 4px;
+  --rte-space-2: 8px;
+  --rte-space-3: 12px;
+  --rte-space-4: 16px;
+  --rte-control-size: 32px;
+  --rte-radius-s: 4px;
+  --rte-radius-m: 8px;
+  --rte-border-width: 2px;
+  --rte-focus-width: 3px;
+  --rte-focus-offset: 2px;
+  --rte-font-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rte-font-content: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --rte-font-heading: "Archivo", "Instrument Sans", system-ui, sans-serif;
+  --rte-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rte-font-size: 16px;
+  --rte-line-height: 1.55;
+  --rte-motion-duration: 0ms;
+  --rte-shadow-popover: none;
+  --rte-bg: #000000;
+  --rte-surface: #000000;
+  --rte-surface-raised: #000000;
+  --rte-fg: #ffffff;
+  --rte-fg-muted: #e6e6e6;
+  --rte-border: #ffffff;
+  --rte-border-subtle: #ffffff;
+  --rte-accent: #ffd54a;
+  --rte-accent-fg: #000000;
+  --rte-accent-subtle: #2a2a00;
+  --rte-danger: #ff9a9a;
+  --rte-selection-bg: #0a3cff;
+  --rte-control-hover: #1f1f1f;
+  --rte-control-active: #3a3a3a;
+  --rte-brand: #ffd54a;
+  --rte-brand-text: #ffd54a;
+  --rte-focus-color: #ffd54a;
   color-scheme: dark;
 }

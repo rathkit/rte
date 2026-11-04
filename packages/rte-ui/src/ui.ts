@@ -1,5 +1,5 @@
 // The styled interface: a toolbar and dialogs, built from the editor's interface items on the headless layer. Every element carries a
-// stable data-rk-part so themes and utility classes can address it; the look comes from tokens (see @rathkit/rte-themes).
+// stable data-rte-part so themes and utility classes can address it; the look comes from tokens (see @rathkit/rte-themes).
 import type { UiItem } from "@rathkit/rte-core";
 import { checkFields, createAnnouncer, createDialog, createMenu, createToolbar, createTooltip, type Dialog, type Menu } from "@rathkit/rte-headless";
 import { createFindBar, type FindBar } from "./findbar.ts";
@@ -28,7 +28,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   /** Marks an element as a part: the attribute that selectors use, and any classes the style asks for. */
   const part = <E extends HTMLElement>(el: E, name: PartName): E => {
-    el.setAttribute("data-rk-part", name);
+    el.setAttribute("data-rte-part", name);
     let set = parts.get(name);
     if (!set) parts.set(name, (set = new Set()));
     set.add(el);
@@ -38,7 +38,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   const message = (key: Parameters<typeof text>[1], fallback = "", values: Record<string, string> = {}): string => text(style.messages, key, fallback, values);
 
   // ---- structure -----------------------------------------------------------------------------------------
-  root.classList.add("rk-root");
+  root.classList.add("rte-root");
   part(root, "root");
   const toolbarEl = part(document.createElement("div"), "toolbar");
   const contentEl = part(document.createElement("div"), "content");
@@ -96,9 +96,9 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       : given;
     style = next;
     const set = (name: string, value: string | undefined): void => (value === undefined ? root.removeAttribute(name) : root.setAttribute(name, value));
-    set("data-rk-theme", next.theme);
-    set("data-rk-scheme", next.scheme);
-    set("data-rk-density", next.density);
+    set("data-rte-theme", next.theme);
+    set("data-rte-scheme", next.scheme);
+    set("data-rte-density", next.density);
     // Tokens: set the ones asked for, and let go of the ones that were asked for before and are not any more.
     for (const name of [...appliedTokens]) if (!(next.tokens && name in next.tokens)) { root.style.removeProperty(name); appliedTokens.delete(name); }
     for (const [name, value] of Object.entries(next.tokens ?? {})) { root.style.setProperty(name, value as string); appliedTokens.add(name); }
@@ -133,7 +133,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     if (!state) return undefined;
     if (item.kind === "select") {
       const select = part(document.createElement("select"), "select");
-      select.setAttribute("data-rk-item", item.id);
+      select.setAttribute("data-rte-item", item.id);
       for (const o of item.options) {
         const option = document.createElement("option");
         option.value = String(o.value);
@@ -146,14 +146,14 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     const customize = style.parts?.button;
     if (customize) {
       const el = customize({ item, state, run: (value) => toolbar.activate(item.id, value) });
-      el.setAttribute("data-rk-part", "button");
-      el.setAttribute("data-rk-item", item.id);
+      el.setAttribute("data-rte-part", "button");
+      el.setAttribute("data-rte-item", item.id);
       (parts.get("button") ?? parts.set("button", new Set()).get("button"))?.add(el);
       return el;
     }
     const button = part(document.createElement("button"), "button");
     button.type = "button";
-    button.setAttribute("data-rk-item", item.id);
+    button.setAttribute("data-rte-item", item.id);
     const icon = part(document.createElement("span"), "icon");
     icon.setAttribute("aria-hidden", "true");
     if (setIcon(icon, iconFor(state.icon))) {
@@ -177,7 +177,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     const host = part(document.createElement("span"), "menu-host");
     const trigger = part(document.createElement("button"), "button");
     trigger.type = "button";
-    trigger.setAttribute("data-rk-item", item.id);
+    trigger.setAttribute("data-rte-item", item.id);
     const icon = part(document.createElement("span"), "icon");
     icon.setAttribute("aria-hidden", "true");
     if (setIcon(icon, iconFor(state.icon))) {
@@ -203,8 +203,8 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       menuItems.set(child.id, child);
       const entry = part(document.createElement("button"), "menu-item");
       entry.type = "button";
-      entry.setAttribute("data-rk-menuitem", "");
-      entry.setAttribute("data-rk-menu-item", child.id);
+      entry.setAttribute("data-rte-menuitem", "");
+      entry.setAttribute("data-rte-menu-item", child.id);
       const words = part(document.createElement("span"), "label");
       const keys = part(document.createElement("span"), "menu-keys");
       if (child.kind !== "dialog" && child.swatch) {
@@ -229,7 +229,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
         if (dx !== 0) popup.style.translate = `${Math.round(dx)}px`;
       },
       onSelect: (entry) => {
-        const id = entry.getAttribute("data-rk-menu-item") ?? "";
+        const id = entry.getAttribute("data-rte-menu-item") ?? "";
         const child = menuItems.get(id);
         // An entry that asks for something opens its dialog; focus comes back to the menu button when the dialog closes.
         if (child?.kind === "dialog") { openDialog(child, trigger); return; }
@@ -240,8 +240,8 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
         editor.focus();
       },
     });
-    for (const entry of popup.querySelectorAll<HTMLElement>("[data-rk-menu-item]")) {
-      if (menuItems.get(entry.getAttribute("data-rk-menu-item") ?? "")?.kind === "toggle") entry.setAttribute("role", "menuitemcheckbox");
+    for (const entry of popup.querySelectorAll<HTMLElement>("[data-rte-menu-item]")) {
+      if (menuItems.get(entry.getAttribute("data-rte-menu-item") ?? "")?.kind === "toggle") entry.setAttribute("role", "menuitemcheckbox");
     }
     menus.push(menu);
     return host;
@@ -249,15 +249,15 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   /** Words, keys and state for every entry of every menu. */
   function menuEntries(): void {
-    for (const entry of toolbarEl.querySelectorAll<HTMLElement>("[data-rk-menu-item]")) {
-      const id = entry.getAttribute("data-rk-menu-item") ?? "";
+    for (const entry of toolbarEl.querySelectorAll<HTMLElement>("[data-rte-menu-item]")) {
+      const id = entry.getAttribute("data-rte-menu-item") ?? "";
       const child = menuItems.get(id);
       const state = toolbar.state(id);
       if (!child || !state) continue;
       const label = labelOf(child);
-      const words = entry.querySelector<HTMLElement>('[data-rk-part="label"]');
+      const words = entry.querySelector<HTMLElement>('[data-rte-part="label"]');
       if (words) words.textContent = label;
-      const keys = entry.querySelector<HTMLElement>('[data-rk-part="menu-keys"]');
+      const keys = entry.querySelector<HTMLElement>('[data-rte-part="menu-keys"]');
       if (keys) keys.textContent = state.shortcutLabel ?? "";
       if (state.shortcut) entry.setAttribute("aria-keyshortcuts", state.shortcut);
       else entry.removeAttribute("aria-keyshortcuts");
@@ -299,16 +299,16 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   /** Names for everything drawn: the accessible name and the tooltip, with the key that runs it. */
   function names(): void {
-    for (const el of toolbarEl.querySelectorAll<HTMLElement>("[data-rk-item]")) {
-      const id = el.getAttribute("data-rk-item") ?? "";
+    for (const el of toolbarEl.querySelectorAll<HTMLElement>("[data-rte-item]")) {
+      const id = el.getAttribute("data-rte-item") ?? "";
       const item = toolbar.items.find((i) => i.id === id);
       const state = toolbar.state(id);
       if (!item || !state) continue;
       const label = labelOf(item);
       el.setAttribute("aria-label", label);
-      el.setAttribute("data-rk-tip", state.shortcutLabel ? `${label} (${state.shortcutLabel})` : label);
+      el.setAttribute("data-rte-tip", state.shortcutLabel ? `${label} (${state.shortcutLabel})` : label);
       if (el.tagName === "BUTTON") {
-        const word = el.querySelector<HTMLElement>('[data-rk-part="label"]');
+        const word = el.querySelector<HTMLElement>('[data-rte-part="label"]');
         if (word) word.textContent = label;
       }
     }
@@ -324,9 +324,9 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
 
   // Say what a toggle did, but only when a person pressed it, not when the caret moved.
   const onToolbarClick = (e: Event): void => {
-    const el = (e.target as Element | null)?.closest<HTMLElement>("[data-rk-item]");
+    const el = (e.target as Element | null)?.closest<HTMLElement>("[data-rte-item]");
     if (!el) return;
-    const item = toolbar.items.find((i) => i.id === el.getAttribute("data-rk-item"));
+    const item = toolbar.items.find((i) => i.id === el.getAttribute("data-rte-item"));
     const state = item ? toolbar.state(item.id) : undefined;
     if (item?.kind === "toggle" && state && !state.disabled) {
       const group = item.group === "align" || item.group === "lists";
@@ -349,7 +349,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     let entry = dialogs.get(item.id);
     if (!entry) {
       const element = part(document.createElement("dialog"), "dialog");
-      const titleId = `rk-dialog-title-${++counter}`;
+      const titleId = `rte-dialog-title-${++counter}`;
       element.setAttribute("aria-labelledby", titleId);
       const form = document.createElement("form");
       form.noValidate = true;
@@ -357,7 +357,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       title.id = titleId;
       form.appendChild(title);
       for (const field of item.fields) {
-        const inputId = `rk-field-${++counter}`;
+        const inputId = `rte-field-${++counter}`;
         const label = part(document.createElement("label"), "field-label");
         label.htmlFor = inputId;
         label.textContent = field.label;
@@ -379,7 +379,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
         }
         if (field.required) input.required = true;
         const error = part(document.createElement("span"), "field-error");
-        error.setAttribute("data-rk-error", field.name);
+        error.setAttribute("data-rte-error", field.name);
         // A checkbox has its label after it, on one line.
         if (field.type === "checkbox") {
           const row = part(document.createElement("div"), "field-check");
@@ -425,7 +425,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     for (const f of item.fields) {
       const bad = entry.form.querySelector<HTMLElement>(`[name="${f.name}"]`);
       bad?.removeAttribute("aria-invalid");
-      const err = entry.form.querySelector<HTMLElement>(`[data-rk-error="${f.name}"]`);
+      const err = entry.form.querySelector<HTMLElement>(`[data-rte-error="${f.name}"]`);
       if (err) err.textContent = "";
     }
     entry.from.opener = opener;
@@ -471,8 +471,8 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       toolbarEl.remove();
       // The editing surface goes back where it was found: directly in the root.
       contentEl.replaceWith(...contentEl.childNodes);
-      root.classList.remove("rk-root");
-      for (const name of ["data-rk-theme", "data-rk-scheme", "data-rk-density", "data-rk-part"]) root.removeAttribute(name);
+      root.classList.remove("rte-root");
+      for (const name of ["data-rte-theme", "data-rte-scheme", "data-rte-density", "data-rte-part"]) root.removeAttribute(name);
       for (const t of appliedTokens) root.style.removeProperty(t);
     },
   };

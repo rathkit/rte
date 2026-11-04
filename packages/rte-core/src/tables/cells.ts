@@ -6,7 +6,7 @@ import { inRow, locateCell, selectedCells } from "../tablegrid.ts";
 import type { ViewHost } from "../plugin.ts";
 
 /** The attribute on a cell that a selection covers, for styling. */
-export const SELECTED_CELL = "data-rk-cell-selected";
+export const SELECTED_CELL = "data-rte-cell-selected";
 
 /** How close to a cell's right edge, in pixels, a pointer has to be to take hold of the edge. */
 const GRAB = 5;
@@ -118,7 +118,7 @@ export function installColumnResize(host: ViewHost): void {
       const rowBox = row.getBoundingClientRect();
       const rowTable = rowCell.closest("table")?.getBoundingClientRect() ?? rowBox;
       const rowLine = document.createElement("div");
-      rowLine.setAttribute("data-rk-resize-line", "");
+      rowLine.setAttribute("data-rte-resize-line", "");
       rowLine.style.cssText = `position:fixed;z-index:2147483647;pointer-events:none;height:2px;background:#17408b;top:${rowBox.bottom - 1}px;left:${rowTable.left}px;width:${rowTable.width}px`;
       document.body.appendChild(rowLine);
       rowDrag = { path: rowPath, startY: event.clientY, startHeight: rowBox.height, top: rowBox.top, line: rowLine, height: rowBox.height };
@@ -128,7 +128,7 @@ export function installColumnResize(host: ViewHost): void {
     const box = cell.getBoundingClientRect();
     const table = cell.closest("table")?.getBoundingClientRect() ?? box;
     const line = document.createElement("div");
-    line.setAttribute("data-rk-resize-line", "");
+    line.setAttribute("data-rte-resize-line", "");
     line.style.cssText = `position:fixed;z-index:2147483647;pointer-events:none;width:2px;background:#17408b;left:${box.right - 1}px;top:${table.top}px;height:${table.height}px`;
     document.body.appendChild(line);
     drag = { cell, path, startX: event.clientX, startWidth: box.width, line, width: box.width };

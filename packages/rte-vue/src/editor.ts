@@ -36,6 +36,6 @@ export const RteEditor = defineComponent({
     onBeforeUnmount(() => { stop(); editor.value = undefined; });
     watch(() => props.readOnly, (readOnly) => editor.value?.setReadOnly(readOnly));
     expose({ editor });
-    return () => h("div", { ref: element, "aria-label": props.label, "data-rk-surface": "" });
+    return () => h("div", { ref: element, "aria-label": props.label, "data-rte-surface": "" });
   },
 });

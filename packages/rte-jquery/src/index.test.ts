@@ -21,8 +21,8 @@ const collection = (...els: FakeEl[]) => Object.assign(els, { each(fn: (this: Fa
 test("turns each element into an editor once, with its label, html and read-only state", () => {
   const host = new FakeEl();
   const c = collection(host);
-  jq.fn.rkEditor!.call(c, { label: "Body", html: "<p>x</p>", readOnly: true, onWarning: undefined });
-  jq.fn.rkEditor!.call(c, { label: "Body" });
+  jq.fn.rteEditor!.call(c, { label: "Body", html: "<p>x</p>", readOnly: true, onWarning: undefined });
+  jq.fn.rteEditor!.call(c, { label: "Body" });
   assert.equal(host.children.length, 1);
   const el = host.children[0]!;
   assert.deepEqual([el.attrs.get("label"), el.attrs.get("value"), el.attrs.has("readonly")], ["Body", "<p>x</p>", true]);
@@ -31,17 +31,17 @@ test("turns each element into an editor once, with its label, html and read-only
 test("reads and replaces html, hands out the editor, and removes it", async () => {
   const host = new FakeEl();
   const c = collection(host);
-  jq.fn.rkEditor!.call(c, { label: "Body" });
+  jq.fn.rteEditor!.call(c, { label: "Body" });
   const el = host.children[0]!;
   el.value = "<p>now</p>";
   // Called on the host the plugin was set up on, which is what a page has in hand; the editor element is inside it.
-  assert.equal(jq.fn.rkEditor!.call(c, "html"), "<p>now</p>");
-  jq.fn.rkEditor!.call(c, "html", "<p>new</p>");
+  assert.equal(jq.fn.rteEditor!.call(c, "html"), "<p>now</p>");
+  jq.fn.rteEditor!.call(c, "html", "<p>new</p>");
   assert.equal(el.value, "<p>new</p>");
-  assert.equal(await (jq.fn.rkEditor!.call(c, "editor") as Promise<string>), "editor");
-  jq.fn.rkEditor!.call(c, "destroy");
+  assert.equal(await (jq.fn.rteEditor!.call(c, "editor") as Promise<string>), "editor");
+  jq.fn.rteEditor!.call(c, "destroy");
   assert.equal(el.removed, true);
-  assert.throws(() => jq.fn.rkEditor!.call(c, "nope"), /unknown method/);
+  assert.throws(() => jq.fn.rteEditor!.call(c, "nope"), /unknown method/);
 });
 
 test("a change reaches handlers on the jQuery that was installed into, with the html as the second argument", () => {
@@ -49,8 +49,8 @@ test("a change reaches handlers on the jQuery that was installed into, with the 
   const $ = Object.assign((el: unknown) => ({ trigger: (name: string, data: unknown[]) => triggered.push([el, name, data]) }), { fn: {} as Record<string, (this: unknown, ...a: unknown[]) => unknown> });
   install($ as never);
   const host = new FakeEl();
-  $.fn.rkEditor!.call(collection(host), { label: "Body" });
+  $.fn.rteEditor!.call(collection(host), { label: "Body" });
   const el = host.children[0]!;
-  el.listeners.get("rk-change")!({ detail: { html: "<p>x</p>" } });
-  assert.deepEqual(triggered, [[host, "rk:change", ["<p>x</p>"]]]);
+  el.listeners.get("rte-change")!({ detail: { html: "<p>x</p>" } });
+  assert.deepEqual(triggered, [[host, "rte:change", ["<p>x</p>"]]]);
 });

@@ -23,12 +23,12 @@ surface.setAttribute("aria-label", "Body");
 document.body.append(surface);
 const editor = createEditor({ element: surface, html: "<p>Hello</p>" });
 
-// Draw the controls yourself and mark each with data-rk-item="<id>"; the toolbar makes them behave.
+// Draw the controls yourself and mark each with data-rte-item="<id>"; the toolbar makes them behave.
 const bar = document.createElement("div");
 const toolbar = createToolbar(editor, { label: "Formatting" });
 for (const item of toolbar.items.filter((i) => i.kind === "button" || i.kind === "toggle")) {
   const button = document.createElement("button");
-  button.setAttribute("data-rk-item", item.id);
+  button.setAttribute("data-rte-item", item.id);
   button.textContent = toolbar.state(item.id).label;
   bar.append(button);
 }

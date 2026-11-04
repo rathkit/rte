@@ -1,4 +1,4 @@
-// Importing this module registers <rk-editor> and <rk-toolbar>.
+// Importing this module registers <rte-editor> and <rte-toolbar>.
 import { define } from "./index.ts";
 
 define();

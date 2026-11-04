@@ -1,4 +1,4 @@
-// <rk-toolbar>: a plain toolbar for an <rk-editor>, built from the editor's interface items and made to behave by the headless layer.
+// <rte-toolbar>: a plain toolbar for an <rte-editor>, built from the editor's interface items and made to behave by the headless layer.
 // Unstyled, with text labels: style it from the page, or draw your own from `editor.ui` and the headless layer instead.
 import { createToolbar, type Toolbar } from "@rathkit/rte-headless";
 import type { RteEditorElement } from "./editor-element.ts";
@@ -14,11 +14,11 @@ export class RteToolbarElement extends HTMLElement {
   disconnectedCallback(): void { this.teardown(); }
   attributeChangedCallback(): void { if (this.isConnected) void this.build(); }
 
-  /** The editor this toolbar belongs to: the element named by `for`, else the nearest <rk-editor> beside or around it. */
+  /** The editor this toolbar belongs to: the element named by `for`, else the nearest <rte-editor> beside or around it. */
   private target(): RteEditorElement | null {
     const id = this.getAttribute("for");
     if (id) return this.ownerDocument.getElementById(id) as RteEditorElement | null;
-    return (this.parentElement?.querySelector("rk-editor") ?? this.closest("rk-editor")) as RteEditorElement | null;
+    return (this.parentElement?.querySelector("rte-editor") ?? this.closest("rte-editor")) as RteEditorElement | null;
   }
 
   private teardown(): void {
@@ -33,7 +33,7 @@ export class RteToolbarElement extends HTMLElement {
     this.teardown();
     const host = this.target();
     if (!host) return;
-    await customElements.whenDefined("rk-editor");
+    await customElements.whenDefined("rte-editor");
     const editor = await host.whenReady();
     if (ticket !== this.building || !this.isConnected) return;
     const toolbar = createToolbar(editor, { label: this.getAttribute("label") ?? "Formatting", slot: this.getAttribute("slot-name") ?? "toolbar.main" });
@@ -48,7 +48,7 @@ export class RteToolbarElement extends HTMLElement {
           controls.push(s);
         } else if (item.kind === "select") {
           const select = document.createElement("select");
-          select.setAttribute("data-rk-item", item.id);
+          select.setAttribute("data-rte-item", item.id);
           for (const o of item.options) {
             const option = document.createElement("option");
             option.value = String(o.value);
@@ -59,14 +59,14 @@ export class RteToolbarElement extends HTMLElement {
         } else if (item.kind !== "menu") {
           const button = document.createElement("button");
           button.type = "button";
-          button.setAttribute("data-rk-item", item.id);
+          button.setAttribute("data-rte-item", item.id);
           button.textContent = toolbar.state(item.id)?.label ?? item.id;
           controls.push(button);
         }
       }
       this.replaceChildren(...controls);
       // A dialog item asks the page to open its dialog: this element only says so, and the page (or the styled interface) answers.
-      this.unbind = toolbar.bind(this, { onOpen: (item, control) => this.dispatchEvent(new CustomEvent("rk-open", { bubbles: true, composed: true, detail: { item, control } })) });
+      this.unbind = toolbar.bind(this, { onOpen: (item, control) => this.dispatchEvent(new CustomEvent("rte-open", { bubbles: true, composed: true, detail: { item, control } })) });
     };
     draw();
     this.unwatch = editor.ui.subscribe(this.getAttribute("slot-name") ?? "toolbar.main", draw);

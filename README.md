@@ -30,7 +30,7 @@ Text with bold, italic, underline, strikethrough, code, super- and subscript, te
 | --- | --- |
 | `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, an engine with named commands, keys and a plugin host, a model-driven browser view, and the free standard plugins (lists, tables, find and replace, word-processor lists, SVG, images) as separate entry points. See `docs/PLUGINS.md` |
 | `@rathkit/rte-headless` | Early. How a toolbar behaves for keyboard and assistive technology (roving focus, ARIA state, focus kept in the editor) a live-region announcer, menus, popovers and dialogs, with no markup or CSS |
-| `@rathkit/rte-element` | Early. `<rk-editor>` and `<rk-toolbar>` custom elements: form-associated, with properties, attributes and events. See `docs/ELEMENT.md` |
+| `@rathkit/rte-element` | Early. `<rte-editor>` and `<rte-toolbar>` custom elements: form-associated, with properties, attributes and events. See `docs/ELEMENT.md` |
 | `@rathkit/rte-ui` | Early. The styled interface: toolbar and link dialog on the headless layer, themeable by preset, tokens, icons, classes and messages. See `docs/UI.md` |
 | `@rathkit/rte-themes` | Early. Preset themes (light, dark, auto, high contrast) and density as token files, with tests for contrast |
 | `@rathkit/rte-icons` | Early. The icon set, one SVG string each |
@@ -38,7 +38,7 @@ Text with bold, italic, underline, strikethrough, code, super- and subscript, te
 | `@rathkit/rte-vue` | Early. `RteEditor` and the composables `useCommand` and `useSelector`, over the headless layer |
 | `@rathkit/rte-svelte` | Early. Stores (`command`, `selector`) and the `use:rteEditor` action. Needs nothing from Svelte itself |
 | `@rathkit/rte-angular` | Early. The `rteEditor` directive, signals (`commandState`, `selected`) and an Angular forms value accessor (`@rathkit/rte-angular/forms`). Written in the compiled form, so it needs no Angular compiler |
-| `@rathkit/rte-jquery` | Early. `$(el).rkEditor(options)` over the custom element, with `rk:change` events |
+| `@rathkit/rte-jquery` | Early. `$(el).rteEditor(options)` over the custom element, with `rte:change` events |
 
 All eleven are on npm at `0.1.0-alpha.4` under `next`. Only the reference server package, `rte-server`, is still to come.
 

@@ -1,4 +1,4 @@
-// <rk-ui> and <rk-editor> used from a Vue render function, as any custom element is: attributes come from state. The starting content is
+// <rte-ui> and <rte-editor> used from a Vue render function, as any custom element is: attributes come from state. The starting content is
 // bound as an attribute (`^value`, `value.attr` in a template): Vue sets a `value` property again on every render, which would reset the document.
 import { createApp, defineComponent, h, ref } from "vue";
 import "@rathkit/rte-element/define";
@@ -11,7 +11,7 @@ const App = defineComponent({
     const theme = ref("light");
     return () => h("div", null, [
       h("button", { id: "flip", onClick: () => { theme.value = theme.value === "light" ? "dark" : "light"; } }, "Flip"),
-      h("rk-ui", { theme: theme.value, "selection-toolbar": "", "context-menu": "" }, [h("rk-editor", { label: "Body", "^value": "<p>one two three</p>" })]),
+      h("rte-ui", { theme: theme.value, "selection-toolbar": "", "context-menu": "" }, [h("rte-editor", { label: "Body", "^value": "<p>one two three</p>" })]),
     ]);
   },
 });

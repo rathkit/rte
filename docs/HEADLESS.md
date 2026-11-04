@@ -3,7 +3,7 @@
 Status: PROPOSAL, with the owner's decisions of 2026-10-22 applied (see "Decisions" at the end). Built so far (2026-10-23): the engine,
 commands, key map and plugin host; the interface-item registry (`engine.ui`, in the core, filled by the editor and by plugins);
 and `@rathkit/rte-headless` with the toolbar behavior, the announcer, disclosure/menu behavior (arrows, type-ahead, Escape, dismissal) and
-the dialog behavior (native `<dialog>` or a focus-trapped fallback, field checks that link errors by `aria-describedby`). `@rathkit/rte-element` (`<rk-editor>`, `<rk-toolbar>`), `@rathkit/rte-ui` (the styled interface, see `UI.md`), `@rathkit/rte-themes` and `@rathkit/rte-icons`. Not built yet: the
+the dialog behavior (native `<dialog>` or a focus-trapped fallback, field checks that link errors by `aria-describedby`). `@rathkit/rte-element` (`<rte-editor>`, `<rte-toolbar>`), `@rathkit/rte-ui` (the styled interface, see `UI.md`), `@rathkit/rte-themes` and `@rathkit/rte-icons`. Not built yet: the
 React, Vue, Svelte, Angular and jQuery wrappers. The item descriptors live in the core, not in `rte-headless`, so that
 a plugin can add items without depending on a user-interface package. Basis: the repo as it stands (`rte-core` model, edit, import, export, paste, `dom/view.ts`, `dom/render.ts`; `docs/DISTRIBUTION.md`), plus general web-platform and accessibility standards.
 
@@ -21,7 +21,7 @@ rte-headless      UI-item descriptors, toolbar/menu/popover/dialog machines,
 rte-ui            styled toolbar, menus, dialogs built on rte-headless        (JS + base CSS)
 rte-themes        preset theme CSS files (token values only)
 rte-icons         icon set, one module per icon
-rte-element        <rk-editor> custom element (web components), the base for other wrappers
+rte-element        <rte-editor> custom element (web components), the base for other wrappers
 rte-react / rte-vue / rte-svelte / rte-angular / rte-jquery   adapters
 rte-plugin-<name> (@rathkit) and @rathkit-pro/rte-plugin-<name>
 ```
@@ -154,35 +154,35 @@ Core plugins ship in `rte-core`'s repo but as separate entry points so the 60 KB
 
 ### 3.1 Mechanism
 
-Plain CSS custom properties, no runtime, no preprocessor. Styled components are built from DOM elements carrying stable `data-rk-part` attributes (`toolbar`, `button`, `menu`, `menu-item`, `dialog`, `field`, `popover`, `content`). Selectors target those parts, never class names, so internal restructuring does not break themes.
+Plain CSS custom properties, no runtime, no preprocessor. Styled components are built from DOM elements carrying stable `data-rte-part` attributes (`toolbar`, `button`, `menu`, `menu-item`, `dialog`, `field`, `popover`, `content`). Selectors target those parts, never class names, so internal restructuring does not break themes.
 
-- **Light DOM, not Shadow DOM.** Custom properties inherit through shadow boundaries, so tokens would work either way. The deciding factor is the editing surface: selection APIs across shadow roots are inconsistent in WebKit and Firefox, and `aria-labelledby`/`aria-controls` cannot cross roots. We keep everything in the light DOM and scope by `.rk-root`.
+- **Light DOM, not Shadow DOM.** Custom properties inherit through shadow boundaries, so tokens would work either way. The deciding factor is the editing surface: selection APIs across shadow roots are inconsistent in WebKit and Firefox, and `aria-labelledby`/`aria-controls` cannot cross roots. We keep everything in the light DOM and scope by `.rte-root`.
 - **Cascade layers.** All shipped CSS lives in `@layer rathkit.base, rathkit.theme;`. Unlayered consumer CSS beats it without specificity fights.
-- **Scoping.** Tokens are declared on `.rk-root` (or any `[data-rk-theme]` element), so two editors on one page differ by putting a different `data-rk-theme` or inline custom properties on each root. Never `:root` in shipped CSS.
+- **Scoping.** Tokens are declared on `.rte-root` (or any `[data-rte-theme]` element), so two editors on one page differ by putting a different `data-rte-theme` or inline custom properties on each root. Never `:root` in shipped CSS.
 
 ### 3.2 Token set (documented, versioned, semantic)
 
-Names use `--rk-` and describe roles, not values.
+Names use `--rte-` and describe roles, not values.
 
 | Group | Tokens |
 |---|---|
-| Color | `--rk-bg`, `--rk-surface`, `--rk-surface-raised`, `--rk-fg`, `--rk-fg-muted`, `--rk-border`, `--rk-accent`, `--rk-accent-fg`, `--rk-danger`, `--rk-selection-bg`, `--rk-control-hover`, `--rk-control-active` |
-| Space | `--rk-space-1` to `--rk-space-4`, `--rk-control-size` (hit target, min 24px per WCAG 2.2 target size; default 32px) |
-| Shape | `--rk-radius-s`, `--rk-radius-m`, `--rk-border-width` |
-| Focus | `--rk-focus-color`, `--rk-focus-width`, `--rk-focus-offset` |
-| Type | `--rk-font-ui`, `--rk-font-content`, `--rk-font-mono`, `--rk-font-size`, `--rk-line-height` |
-| Motion | `--rk-motion-duration`, set to 0 under `prefers-reduced-motion` |
-| Depth | `--rk-shadow-popover` |
+| Color | `--rte-bg`, `--rte-surface`, `--rte-surface-raised`, `--rte-fg`, `--rte-fg-muted`, `--rte-border`, `--rte-accent`, `--rte-accent-fg`, `--rte-danger`, `--rte-selection-bg`, `--rte-control-hover`, `--rte-control-active` |
+| Space | `--rte-space-1` to `--rte-space-4`, `--rte-control-size` (hit target, min 24px per WCAG 2.2 target size; default 32px) |
+| Shape | `--rte-radius-s`, `--rte-radius-m`, `--rte-border-width` |
+| Focus | `--rte-focus-color`, `--rte-focus-width`, `--rte-focus-offset` |
+| Type | `--rte-font-ui`, `--rte-font-content`, `--rte-font-mono`, `--rte-font-size`, `--rte-line-height` |
+| Motion | `--rte-motion-duration`, set to 0 under `prefers-reduced-motion` |
+| Depth | `--rte-shadow-popover` |
 
-Density is a token bundle, not a separate system: `[data-rk-density="compact|comfortable"]` sets space and `--rk-control-size`. Cap: 50 tokens in v1. A token we cannot justify in docs does not ship.
+Density is a token bundle, not a separate system: `[data-rte-density="compact|comfortable"]` sets space and `--rte-control-size`. Cap: 50 tokens in v1. A token we cannot justify in docs does not ship.
 
 ### 3.3 Light, dark, forced colors
 
-Presets define light values on `.rk-root` and dark values under `@media (prefers-color-scheme: dark)` guarded by `:where(.rk-root:not([data-rk-scheme="light"]))`, plus an explicit `[data-rk-scheme="dark"]` override. Under `@media (forced-colors: active)` the base layer maps tokens to system colors (`CanvasText`, `Canvas`, `Highlight`, `ButtonText`, `LinkText`) and draws borders on buttons and focus with real `outline` (not box-shadow, which vanishes). Pressed state must use a non-color cue (border or `aria-pressed` styling with an indicator), required by WCAG 1.4.1.
+Presets define light values on `.rte-root` and dark values under `@media (prefers-color-scheme: dark)` guarded by `:where(.rte-root:not([data-rte-scheme="light"]))`, plus an explicit `[data-rte-scheme="dark"]` override. Under `@media (forced-colors: active)` the base layer maps tokens to system colors (`CanvasText`, `Canvas`, `Highlight`, `ButtonText`, `LinkText`) and draws borders on buttons and focus with real `outline` (not box-shadow, which vanishes). Pressed state must use a non-color cue (border or `aria-pressed` styling with an indicator), required by WCAG 1.4.1.
 
 ### 3.4 Presets and runtime switching
 
-`rte-themes` ships `light`, `dark`, `auto` (follows OS), `compact`, `high-contrast`, each a standalone CSS file at 4 KB gzipped or less, and a small JS-free switch: set `data-rk-theme="name"` on the root. Themes are plain CSS files, so they are cacheable, self-hosted and CSP-friendly (no inline styles required; the inline-token path uses the CSSOM, `style.setProperty`, which CSP style-src permits).
+`rte-themes` ships `light`, `dark`, `auto` (follows OS), `compact`, `high-contrast`, each a standalone CSS file at 4 KB gzipped or less, and a small JS-free switch: set `data-rte-theme="name"` on the root. Themes are plain CSS files, so they are cacheable, self-hosted and CSP-friendly (no inline styles required; the inline-token path uses the CSSOM, `style.setProperty`, which CSP style-src permits).
 
 ### 3.5 Icons
 
@@ -194,7 +194,7 @@ Presets define light values on `.rk-root` and dark values under `@media (prefers
 
 ```ts
 export interface StyleProvider {
-  theme?: string;                                          // preset name → sets data-rk-theme
+  theme?: string;                                          // preset name → sets data-rte-theme
   scheme?: "light" | "dark" | "auto";
   density?: "compact" | "comfortable";
   tokens?: Partial<Record<TokenName, string>>;             // applied as custom properties on the root
@@ -217,8 +217,8 @@ Principle: wrappers contain zero editor logic and zero accessibility logic. They
 - Vue: composables returning `shallowRef` updated by `commands.subscribe`; disposed with `onScopeDispose`.
 - Svelte: stores implementing `subscribe(run)` directly. Our `Unsubscribe`-returning signature is chosen to satisfy the Svelte store contract, so the store is a one-line adapter.
 - Angular: a standalone component and directives that mount the editor outside Angular's change detection (`NgZone.runOutsideAngular`), with `commands.subscribe` bridged to signals. It also implements the forms `ControlValueAccessor` so it works with `ngModel` and reactive forms.
-- Web components: `@rathkit/rte-element` registers `<rk-editor>` (and `<rk-toolbar>`). It uses the light DOM, like the styled UI, so selection and ARIA references behave. Attributes and properties mirror the options, events carry the state changes, and it joins forms through `ElementInternals`. It works in any page or framework with no build step, and the jQuery wrapper and server-rendered integrations sit on top of it.
-- jQuery: a plugin (`$(el).rkEditor(options)`, with `.rkEditor("getHtml")`-style method calls and `rk:change` events) over the custom element, for pages that still use it.
+- Web components: `@rathkit/rte-element` registers `<rte-editor>` (and `<rte-toolbar>`). It uses the light DOM, like the styled UI, so selection and ARIA references behave. Attributes and properties mirror the options, events carry the state changes, and it joins forms through `ElementInternals`. It works in any page or framework with no build step, and the jQuery wrapper and server-rendered integrations sit on top of it.
+- jQuery: a plugin (`$(el).rteEditor(options)`, with `.rteEditor("getHtml")`-style method calls and `rte:change` events) over the custom element, for pages that still use it.
 
 Each wrapper is under its budget (see section 6) and needs only a conformance test: "after N edits, the number of re-renders of the bold button equals the number of bold state changes". Controlled value (`html` in/out) is deliberately limited to `onChange` plus `setHtml`, because round-tripping a document through a framework's state on every keystroke fights the caret.
 
@@ -261,7 +261,7 @@ Visible focus ring and 3:1 contrast tokens, minimum target size, forced-colors r
 
 **What can go wrong.**
 - *Leaky abstraction:* descriptors cannot express a rich panel, so plugins add private DOM. Counter: the `panel` item with named renderers and the external plugin test.
-- *Theming too weak:* tokens cannot restyle structure. Counter: `parts` escape hatch and stable `data-rk-part` selectors; do not add more token knobs to chase edge cases.
+- *Theming too weak:* tokens cannot restyle structure. Counter: `parts` escape hatch and stable `data-rte-part` selectors; do not add more token knobs to chase edge cases.
 - *Theming too heavy:* a provider that becomes a runtime. Counter: the provider is data; the only code is `parts` and icon factories.
 - *State churn:* command state recomputed on every keystroke. Counter: lazy evaluation for subscribed commands only, with a benchmark in CI at 100 KB of text.
 - *Focus bugs from toolbar clicks* are the most common failure; machines own this once, not each consumer.
@@ -286,10 +286,10 @@ Decided by the owner on 2026-10-22. Where this differs from the default that was
 |---|---|
 | Is the command/plugin host part of core's 60 KB? | Yes, at most 7 KB |
 | Package name for the headless layer | `@rathkit/rte-headless`; styled is `@rathkit/rte-ui` |
-| Shadow DOM or light DOM for styled UI | Light DOM with cascade layers and `data-rk-part` |
-| Custom Elements wrapper (`<rk-editor>`) | **In v1** (was: later), as `@rathkit/rte-element` |
+| Shadow DOM or light DOM for styled UI | Light DOM with cascade layers and `data-rte-part` |
+| Custom Elements wrapper (`<rte-editor>`) | **In v1** (was: later), as `@rathkit/rte-element` |
 | Framework wrappers in v1 | **React, Vue, Svelte, Angular, web components and jQuery** (was: React, Vue, Svelte) |
-| Token count cap and naming prefix | **50 tokens** (was: 40), `--rk-` |
+| Token count cap and naming prefix | **50 tokens** (was: 40), `--rte-` |
 | Whether `parts` (element replacement) ships in v1 | Yes, documented as last resort |
 | Are `rte-icons` and `rte-themes` separate from `rte-ui` | Yes, separate packages |
 | API stability label | `experimental` until the external-plugin test passes against both UIs |

@@ -21,9 +21,9 @@ let counter = 0;
 export function createShortcuts(options: ShortcutsOptions): Shortcuts {
   const { editor, root, message } = options;
   const element = options.part(document.createElement("dialog"), "dialog");
-  const titleId = `rk-shortcuts-title-${++counter}`;
+  const titleId = `rte-shortcuts-title-${++counter}`;
   element.setAttribute("aria-labelledby", titleId);
-  element.setAttribute("data-rk-shortcuts", "");
+  element.setAttribute("data-rte-shortcuts", "");
   const title = options.part(document.createElement("h2"), "dialog-title");
   title.id = titleId;
   const table = options.part(document.createElement("table"), "shortcuts");

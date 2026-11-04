@@ -24,7 +24,7 @@ export const uniqueId = (prefix: string): string => `${prefix}-${++counter}`;
 
 export function createDisclosure(options: DisclosureOptions): Disclosure {
   const { trigger, popup } = options;
-  if (!popup.id) popup.id = uniqueId("rk-popup");
+  if (!popup.id) popup.id = uniqueId("rte-popup");
   trigger.setAttribute("aria-haspopup", options.kind ?? "true");
   trigger.setAttribute("aria-controls", popup.id);
   let isOpen = false;

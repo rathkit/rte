@@ -1,4 +1,4 @@
-// <rk-editor>: the editor as a custom element, for any page or framework. It draws no chrome (see <rk-toolbar> or your own); it is the
+// <rte-editor>: the editor as a custom element, for any page or framework. It draws no chrome (see <rte-toolbar> or your own); it is the
 // editing surface, with a form value, properties, attributes and events. It uses the light DOM, like the rest of the editor, so
 // selection, labels and styles from the page behave as they do for any element.
 import type { Editor } from "@rathkit/rte-core/dom";
@@ -37,12 +37,12 @@ export class RteEditorElement extends HTMLElement {
     if (this.defaultHtml === "") this.defaultHtml = this.hasAttribute("value") ? (this.getAttribute("value") ?? "") : this.html;
     this.replaceChildren();
     const surface = document.createElement("div");
-    surface.setAttribute("data-rk-surface", "");
+    surface.setAttribute("data-rte-surface", "");
     this.appendChild(surface);
     this.surface = surface;
     const label = this.getAttribute("label");
     if (label) surface.setAttribute("aria-label", label);
-    else if (!this.hasAttribute("aria-label") && !this.hasAttribute("aria-labelledby")) console.warn("[rte] <rk-editor> has no name: give it a label attribute.");
+    else if (!this.hasAttribute("aria-label") && !this.hasAttribute("aria-labelledby")) console.warn("[rte] <rte-editor> has no name: give it a label attribute.");
     const maxLength = Number.parseInt(this.getAttribute("maxlength") ?? "", 10);
     const spellcheck = this.getAttribute("spellcheck");
     const editor = createEditor({
@@ -58,7 +58,7 @@ export class RteEditorElement extends HTMLElement {
     surface.addEventListener("focusout", this.onFocusOut);
     this.sync();
     this.resolveReady?.(editor);
-    this.dispatchEvent(new CustomEvent("rk-ready", { bubbles: true, composed: true, detail: { editor } }));
+    this.dispatchEvent(new CustomEvent("rte-ready", { bubbles: true, composed: true, detail: { editor } }));
   }
 
   disconnectedCallback(): void {
@@ -119,7 +119,7 @@ export class RteEditorElement extends HTMLElement {
   /** Options only code can give (an upload function, more plugins). Set them before the element is connected. */
   get options(): RteElementOptions { return this.opts; }
   set options(options: RteElementOptions) {
-    if (this.current) console.warn("[rte] <rk-editor> options set after it was connected have no effect.");
+    if (this.current) console.warn("[rte] <rte-editor> options set after it was connected have no effect.");
     this.opts = options;
   }
   override focus(): void { this.current?.focus(); }
@@ -131,7 +131,7 @@ export class RteEditorElement extends HTMLElement {
     if (html === this.lastSent) return;
     this.lastSent = html;
     this.sync();
-    this.dispatchEvent(new CustomEvent("rk-change", { bubbles: true, composed: true, detail: { html } }));
+    this.dispatchEvent(new CustomEvent("rte-change", { bubbles: true, composed: true, detail: { html } }));
     // The plain `input` event, so code written for ordinary form fields keeps working.
     this.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
   }

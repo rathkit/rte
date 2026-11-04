@@ -96,6 +96,6 @@ on a repeat. The one exception is among the framework wrappers (React, Vue, Svel
 - Framework wrappers (React, Vue, Svelte, Angular, jQuery): the component or directive is `RteEditor`, its options are `RteOptions`, and
   hooks and composables are `useCommand`, `useSelector`, `useStore` (Svelte: `rteEditor`, `command`, `selector`).
 - Custom elements: the class ends in `Element` (`RteEditorElement`, `RteToolbarElement`, `RteUiElement`), its options are
-  `RteElementOptions`, and the tag names keep the short `rk-` prefix (`<rk-editor>`, `<rk-toolbar>`, `<rk-ui>`). Registering is `define()`
+  `RteElementOptions`, and the tag names keep the short `rte-` prefix (`<rte-editor>`, `<rte-toolbar>`, `<rte-ui>`). Registering is `define()`
   for the editor and toolbar, `defineUi()` for the interface element.
 - A wrapper component and an element class never share a name, so a page that imports both has nothing to alias.

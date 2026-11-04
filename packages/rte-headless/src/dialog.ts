@@ -99,7 +99,7 @@ export interface FormCheck {
 
 /**
  * Checks a dialog's form against the fields an item asked for. Each field that is missing or wrong gets `aria-invalid` and is tied to
- * its message by `aria-describedby`; put an element marked `data-rk-error="<field name>"` where the message should appear. The first
+ * its message by `aria-describedby`; put an element marked `data-rte-error="<field name>"` where the message should appear. The first
  * bad field takes the focus, and the messages are announced when an announcer is given.
  */
 export function checkFields(form: HTMLElement, fields: readonly Field[], messages: { readonly required?: string; readonly url?: string } = {}, announce?: (message: string) => void): FormCheck {
@@ -119,12 +119,12 @@ export function checkFields(form: HTMLElement, fields: readonly Field[], message
     let problem = "";
     if (field.required && value === "") problem = messages.required ?? `${field.label} is required.`;
     else if (value !== "" && field.type === "url" && /^\s*(javascript|vbscript|data):/i.test(value)) problem = messages.url ?? `${field.label} must be a web, mail or phone address.`;
-    const slot = form.querySelector<HTMLElement>(`[data-rk-error="${field.name}"]`);
+    const slot = form.querySelector<HTMLElement>(`[data-rte-error="${field.name}"]`);
     if (slot) slot.textContent = problem;
     if (problem) {
       input.setAttribute("aria-invalid", "true");
       if (slot) {
-        if (!slot.id) slot.id = uniqueId("rk-error");
+        if (!slot.id) slot.id = uniqueId("rte-error");
         input.setAttribute("aria-describedby", slot.id);
       }
       problems.push(problem);

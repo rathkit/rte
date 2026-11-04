@@ -96,11 +96,11 @@ const examples = {
   },
   "rte-headless": async (page, name) => {
     check(`${name} the toolbar is named, has one tab stop, and has the buttons`, await page.evaluate(() => { const bar = document.querySelector("[role=toolbar]"); return bar.getAttribute("aria-label") === "Formatting" && [...bar.querySelectorAll("button")].filter((b) => b.tabIndex === 0).length === 1 && bar.querySelectorAll("button").length > 5; }), "toolbar");
-    await boldSelection(page, name, '[data-rk-item="bold"]');
+    await boldSelection(page, name, '[data-rte-item="bold"]');
   },
   "rte-element": async (page, name) => {
-    await typeAtEnd(page, name, "rk-editor [contenteditable=true]", "x");
-    check(`${name} the element is defined and its change event carries the html`, (await page.evaluate(() => !!customElements.get("rk-editor"))) && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("<p>") && l.includes("x")), await logs(page));
+    await typeAtEnd(page, name, "rte-editor [contenteditable=true]", "x");
+    check(`${name} the element is defined and its change event carries the html`, (await page.evaluate(() => !!customElements.get("rte-editor"))) && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("<p>") && l.includes("x")), await logs(page));
   },
   "rte-icons": async (page, name) => {
     check(`${name} the button shows the icon and the count of icons is logged`, (await page.evaluate(() => !!document.querySelector("button svg"))) && (await logs(page)).some((l) => /^log: \d+ icons/.test(l) && Number(l.split(" ")[1]) >= 20), await logs(page));
@@ -116,8 +116,8 @@ const examples = {
   "rte-svelte": async (page, name) => { await framework(page, name); },
   "rte-angular": async (page, name) => { await framework(page, name); },
   "rte-jquery": async (page, name) => {
-    await typeAtEnd(page, name, "rk-editor [contenteditable=true]", "x");
-    check(`${name} the plugin builds the editor and rk:change hands over the html`, (await logs(page)).some((l) => l.startsWith("log:") && l.includes("<p>Hello") && l.includes("x")), await logs(page));
+    await typeAtEnd(page, name, "rte-editor [contenteditable=true]", "x");
+    check(`${name} the plugin builds the editor and rte:change hands over the html`, (await logs(page)).some((l) => l.startsWith("log:") && l.includes("<p>Hello") && l.includes("x")), await logs(page));
   },
 };
 const logs = (page) => page.evaluate(() => window.__logs);
@@ -137,7 +137,7 @@ async function boldSelection(page, name, button) {
 }
 async function styledInterface(page, name, background, theme) {
   await typeAtEnd(page, name, "[contenteditable=true]", "x");
-  check(`${name} the interface is built with the ${theme} theme and typing is reported`, await page.evaluate(([bg, t]) => { const root = document.querySelector(".rk-root"); return !!root && root.getAttribute("data-rk-theme") === t && getComputedStyle(root).backgroundColor === bg && !!root.querySelector("[role=toolbar]"); }, [background, theme]) && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("x")), await logs(page));
+  check(`${name} the interface is built with the ${theme} theme and typing is reported`, await page.evaluate(([bg, t]) => { const root = document.querySelector(".rte-root"); return !!root && root.getAttribute("data-rte-theme") === t && getComputedStyle(root).backgroundColor === bg && !!root.querySelector("[role=toolbar]"); }, [background, theme]) && (await logs(page)).some((l) => l.startsWith("log:") && l.includes("x")), await logs(page));
 }
 async function framework(page, name) {
   await typeAtEnd(page, name, "[contenteditable=true]", "x");
@@ -175,7 +175,7 @@ for (const [engine, type] of engines) {
   await browser.close();
 }
 
-// --- <rk-ui> used from React, Vue, Angular and Svelte templates: the attributes come from the framework's state
+// --- <rte-ui> used from React, Vue, Angular and Svelte templates: the attributes come from the framework's state
 for (const [engine, type] of engines) {
   const browser = await type.launch();
   for (const app of ["ui-react", "ui-vue", "ui-angular", "ui-svelte"]) {
@@ -195,19 +195,19 @@ for (const [engine, type] of engines) {
     await page.goto(new URL(`/frameworks/dist/${app}.html`, base).href);
     await page.waitForFunction("window.__fw && window.__fw.ready === true");
     const count = (sel) => page.locator(sel).count();
-    await page.waitForSelector("rk-editor [data-rk-part=toolbar]");
-    check(`${name} the interface is built inside the editor element, once`, (await count("rk-editor > [data-rk-part=toolbar] [data-rk-item=bold]")) === 1 && (await count("rk-editor [contenteditable=true][aria-label=Body]")) === 1, null);
-    check(`${name} the theme attribute from the template is in effect`, (await page.getAttribute("rk-editor", "data-rk-theme")) === "light", await page.getAttribute("rk-editor", "data-rk-theme"));
-    await page.locator("rk-editor [contenteditable=true]").click();
+    await page.waitForSelector("rte-editor [data-rte-part=toolbar]");
+    check(`${name} the interface is built inside the editor element, once`, (await count("rte-editor > [data-rte-part=toolbar] [data-rte-item=bold]")) === 1 && (await count("rte-editor [contenteditable=true][aria-label=Body]")) === 1, null);
+    check(`${name} the theme attribute from the template is in effect`, (await page.getAttribute("rte-editor", "data-rte-theme")) === "light", await page.getAttribute("rte-editor", "data-rte-theme"));
+    await page.locator("rte-editor [contenteditable=true]").click();
     await page.keyboard.press("ControlOrMeta+a");
     await page.waitForTimeout(300);
-    check(`${name} the selection-toolbar attribute from the template shows the bar over a selection`, await page.evaluate(() => { const b = document.querySelector("rk-editor [data-rk-part=floating]"); return !!b && !b.hidden; }), null);
-    await page.click("rk-editor [data-rk-part=floating] [data-rk-item=bold]");
+    check(`${name} the selection-toolbar attribute from the template shows the bar over a selection`, await page.evaluate(() => { const b = document.querySelector("rte-editor [data-rte-part=floating]"); return !!b && !b.hidden; }), null);
+    await page.click("rte-editor [data-rte-part=floating] [data-rte-item=bold]");
     await page.waitForTimeout(100);
-    check(`${name} a control in the bar formats the selection`, (await page.evaluate(() => document.querySelector("rk-editor").value)).includes("<strong>"), await page.evaluate(() => document.querySelector("rk-editor").value));
+    check(`${name} a control in the bar formats the selection`, (await page.evaluate(() => document.querySelector("rte-editor").value)).includes("<strong>"), await page.evaluate(() => document.querySelector("rte-editor").value));
     await page.click("#flip");
     await page.waitForTimeout(100);
-    check(`${name} changing the state in the framework restyles without rebuilding or losing the document`, (await page.getAttribute("rk-editor", "data-rk-theme")) === "dark" && (await count("rk-editor [data-rk-part=toolbar]")) === 1 && (await page.evaluate(() => document.querySelector("rk-editor").value)).includes("<strong>"), null);
+    check(`${name} changing the state in the framework restyles without rebuilding or losing the document`, (await page.getAttribute("rte-editor", "data-rte-theme")) === "dark" && (await count("rte-editor [data-rte-part=toolbar]")) === 1 && (await page.evaluate(() => document.querySelector("rte-editor").value)).includes("<strong>"), null);
     check(`${name} runs without an error`, errors.length === 0, errors);
     check(`${name} asks for nothing from outside`, outside.length === 0, outside);
     await context.close();
