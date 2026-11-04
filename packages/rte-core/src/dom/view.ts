@@ -13,7 +13,7 @@ import { ops } from "../ops.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
-import { cellChain, getContent, setContent, type Pos, type Selection } from "../path.ts";
+import { cellChain, containerPaths, getContent, pathKey, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
 import { imageSelection } from "../imageselect.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
@@ -691,6 +691,26 @@ export class Editor {
   /** Keys go through the key map: a chord bound to a command runs it, and the event is stopped if the command changed something. */
   private onKeyDown(event: KeyboardEvent): void {
     if (this.composing || event.isComposing) return;
-    if (this.engine.handleKey(event)) event.preventDefault();
+    if (this.engine.handleKey(event)) { event.preventDefault(); return; }
+    this.keyAtDocumentEdge(event);
+  }
+
+  /**
+   * Backspace at the very start of the document, and Delete at the very end, change something here (a code block or heading becomes a
+   * paragraph, a rule goes) but there is nothing for the browser to delete, so WebKit sends no input event for them. They are handled
+   * from the key instead.
+   */
+  private keyAtDocumentEdge(event: KeyboardEvent): void {
+    if ((event.key !== "Backspace" && event.key !== "Delete") || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || this.engine.readOnly) return;
+    this.engine.refresh();
+    const sel = this.engine.selection;
+    if (!isCollapsed(sel)) return;
+    const paths = containerPaths(this.engine.document);
+    const edge = paths[event.key === "Backspace" ? 0 : paths.length - 1];
+    const here = sel.focus;
+    if (!edge || pathKey(here.path) !== pathKey(edge) || here.offset !== (event.key === "Backspace" ? 0 : inlineLength(getContent(this.engine.document, edge)))) return;
+    event.preventDefault();
+    if (event.key === "Backspace") this.apply("delete", (doc, s) => deleteBackward(doc, s, this.engine.behaviors));
+    else this.apply("delete", deleteForward);
   }
 }

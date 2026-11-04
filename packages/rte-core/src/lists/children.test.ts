@@ -34,12 +34,12 @@ test("Enter in a code child adds a line; in a paragraph child it adds a paragrap
   assert.equal(html(coreSplit(doc(START), at([0, 0, 1], 5), behaviors)), START.replace("<p>after</p>", "<p>after</p><p></p>"));
 });
 
-test("Backspace removes an empty child that cannot merge, and leaves code that has text alone", () => {
+test("Backspace removes an empty child that cannot merge, and turns code that has text back into a paragraph", () => {
   const empty = doc("<ul><li>a<pre>code</pre><p></p></li></ul>");
   const r = coreBackward(empty, at([0, 0, 1], 0), behaviors);
   assert.equal(html(r), "<ul><li>a<pre>code</pre></li></ul>");
   assert.deepEqual(r.selection.focus, { path: [0, 0, 0], offset: 4 });
-  assert.equal(html(coreBackward(doc("<ul><li>a<pre>c</pre></li></ul>"), at([0, 0, 0], 0), behaviors)), "<ul><li>a<pre>c</pre></li></ul>");
+  assert.equal(html(coreBackward(doc("<ul><li>a<pre>c</pre></li></ul>"), at([0, 0, 0], 0), behaviors)), "<ul><li>a<p>c</p></li></ul>");
   assert.equal(html(coreBackward(doc("<ul><li>a<pre></pre></li></ul>"), at([0, 0, 0], 0), behaviors)), "<ul><li>a</li></ul>");
 });
 

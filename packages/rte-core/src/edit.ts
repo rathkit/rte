@@ -4,9 +4,10 @@ import {
   inlineLength, inlineText, normalizeInline, type Block, type TableCell, type Doc, type Inline, type List, type Mark, type MarkType, type TextRun,
 } from "./model.ts";
 import type { Behaviors, ContainerKind } from "./behaviors.ts";
+import { setBlockType } from "./blocks.ts";
 import { fillTable } from "./tablefill.ts";
 import {
-  asChildren, blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, rulePaths, sameCells, setContent,
+  asChildren, blockContainers, caret, cellChain, clampPos, comparePath, containerPaths, fixup, getBlock, getContent, hasContainer, inBlockList, isCollapsed, kindAt, mapBlockList, mapListOf, pathKey, removeEntry, rulePaths, sameCells, setContent,
   type EditResult, type Path, type Pos, type Selection,
 } from "./path.ts";
 
@@ -206,6 +207,38 @@ export function insertLineBreak(doc: Doc, sel: Selection): EditResult {
 /** The behavior a plugin gave for a container, if the container is one a plugin owns. */
 const behaviorOf = (behaviors: Behaviors | undefined, kind: string | undefined) => (kind === "li" || kind === "dt" || kind === "dd" ? behaviors?.[kind as ContainerKind] : undefined);
 
+/** The quote that a paragraph, heading or code block sits directly in, and its place in the quote. */
+function quoteParent(doc: Doc, path: Path): { readonly quote: Path; readonly index: number; readonly count: number } | undefined {
+  if (path.length < 2 || (kindAt(doc, path) !== "p" && kindAt(doc, path) !== "h" && kindAt(doc, path) !== "pre")) return undefined;
+  const quote = path.slice(0, -1);
+  const block = getBlock(doc, quote);
+  return block?.type === "quote" ? { quote, index: path[path.length - 1] as number, count: block.blocks.length } : undefined;
+}
+
+/** Takes the block at `index` out of its quote: before it (`before`) or after it (`after`). A quote left with nothing goes. */
+function liftFromQuote(doc: Doc, path: Path, where: "before" | "after", sel: Selection): EditResult {
+  const parent = quoteParent(doc, path) as NonNullable<ReturnType<typeof quoteParent>>;
+  const ordinal = ordinalOf(doc, path);
+  const next = fixup(mapBlockList(doc, parent.quote, (blocks, at) => {
+    const quote = blocks[at];
+    if (quote?.type !== "quote") return blocks;
+    const taken = quote.blocks[parent.index] as Block;
+    const left = quote.blocks.filter((_, i) => i !== parent.index);
+    const rest: Block[] = left.length > 0 ? [{ ...quote, blocks: left }] : [];
+    return [...blocks.slice(0, at), ...(where === "before" ? [taken, ...rest] : [...rest, taken]), ...blocks.slice(at + 1)];
+  }));
+  return { doc: next, selection: caret({ path: containerPaths(next)[ordinal] ?? path, offset: sel.anchor.offset }) };
+}
+
+/** A paragraph or heading with nothing in it. */
+const emptyBlock = (doc: Doc, path: Path): boolean => (kindAt(doc, path) === "p" || kindAt(doc, path) === "h") && inlineLength(getContent(doc, path)) === 0;
+
+/** True for an item of the footnotes list. Its text stays where it is: it is not lifted, merged with another note, or joined to the text before. */
+const isNoteItem = (doc: Doc, path: Path): boolean => {
+  const top = doc.blocks[path[0] as number];
+  return (top?.type === "ol" || top?.type === "ul") && top.notes === true && path.length === 2;
+};
+
 /**
  * Enter. Without a plugin that owns the container, Enter in a list item or definition entry inserts a line break: the structure
  * is left alone.
@@ -220,7 +253,20 @@ export function splitBlock(doc: Doc, sel: Selection, behaviors?: Behaviors): Edi
   const after = sliceInline(content, pos.offset);
   const ordinal = ordinalOf(d, pos.path);
 
-  if (kind === "pre") return insertText(d, cleared.selection, "\n");
+  if (kind === "pre") {
+    // On the empty last line of a code block, Enter leaves it: the line goes and a paragraph follows.
+    if (pos.offset === inlineLength(content) && pos.offset > 0 && inlineText(content).endsWith("\n")) {
+      const trimmed = setContent(d, pos.path, sliceInline(content, 0, pos.offset - 1));
+      const out = mapBlockList(trimmed, pos.path, (blocks, index) => [...blocks.slice(0, index + 1), { type: "p", content: [] }, ...blocks.slice(index + 1)]);
+      return { doc: out, selection: caret({ path: ordinalToPath(out, ordinal + 1), offset: 0 }) };
+    }
+    return insertText(d, cleared.selection, "\n");
+  }
+  // Enter on an empty last paragraph of a quote leaves the quote.
+  if (kind === "p" && content.length === 0) {
+    const parent = quoteParent(d, pos.path);
+    if (parent && parent.index === parent.count - 1) return liftFromQuote(d, pos.path, "after", cleared.selection);
+  }
   if (kind === "li" || kind === "dt" || kind === "dd") return behaviorOf(behaviors, kind)?.split?.(d, pos) ?? insertLineBreak(d, cleared.selection);
 
   // Paragraphs and headings split in place. A heading split at its end continues as a paragraph.
@@ -250,17 +296,29 @@ export function deleteBackward(doc: Doc, sel: Selection, behaviors?: Behaviors):
   if (!isCollapsed(sel)) return deleteSelection(doc, sel);
   const pos = sel.anchor;
   if (pos.offset > 0) return deleteSelection(doc, { anchor: { path: pos.path, offset: pos.offset - 1 }, focus: pos });
+  if (isNoteItem(doc, pos.path)) return { doc, selection: sel };
   const leaving = behaviorOf(behaviors, kindAt(doc, pos.path))?.backspaceAtStart?.(doc, pos);
   if (leaving) return leaving;
   const ordinal = ordinalOf(doc, pos.path);
   // A rule right before this block goes first: the text never jumps over it.
   const rule = lastRule(doc, ordinal);
   if (rule) return removeRule(doc, rule, ordinal, sel);
+  const kind = kindAt(doc, pos.path);
+  // A code block with text turns back into a paragraph first (its text stays); so does an empty one, or a heading, with nothing before it to join.
+  if ((kind === "pre" && (ordinal <= 0 || inlineLength(getContent(doc, pos.path)) > 0)) || (kind === "h" && ordinal <= 0)) return setBlockType(doc, sel, { type: "p" });
+  if (quoteParent(doc, pos.path)?.index === 0) return liftFromQuote(doc, pos.path, "before", sel);
   if (ordinal <= 0) return { doc, selection: sel };
   const previous = ordinalToPath(doc, ordinal - 1);
   const depths = cellDepths(doc, previous, pos.path);
-  if (depths) return depths[0] > depths[1] ? { doc, selection: caret({ path: previous, offset: inlineLength(getContent(doc, previous)) }) } : { doc, selection: sel };
-  return joinWithPrevious(doc, previous, pos);
+  if (depths) {
+    if (depths[0] <= depths[1]) return { doc, selection: sel };
+    // An empty paragraph after a table goes (nothing moves with it); otherwise the caret steps into the table's last cell.
+    if (emptyBlock(doc, pos.path)) return joinWithPrevious(doc, previous, pos);
+    return { doc, selection: caret({ path: previous, offset: inlineLength(getContent(doc, previous)) }) };
+  }
+  const joined = joinWithPrevious(doc, previous, pos);
+  // Text that cannot join what is before it (a code block) is not left with a dead key: the caret steps back into it.
+  return joined.doc === doc ? { doc, selection: caret({ path: previous, offset: inlineLength(getContent(doc, previous)) }) } : joined;
 }
 
 export function deleteForward(doc: Doc, sel: Selection): EditResult {
@@ -274,9 +332,17 @@ export function deleteForward(doc: Doc, sel: Selection): EditResult {
   const rule = firstRule(doc, ordinal + 1);
   if (rule) return removeRule(doc, rule, ordinal, sel);
   const next = paths[ordinal + 1];
-  if (!next) return { doc, selection: sel };
+  if (!next || isNoteItem(doc, next)) return { doc, selection: sel };
   const depths = cellDepths(doc, pos.path, next);
-  if (depths) return depths[1] > depths[0] ? { doc, selection: caret({ path: next, offset: 0 }) } : { doc, selection: sel };
+  if (depths) {
+    if (depths[1] <= depths[0]) return { doc, selection: sel };
+    // An empty paragraph before a table goes; otherwise the caret steps into the table's first cell.
+    if (emptyBlock(doc, pos.path)) {
+      const gone = removeContainer(doc, pos.path);
+      return { doc: gone, selection: caret({ path: containerPaths(gone)[ordinal] ?? next, offset: 0 }) };
+    }
+    return { doc, selection: caret({ path: next, offset: 0 }) };
+  }
   return joinWithPrevious(doc, pos.path, { path: next, offset: 0 });
 }
 

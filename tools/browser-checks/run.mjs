@@ -188,7 +188,7 @@ for (const [name, type] of engines) {
   check(`${name} undo`, (await html()) === "<p>one <strong>two</strong></p>", await html());
   // Selection and caret rules (docs/SELECTION.md): where the editor says the caret is must be where the page has it, in every engine.
   const model = () => page.evaluate(() => { const s = window.__editor.selection; const f = (p) => `${p.path.join(".")}:${p.offset}`; return `${f(s.anchor)}>${f(s.focus)}`; });
-  const put = (selector, nth, offset, end = offset) => page.evaluate(([sel, n, a, b]) => { const first = (x) => (x.nodeType === 3 ? x : [...x.childNodes].map(first).find(Boolean)); const t = first(document.querySelectorAll(`#ed ${sel}`)[n]); window.__editor.selectDom(t, a, t, b); }, [selector, nth, offset, end]);
+  const put = (selector, nth, offset, end = offset) => page.evaluate(([sel, n, a, b]) => { const el = document.querySelectorAll(`#ed ${sel}`)[n]; const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); const t = walker.nextNode() ?? el; window.__editor.selectDom(t, t === el ? 0 : a, t, t === el ? 0 : b); }, [selector, nth, offset, end]);
   const key = async (...keys) => { for (const k of keys) await page.keyboard.press(k); await page.waitForTimeout(60); };
   const png = onePixelPng();
   // An inline image is one position: the caret passes it in one key, shift extends over exactly it, delete removes just it.
@@ -302,6 +302,36 @@ for (const [name, type] of engines) {
   await clickAt("td", 0, 1, 3);
   await page.keyboard.type("X");
   check(`${name} selection: triple click in a table cell selects just that cell's text`, (await html()).replace(/<\/?tbody>/g, "") === "<table><tr><td>X</td><td>b</td></tr></table>", await html());
+
+  // Enter, Shift+Enter, Backspace and Delete at block edges (docs/BLOCK-EDGES.md has every case; these are a sample in a real browser).
+  const edge = async (label, start, offset, selector, keys, expected, nth = 0) => {
+    await reset(start);
+    await put(selector, nth, offset);
+    await key(...keys);
+    check(`${name} keys: ${label}`, (await html()).replace(/<\/?tbody>/g, "") === expected, await html());
+  };
+  await edge("Shift+Enter at the end of a paragraph, then typing, goes on the new line", "<p>abcd</p>", 4, "p", ["Shift+Enter", "X"], "<p>abcd<br>X</p>");
+  await edge("Enter on an empty last paragraph in a quote leaves the quote", "<blockquote><p>a</p><p></p></blockquote>", 0, "blockquote p", ["Enter"], "<blockquote><p>a</p></blockquote><p></p>", 1);
+  await edge("Backspace at the start of a quote's first paragraph takes it out", "<blockquote><p>a</p><p>b</p></blockquote>", 0, "blockquote p", ["Backspace"], "<p>a</p><blockquote><p>b</p></blockquote>");
+  await edge("Backspace at the start of a code block makes it a paragraph", "<pre><code>ab</code></pre>", 0, "pre", ["Backspace"], "<p>ab</p>");
+  await edge("Enter twice at the end of a code block leaves it", "<pre><code>ab</code></pre>", 2, "pre", ["Enter", "Enter", "X"], "<pre>ab</pre><p>X</p>");
+  await edge("Backspace at the start of a first heading makes it a paragraph", "<h2>ab</h2>", 0, "h2", ["Backspace"], "<p>ab</p>");
+  await edge("Backspace at the start of a paragraph after code steps into the code", "<pre><code>a</code></pre><p>b</p>", 0, "p", ["Backspace", "X"], "<pre>aX</pre><p>b</p>");
+  await edge("Enter on an empty last list item leaves the list", "<ul><li>a</li><li></li></ul>", 0, "li", ["Enter", "X"], "<ul><li>a</li></ul><p>X</p>", 1);
+  await edge("Backspace on an empty paragraph after a table removes it", "<table><tr><td>a</td></tr></table><p></p>", 0, "> p", ["Backspace"], "<table><tr><td>a</td></tr></table>");
+  await edge("Backspace after a rule removes the rule and not the text", "<p>a</p><hr><p>b</p>", 0, "p", ["Backspace"], "<p>a</p><p>b</p>", 1);
+  await edge("Delete before a rule removes the rule and not the text", "<p>a</p><hr><p>b</p>", 1, "p", ["Delete"], "<p>a</p><p>b</p>");
+  await edge("Backspace in a table cell's first paragraph does nothing to the table", "<table><tr><td>a</td><td>b</td></tr></table>", 0, "td", ["Backspace"], "<table><tr><td>a</td><td>b</td></tr></table>", 1);
+  await edge("Enter in a table cell starts a paragraph in that cell", "<table><tr><td>ab</td><td>c</td></tr></table>", 1, "td", ["Enter", "X"], "<table><tr><td><p>a</p><p>Xb</p></td><td>c</td></tr></table>");
+  // A footnote's text stays in the notes list.
+  await reset('<p>a<sup data-note="q"><a href="#fn-q">1</a></sup>b</p><section class="footnotes" role="doc-endnotes"><ol><li id="fn-q" data-note="q">Q. <a href="#fnref-q" role="doc-backlink">↩</a></li></ol></section>');
+  const before = await html();
+  await put("ol[data-rte-notes] li", 0, 0);
+  await key("Backspace");
+  check(`${name} keys: Backspace at the start of a note does nothing`, (await html()) === before, await html());
+  await page.evaluate(() => { const walker = document.createTreeWalker(document.querySelector("#ed > p"), NodeFilter.SHOW_TEXT); let last; while (walker.nextNode()) last = walker.currentNode; window.__editor.selectDom(last, last.length, last, last.length); });
+  await key("Delete");
+  check(`${name} keys: Delete at the end of the body does not pull the note in`, (await html()) === before, await html());
 
   // History rules (docs/HISTORY.md): typing in a row is one step; moving the caret ends it; a composition is a step of its own.
   await reset("<p>one two</p>");
