@@ -25,7 +25,7 @@ It draws the editing surface only (a `div` inside it, in the light DOM, so the p
 | `name` | the form field name; the value submitted is the HTML |
 | `options` property | what only code can give: an upload function, more plugins. Set it before the element is connected |
 | `editor` property, `whenReady()` | the editor inside, for commands, items and subscriptions |
-| Events | `rte-change` (detail `{ html }`), `input` (like a form field), `change` when focus leaves and the value differs from when it arrived, `rte-ready` |
+| Events | `rte-ready`, `rte-change` (detail `{ html }`), `rte-focus`, `rte-blur`, `rte-selection` (detail `{ selection }`), and the two a form field sends: `input` and `change` (when focus leaves and the value differs from when it arrived). Timing and payloads for every package: [EVENTS.md](EVENTS.md) |
 | Forms | form-associated: submits its value, resets to its starting content, restores after navigation, honors `disabled` |
 
 Moving the element keeps its content; removing it takes the editor down.

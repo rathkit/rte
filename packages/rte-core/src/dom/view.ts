@@ -57,6 +57,20 @@ export interface EditorOptions {
 
 type Listener = (editor: Editor) => void;
 
+/**
+ * What an editor reports, by name (`editor.on(name, listener)`). Every package that wraps the editor reports the same five things
+ * with the same timing; see docs/EVENTS.md.
+ * - `change`: the document's HTML, after an edit that altered it. Not for `setHtml`, and not for a selection that moved.
+ * - `focus` and `blur`: the editor's own focus moved in or out.
+ * - `selection`: the selection moved or changed.
+ */
+export interface EditorEvents {
+  change: (html: string) => void;
+  focus: (editor: Editor) => void;
+  blur: (editor: Editor) => void;
+  selection: (selection: Selection) => void;
+}
+
 export class Editor {
   readonly element: HTMLElement;
   /** The editor's state, commands, keys and plugins. It has no DOM, so everything it does can be driven without a page. */
@@ -81,6 +95,10 @@ export class Editor {
   });
   private readonly cleanups: (() => void)[] = [];
   private readonly changeListeners = new Set<(change: ViewChange) => void>();
+  /** Set while `setHtml` replaces the document, so replacing it is not reported as an edit. */
+  private replacing = false;
+  /** Lets each `change` listener forget what it last reported, after the document was replaced. */
+  private readonly resyncs = new Set<() => void>();
   private readonly viewHost: ViewHost;
 
   constructor(options: EditorOptions) {
@@ -147,6 +165,9 @@ export class Editor {
     this.listen(this.element, "compositionstart", () => { this.composing = true; });
     this.listen(this.element, "compositionend", () => { this.composing = false; this.reconcileFromDom(); });
     this.listen(document, "selectionchange", () => this.readSelection());
+    // Chromium reports a click's `selectionchange` before the caret has landed and not again, so the place a click ends up is read when
+    // the pointer is released (the focus is in by then, so the read is allowed).
+    this.listen(this.element, "pointerup", () => this.readSelection());
     this.observer.observe(this.element, { subtree: true, childList: true, characterData: true, attributes: true });
     if (options.autofocus) this.focus();
   }
@@ -219,9 +240,33 @@ export class Editor {
     }
   }
 
-  /** Replaces the whole document and empties the history. */
+  /** Replaces the whole document and empties the history. Reported to nobody as a `change`, like setting the value of a text field. */
   setHtml(html: string): void {
-    this.engine.setDocument(importHtml(html, this.engine.importOptions));
+    this.replacing = true;
+    try { this.engine.setDocument(importHtml(html, this.engine.importOptions)); } finally { this.replacing = false; }
+    for (const resync of this.resyncs) resync();
+  }
+
+  /** Listens for `change`, `focus`, `blur` or `selection` (see `EditorEvents`). Returns a function that stops listening. */
+  on<K extends keyof EditorEvents>(event: K, listener: EditorEvents[K]): () => void {
+    const call = listener as (...args: unknown[]) => void;
+    let last = event === "change" ? this.getHtml() : "";
+    const resync = (): void => { if (event === "change") last = this.getHtml(); };
+    const handler = (change: ViewChange): void => {
+      if (this.replacing) return;
+      if (event === "change") {
+        if (!change.docChanged) return;
+        const html = this.getHtml();
+        if (html === last) return;
+        last = html;
+        call(html);
+      } else if (event === "selection") {
+        if (change.selectionChanged) call(this.selection);
+      } else if (change.focusMoved && this.engine.snapshot.focused === (event === "focus")) call(this);
+    };
+    this.resyncs.add(resync);
+    this.changeListeners.add(handler);
+    return () => { this.resyncs.delete(resync); this.changeListeners.delete(handler); };
   }
 
   setReadOnly(value: boolean): void {

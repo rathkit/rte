@@ -2,7 +2,7 @@
 import { derived, get } from "svelte/store";
 import { command, rteEditor, selector } from "@rathkit/rte-svelte";
 
-const fw = (window.__fw = { ready: false, changes: [], readies: 0, commitCount: 0, extra: {} });
+const fw = (window.__fw = { ready: false, changes: [], events: [], readies: 0, commitCount: 0, extra: {} });
 fw.commits = () => fw.commitCount;
 
 const surface = document.getElementById("surface");
@@ -11,6 +11,9 @@ surface.setAttribute("aria-label", "Body");
 const action = rteEditor(surface, {
   html: "<p>one two three</p>",
   onChange: (html) => fw.changes.push(html),
+  onFocus: () => fw.events.push("focus"),
+  onBlur: () => fw.events.push("blur"),
+  onSelection: (s) => fw.events.push(s.anchor && s.focus ? "selection" : "bad"),
   onReady: (editor) => { fw.readies++; fw.editor = editor; },
 });
 const state = command(fw.editor, "format.bold");

@@ -15,21 +15,20 @@ export const RteEditor = defineComponent({
     label: { type: String, required: true },
     options: { type: Object, default: () => ({}) },
   },
-  emits: ["change", "ready"],
+  emits: ["change", "ready", "focus", "blur", "selection"],
   setup(props: { defaultValue: string; readOnly: boolean; label: string; options: RteOptions }, { emit, expose }: { emit: (name: string, ...args: unknown[]) => void; expose: (api: object) => void }) {
     const element = shallowRef<HTMLElement | null>(null);
     const editor = shallowRef<Editor | undefined>(undefined);
     let stop = (): void => undefined;
     onMounted(() => {
       const made = createEditor({ ...props.options, element: element.value!, html: props.defaultValue, readOnly: props.readOnly });
-      let last = made.getHtml();
-      const off = made.subscribe(() => {
-        const html = made.getHtml();
-        if (html === last) return;
-        last = html;
-        emit("change", html);
-      });
-      stop = () => { off(); made.destroy(); };
+      const offs = [
+        made.on("change", (html) => emit("change", html)),
+        made.on("focus", (e) => emit("focus", e)),
+        made.on("blur", (e) => emit("blur", e)),
+        made.on("selection", (selection) => emit("selection", selection)),
+      ];
+      stop = () => { for (const off of offs) off(); made.destroy(); };
       editor.value = made;
       emit("ready", made);
     });

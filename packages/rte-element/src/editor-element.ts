@@ -53,12 +53,18 @@ export class RteEditorElement extends HTMLElement {
       ...(this.hasAttribute("autofocus") ? { autofocus: true } : {}),
     });
     this.current = editor;
-    this.stop = editor.subscribe(() => this.changed());
+    const offs = [
+      editor.on("change", (html) => this.changed(html)),
+      editor.on("focus", () => this.announce("rte-focus", {})),
+      editor.on("blur", () => this.announce("rte-blur", {})),
+      editor.on("selection", (selection) => this.announce("rte-selection", { selection })),
+    ];
+    this.stop = () => { for (const off of offs) off(); };
     surface.addEventListener("focusin", this.onFocusIn);
     surface.addEventListener("focusout", this.onFocusOut);
     this.sync();
     this.resolveReady?.(editor);
-    this.dispatchEvent(new CustomEvent("rte-ready", { bubbles: true, composed: true, detail: { editor } }));
+    this.announce("rte-ready", { editor });
   }
 
   disconnectedCallback(): void {
@@ -126,16 +132,15 @@ export class RteEditorElement extends HTMLElement {
 
   // ---- inside ---------------------------------------------------------------------------------------------
 
-  private changed(): void {
-    const html = this.value;
-    if (html === this.lastSent) return;
-    this.lastSent = html;
+  private changed(html: string): void {
     this.sync();
-    this.dispatchEvent(new CustomEvent("rte-change", { bubbles: true, composed: true, detail: { html } }));
+    this.announce("rte-change", { html });
     // The plain `input` event, so code written for ordinary form fields keeps working.
     this.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
   }
-  private lastSent = "";
+  private announce(name: string, detail: object): void {
+    this.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true, detail }));
+  }
 
   /** Brings the form value and validity up to date. */
   private sync(): void {

@@ -169,6 +169,7 @@ value toggleQuote
 value transposeChars
 # @rathkit/rte-core/dom
 value Editor
+type EditorEvents
 type EditorOptions
 value domFromPos
 value posFromDom

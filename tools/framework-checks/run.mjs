@@ -42,9 +42,19 @@ for (const [engine, type] of engines) {
     check(`${name} surface has its name`, (await page.locator("[contenteditable=true][aria-label=Body]").getAttribute("aria-label")) === "Body", null);
     check(`${name} editor is ready`, await page.evaluate(() => window.__fw.readies >= 1 && !!window.__fw.editor), null);
 
-    // Typing changes the document but not the bold button's state, so the button must not redraw.
+    // The event contract (docs/EVENTS.md): the same five things, with the same timing, in every wrapper.
     await page.locator("[contenteditable=true][aria-label=Body]").click();
     await page.keyboard.press("End");
+    await page.keyboard.press("Home");
+    await page.waitForTimeout(80); // the page reports a moved caret as its own `selectionchange`, a task later
+    check(`${name} focus is reported when the editor gains it`, await page.evaluate(() => window.__fw.events.includes("focus")), await page.evaluate(() => window.__fw.events));
+    check(`${name} selection is reported with a selection`, await page.evaluate(() => window.__fw.events.includes("selection") && !window.__fw.events.includes("bad")), await page.evaluate(() => window.__fw.events));
+    check(`${name} moving the caret is not a change`, await page.evaluate(() => window.__fw.changes.length === 0), await page.evaluate(() => window.__fw.changes));
+    await page.evaluate(() => window.__fw.editor.setHtml("<p>one two three</p>"));
+    check(`${name} replacing the document with setHtml is not a change`, await page.evaluate(() => window.__fw.changes.length === 0), await page.evaluate(() => window.__fw.changes));
+    await page.locator("[contenteditable=true][aria-label=Body]").click();
+    await page.keyboard.press("End");
+    // Typing changes the document but not the bold button's state, so the button must not redraw.
     const before = await page.evaluate(() => window.__fw.commits());
     await page.keyboard.type("abcdefghijklmnopqrstuvwxy");
     const html = await page.evaluate(() => window.__fw.editor.getHtml());
@@ -76,6 +86,9 @@ for (const [engine, type] of engines) {
       await page.waitForTimeout(100);
       check(`${name} typing in the controlled editor reaches the control`, await page.evaluate(() => window.__fw.control.value.includes("controlq") && window.__fw.control.dirty), await page.evaluate(() => window.__fw.control.value));
     }
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.waitForTimeout(50);
+    check(`${name} blur is reported when the editor loses the focus`, await page.evaluate(() => window.__fw.events.includes("blur")), await page.evaluate(() => window.__fw.events));
     await page.evaluate(() => window.__fw.destroy());
     await page.waitForTimeout(50);
     const left = await page.locator("[contenteditable=true]").count();

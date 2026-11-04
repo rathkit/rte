@@ -2,6 +2,7 @@
 // element reads them, because rebuilding an editor under someone who is typing is never what they meant.
 import { createElement, useEffect, useRef, useState } from "react";
 import type { Editor } from "@rathkit/rte-core/dom";
+import type { Selection } from "@rathkit/rte-core";
 import { createEditor, type StandardOptions } from "@rathkit/rte-core/standard";
 
 export type RteOptions = Omit<StandardOptions, "element" | "html" | "readOnly">;
@@ -17,6 +18,12 @@ export interface RteEditorProps extends RteOptions {
   onChange?: (html: string) => void;
   /** Called once the editor exists, with the editor to run commands on and subscribe to. */
   onReady?: (editor: Editor) => void;
+  /** Called when the editor gains the focus. */
+  onFocus?: (editor: Editor) => void;
+  /** Called when the editor loses the focus. */
+  onBlur?: (editor: Editor) => void;
+  /** Called when the selection moves or changes. */
+  onSelection?: (selection: Selection) => void;
 }
 
 /** The hook behind `RteEditor`, for those who draw their own surface: give `ref` to one element. */
@@ -28,15 +35,15 @@ export function useRteEditor(props: Omit<RteEditorProps, "label" | "className">)
   // Built in an effect so that React's development double-run (build, tear down, build) is harmless.
   useEffect(() => {
     if (!element) return;
-    const { defaultValue, readOnly, onChange: _c, onReady: _r, ...options } = latest.current;
+    const { defaultValue, readOnly, onChange: _c, onReady: _r, onFocus: _f, onBlur: _b, onSelection: _s, ...options } = latest.current;
     const made = createEditor({ ...(options as RteOptions), element, html: defaultValue ?? "", readOnly: readOnly ?? false });
-    let last = made.getHtml();
-    const stop = made.subscribe(() => {
-      const html = made.getHtml();
-      if (html === last) return;
-      last = html;
-      latest.current.onChange?.(html);
-    });
+    const offs = [
+      made.on("change", (html) => latest.current.onChange?.(html)),
+      made.on("focus", (e) => latest.current.onFocus?.(e)),
+      made.on("blur", (e) => latest.current.onBlur?.(e)),
+      made.on("selection", (selection) => latest.current.onSelection?.(selection)),
+    ];
+    const stop = (): void => { for (const off of offs) off(); };
     setEditor(made);
     latest.current.onReady?.(made);
     return () => {

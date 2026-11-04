@@ -7,7 +7,7 @@ import { RteEditor, commandState } from "@rathkit/rte-angular";
 import { RteValueAccessor } from "@rathkit/rte-angular/forms";
 import type { Editor } from "@rathkit/rte-core/dom";
 
-const fw = ((window as unknown as { __fw: Record<string, unknown> }).__fw = { ready: false, changes: [] as string[], readies: 0, commitCount: 0, values: [] as (string | null)[] } as Record<string, any>);
+const fw = ((window as unknown as { __fw: Record<string, unknown> }).__fw = { ready: false, changes: [] as string[], events: [] as string[], readies: 0, commitCount: 0, values: [] as (string | null)[] } as Record<string, any>);
 fw["commits"] = () => fw["commitCount"];
 
 @Component({
@@ -15,7 +15,8 @@ fw["commits"] = () => fw["commitCount"];
   imports: [RteEditor, RteValueAccessor, ReactiveFormsModule],
   template: `
     <button id="bold" [attr.aria-pressed]="bold().active" [disabled]="!bold().enabled" (click)="run()">Bold</button>
-    <div rteEditor label="Body" defaultValue="<p>one two three</p>" [readOnly]="false" (ready)="onReady($event)" (change)="onChange($event)"></div>
+    <div rteEditor label="Body" defaultValue="<p>one two three</p>" [readOnly]="false" (ready)="onReady($event)" (change)="onChange($event)"
+      (rteFocus)="onEvent('focus')" (rteBlur)="onEvent('blur')" (rteSelection)="onEvent('selection')"></div>
     <div rteEditor label="Control" [formControl]="control"></div>
   `,
 })
@@ -30,6 +31,7 @@ class App {
   }
   onReady(editor: Editor): void { fw["readies"]++; fw["editor"] = editor; this.editor.set(editor); }
   onChange(html: string): void { fw["changes"].push(html); }
+  onEvent(name: string): void { fw["events"].push(name); }
   run(): void { this.editor()?.commands.run("format.bold"); }
 }
 

@@ -5,10 +5,13 @@ import { install } from "@rathkit/rte-jquery";
 
 globalThis.jQuery = $;
 install($);
-const fw = (window.__fw = { ready: false, changes: [], readies: 0, commitCount: 0 });
+const fw = (window.__fw = { ready: false, changes: [], events: [], readies: 0, commitCount: 0 });
 fw.commits = () => fw.commitCount;
 
 $("#host").on("rte:change", (_event, html) => fw.changes.push(html));
+$("#host").on("rte:focus", () => fw.events.push("focus"));
+$("#host").on("rte:blur", () => fw.events.push("blur"));
+$("#host").on("rte:selection", (_event, s) => fw.events.push(s && s.anchor && s.focus ? "selection" : "bad"));
 $("#host").rteEditor({ label: "Body", html: "<p>one two three</p>" });
 $("#host").rteEditor("editor").then((editor) => {
   fw.readies++;

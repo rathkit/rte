@@ -2,7 +2,7 @@
 import { createApp, defineComponent, h, onUpdated, shallowRef, toRef } from "vue";
 import { RteEditor, useCommand } from "@rathkit/rte-vue";
 
-const fw = (window.__fw = { ready: false, changes: [], readies: 0, commitCount: 0 });
+const fw = (window.__fw = { ready: false, changes: [], events: [], readies: 0, commitCount: 0 });
 fw.commits = () => fw.commitCount;
 
 const Bold = defineComponent({
@@ -23,6 +23,9 @@ const App = defineComponent({
         label: "Body",
         defaultValue: "<p>one two three</p>",
         onChange: (html) => fw.changes.push(html),
+        onFocus: () => fw.events.push("focus"),
+        onBlur: () => fw.events.push("blur"),
+        onSelection: (s) => fw.events.push(s.anchor && s.focus ? "selection" : "bad"),
         onReady: (e) => { fw.readies++; fw.editor = e; editor.value = e; },
       }),
     ]);

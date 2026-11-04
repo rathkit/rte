@@ -5,7 +5,7 @@ import { Component, effect, signal } from "@angular/core";
 import { bootstrapApplication } from "@angular/platform-browser";
 import { RteEditor, commandState } from "@rathkit/rte-angular";
 
-const fw = (window.__fw = { ready: false, changes: [], readies: 0, commitCount: 0 });
+const fw = (window.__fw = { ready: false, changes: [], events: [], readies: 0, commitCount: 0 });
 fw.commits = () => fw.commitCount;
 
 class App {
@@ -17,13 +17,15 @@ class App {
   }
   onReady(editor) { fw.readies++; fw.editor = editor; this.editor.set(editor); }
   onChange(html) { fw.changes.push(html); }
+  onEvent(name, payload) { fw.events.push(name !== "selection" || (payload.anchor && payload.focus) ? name : "bad"); }
   run() { this.editor()?.commands.run("format.bold"); }
 }
 Component({
   selector: "app-root",
   imports: [RteEditor],
   template: `<button id="bold" [attr.aria-pressed]="bold().active" [disabled]="!bold().enabled" (click)="run()">Bold</button>
-    <div rteEditor label="Body" defaultValue="<p>one two three</p>" (ready)="onReady($event)" (change)="onChange($event)"></div>`,
+    <div rteEditor label="Body" defaultValue="<p>one two three</p>" (ready)="onReady($event)" (change)="onChange($event)"
+      (rteFocus)="onEvent('focus', $event)" (rteBlur)="onEvent('blur', $event)" (rteSelection)="onEvent('selection', $event)"></div>`,
 })(App);
 
 bootstrapApplication(App).then((ref) => {

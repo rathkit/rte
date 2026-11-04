@@ -3,7 +3,7 @@ import { createElement as h, StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { RteEditor, useCommand } from "@rathkit/rte-react";
 
-const fw = (window.__fw = { ready: false, changes: [], readies: 0, commitCount: 0 });
+const fw = (window.__fw = { ready: false, changes: [], events: [], readies: 0, commitCount: 0 });
 fw.commits = () => fw.commitCount;
 
 function Bold({ editor }) {
@@ -21,6 +21,9 @@ function App() {
       label: "Body",
       defaultValue: "<p>one two three</p>",
       onChange: (html) => fw.changes.push(html),
+      onFocus: () => fw.events.push("focus"),
+      onBlur: () => fw.events.push("blur"),
+      onSelection: (s) => fw.events.push(s.anchor && s.focus ? "selection" : "bad"),
       onReady: (e) => { fw.readies++; fw.editor = e; setEditor(e); },
     }));
 }

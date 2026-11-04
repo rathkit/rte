@@ -840,17 +840,27 @@ for (const [name, type] of engines) {
   check(`${name} (element) the editors take part in the form`, f0.body === "<p>Hello</p>" && f0.second === "<p>from children</p>", f0);
   await events();
   await page.click("#body [data-rte-surface]");
+  await page.keyboard.press("Home");
   await page.keyboard.press("End");
+  // The page reports a moved caret as its own `selectionchange`, a task later.
+  await page.waitForTimeout(80);
+  const moved = await events();
+  check(`${name} (element) gaining focus and moving the caret send rte-focus and rte-selection, and no rte-change`, moved.includes("rte-focus:body") && moved.some((e) => e.startsWith("rte-selection:body:ok")) && !moved.some((e) => e.startsWith("rte-change") || e.startsWith("input")), moved);
   await page.keyboard.type("!");
   const ev = await events();
   check(`${name} (element) typing sends rte-change and input, and updates the form`, ev.includes('rte-change:body:<p>Hello!</p>') && ev.includes("input:body") && (await form()).body === "<p>Hello!</p>", [ev, await form()]);
   check(`${name} (element) and the other editor is untouched`, (await val("second")) === "<p>from children</p>", await val("second"));
   await page.click("#second [data-rte-surface]");
-  check(`${name} (element) leaving an editor whose value changed sends change`, (await events()).includes("change:body"), "change");
+  const left = await events();
+  check(`${name} (element) leaving an editor whose value changed sends change`, left.includes("change:body"), "change");
+  check(`${name} (element) and rte-blur for it, rte-focus for the other`, left.includes("rte-blur:body") && left.includes("rte-focus:second"), left);
   await page.click("#reset");
   await page.waitForTimeout(50);
   check(`${name} (element) a form reset puts the starting content back`, (await val("body")) === "<p>Hello</p>" && (await form()).body === "<p>Hello</p>", await val("body"));
+  await events();
   await page.evaluate(() => { document.getElementById("body").value = "<p>Set</p>"; });
+  const setQuiet = await events();
+  check(`${name} (element) setting value sends no rte-change and no input, as a text field does not`, !setQuiet.some((e) => e.startsWith("rte-change") || e.startsWith("input")), setQuiet);
   check(`${name} (element) setting value replaces the document and the form value`, (await val("body")) === "<p>Set</p>" && (await form()).body === "<p>Set</p>", await form());
   await page.evaluate(() => document.getElementById("body").setAttribute("value", "<p>Attr</p>"));
   check(`${name} (element) changing the value attribute does too`, (await val("body")) === "<p>Attr</p>", await val("body"));

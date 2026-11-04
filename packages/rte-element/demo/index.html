@@ -23,6 +23,8 @@ window.__events = [];
 document.addEventListener("rte-change", (e) => window.__events.push(["rte-change", e.target.id, e.detail.html]));
 document.addEventListener("input", (e) => window.__events.push(["input", e.target.id]));
 document.addEventListener("change", (e) => window.__events.push(["change", e.target.id]));
+for (const name of ["rte-focus", "rte-blur"]) document.addEventListener(name, (e) => window.__events.push([name, e.target.id]));
+document.addEventListener("rte-selection", (e) => window.__events.push(["rte-selection", e.target.id, e.detail.selection && e.detail.selection.anchor ? "ok" : "bad"]));
 document.addEventListener("rte-ready", (e) => window.__events.push(["rte-ready", e.target.id]));
 define();
 await Promise.all(["body", "second", "req"].map((id) => document.getElementById(id).whenReady()));

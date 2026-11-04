@@ -62,12 +62,16 @@ export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQue
       if (html !== undefined) el.setAttribute("value", html);
       if (readOnly) el.setAttribute("readonly", "");
       el.options = rest;
-      el.addEventListener("rte-change", (event) => {
-        const detail = (event as CustomEvent<{ html: string }>).detail;
-        // Through the jQuery that was installed into (not a global one), so handlers get the html as their second argument.
-        if (typeof $ === "function") $(host).trigger("rte:change", [detail.html]);
-        else host.dispatchEvent(new CustomEvent("rte:change", { bubbles: true, detail }));
-      });
+      // Each event of the element comes out as `rte:` plus its name. Through the jQuery that was installed into (not a global one), so
+      // handlers get the payload as their second argument: the html for `change`, the selection for `selection`, the editor otherwise.
+      for (const name of ["change", "ready", "focus", "blur", "selection"] as const) {
+        el.addEventListener(`rte-${name}`, (event) => {
+          const detail = (event as CustomEvent<Record<string, unknown>>).detail;
+          const payload = name === "change" ? detail.html : name === "selection" ? detail.selection : (host.__rte?.editor ?? detail.editor);
+          if (typeof $ === "function") $(host).trigger(`rte:${name}`, [payload]);
+          else host.dispatchEvent(new CustomEvent(`rte:${name}`, { bubbles: true, detail }));
+        });
+      }
       host.__rte = el;
       host.appendChild(el);
     });
