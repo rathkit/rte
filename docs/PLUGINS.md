@@ -78,3 +78,11 @@ Two plugins may want the same chord, as lists and tables both want Tab. A bindin
 ## Plugin state
 
 A plugin that has state of its own (a search in progress) keeps it with `ctx.setPluginState(id, value)` and reads it as `snapshot.plugins[id]`, so command states and interfaces are plain functions of the snapshot. It is not part of the document and not an undo step.
+
+## The public surface
+
+Every name each package exports is listed in `tools/exports.snapshot.txt`, one line per name, marked `value` or `type`, under its entry point.
+`pnpm check:exports` (run in CI after the build) fails when the real exports differ from the list, so an added, removed or renamed export
+is a reviewed change: run `node tools/check-exports.mjs --update` and commit the new list with the change. The check also fails for a new
+export with no doc comment; the names that still lack one are in `tools/exports.undocumented.txt`, and the check asks for a line to be
+removed once its declaration has a comment.

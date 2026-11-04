@@ -17,6 +17,7 @@
     "test:tools": "node --test \"tools/**/*.test.mjs\"",
     "check": "pnpm check:zero-deps && pnpm check:graph && pnpm check:fixtures && pnpm test:tools && pnpm typecheck && pnpm test",
     "check:size": "node tools/check-size.mjs",
+    "check:exports": "node tools/check-exports.mjs",
     "check:graph": "node tools/check-graph.mjs",
     "check:packages": "node tools/check-packages.mjs",
     "check:release": "node tools/check-release.mjs",
