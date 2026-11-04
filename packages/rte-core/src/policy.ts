@@ -54,10 +54,27 @@ export const CONTENT_PROFILES: Readonly<Record<ContentProfile, ContentPolicy>> =
 /** What a host may say: a profile to start from, then single choices on top of it. */
 export type ContentOptions = { readonly profile?: ContentProfile } & Partial<ContentPolicy>;
 
-/** The policy for the options: the profile (`standard` when none is named), with each given choice laid over it. */
-export function contentPolicy(options: ContentOptions = {}): ContentPolicy {
+/**
+ * The policy for the options: the profile (`standard` when none is named), with each given choice laid over it. A choice that
+ * cannot be used (an unknown profile, a limit that is not a whole number of at least 0, a list that is not strings) is left out, the
+ * profile's value is used, and `complain` is told.
+ */
+export function contentPolicy(options: ContentOptions = {}, complain: (message: string) => void = () => undefined): ContentPolicy {
   const { profile = "standard", ...rest } = options;
-  const base = CONTENT_PROFILES[profile] ?? CONTENT_PROFILES.standard;
-  const given = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined));
-  return { ...base, ...given };
+  if (!Object.hasOwn(CONTENT_PROFILES, profile)) complain(`content.profile "${String(profile)}" is not a profile: using standard (strict, standard or loose).`);
+  const base = Object.hasOwn(CONTENT_PROFILES, profile) ? CONTENT_PROFILES[profile] : CONTENT_PROFILES.standard;
+  const given: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rest)) {
+    if (value === undefined) continue;
+    const ok =
+      key === "linkSchemes" ? Array.isArray(value) && value.every((v) => typeof v === "string" && /^[a-z][a-z0-9+.-]*$/i.test(v))
+      : key === "styles" ? value === "semantic" || value === "allowlist"
+      : key === "pasteRelativeImages" ? typeof value === "boolean"
+      : key === "maxDepth" ? Number.isInteger(value) && (value as number) >= 1
+      : (key === "maxInputLength" || key === "maxDataImageLength") ? Number.isInteger(value) && (value as number) >= 0
+      : false;
+    if (ok) given[key] = value;
+    else complain(`content.${key} cannot be ${JSON.stringify(value)}: using the ${profile in CONTENT_PROFILES ? profile : "standard"} profile's value.`);
+  }
+  return { ...base, ...given } as ContentPolicy;
 }

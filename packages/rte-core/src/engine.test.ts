@@ -249,7 +249,11 @@ test("removing a plugin takes away only what it added to the importer", () => {
   // An SVG cleaner belongs to the plugin that set it.
   const cleaner = (url: string): string => url;
   const removeS = e.use({ id: "acme.s", api: "1", setup: (host) => host.importOptions({ sanitizeSvg: cleaner }) });
-  assert.throws(() => e.use({ id: "acme.s2", api: "1", setup: (host) => host.importOptions({ sanitizeSvg: cleaner }) }), /already set/);
+  const told: string[] = [];
+  const second = createEngine({ onWarning: (w) => told.push(`${w.code} ${w.plugin} ${w.message}`) });
+  second.use({ id: "acme.s", api: "1", setup: (host) => host.importOptions({ sanitizeSvg: cleaner }) });
+  second.use({ id: "acme.s2", api: "1", setup: (host) => host.importOptions({ sanitizeSvg: cleaner }) });
+  assert.match(told.join("\n"), /plugin-failed acme\.s2 .*already set/, "the second cleaner is left out and reported");
   removeS();
   assert.equal(e.importOptions.sanitizeSvg, undefined);
 });

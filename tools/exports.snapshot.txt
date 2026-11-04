@@ -83,6 +83,9 @@ type UiItem
 value UiRegistry
 type UiSlot
 type Unsubscribe
+value WARNING_CODES
+type Warning
+type WarningCode
 value alignAt
 value asChildren
 value blockContainers

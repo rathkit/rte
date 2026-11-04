@@ -1,5 +1,6 @@
 export * from "./model.ts";
 export { checkImageSrc, importBlocks, importHtml, importText, safeUrl, parseStyle, type ImportOptions } from "./import.ts";
+export { WARNING_CODES, type Warning, type WarningCode } from "./warning.ts";
 export { CONTENT_PROFILES, contentPolicy, type ContentLimits, type ContentOptions, type ContentPolicy, type ContentProfile } from "./policy.ts";
 export { exportBlock, exportHtml, exportInline } from "./export.ts";
 export * from "./path.ts";

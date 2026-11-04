@@ -79,7 +79,7 @@ export interface FileLike extends BlobLike {
 export type FileHandler = (files: readonly FileLike[]) => readonly Block[] | undefined | Promise<readonly Block[] | undefined>;
 
 /** What a plugin sees of the editor: the same object a host gets, nothing more. */
-export type EditorHandle = Pick<Engine, "snapshot" | "apply" | "commands" | "subscribe" | "select" | "keymap" | "warn" | "importOptions" | "ui">;
+export type EditorHandle = Pick<Engine, "snapshot" | "apply" | "commands" | "subscribe" | "select" | "keymap" | "warn" | "report" | "importOptions" | "ui">;
 
 export interface PluginHost {
   readonly editor: EditorHandle;

@@ -1090,6 +1090,28 @@ for (const [name, type] of engines) {
   await page.click("#limited [contenteditable=true]");
   await page.keyboard.type("0123456789abcdef");
   check(`${name} (element) maxlength stops typing at the limit`, (await val("limited")) === "<p>0123456789</p>", await val("limited"));
+  // Errors and warnings (docs/ERRORS.md): one channel with codes; a listener that throws does not stop the editor.
+  const told = await page.evaluate(async () => {
+    const seen = [];
+    const el = document.createElement("rte-editor");
+    el.id = "warned";
+    el.setAttribute("content", "paranoid");
+    el.options = { onWarning: (w) => seen.push(w.code) };
+    document.getElementById("f").appendChild(el);
+    await el.whenReady();
+    el.options = {};
+    window.__ran = [];
+    el.editor.on("change", () => { throw new Error("listener"); });
+    el.editor.on("change", () => window.__ran.push("second"));
+    window.__seen = seen;
+    return seen.slice();
+  });
+  check(`${name} (element) warnings reach options.onWarning with their codes`, ["missing-label", "bad-option", "late-options"].every((c) => told.includes(c)), told);
+  await page.click("#warned [contenteditable=true]");
+  await page.keyboard.type("q");
+  await page.waitForTimeout(40);
+  check(`${name} (element) a change listener that throws is reported and the next one still runs`, await page.evaluate(() => window.__ran.includes("second") && window.__seen.includes("listener-failed") && document.getElementById("warned").value === "<p>q</p>"), await page.evaluate(() => [window.__ran, window.__seen]));
+  await page.evaluate(() => document.getElementById("warned").remove());
   // content="strict|standard|loose" picks the content profile; a property adds single choices on top; a name that is not a profile is ignored with a warning.
   const profiled = (attr) => page.evaluate(async (a) => {
     const el = document.createElement("rte-editor");

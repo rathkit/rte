@@ -219,9 +219,9 @@ test("rule 9: input over the limit is refused whole, and the host is told", () =
   assert.equal(exportHtml({ blocks: defaultPaste({ text: "b".repeat(50) }, opts) }), `<p>${"b".repeat(50)}</p>`);
   // The editor says so in its warning handler.
   const warnings: string[] = [];
-  const e = createEngine({ content: { maxInputLength: 10 }, onWarning: (m) => warnings.push(m) });
+  const e = createEngine({ content: { maxInputLength: 10 }, onWarning: (w) => warnings.push(`${w.code}: ${w.message}`) });
   importHtml("<p>0123456789ABC</p>", e.importOptions);
-  assert.match(warnings[0] as string, /limit is 10/);
+  assert.match(warnings[0] as string, /content-too-long: .*limit is 10/);
   // Two hundred million characters are refused under the standard limit, and quickly.
   const t = Date.now();
   assert.equal(importBlocks("<p>" + "a".repeat(60_000_000)).length, 0);

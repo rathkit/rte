@@ -3,14 +3,15 @@
 import type { Behaviors, ContainerBehavior, ContainerKind, TextTrigger, TriggerResult } from "./behaviors.ts";
 import { CommandRegistry, type CommandDef, type Unsubscribe } from "./commands.ts";
 import { detectPlatform, Keymap, type KeyBinding, type KeyEventLike, type Platform } from "./keymap.ts";
-import { emptyDoc, type Doc, type Mark } from "./model.ts";
+import { emptyDoc, type Block, type Doc, type Mark } from "./model.ts";
 import type { PasteHandler } from "./paste.ts";
 import { caret, isCollapsed, pathKey, type EditResult, type Path, type Selection } from "./path.ts";
 import { startOf } from "./edit.ts";
-import type { ImportOptions } from "./import.ts";
+import type { ImportOptions, ImportRecognizer } from "./import.ts";
 import { contentPolicy, type ContentOptions } from "./policy.ts";
 import { countDocument, countSelection, textLength, type Counts } from "./stats.ts";
 import { UiRegistry } from "./ui.ts";
+import { describeError, type Warning } from "./warning.ts";
 import { PLUGIN_API_VERSION, satisfiesApi, type CopyFormatter, type FileHandler, type Normalizer, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
 import { ops } from "./ops.ts";
 
@@ -35,7 +36,7 @@ export interface EngineOptions {
   /** Decides what `Mod` means in key chords. Detected from the environment when not given. */
   readonly platform?: Platform;
   /** Called with warnings meant for developers, such as two plugins claiming one key. Default: the console. */
-  readonly onWarning?: (message: string) => void;
+  readonly onWarning?: (warning: Warning) => void;
   /** The host calls this before the engine reads state it also tracks elsewhere (a DOM selection, say). */
   readonly beforeAccess?: () => void;
   /** Asked to put the keyboard focus in the editor. */
@@ -111,7 +112,10 @@ export class Engine {
   private readonly focusRequest: (() => void) | undefined;
   private readonly maxLength: number | undefined;
   private readonly onMaxLength: EngineOptions["onMaxLength"];
-  readonly warn: (message: string) => void;
+  /** Reports a problem on the one channel (`onWarning`; the console when there is none). Never throws. */
+  readonly report: (warning: Warning) => void;
+  /** What a plugin says to the developer: reported with the code `plugin-message`. */
+  readonly warn = (message: string): void => this.report({ code: "plugin-message", message });
 
   constructor(options: EngineOptions = {}) {
     this.doc = options.doc ?? emptyDoc;
@@ -121,14 +125,17 @@ export class Engine {
     this.focusRequest = options.focus;
     this.maxLength = options.maxLength;
     this.onMaxLength = options.onMaxLength;
-    this.warn = options.onWarning ?? ((message) => console.warn(`[rte] ${message}`));
-    const policy = contentPolicy(options.content);
+    const handler = options.onWarning ?? ((w: Warning) => console.warn(`[rte] ${w.code}: ${w.message}`));
+    // A handler that throws must not take the editor down with it.
+    this.report = (warning) => { try { handler(warning); } catch { /* nothing more can be done */ } };
+    const policy = contentPolicy(options.content, (message) => this.report({ code: "bad-option", message }));
     Object.assign(this.importOptions, {
       linkSchemes: policy.linkSchemes, styles: policy.styles, maxDataImageLength: policy.maxDataImageLength,
       maxDepth: policy.maxDepth, maxInputLength: policy.maxInputLength, pasteRelativeImages: policy.pasteRelativeImages,
-      onLimit: (info: { readonly max: number; readonly length: number }) => this.warn(`Content of ${info.length} characters was not read: the limit is ${info.max} (content.maxInputLength).`),
+      onLimit: (info: { readonly max: number; readonly length: number }) => this.report({ code: "content-too-long", message: `Content of ${info.length} characters was not read: the limit is ${info.max} (content.maxInputLength).` }),
+      onError: (error: unknown) => this.report({ code: "content-unreadable", message: `Content could not be read and was left out: ${describeError(error)}`, error }),
     });
-    this.keymap = new Keymap(options.platform ?? detectPlatform(), this.warn);
+    this.keymap = new Keymap(options.platform ?? detectPlatform(), (message) => this.report({ code: "key-conflict", message }));
     this.commands = new CommandRegistry(this);
     this.current = this.makeSnapshot();
     this.notified = this.current;
@@ -188,12 +195,12 @@ export class Engine {
     const previous = this.notified;
     if (snapshot === previous) return;
     this.notified = snapshot;
-    for (const listener of [...this.listeners]) listener(snapshot, previous);
+    for (const listener of [...this.listeners]) this.attempt(undefined, "a change listener", () => listener(snapshot, previous), undefined, "listener-failed");
     for (const sub of [...this.selectors]) {
       const value = sub.select(snapshot);
       if (!sub.equals(value, sub.last)) {
         sub.last = value;
-        sub.onChange(value as never);
+        this.attempt(undefined, "a selector callback", () => sub.onChange(value as never), undefined, "listener-failed");
       }
     }
     this.commands.flush();
@@ -373,71 +380,120 @@ export class Engine {
     return undefined;
   }
 
-  /** Adds a plugin. Returns a function that takes everything it added away again. */
+  /**
+   * Runs `fn` for a plugin or a listener. A throw is reported (`plugin-failed`, or `code`) and `fallback` is used instead; it is never
+   * passed on, so one plugin's failure cannot stop the editor or the plugins after it.
+   */
+  attempt<T>(plugin: string | undefined, where: string, fn: () => T, fallback: (() => T) | undefined, code: "plugin-failed" | "listener-failed" = "plugin-failed"): T {
+    try {
+      return fn();
+    } catch (error) {
+      const who = plugin ?? "a listener";
+      this.report({ code: plugin ? code : "listener-failed", ...(plugin ? { plugin } : {}), message: `${who} failed in ${where}; it was skipped: ${describeError(error)}`, error });
+      return fallback?.() as T;
+    }
+  }
+
+  /** Adds a plugin. Returns a function that takes everything it added away again. A plugin that throws while starting is left out and reported. */
   use(plugin: Plugin): Unsubscribe {
     if (this.plugins.has(plugin.id)) throw new Error(`The plugin ${plugin.id} is already registered.`);
     if (!satisfiesApi(plugin.api, PLUGIN_API_VERSION)) {
       throw new Error(`The plugin ${plugin.id} needs plugin API ${plugin.api}; this editor has ${PLUGIN_API_VERSION}.`);
     }
     const undo: (() => void)[] = [];
+    // Everything a plugin hands over is called through here: a throw is reported with the plugin's name and the call gives `fallback`.
+    const safe = <F extends (...args: never[]) => unknown>(where: string, fn: F, fallback: (...args: Parameters<F>) => ReturnType<F>): F =>
+      ((...args: Parameters<F>): ReturnType<F> => this.attempt<ReturnType<F>>(plugin.id, where, () => fn(...args) as ReturnType<F>, () => fallback(...args))) as F;
     const host: PluginHost = {
       editor: this,
       ops,
-      command: (def: CommandDef<never, unknown>) => { undo.push(this.commands.register(def)); },
+      command: (def: CommandDef<never, unknown>) => {
+        const guarded: CommandDef<never, unknown> = {
+          ...def,
+          run: safe(`the command ${def.name}`, def.run.bind(def), () => false),
+          ...(def.state ? { state: safe(`the state of ${def.name}`, def.state.bind(def), () => ({ enabled: false })) } : {}),
+        };
+        undo.push(this.commands.register(guarded));
+      },
       keybinding: (binding: KeyBinding) => {
         this.keymap.add(binding, plugin.id);
         undo.push(() => this.keymap.remove(binding.command));
       },
       behavior: (kind: ContainerKind, behavior: ContainerBehavior) => {
         if (this.behaviors[kind]) throw new Error(`The container ${kind} already has a behavior; ${plugin.id} cannot add another.`);
-        this.behaviors[kind] = behavior;
+        this.behaviors[kind] = {
+          ...(behavior.split ? { split: safe(`the ${kind} split behavior`, behavior.split.bind(behavior), () => undefined) } : {}),
+          ...(behavior.backspaceAtStart ? { backspaceAtStart: safe(`the ${kind} backspace behavior`, behavior.backspaceAtStart.bind(behavior), () => undefined) } : {}),
+          ...(behavior.insertBlocks ? { insertBlocks: safe(`the ${kind} paste behavior`, behavior.insertBlocks.bind(behavior), () => undefined) } : {}),
+        };
         undo.push(() => { delete this.behaviors[kind]; });
       },
-      textTrigger: (trigger: TextTrigger) => {
+      textTrigger: (given: TextTrigger) => {
+        const trigger = safe("a text trigger", given, () => undefined);
         this.textTriggers.push(trigger);
         undo.push(() => { const i = this.textTriggers.indexOf(trigger); if (i !== -1) this.textTriggers.splice(i, 1); });
       },
       importOptions: (options) => {
         if (options.sanitizeSvg) {
           if (this.importOptions.sanitizeSvg) throw new Error(`${plugin.id} cannot set an SVG cleaner: one is already set.`);
-          this.importOptions.sanitizeSvg = options.sanitizeSvg;
+          this.importOptions.sanitizeSvg = safe("the SVG cleaner", options.sanitizeSvg, () => undefined);
         }
-        const added = options.recognizers ?? [];
+        const added = (options.recognizers ?? []).map((r): ImportRecognizer => ({
+          ...(r.element ? { element: safe("a recognizer", r.element.bind(r), () => undefined) } : {}),
+          ...(r.listItemStyle ? { listItemStyle: safe("a recognizer", r.listItemStyle.bind(r), () => undefined) } : {}),
+        }));
         this.importOptions.recognizers = [...this.importOptions.recognizers, ...added];
         // Taking the plugin away takes away what it added and nothing else.
         undo.push(() => {
-          if (options.sanitizeSvg && this.importOptions.sanitizeSvg === options.sanitizeSvg) delete this.importOptions.sanitizeSvg;
+          if (options.sanitizeSvg) delete this.importOptions.sanitizeSvg;
           this.importOptions.recognizers = this.importOptions.recognizers.filter((r) => !added.includes(r));
         });
       },
-      normalize: (normalizer: Normalizer) => {
+      normalize: (given: Normalizer) => {
+        const normalizer = safe("a normalizer", given, (doc, selection) => ({ doc, selection }));
         this.normalizers.push(normalizer);
         undo.push(() => { const i = this.normalizers.indexOf(normalizer); if (i !== -1) this.normalizers.splice(i, 1); });
       },
-      pasteTransform: (transform: PasteTransform) => {
+      pasteTransform: (given: PasteTransform) => {
+        const transform: PasteTransform = (blocks) => {
+          const failed = (error: unknown): readonly Block[] => { this.report({ code: "plugin-failed", plugin: plugin.id, message: `${plugin.id} failed in a paste transform and was skipped: ${describeError(error)}`, error }); return blocks; };
+          try { const out = given(blocks); return out instanceof Promise ? out.catch(failed) : out; } catch (error) { return failed(error); }
+        };
         this.pasteTransforms.push(transform);
         undo.push(() => { const i = this.pasteTransforms.indexOf(transform); if (i !== -1) this.pasteTransforms.splice(i, 1); });
       },
       ui: (slot, item) => { undo.push(this.ui.add(slot, item)); },
-      fileHandler: (handler: FileHandler) => {
+      fileHandler: (given: FileHandler) => {
+        const handler: FileHandler = async (files) => {
+          try { return await given(files); } catch (error) { this.report({ code: "plugin-failed", plugin: plugin.id, message: `${plugin.id} failed in a file handler and was skipped: ${describeError(error)}`, error }); return undefined; }
+        };
         this.fileHandlers.push(handler);
         undo.push(() => { const i = this.fileHandlers.indexOf(handler); if (i !== -1) this.fileHandlers.splice(i, 1); });
       },
-      copyFormat: (formatter: CopyFormatter) => {
+      copyFormat: (given: CopyFormatter) => {
+        const formatter = safe("a copy formatter", given, () => undefined);
         this.copyFormatters.push(formatter);
         undo.push(() => { const i = this.copyFormatters.indexOf(formatter); if (i !== -1) this.copyFormatters.splice(i, 1); });
       },
-      pasteHandler: (handler: PasteHandler) => {
+      pasteHandler: (given: PasteHandler) => {
+        const handler = safe("a paste handler", given, () => undefined);
         this.pasteHandlers.push(handler);
         undo.push(() => { const i = this.pasteHandlers.indexOf(handler); if (i !== -1) this.pasteHandlers.splice(i, 1); });
       },
     };
-    const teardown = plugin.setup(host);
-    if (teardown) undo.push(teardown);
     const remove = (): void => {
-      for (const fn of undo.reverse()) fn();
+      for (const fn of undo.reverse()) this.attempt(plugin.id, "taking the plugin away", fn, undefined);
       this.plugins.delete(plugin.id);
     };
+    try {
+      const teardown = plugin.setup(host);
+      if (teardown) undo.push(teardown);
+    } catch (error) {
+      // A plugin that fails to start is taken away again, with everything it had added so far, and the editor goes on without it.
+      remove();
+      this.report({ code: "plugin-failed", plugin: plugin.id, message: `${plugin.id} failed to start and was left out: ${describeError(error)}`, error });
+      return () => undefined;
+    }
     this.plugins.set(plugin.id, remove);
     return remove;
   }

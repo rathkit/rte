@@ -69,6 +69,8 @@ export interface ImportOptions {
   readonly pasteRelativeImages?: boolean;
   /** Deepest element nesting read; deeper elements are left out and their content kept. Default 100. */
   readonly maxDepth?: number;
+  /** Told when reading failed for a reason in the reader or a recognizer: the content is then left out and nothing is thrown. */
+  readonly onError?: (error: unknown) => void;
   /** Told when markup was refused for being longer than `maxInputLength`. */
   readonly onLimit?: (info: { readonly limit: "maxInputLength"; readonly max: number; readonly length: number }) => void;
 }
@@ -921,11 +923,17 @@ export function importBlocks(html: string, options: ImportOptions = {}): Block[]
     options.onLimit?.({ limit: "maxInputLength", max: maxInput, length: html.length });
     return [];
   }
-  const sink = new Sink(settings);
-  const tree = parseHtml(html, options.maxDepth ?? CONTENT_PROFILES.standard.maxDepth);
-  convertNodes(/-webkit-text-stroke-width/.test(html) ? repairRewrittenSpaces(tree) : tree, sink, { marks: [], inLink: false, pre: false }, settings);
-  sink.flush();
-  return finishBlocks(sink.blocks);
+  // Content never throws: whatever goes wrong inside, the content is left out and the host is told.
+  try {
+    const sink = new Sink(settings);
+    const tree = parseHtml(html, options.maxDepth ?? CONTENT_PROFILES.standard.maxDepth);
+    convertNodes(/-webkit-text-stroke-width/.test(html) ? repairRewrittenSpaces(tree) : tree, sink, { marks: [], inLink: false, pre: false }, settings);
+    sink.flush();
+    return finishBlocks(sink.blocks);
+  } catch (error) {
+    options.onError?.(error);
+    return [];
+  }
 }
 
 export function importHtml(html: string, options: ImportOptions = {}): Doc {

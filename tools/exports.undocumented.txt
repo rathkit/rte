@@ -53,6 +53,7 @@
 @rathkit/rte-core UiRegistry
 @rathkit/rte-core UiSlot
 @rathkit/rte-core Unsubscribe
+@rathkit/rte-core WarningCode
 @rathkit/rte-core blockContainers
 @rathkit/rte-core caret
 @rathkit/rte-core createEngine

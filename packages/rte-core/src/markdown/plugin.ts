@@ -46,7 +46,7 @@ export function markdown(options: MarkdownPasteOptions = {}): Plugin {
           if (!clipboard) return false;
           const { doc, selection } = ctx.snapshot;
           const blocks = host.ops.isCollapsed(selection) ? doc.blocks : host.ops.extractSelection(doc, selection);
-          clipboard.writeText(exportMarkdown({ blocks }, { inlineHtml: options.inlineHtml === true })).catch((error: unknown) => host.editor.warn(`Copy as Markdown failed: ${String(error)}`));
+          clipboard.writeText(exportMarkdown({ blocks }, { inlineHtml: options.inlineHtml === true })).catch((error: unknown) => host.editor.report({ code: "copy-failed", plugin: "rathkit.markdown", message: `Copy as Markdown failed: ${error instanceof Error ? error.message : String(error)}`, error }));
           return true;
         },
       });

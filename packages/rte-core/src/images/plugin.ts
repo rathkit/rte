@@ -43,7 +43,8 @@ export function images(options: ImagesOptions = {}): Plugin {
           const url = await upload?.(file, { name: (file as { name?: string }).name ?? "image", type: file.type, size: file.size });
           const checked = url ? checkImageSrc(url) : undefined;
           return checked ?? reject("unsupported", file.type, file.size);
-        } catch {
+        } catch (error) {
+          host.editor.report({ code: "upload-failed", message: `Uploading an image failed: ${error instanceof Error ? error.message : String(error)}`, error });
           return reject("upload-failed", file.type, file.size);
         }
       };

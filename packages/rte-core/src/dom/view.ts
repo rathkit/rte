@@ -11,6 +11,7 @@ import type { Plugin, ViewChange, ViewHost } from "../plugin.ts";
 import { exportHtml } from "../export.ts";
 import { ops } from "../ops.ts";
 import type { ContentOptions } from "../policy.ts";
+import type { Warning } from "../warning.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
@@ -48,6 +49,8 @@ export interface EditorOptions {
   readonly placeholder?: string;
   /** The most text the document may hold, in characters. Typing and pasting past it are refused (see `onMaxLength`). */
   readonly maxLength?: number;
+  /** Told about problems the editor carried on from (a plugin that threw, content that was refused): see docs/ERRORS.md. Default: the console. */
+  readonly onWarning?: (warning: Warning) => void;
   /** What is kept and dropped when HTML is read: a profile and single choices on top of it. See docs/CONTENT-POLICY.md. */
   readonly content?: ContentOptions;
   /** Called when an edit is refused for being past `maxLength`, with the limit and what the length would have been. */
@@ -114,6 +117,7 @@ export class Editor {
       beforeAccess: () => this.readSelection(),
       focus: () => this.element.focus(),
       ...(options.content ? { content: options.content } : {}),
+      ...(options.onWarning ? { onWarning: options.onWarning } : {}),
       ...(options.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
       ...(options.onMaxLength ? { onMaxLength: options.onMaxLength } : {}),
     });
@@ -126,7 +130,10 @@ export class Editor {
       domFromPos: (pos) => domFromPos(this.element, pos),
     };
     this.engine.pasteHandlers.push(...(options.pasteHandlers ?? []));
-    for (const plugin of options.plugins ?? []) this.use(plugin);
+    // A plugin that cannot be added (a clash of ids, an API it does not support) is reported and left out; the others still start.
+    for (const plugin of options.plugins ?? []) {
+      try { this.use(plugin); } catch (error) { this.engine.report({ code: "plugin-rejected", plugin: plugin.id, message: `${plugin.id} was not added: ${error instanceof Error ? error.message : String(error)}`, error }); }
+    }
     // The document is read once the plugins are in, so what they teach the importer applies to it.
     this.engine.setDocument(importHtml(options.html ?? "", this.engine.importOptions));
     this.element.setAttribute("contenteditable", this.engine.readOnly ? "false" : "true");
@@ -219,8 +226,8 @@ export class Editor {
   /** Adds a plugin, with its page-facing part if it has one. Returns what takes both away again. */
   use: Engine["use"] = (plugin) => {
     const remove = this.engine.use(plugin);
-    const stop = plugin.view?.(this.viewHost);
-    return () => { if (stop) stop(); remove(); };
+    const stop = this.engine.attempt(plugin.id, "its page part", () => plugin.view?.(this.viewHost), () => undefined);
+    return () => { if (stop) this.engine.attempt(plugin.id, "taking its page part away", stop, undefined); remove(); };
   };
 
   /** The document as HTML. `separator` goes between blocks (a newline makes it readable). */
@@ -262,7 +269,9 @@ export class Editor {
 
   /** Listens for `change`, `focus`, `blur` or `selection` (see `EditorEvents`). Returns a function that stops listening. */
   on<K extends keyof EditorEvents>(event: K, listener: EditorEvents[K]): () => void {
-    const call = listener as (...args: unknown[]) => void;
+    const given = listener as (...args: unknown[]) => void;
+    // A listener that throws is reported and does not stop the editor or the listeners after it.
+    const call = (...args: unknown[]): void => this.engine.attempt(undefined, `your ${event} listener`, () => given(...args), undefined, "listener-failed");
     let last = event === "change" ? this.getHtml() : "";
     const resync = (): void => { if (event === "change") last = this.getHtml(); };
     const handler = (change: ViewChange): void => {
@@ -613,7 +622,7 @@ export class Editor {
     const formats: Record<string, string> = { "text/html": exportHtml({ blocks }), "text/plain": selectedText(this.engine.document, this.engine.selection) };
     for (const formatter of this.engine.copyFormatters) {
       let added: Readonly<Record<string, string>> | undefined;
-      try { added = formatter(blocks); } catch (error) { this.engine.warn(`A copy formatter failed: ${String(error)}`); }
+      added = formatter(blocks);
       for (const [type, value] of Object.entries(added ?? {})) if (/^[a-z]+\/[a-z0-9.+-]+$/i.test(type) && typeof value === "string") formats[type] = value;
     }
     return formats;

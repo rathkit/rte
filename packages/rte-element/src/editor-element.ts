@@ -2,6 +2,7 @@
 // editing surface, with a form value, properties, attributes and events. It uses the light DOM, like the rest of the editor, so
 // selection, labels and styles from the page behave as they do for any element.
 import type { Editor } from "@rathkit/rte-core/dom";
+import type { Warning } from "@rathkit/rte-core";
 import { createEditor, type StandardOptions } from "@rathkit/rte-core/standard";
 
 /** Options an app can only pass as code (functions, plugin lists): everything in the standard editor's options except what attributes control. */
@@ -27,6 +28,11 @@ export class RteEditorElement extends HTMLElement {
     this.internals = typeof this.attachInternals === "function" ? this.attachInternals() : undefined;
   }
 
+  /** Problems found before there is an editor to report them, on the same channel (`options.onWarning`, else the console). */
+  private warn(warning: Warning): void {
+    try { (this.opts.onWarning ?? ((w: Warning) => console.warn(`[rte] ${w.code}: ${w.message}`)))(warning); } catch { /* the handler's own failure is not ours to raise */ }
+  }
+
   // ---- the platform's own hooks ---------------------------------------------------------------------------
 
   connectedCallback(): void {
@@ -42,13 +48,13 @@ export class RteEditorElement extends HTMLElement {
     this.surface = surface;
     const label = this.getAttribute("label");
     if (label) surface.setAttribute("aria-label", label);
-    else if (!this.hasAttribute("aria-label") && !this.hasAttribute("aria-labelledby")) console.warn("[rte] <rte-editor> has no name: give it a label attribute.");
+    else if (!this.hasAttribute("aria-label") && !this.hasAttribute("aria-labelledby")) this.warn({ code: "missing-label", message: "<rte-editor> has no name: give it a label attribute." });
     const maxLength = Number.parseInt(this.getAttribute("maxlength") ?? "", 10);
     const spellcheck = this.getAttribute("spellcheck");
     // `content="strict"` (or standard, loose) picks the content profile; single choices given as the `content` option still apply on top of it.
     const profile = this.getAttribute("content");
     const known = profile === "strict" || profile === "standard" || profile === "loose";
-    if (profile !== null && !known) console.warn(`[rte] <rte-editor content="${profile}"> is not a content profile: use strict, standard or loose.`);
+    if (profile !== null && !known) this.warn({ code: "bad-option", message: `<rte-editor content="${profile}"> is not a content profile: use strict, standard or loose.` });
     const editor = createEditor({
       ...this.opts, element: surface, html: this.html, readOnly: this.hasAttribute("readonly") || this.hasAttribute("disabled"),
       ...(this.hasAttribute("placeholder") ? { placeholder: this.getAttribute("placeholder") ?? "" } : {}),
@@ -130,7 +136,7 @@ export class RteEditorElement extends HTMLElement {
   /** Options only code can give (an upload function, more plugins). Set them before the element is connected. */
   get options(): RteElementOptions { return this.opts; }
   set options(options: RteElementOptions) {
-    if (this.current) console.warn("[rte] <rte-editor> options set after it was connected have no effect.");
+    if (this.current) this.warn({ code: "late-options", message: "<rte-editor> options set after it was connected have no effect." });
     this.opts = options;
   }
   override focus(): void { this.current?.focus(); }
