@@ -1,0 +1,76 @@
+// What the importer does with each element, attribute and style property, in words. Not shipped: policy.test.ts compares these
+// tables with docs/CONTENT-POLICY.md and with the importer's source, so the page cannot drift from the code.
+
+/** Elements that become part of the document (a block, an inline mark or an inline item), with the meaning they keep. */
+export const KEPT_ELEMENTS: Readonly<Record<string, string>> = {
+  p: "paragraph", h1: "heading 1", h2: "heading 2", h3: "heading 3", h4: "heading 4", h5: "heading 5", h6: "heading 6",
+  ul: "bulleted list", ol: "numbered list", li: "list item", dl: "definition list",
+  table: "table", thead: "table part", tbody: "table part", tfoot: "table part", tr: "table row", td: "table cell", th: "header cell",
+  colgroup: "column widths", col: "column width",
+  blockquote: "quote", pre: "code block", hr: "rule", br: "line break", img: "image", a: "link",
+  strong: "bold", b: "bold", em: "italic", i: "italic", cite: "italic", dfn: "italic", var: "italic",
+  u: "underline", ins: "underline", s: "strikethrough", strike: "strikethrough", del: "strikethrough",
+  code: "code", tt: "code", kbd: "code", samp: "code", sup: "superscript (or a note reference)", sub: "subscript",
+  font: "text color", span: "style marks only",
+};
+
+/** The attributes the reader looks at, and for what. Every other attribute is ignored. */
+export const READ_ATTRIBUTES: Readonly<Record<string, string>> = {
+  "align": "alignment, the old form (loading only)",
+  "alt": "image description",
+  "aria-checked": "task state",
+  "aria-level": "heading level, with role=\"heading\"",
+  "bgcolor": "cell background (loading only)",
+  "class": "task state and note markers, by name only",
+  "color": "text color on font (loading only)",
+  "colspan": "cell width in columns (at most 100)",
+  "data-aria-level": "list level from a word processor",
+  "data-caption": "image caption (at most 1000 characters)",
+  "data-checked": "task state",
+  "data-footnote-backref": "note back link, dropped",
+  "data-footnote-ref": "note reference",
+  "data-footnotes": "notes list",
+  "data-listid": "list identity from a word processor",
+  "data-note": "note id",
+  "dir": "reading direction (ltr, rtl)",
+  "height": "image or row height",
+  "hidden": "element and its content dropped",
+  "href": "link address, or note id",
+  "id": "note id",
+  "role": "heading, note and backlink roles",
+  "rowspan": "cell height in rows (at most 100)",
+  "span": "column span on col (at most 100)",
+  "src": "image address",
+  "start": "first number of a numbered list (0 to 99999)",
+  "style": "the style properties below",
+  "target": "_blank opens a link in a new tab",
+  "type": "list marker (a, A, i, I, 1) and checkbox",
+  "width": "image or column width",
+};
+
+/** The style properties the reader looks at. Every other property is ignored. */
+export const READ_STYLES: Readonly<Record<string, string>> = {
+  "background": "cell background (loading only)",
+  "background-color": "text and cell background (loading only)",
+  "border": "cell lines (loading only)",
+  "border-bottom": "cell lines (loading only)",
+  "border-left": "cell lines (loading only)",
+  "border-right": "cell lines (loading only)",
+  "border-top": "cell lines (loading only)",
+  "color": "text color (loading only)",
+  "display": "none drops the element (always); block with auto margins centers an image (loading only)",
+  "float": "image to the left or right (loading only)",
+  "font-style": "italic",
+  "font-weight": "bold",
+  "height": "row height (loading only)",
+  "list-style-type": "list marker",
+  "margin": "image centering (loading only)",
+  "margin-left": "indent, image centering (loading only)",
+  "margin-right": "indent (right to left), image centering (loading only)",
+  "padding-left": "indent (loading only)",
+  "text-align": "alignment (loading only)",
+  "text-decoration": "underline and strikethrough",
+  "text-decoration-line": "underline and strikethrough",
+  "vertical-align": "superscript and subscript",
+  "width": "column width",
+};

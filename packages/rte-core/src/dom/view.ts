@@ -10,6 +10,7 @@ import type { Engine } from "../engine.ts";
 import type { Plugin, ViewChange, ViewHost } from "../plugin.ts";
 import { exportHtml } from "../export.ts";
 import { ops } from "../ops.ts";
+import type { ContentOptions } from "../policy.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
@@ -47,6 +48,8 @@ export interface EditorOptions {
   readonly placeholder?: string;
   /** The most text the document may hold, in characters. Typing and pasting past it are refused (see `onMaxLength`). */
   readonly maxLength?: number;
+  /** What is kept and dropped when HTML is read: a profile and single choices on top of it. See docs/CONTENT-POLICY.md. */
+  readonly content?: ContentOptions;
   /** Called when an edit is refused for being past `maxLength`, with the limit and what the length would have been. */
   readonly onMaxLength?: (info: { readonly limit: number; readonly wouldBe: number }) => void;
   /** Whether the browser checks spelling here. Default: the browser's own setting for the page. */
@@ -110,6 +113,7 @@ export class Editor {
       // Before the engine reads the selection, bring it up to date from the page; asked to focus, focus the page.
       beforeAccess: () => this.readSelection(),
       focus: () => this.element.focus(),
+      ...(options.content ? { content: options.content } : {}),
       ...(options.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
       ...(options.onMaxLength ? { onMaxLength: options.onMaxLength } : {}),
     });

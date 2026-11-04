@@ -2,6 +2,7 @@
 // it parses without a DOM, applies the allow-lists, then builds the model, so nothing unsafe is ever created.
 import { decodeEntities } from "./html/entities.ts";
 import { parseHtml, type HElement, type HNode } from "./html/parse.ts";
+import { CONTENT_PROFILES, DATA_IMAGE_SIGNATURES, DEFAULT_LINK_SCHEMES, DROPPED_ELEMENTS, GROUPING_ELEMENTS, IMAGE_SCHEMES } from "./policy.ts";
 import { parseLine, SIDES, withSides, type Line, type Side } from "./cellborder.ts";
 import {
   COLOR_VALUE, COLUMN_WIDTH, MAX_INDENT, NOTE_ID, ROW_HEIGHT, inlineText, normalizeInline, type Align, type ImageAlign, type CellBorder, type Direction, type Block, type Doc, type Inline, type ItemChild, type List, type ListItem, type Mark, type MarkType, type Paragraph,
@@ -58,8 +59,14 @@ export interface ImportOptions {
   readonly linkSchemes?: readonly string[];
   /** Keep empty paragraphs. Content that is loaded keeps them; pasted content does not. */
   readonly keepEmptyBlocks?: boolean;
-  /** Largest `data:` image address, in characters. */
+  /** Largest `data:` image address, in characters. 0 refuses every `data:` image. Default 12 million. */
   readonly maxDataImageLength?: number;
+  /** Longest markup read, in characters. Longer markup is refused whole: nothing is read, `onLimit` is told. Default 50 million. */
+  readonly maxInputLength?: number;
+  /** Deepest element nesting read; deeper elements are left out and their content kept. Default 100. */
+  readonly maxDepth?: number;
+  /** Told when markup was refused for being longer than `maxInputLength`. */
+  readonly onLimit?: (info: { readonly limit: "maxInputLength"; readonly max: number; readonly length: number }) => void;
 }
 
 interface Settings {
@@ -71,21 +78,12 @@ interface Settings {
   readonly recognizers: readonly ImportRecognizer[];
 }
 
-const DROP = new Set([
-  "script", "style", "link", "meta", "base", "object", "embed", "iframe", "frame", "frameset", "noscript", "template",
-  "head", "textarea", "input", "select", "option", "button", "canvas", "audio", "video", "applet", "xml",
-]);
-const CONTAINERS = new Set([
-  "div", "section", "article", "header", "footer", "aside", "nav", "figure", "figcaption", "address", "main", "form",
-  "body", "html", "center", "details", "summary", "dd", "dt", "fieldset", "hgroup",
-]);
+const DROP = DROPPED_ELEMENTS;
+const CONTAINERS = GROUPING_ELEMENTS;
 const MARK_TAGS: Record<string, "bold" | "italic" | "underline" | "strike" | "code" | "sup" | "sub"> = {
   strong: "bold", b: "bold", em: "italic", i: "italic", cite: "italic", dfn: "italic", var: "italic", u: "underline", ins: "underline",
   s: "strike", strike: "strike", del: "strike", code: "code", tt: "code", kbd: "code", samp: "code", sup: "sup", sub: "sub",
 };
-const RASTER = [
-  ["image/png", "iVBORw0KGgo"], ["image/jpeg", "/9j/"], ["image/gif", "R0lGOD"], ["image/webp", "UklGR"], ["image/bmp", "Qk"],
-] as const;
 const COLOR = COLOR_VALUE;
 
 export function parseStyle(style: string | undefined): Map<string, string> {
@@ -141,9 +139,9 @@ function safeImageSrc(raw: string | undefined, settings: Pick<Settings, "maxData
     if (!match) return undefined;
     const body = match[2] as string;
     // Trust the bytes, not the declared type: the start of the data must match a raster format.
-    return RASTER.some(([, magic]) => body.startsWith(magic)) ? value : undefined;
+    return DATA_IMAGE_SIGNATURES.some(([, magic]) => body.startsWith(magic)) ? value : undefined;
   }
-  return safeUrl(value, new Set(["http", "https"]));
+  return safeUrl(value, new Set(IMAGE_SCHEMES));
 }
 
 interface Ctx {
@@ -765,7 +763,7 @@ function rowHeights(rowEls: readonly HElement[], kept: number): (string | null)[
 
 /** Column widths from `<colgroup>`, else from the cells of the first row that span one column. Undefined when none is given. */
 function columnWidths(table: HElement, rows: readonly (readonly TableCell[])[]): string[] | undefined {
-  const cols = Math.max(0, ...rows.map((row) => row.reduce((sum, cell) => sum + cell.colspan, 0)));
+  const cols = rows.reduce((most, row) => Math.max(most, row.reduce((sum, cell) => sum + cell.colspan, 0)), 0);
   const widths: (string | null)[] = [];
   const visit = (nodes: readonly HNode[]): void => {
     for (const n of nodes) {
@@ -782,7 +780,7 @@ function columnWidths(table: HElement, rows: readonly (readonly TableCell[])[]):
     // No column elements: the widths the first row's cells ask for, where each cell is one column wide.
     const firstRow = [...table.children].flatMap((n) => (n.type === "el" && n.tag === "tr" ? [n] : n.type === "el" && /^(thead|tbody|tfoot)$/.test(n.tag) ? n.children.filter((c): c is HElement => c.type === "el" && c.tag === "tr") : []))[0];
     if (firstRow) for (const cell of firstRow.children) if (cell.type === "el" && (cell.tag === "td" || cell.tag === "th")) {
-      const span = Math.max(Number.parseInt(cell.attrs.colspan ?? "1", 10) || 1, 1);
+      const span = Math.min(Math.max(Number.parseInt(cell.attrs.colspan ?? "1", 10) || 1, 1), 100);
       if (span === 1) widths.push(widthOf(cell)); else for (let k = 0; k < span; k++) widths.push(null);
     }
   }
@@ -806,7 +804,7 @@ function padRows(rows: TableCell[][]): TableCell[][] {
     for (let k = 0; k < reach.length; k++) if ((reach[k] ?? 0) > 0) reach[k] = (reach[k] as number) - 1;
     return used;
   });
-  const widest = Math.max(0, ...widths);
+  const widest = widths.reduce((most, w) => Math.max(most, w), 0);
   return rows.map((cells, i) => {
     const missing = widest - (widths[i] as number);
     return missing > 0 ? [...cells, ...Array.from({ length: missing }, (): TableCell => ({ header: false, colspan: 1, rowspan: 1, blocks: [{ type: "p", content: [] }] }))] : cells;
@@ -904,14 +902,19 @@ function repairRewrittenSpaces(nodes: HNode[]): HNode[] {
 export function importBlocks(html: string, options: ImportOptions = {}): Block[] {
   const settings: Settings = {
     allowStyles: (options.styles ?? "allowlist") === "allowlist",
-    schemes: new Set(options.linkSchemes ?? ["http", "https", "mailto", "tel"]),
+    schemes: new Set(options.linkSchemes ?? DEFAULT_LINK_SCHEMES),
     keepEmpty: options.keepEmptyBlocks ?? false,
-    maxData: options.maxDataImageLength ?? 12_000_000,
+    maxData: options.maxDataImageLength ?? CONTENT_PROFILES.standard.maxDataImageLength,
     svg: options.sanitizeSvg,
     recognizers: options.recognizers ?? [],
   };
+  const maxInput = options.maxInputLength ?? CONTENT_PROFILES.standard.maxInputLength;
+  if (html.length > maxInput) {
+    options.onLimit?.({ limit: "maxInputLength", max: maxInput, length: html.length });
+    return [];
+  }
   const sink = new Sink(settings);
-  const tree = parseHtml(html);
+  const tree = parseHtml(html, options.maxDepth ?? CONTENT_PROFILES.standard.maxDepth);
   convertNodes(/-webkit-text-stroke-width/.test(html) ? repairRewrittenSpaces(tree) : tree, sink, { marks: [], inLink: false, pre: false }, settings);
   sink.flush();
   return finishBlocks(sink.blocks);

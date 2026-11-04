@@ -18,6 +18,7 @@
   ],
   "exclude": [
     "src/**/*.test.ts",
-    "src/**/*.sample.ts"
+    "src/**/*.sample.ts",
+    "src/policy-tables.ts"
   ]
 }

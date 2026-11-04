@@ -13,6 +13,7 @@ type Block
 type BlockKind
 value COLOR_VALUE
 value COLUMN_WIDTH
+value CONTENT_PROFILES
 type CellBorder
 type ClipboardData
 type CodeBlock
@@ -22,6 +23,10 @@ value CommandRegistry
 type CommandState
 type ContainerBehavior
 type ContainerKind
+type ContentLimits
+type ContentOptions
+type ContentPolicy
+type ContentProfile
 type CopyFormatter
 type Counts
 value DEFAULT_MARKER
@@ -90,6 +95,7 @@ value clampPos
 value comparePath
 value comparePos
 value containerPaths
+value contentPolicy
 value countDocument
 value countSelection
 value countText

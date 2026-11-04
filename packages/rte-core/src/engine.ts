@@ -8,6 +8,7 @@ import type { PasteHandler } from "./paste.ts";
 import { caret, isCollapsed, pathKey, type EditResult, type Path, type Selection } from "./path.ts";
 import { startOf } from "./edit.ts";
 import type { ImportOptions } from "./import.ts";
+import { contentPolicy, type ContentOptions } from "./policy.ts";
 import { countDocument, countSelection, textLength, type Counts } from "./stats.ts";
 import { UiRegistry } from "./ui.ts";
 import { PLUGIN_API_VERSION, satisfiesApi, type CopyFormatter, type FileHandler, type Normalizer, type PasteTransform, type Plugin, type PluginHost } from "./plugin.ts";
@@ -46,6 +47,11 @@ export interface EngineOptions {
    */
   readonly maxLength?: number;
   readonly onMaxLength?: (info: { readonly limit: number; readonly wouldBe: number }) => void;
+  /**
+   * What is kept and what is dropped when HTML is read (loading, `setHtml`, pasting): a profile (`strict`, `standard` or `loose`)
+   * and single choices on top of it. See docs/CONTENT-POLICY.md. Default: the `standard` profile.
+   */
+  readonly content?: ContentOptions;
 }
 
 type Listener = (snapshot: EditorSnapshot, previous: EditorSnapshot) => void;
@@ -82,7 +88,7 @@ export class Engine {
   /** Plugins that turn pasted and dropped files into blocks. */
   readonly fileHandlers: FileHandler[] = [];
   /** How HTML is imported here: what plugins have added (an SVG cleaner, recognizers). Pass it to the importer. */
-  readonly importOptions: { sanitizeSvg?: ImportOptions["sanitizeSvg"]; recognizers: NonNullable<ImportOptions["recognizers"]> } = { recognizers: [] };
+  readonly importOptions: { -readonly [K in keyof ImportOptions]: ImportOptions[K] } & { recognizers: NonNullable<ImportOptions["recognizers"]> } = { recognizers: [] };
 
   private doc: Doc;
   private sel: Selection;
@@ -116,6 +122,12 @@ export class Engine {
     this.maxLength = options.maxLength;
     this.onMaxLength = options.onMaxLength;
     this.warn = options.onWarning ?? ((message) => console.warn(`[rte] ${message}`));
+    const policy = contentPolicy(options.content);
+    Object.assign(this.importOptions, {
+      linkSchemes: policy.linkSchemes, styles: policy.styles, maxDataImageLength: policy.maxDataImageLength,
+      maxDepth: policy.maxDepth, maxInputLength: policy.maxInputLength,
+      onLimit: (info: { readonly max: number; readonly length: number }) => this.warn(`Content of ${info.length} characters was not read: the limit is ${info.max} (content.maxInputLength).`),
+    });
     this.keymap = new Keymap(options.platform ?? detectPlatform(), this.warn);
     this.commands = new CommandRegistry(this);
     this.current = this.makeSnapshot();

@@ -2,6 +2,7 @@
 // Plugins get the raw data first, before anything is sanitized, through the same public hook shape
 // the built-in handling uses: a handler either returns blocks or declines by returning undefined.
 import { importBlocks, importText, type ImportOptions } from "./import.ts";
+import { CONTENT_PROFILES } from "./policy.ts";
 import type { Block } from "./model.ts";
 
 export interface ClipboardData {
@@ -45,7 +46,13 @@ export function defaultPaste(data: ClipboardData, importOptions: ImportOptions =
     const blocks = importBlocks(data.html, { ...importOptions, styles: "semantic" });
     if (blocks.length > 0) return unwrapSingleCell(blocks);
   }
-  return importText(data.text ?? "");
+  const text = data.text ?? "";
+  const max = importOptions.maxInputLength ?? CONTENT_PROFILES.standard.maxInputLength;
+  if (text.length > max) {
+    importOptions.onLimit?.({ limit: "maxInputLength", max, length: text.length });
+    return [];
+  }
+  return importText(text);
 }
 
 export function pasteBlocks(data: ClipboardData, handlers: readonly PasteHandler[] = [], importOptions: ImportOptions = {}): readonly Block[] {

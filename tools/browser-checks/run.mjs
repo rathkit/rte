@@ -323,6 +323,10 @@ for (const [name, type] of engines) {
   await edge("Delete before a rule removes the rule and not the text", "<p>a</p><hr><p>b</p>", 1, "p", ["Delete"], "<p>a</p><p>b</p>");
   await edge("Backspace in a table cell's first paragraph does nothing to the table", "<table><tr><td>a</td><td>b</td></tr></table>", 0, "td", ["Backspace"], "<table><tr><td>a</td><td>b</td></tr></table>", 1);
   await edge("Enter in a table cell starts a paragraph in that cell", "<table><tr><td>ab</td><td>c</td></tr></table>", 1, "td", ["Enter", "X"], "<table><tr><td><p>a</p><p>Xb</p></td><td>c</td></tr></table>");
+  // Content policy (docs/CONTENT-POLICY.md): hostile markup never throws, and what it holds that is not allowed does not reach the page.
+  await reset(`${"<div>".repeat(100000)}deep${"<span>".repeat(100000)}<script>SECRET</script><a href="java&#9;script:alert(1)" onclick="x()">link</a><img src="file:///x" onerror="window.__pwned=1">`);
+  check(`${name} policy: 100,000 nested elements load, with the text and without the script`, (await html()) === "<p>deeplink</p>", (await html()).slice(0, 200));
+  check(`${name} policy: nothing hostile reached the page`, await page.evaluate(() => !window.__pwned && !document.querySelector("#ed script, #ed [onclick], #ed [onerror], #ed a[href^=javascript]")));
   // An empty item that holds a nested list shows a marker; Backspace in it takes the marker away.
   await edge("Enter at the end of an item with a nested list gives an item with a bullet", "<ul><li>a<ul><li>b</li></ul></li></ul>", 1, "ul > li", ["Enter"], "<ul><li>a</li><li><ul><li>b</li></ul></li></ul>");
   check(`${name} keys: that item shows its bullet`, await page.evaluate(() => getComputedStyle(document.querySelectorAll("#ed > ul > li")[1]).listStyleType) !== "none");

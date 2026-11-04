@@ -26,8 +26,15 @@ const BLOCKS_CLOSING_P = new Set([
 const TAG_NAME = /[A-Za-z][^\s/>]*/y;
 const ATTRIBUTE = /([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/y;
 
-/** Parses markup into nodes. Tag and attribute names are lower-cased and entities in text and values are decoded. */
-export function parseHtml(source: string): HNode[] {
+/** Deepest nesting read when the caller does not say. */
+export const DEFAULT_MAX_DEPTH = 100;
+
+/**
+ * Parses markup into nodes. Tag and attribute names are lower-cased and entities in text and values are decoded. An element
+ * that would nest deeper than `maxDepth` is left out and what is inside it stays in the deepest element allowed, so the tree is
+ * never deeper than that however the markup is written.
+ */
+export function parseHtml(source: string, maxDepth = DEFAULT_MAX_DEPTH): HNode[] {
   const root: HElement = { type: "el", tag: "#root", attrs: {}, children: [] };
   const stack: HElement[] = [root];
   const top = (): HElement => stack[stack.length - 1] as HElement;
@@ -139,9 +146,11 @@ export function parseHtml(source: string): HNode[] {
     else if (tag === "tr") closeWithin(new Set(["tr"]), new Set(["table"]));
     else if (tag === "thead" || tag === "tbody" || tag === "tfoot") closeWithin(new Set(["thead", "tbody", "tfoot"]), new Set(["table"]));
     if (BLOCKS_CLOSING_P.has(tag)) closeWithin(new Set(["p"]), new Set(["li", "td", "th", "table", "blockquote", "div", "ul", "ol"]));
+    const void_ = VOID.has(tag);
+    if (!void_ && stack.length > maxDepth) continue;
     const el: HElement = { type: "el", tag, attrs, children: [] };
     top().children.push(el);
-    if (!VOID.has(tag)) stack.push(el);
+    if (!void_) stack.push(el);
   }
   return root.children;
 }

@@ -59,6 +59,8 @@ export function markdown(options: MarkdownPasteOptions = {}): Plugin {
         // Pasting into code stays literal.
         const path = selection.focus.path;
         if (kindAt(doc, path) === "pre" || getBlock(doc, path)?.type === "pre") return undefined;
+        // Over the editor's input limit, Markdown is not read; the default paste then refuses the text and says so.
+        if (text.length > (host.editor.importOptions.maxInputLength ?? Infinity)) return undefined;
         if (mode === "detect" && !looksLikeMarkdown(text)) return undefined;
         const blocks = parseMarkdown(text, {
           ...(options.linkSchemes ? { linkSchemes: options.linkSchemes } : {}),
