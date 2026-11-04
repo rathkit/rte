@@ -443,7 +443,8 @@ export class Editor {
     // The browser has already changed the DOM, so the caret is read from it before the model catches up.
     const domSel = document.getSelection();
     const raw = domSel?.focusNode && this.element.contains(domSel.focusNode) ? posFromDom(this.element, domSel.focusNode, domSel.focusOffset) : null;
-    this.apply("type", (doc) => {
+    // A finished composition is a step of its own, not part of the typing before it.
+    this.apply("compose", (doc) => {
       const next = setContent(doc, path, first.content);
       return { doc: next, selection: raw ? caret(clampPos(next, raw)) : caret(clampPos(next, this.engine.selection.focus)) };
     });

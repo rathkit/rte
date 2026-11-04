@@ -54,6 +54,8 @@ type Change = { readonly docChanged: boolean; readonly selectionChanged: boolean
 interface Level {
   readonly doc: Doc;
   readonly selection: Selection;
+  /** Where the caret was when the step it belongs to ended, so redo can put it there whatever happened since. */
+  after?: Selection;
 }
 
 const sameSelection = (a: Selection, b: Selection): boolean =>
@@ -222,6 +224,8 @@ export class Engine {
       }
       this.lastKind = kind;
       this.redoStack = [];
+      const top = this.undoStack[this.undoStack.length - 1];
+      if (top) top.after = result.selection;
     }
     this.doc = result.doc;
     this.sel = result.selection;
@@ -238,6 +242,8 @@ export class Engine {
   setSelection(selection: Selection): void {
     if (sameSelection(selection, this.sel)) return;
     this.sel = selection;
+    // Typing somewhere else, or after the caret has been moved, is a step of its own.
+    this.lastKind = "";
     this.commit({ docChanged: false, selectionChanged: true });
   }
 
@@ -253,6 +259,7 @@ export class Engine {
     if (this.readOnlyMode) return false;
     this.refresh();
     if (!isCollapsed(this.sel)) return false;
+    this.lastKind = "";
     this.stored = { path: this.sel.focus.path, offset: this.sel.focus.offset, marks };
     this.commit({ docChanged: false, selectionChanged: false });
     return true;
@@ -288,7 +295,7 @@ export class Engine {
       if (level) this.undoStack.push(level);
       return false;
     }
-    this.redoStack.push({ doc: this.doc, selection: this.sel });
+    this.redoStack.push({ doc: this.doc, selection: level.after ?? this.sel });
     return this.restore(level);
   }
 
@@ -298,7 +305,7 @@ export class Engine {
       if (level) this.redoStack.push(level);
       return false;
     }
-    this.undoStack.push({ doc: this.doc, selection: this.sel });
+    this.undoStack.push({ doc: this.doc, selection: this.sel, after: level.selection });
     return this.restore(level);
   }
 

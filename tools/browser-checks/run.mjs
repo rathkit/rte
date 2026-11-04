@@ -186,6 +186,48 @@ for (const [name, type] of engines) {
   check(`${name} bold off`, (await html()) === "<p>one two</p>", await html());
   await page.keyboard.press("Control+Z");
   check(`${name} undo`, (await html()) === "<p>one <strong>two</strong></p>", await html());
+  // History rules (docs/HISTORY.md): typing in a row is one step; moving the caret ends it; a composition is a step of its own.
+  await reset("<p>one two</p>");
+  await select({ start: "p", so: 3, eo: 3 });
+  await page.keyboard.type("AB");
+  await page.keyboard.press("End");
+  await page.keyboard.type("C");
+  check(`${name} history: typed text is in`, (await html()) === "<p>oneAB twoC</p>", await html());
+  await page.keyboard.press("Control+Z");
+  check(`${name} history: one undo takes back only the typing after the caret moved`, (await html()) === "<p>oneAB two</p>", await html());
+  await page.keyboard.press("Control+Z");
+  check(`${name} history: the next takes back the first typing`, (await html()) === "<p>one two</p>", await html());
+  await page.keyboard.press("Control+Shift+Z");
+  await page.keyboard.press("Control+Shift+Z");
+  check(`${name} history: redo twice puts it all back`, (await html()) === "<p>oneAB twoC</p>", await html());
+  await reset("<p></p>");
+  await select({ start: "p", so: 0, eo: 0 });
+  await page.keyboard.type("hello");
+  await page.keyboard.press("Control+Z");
+  check(`${name} history: typing a word is still one undo step`, (await html()) === "<p></p>", await html());
+  // An input method: the browser has changed the text by the time the composition ends; the editor takes it as one step.
+  await reset("<p></p>");
+  await select({ start: "p", so: 0, eo: 0 });
+  await page.keyboard.type("ab");
+  await page.evaluate(() => {
+    const el = document.querySelector("[contenteditable]");
+    el.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    const text = el.querySelector("p").firstChild;
+    text.data = "ab日本";
+    const range = document.createRange();
+    range.setStart(text, 4);
+    range.collapse(true);
+    const sel = document.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    el.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "日本" }));
+  });
+  await page.keyboard.type("c");
+  check(`${name} history: composition and typing are in`, (await html()) === "<p>ab日本c</p>", await html());
+  await page.keyboard.press("Control+Z");
+  check(`${name} history: undo takes back the typing after the composition`, (await html()) === "<p>ab日本</p>", await html());
+  await page.keyboard.press("Control+Z");
+  check(`${name} history: the next takes back the composition alone`, (await html()) === "<p>ab</p>", await html());
   await reset("<ul><li>a</li><li>b</li></ul>");
   await select({ start: "li:nth-child(1)", so: 1, eo: 1 });
   await page.keyboard.press("Enter");
