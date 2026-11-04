@@ -25,7 +25,9 @@
     "check:secrets": "node tools/scan-secrets.mjs",
     "check:history": "node tools/scan-secrets.mjs --history && node tools/check-denylist.mjs --history",
     "release:dry": "nx release --skip-publish --dry-run",
-    "release": "nx release --skip-publish"
+    "release": "nx release --skip-publish",
+    "bench": "tools/bench/run.sh",
+    "bench:quick": "tools/bench/run.sh --quick"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

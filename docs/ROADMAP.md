@@ -78,7 +78,7 @@ Stable base: the API surface and editing rules reviewed and written down, one er
 
 Measure and gate: a benchmark suite with a stated method, numeric budgets, memory and leak tests, and CI gates for size and speed.
 
-- [ ] [3.1](https://github.com/rathkit/rte/issues/9) Benchmark suite and method `P0`
+- [x] [3.1](https://github.com/rathkit/rte/issues/9) Benchmark suite and method `P0`
 - [ ] [3.2](https://github.com/rathkit/rte/issues/10) Write the budgets `P0`
 - [ ] [3.3](https://github.com/rathkit/rte/issues/11) Memory and leaks `P0`
 - [ ] [3.4](https://github.com/rathkit/rte/issues/12) Regression gates in CI `P0`
