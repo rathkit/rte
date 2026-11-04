@@ -184,7 +184,7 @@
 @rathkit/rte-icons underline
 @rathkit/rte-icons undo
 @rathkit/rte-icons unlink
-@rathkit/rte-jquery RkJqueryOptions
+@rathkit/rte-jquery RteJqueryOptions
 @rathkit/rte-react RteEditorProps
 @rathkit/rte-react RteOptions
 @rathkit/rte-svelte RteActionOptions
@@ -197,6 +197,6 @@
 @rathkit/rte-ui UiOptions
 @rathkit/rte-ui createUi
 @rathkit/rte-ui/standard createStandardUi
-@rathkit/rte-ui/element RkUi
+@rathkit/rte-ui/element RteUiElement
 @rathkit/rte-vue RteEditor
 @rathkit/rte-vue RteOptions

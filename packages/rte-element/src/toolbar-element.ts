@@ -1,9 +1,9 @@
 // <rk-toolbar>: a plain toolbar for an <rk-editor>, built from the editor's interface items and made to behave by the headless layer.
 // Unstyled, with text labels: style it from the page, or draw your own from `editor.ui` and the headless layer instead.
 import { createToolbar, type Toolbar } from "@rathkit/rte-headless";
-import type { RkEditor } from "./editor-element.ts";
+import type { RteEditorElement } from "./editor-element.ts";
 
-export class RkToolbar extends HTMLElement {
+export class RteToolbarElement extends HTMLElement {
   static observedAttributes = ["for", "label", "slot-name"];
   private toolbar: Toolbar | undefined;
   private unbind: (() => void) | undefined;
@@ -15,10 +15,10 @@ export class RkToolbar extends HTMLElement {
   attributeChangedCallback(): void { if (this.isConnected) void this.build(); }
 
   /** The editor this toolbar belongs to: the element named by `for`, else the nearest <rk-editor> beside or around it. */
-  private target(): RkEditor | null {
+  private target(): RteEditorElement | null {
     const id = this.getAttribute("for");
-    if (id) return this.ownerDocument.getElementById(id) as RkEditor | null;
-    return (this.parentElement?.querySelector("rk-editor") ?? this.closest("rk-editor")) as RkEditor | null;
+    if (id) return this.ownerDocument.getElementById(id) as RteEditorElement | null;
+    return (this.parentElement?.querySelector("rk-editor") ?? this.closest("rk-editor")) as RteEditorElement | null;
   }
 
   private teardown(): void {

@@ -1,9 +1,9 @@
 // $(selector).rkEditor(options) for pages that use jQuery. The work is done by <rk-editor>; this only makes it reachable the jQuery way.
 // jQuery is not imported: pass it to `install`, or let `install()` find the global one.
 import type { Editor } from "@rathkit/rte-core/dom";
-import type { RkEditor, RkEditorOptions } from "@rathkit/rte-element";
+import type { RteEditorElement, RteElementOptions } from "@rathkit/rte-element";
 
-export interface RkJqueryOptions extends RkEditorOptions {
+export interface RteJqueryOptions extends RteElementOptions {
   /** The starting HTML. */
   html?: string;
   readOnly?: boolean;
@@ -22,9 +22,9 @@ interface Collection {
 }
 
 const KEY = "rkEditor";
-type Host = HTMLElement & { __rk?: RkEditor };
+type Host = HTMLElement & { __rk?: RteEditorElement };
 /** The editor element inside a host the plugin was called on (or the element itself, if it is an editor). */
-const editorOf = (host: HTMLElement | undefined): RkEditor | undefined => (host as Host | undefined)?.__rk ?? (host as RkEditor | undefined);
+const editorOf = (host: HTMLElement | undefined): RteEditorElement | undefined => (host as Host | undefined)?.__rk ?? (host as RteEditorElement | undefined);
 
 /**
  * Adds `.rkEditor()` to jQuery:
@@ -35,7 +35,7 @@ const editorOf = (host: HTMLElement | undefined): RkEditor | undefined => (host 
  * Changes arrive as `rk:change` events with the HTML as the second argument to the handler.
  */
 export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQueryLike }).jQuery): void {
-  $.fn[KEY] = function (this: Collection, arg?: string | RkJqueryOptions, value?: string): unknown {
+  $.fn[KEY] = function (this: Collection, arg?: string | RteJqueryOptions, value?: string): unknown {
     if (typeof arg === "string") {
       const first = editorOf(this[0]);
       switch (arg) {
@@ -52,12 +52,12 @@ export function install($: JQueryLike = (globalThis as unknown as { jQuery: JQue
           throw new Error(`rkEditor: unknown method "${arg}"`);
       }
     }
-    const options = arg as RkJqueryOptions;
+    const options = arg as RteJqueryOptions;
     return this.each(function () {
       const host = this as Host;
       if (host.__rk) return;
       const { html, readOnly, label, ...rest } = options;
-      const el = document.createElement("rk-editor") as RkEditor;
+      const el = document.createElement("rk-editor") as RteEditorElement;
       el.setAttribute("label", label);
       if (html !== undefined) el.setAttribute("value", html);
       if (readOnly) el.setAttribute("readonly", "");

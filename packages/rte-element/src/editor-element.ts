@@ -5,9 +5,9 @@ import type { Editor } from "@rathkit/rte-core/dom";
 import { createEditor, type StandardOptions } from "@rathkit/rte-core/standard";
 
 /** Options an app can only pass as code (functions, plugin lists): everything in the standard editor's options except what attributes control. */
-export type RkEditorOptions = Omit<StandardOptions, "element" | "html" | "readOnly">;
+export type RteElementOptions = Omit<StandardOptions, "element" | "html" | "readOnly">;
 
-export class RkEditor extends HTMLElement {
+export class RteEditorElement extends HTMLElement {
   static formAssociated = true;
   static observedAttributes = ["value", "readonly", "disabled", "label", "required", "placeholder"];
 
@@ -16,7 +16,7 @@ export class RkEditor extends HTMLElement {
   private current: Editor | undefined;
   private html = "";
   private defaultHtml = "";
-  private opts: RkEditorOptions = {};
+  private opts: RteElementOptions = {};
   private stop: (() => void) | undefined;
   private atFocus = "";
   private resolveReady: ((editor: Editor) => void) | undefined;
@@ -117,8 +117,8 @@ export class RkEditor extends HTMLElement {
   /** Resolves with the editor once the element is connected and the editor is built. */
   whenReady(): Promise<Editor> { return this.ready; }
   /** Options only code can give (an upload function, more plugins). Set them before the element is connected. */
-  get options(): RkEditorOptions { return this.opts; }
-  set options(options: RkEditorOptions) {
+  get options(): RteElementOptions { return this.opts; }
+  set options(options: RteElementOptions) {
     if (this.current) console.warn("[rte] <rk-editor> options set after it was connected have no effect.");
     this.opts = options;
   }

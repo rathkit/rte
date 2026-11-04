@@ -275,9 +275,9 @@ type StandardPluginOptions
 value createEditor
 value standardPlugins
 # @rathkit/rte-element
-value RkEditor
-type RkEditorOptions
-value RkToolbar
+value RteEditorElement
+type RteElementOptions
+value RteToolbarElement
 value define
 # @rathkit/rte-element/define
 # @rathkit/rte-headless
@@ -354,7 +354,7 @@ value underline
 value undo
 value unlink
 # @rathkit/rte-jquery
-type RkJqueryOptions
+type RteJqueryOptions
 value install
 # @rathkit/rte-react
 value RteEditor
@@ -387,7 +387,7 @@ value createUi
 # @rathkit/rte-ui/standard
 value createStandardUi
 # @rathkit/rte-ui/element
-value RkUi
+value RteUiElement
 value defineUi
 # @rathkit/rte-ui/element/define
 # @rathkit/rte-vue

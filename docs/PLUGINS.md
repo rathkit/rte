@@ -90,3 +90,12 @@ removed once its declaration has a comment.
 A name is exported from one entry point only, so two imports in one file never clash and one name never means two things. The check fails
 on a repeat. The one exception is among the framework wrappers (React, Vue, Svelte, Angular, jQuery), which share names such as
 `RteEditor` and `useCommand` on purpose: a page uses one of them.
+
+### Names
+
+- Framework wrappers (React, Vue, Svelte, Angular, jQuery): the component or directive is `RteEditor`, its options are `RteOptions`, and
+  hooks and composables are `useCommand`, `useSelector`, `useStore` (Svelte: `rteEditor`, `command`, `selector`).
+- Custom elements: the class ends in `Element` (`RteEditorElement`, `RteToolbarElement`, `RteUiElement`), its options are
+  `RteElementOptions`, and the tag names keep the short `rk-` prefix (`<rk-editor>`, `<rk-toolbar>`, `<rk-ui>`). Registering is `define()`
+  for the editor and toolbar, `defineUi()` for the interface element.
+- A wrapper component and an element class never share a name, so a page that imports both has nothing to alias.

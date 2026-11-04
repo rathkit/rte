@@ -14,7 +14,7 @@ type Host = HTMLElement & { readonly editor?: unknown };
 
 const STYLE_ATTRIBUTES = ["theme", "scheme", "density"] as const;
 
-export class RkUi extends HTMLElement {
+export class RteUiElement extends HTMLElement {
   static observedAttributes = [...STYLE_ATTRIBUTES, "selection-toolbar", "context-menu", "status"];
 
   private current: Ui | undefined;
@@ -85,5 +85,5 @@ export class RkUi extends HTMLElement {
 
 /** Registers <rk-ui>. Safe to call more than once. */
 export function defineUi(name = "rk-ui"): void {
-  if (!customElements.get(name)) customElements.define(name, RkUi);
+  if (!customElements.get(name)) customElements.define(name, RteUiElement);
 }
