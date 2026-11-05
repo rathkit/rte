@@ -95,6 +95,10 @@ jobs:
           RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/node_modules
           # Shared runners are slower and noisier than a desk, so the speed budgets are doubled here.
           RTE_SPEED_SCALE: "2"
+      # Editors made and destroyed thousands of times, in all three engines (docs/LEAKS.md): nothing may be left on the page.
+      - run: tools/leak/run.sh
+        env:
+          RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/node_modules
 
   # The benchmark harness, reduced (tools/bench, docs/MEASUREMENTS.md). It reports figures and fails when one is over its budget (tools/bench/budgets.json),
   # widened three times here because a shared runner is slower than the reference machine. The runner image is pinned because the machine class is part of the method.

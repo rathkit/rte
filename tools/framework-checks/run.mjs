@@ -1,6 +1,7 @@
 // Drives the wrappers, built against real React, Vue, Svelte, Angular and jQuery, in Chromium, Firefox and WebKit.
 //   RTE_PLAYWRIGHT=<node_modules> RTE_PACK=<binary> tools/framework-checks/run.sh
 import { createRequire } from "node:module";
+import { growth, probeScript, settle, snapshot } from "../leak/probe.mjs";
 
 const base = process.argv[2];
 const require = createRequire(`${process.env.RTE_PLAYWRIGHT}/`);
@@ -294,6 +295,33 @@ for (const [engine, type] of engines) {
   await page.waitForTimeout(50);
   check(`${name} nothing left after teardown`, (await page.locator("[contenteditable=true]").count()) === 0, null);
   check(`${name} no page errors`, errors.length === 0, errors);
+  await browser.close();
+}
+
+// --- leaks: each wrapper mounts and unmounts an editor many times through its own framework (the app's `cycle`), and nothing may be left on the
+// page (probe: tools/leak/probe.mjs; docs/LEAKS.md). The page's own editor stays mounted throughout, so what is counted is the growth.
+for (const [engine, type] of engines) {
+  const browser = await type.launch();
+  for (const app of apps) {
+    const name = `${engine} ${app}`;
+    const context = await browser.newContext();
+    await context.addInitScript(probeScript);
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
+    await page.goto(new URL(`/frameworks/dist/${app}.html`, base).href);
+    await page.waitForFunction("window.__fw && window.__fw.ready === true");
+    const count = app.startsWith("angular") ? 30 : 100;
+    await page.evaluate(() => window.__fw.cycle(5));
+    await settle(page);
+    const before = await snapshot(page);
+    await page.evaluate((n) => window.__fw.cycle(n), count);
+    await settle(page);
+    const after = await snapshot(page);
+    check(`${name} leaks nothing over ${count} mounts and unmounts`, growth(before, after).length === 0, { before, after, grew: growth(before, after) });
+    check(`${name} no page error during the leak walk`, errors.length === 0, errors);
+    await context.close();
+  }
   await browser.close();
 }
 

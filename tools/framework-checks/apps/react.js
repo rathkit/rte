@@ -1,5 +1,6 @@
 // A small app using the React wrapper, in StrictMode (development), so the double run of effects is part of what is checked.
 import { createElement as h, StrictMode, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { RteEditor, useCommand } from "@rathkit/rte-react";
 
@@ -36,3 +37,14 @@ const root = createRoot(document.getElementById("app"));
 root.render(h(StrictMode, null, h(App)));
 fw.destroy = () => root.unmount();
 setTimeout(() => { fw.ready = true; }, 50);
+// Mounts and unmounts the wrapper n times, in StrictMode, for the leak walk.
+fw.cycle = async (n) => {
+  for (let i = 0; i < n; i++) {
+    const host = document.body.appendChild(document.createElement("div"));
+    const leaf = createRoot(host);
+    flushSync(() => leaf.render(h(StrictMode, null, h(RteEditor, { label: "Leak", defaultValue: "<p>leak</p>" }))));
+    await new Promise((r) => setTimeout(r, 0));
+    leaf.unmount();
+    host.remove();
+  }
+};

@@ -27,7 +27,8 @@
     "release:dry": "nx release --skip-publish --dry-run",
     "release": "nx release --skip-publish",
     "bench": "tools/bench/run.sh",
-    "bench:quick": "tools/bench/run.sh --quick"
+    "bench:quick": "tools/bench/run.sh --quick",
+    "leak": "tools/leak/run.sh"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

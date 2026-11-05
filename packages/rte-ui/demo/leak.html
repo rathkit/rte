@@ -1,0 +1,118 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>rte leak page</title>
+<script type="importmap">
+{ "imports": {
+  "@rathkit/rte-core/standard": "/dist/standard/index.js",
+  "@rathkit/rte-core/dom": "/dist/dom/index.js",
+  "@rathkit/rte-headless": "/headless/dist/index.js",
+  "@rathkit/rte-icons": "/icons/dist/index.js"
+} }
+</script>
+<link rel="stylesheet" href="/ui/css/base.css">
+<link rel="stylesheet" href="/themes/css/light.css">
+<script type="module">
+// Creates and destroys editors many times so a test can see whether anything is left behind (tools/leak, docs/LEAKS.md).
+//   window.__leak.cycle(kind, n)   kind: "core" (every plugin), "ui" (the standard interface), "element" (<rte-ui> around <rte-editor>), "leaky" (leaks on purpose, to show the probe sees it)
+import { createEditor } from "@rathkit/rte-core/standard";
+import { markdown } from "/dist/markdown/index.js";
+import { createStandardUi } from "/ui/dist/standard.js";
+
+const html = `<h1>Title</h1><p>Some <strong>bold</strong> and <em>italic</em> text with a <a href="https://example.com">link</a> and a note<sup data-footnote="1"></sup>.</p>
+<ul><li>one<ul><li>nested</li></ul></li><li>two</li></ul><table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>2</td></tr></table>
+<p><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="dot"></p><blockquote><p>quote</p></blockquote><pre>code</pre>`;
+const type = (el, inputType, data) => el.dispatchEvent(new InputEvent("beforeinput", { inputType, data, bubbles: true, cancelable: true }));
+const key = (el, k, extra = {}) => el.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...extra }));
+
+function use(editor) {
+  const p = editor.element.querySelector("p");
+  editor.focus();
+  editor.selectDom(p.firstChild, 1, p.firstChild, 4);
+  document.dispatchEvent(new Event("selectionchange"));
+  type(editor.element, "insertText", "x");
+  type(editor.element, "insertParagraph");
+  editor.paste({ text: "pasted\n\ntext" });
+  editor.paste({ html: "<p>pasted <b>html</b></p>" });
+  editor.undo();
+  editor.redo();
+  editor.selectAll();
+  key(editor.element, "b", { ctrlKey: true });
+  editor.setHtml(html);
+}
+
+function core() {
+  const holder = document.body.appendChild(document.createElement("div"));
+  const surface = holder.appendChild(document.createElement("div"));
+  const editor = createEditor({ element: surface, html, plugins: [markdown()], uploadImage: async () => "https://cdn.test/a.png" });
+  use(editor);
+  editor.destroy();
+  holder.remove();
+  return editor;
+}
+
+function ui() {
+  const holder = document.body.appendChild(document.createElement("div"));
+  const root = holder.appendChild(document.createElement("div"));
+  const surface = document.createElement("div");
+  const editor = createEditor({ element: surface, html });
+  const interface_ = createStandardUi(editor, { root, style: { theme: "light" }, selectionToolbar: true, contextMenu: true });
+  use(editor);
+  editor.element.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 20, clientY: 20 }));
+  key(editor.element, "Escape");
+  key(editor.element, "f", { ctrlKey: true });
+  key(editor.element, "F10", { altKey: true });
+  for (const button of root.querySelectorAll("button")) { button.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); button.dispatchEvent(new FocusEvent("focusin", { bubbles: true })); }
+  interface_.announce("hello");
+  interface_.destroy();
+  editor.destroy();
+  holder.remove();
+  return editor;
+}
+
+let elementsReady;
+async function element() {
+  await elementsReady;
+  const wrap = document.body.appendChild(document.createElement("rte-ui"));
+  wrap.setAttribute("theme", "light");
+  wrap.setAttribute("selection-toolbar", "");
+  wrap.setAttribute("context-menu", "");
+  const ed = wrap.appendChild(document.createElement("rte-editor"));
+  ed.setAttribute("label", "Leak");
+  ed.setAttribute("value", html);
+  await ed.whenReady();
+  const editor = ed.editor;
+  if (editor) use(editor);
+  wrap.remove();
+  return editor;
+}
+
+const kept = [];
+function leaky() {
+  // Four deliberate leaks: a listener on window, an interval, an observer on the body, and an element left on the page.
+  window.addEventListener("resize", () => kept.push(1));
+  setInterval(() => {}, 100000);
+  new MutationObserver(() => {}).observe(document.body, { childList: true });
+  document.body.appendChild(document.createElement("div"));
+}
+
+elementsReady = (async () => {
+  await import("/element/dist/define.js");
+  (await import("/ui/dist/element.js")).defineUi();
+  await customElements.whenDefined("rte-ui");
+})();
+
+window.__leak = {
+  async cycle(kind, n) {
+    const run = { core, ui, element, leaky }[kind];
+    for (let i = 0; i < n; i++) await run();
+  },
+  /** Makes `n` editors, destroys them, and keeps only weak references, so a test can collect and count the survivors. */
+  weak(n) {
+    window.__weakRefs = [];
+    for (let i = 0; i < n; i++) window.__weakRefs.push(new WeakRef(core()));
+  },
+  alive: () => (window.__weakRefs ?? []).filter((r) => r.deref() !== undefined).length,
+};
+await elementsReady;
+window.__leakReady = true;
+</script>

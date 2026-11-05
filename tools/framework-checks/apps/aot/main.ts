@@ -37,6 +37,23 @@ class App {
   run(): void { this.editor()?.commands.run("format.bold"); }
 }
 
+@Component({
+  selector: "leak-root",
+  imports: [RteEditor],
+  template: `<div rteEditor label="Leak" defaultValue="<p>leak</p>"></div>`,
+})
+class Leaf {}
+// Starts and destroys an application with the wrapper in it n times, for the leak walk.
+fw["cycle"] = async (n: number) => {
+  for (let i = 0; i < n; i++) {
+    const host = document.body.appendChild(document.createElement("leak-root"));
+    const leaf = await bootstrapApplication(Leaf);
+    await leaf.whenStable();
+    leaf.destroy();
+    host.remove();
+  }
+};
+
 bootstrapApplication(App).then((ref) => {
   fw["destroy"] = () => ref.destroy();
   fw["ready"] = true;

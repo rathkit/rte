@@ -239,8 +239,16 @@ export class Editor {
   use: Engine["use"] = (plugin) => {
     const remove = this.engine.use(plugin);
     const stop = this.engine.attempt(plugin.id, "its page part", () => plugin.view?.(this.viewHost), () => undefined);
-    return () => { if (stop) this.engine.attempt(plugin.id, "taking its page part away", stop, undefined); remove(); };
+    const undo = (): void => {
+      if (!this.installed.delete(undo)) return;
+      if (stop) this.engine.attempt(plugin.id, "taking its page part away", stop, undefined);
+      remove();
+    };
+    this.installed.add(undo);
+    return undo;
   };
+  /** What takes each added plugin away again, so `destroy` can take away every one that is still in (a plugin's page part holds listeners on the window). */
+  private readonly installed = new Set<() => void>();
 
   /** The document as HTML. `separator` goes between blocks (a newline makes it readable). */
   getHtml(separator = ""): string { return exportHtml(this.engine.document, separator); }
@@ -343,6 +351,7 @@ export class Editor {
   }
 
   destroy(): void {
+    for (const undo of [...this.installed].reverse()) undo();
     for (const cleanup of this.cleanups) cleanup();
     this.cleanups.length = 0;
     this.observer.disconnect();

@@ -1,5 +1,5 @@
 // A small app using the Vue wrapper, built with render functions so no template compiler is needed.
-import { createApp, defineComponent, h, onUpdated, reactive, shallowRef, toRef } from "vue";
+import { createApp, defineComponent, h, nextTick, onUpdated, reactive, shallowRef, toRef } from "vue";
 import { RteEditor, useCommand } from "@rathkit/rte-vue";
 
 const fw = (window.__fw = { ready: false, changes: [], events: [], readies: 0, commitCount: 0 });
@@ -40,3 +40,14 @@ const app = createApp(App);
 app.mount("#app");
 fw.destroy = () => app.unmount();
 setTimeout(() => { fw.ready = true; }, 50);
+// Mounts and unmounts the wrapper n times, for the leak walk.
+fw.cycle = async (n) => {
+  for (let i = 0; i < n; i++) {
+    const host = document.body.appendChild(document.createElement("div"));
+    const leaf = createApp({ render: () => h(RteEditor, { label: "Leak", defaultValue: "<p>leak</p>" }) });
+    leaf.mount(host);
+    await nextTick();
+    leaf.unmount();
+    host.remove();
+  }
+};

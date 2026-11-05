@@ -29,3 +29,13 @@ fw.access = (next) => { const el = document.querySelector("rte-editor"); el.read
 // The plugin's own `disabled` option, on a second host.
 $("<div id=\"host2\"></div>").appendTo(document.body).rteEditor({ label: "Off", html: "<p>off</p>", disabled: true });
 fw.destroy = () => $("#host").rteEditor("destroy");
+// Makes and destroys the plugin n times, for the leak walk.
+fw.cycle = async (n) => {
+  for (let i = 0; i < n; i++) {
+    const host = $("<div></div>").appendTo(document.body);
+    host.rteEditor({ label: "Leak", html: "<p>leak</p>" });
+    await host.rteEditor("editor");
+    host.rteEditor("destroy");
+    host.remove();
+  }
+};

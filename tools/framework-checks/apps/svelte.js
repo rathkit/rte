@@ -32,3 +32,13 @@ bold.addEventListener("click", () => fw.editor.commands.run("format.bold"));
 fw.extra = { active: () => get(active), blocks: () => get(count) };
 fw.destroy = () => { stops.forEach((s) => s()); action.destroy(); };
 setTimeout(() => { fw.ready = true; }, 50);
+// Uses and destroys the action n times, for the leak walk.
+fw.cycle = async (n) => {
+  for (let i = 0; i < n; i++) {
+    const host = document.body.appendChild(document.createElement("div"));
+    const leaf = rteEditor(host, { html: "<p>leak</p>" });
+    leaf.update({ html: "<p>leak</p>", readOnly: true });
+    leaf.destroy();
+    host.remove();
+  }
+};
