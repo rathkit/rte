@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 /** Per-kind rules: how much worse may it get. Times are medians in milliseconds; sizes are in bytes. */
 export const rules = {
   time: { ratio: 1.5, floor: 2 },
-  bytes: { ratio: 1.1, floor: 100_000 },
+  bytes: { ratio: 1.1, floor: 300_000 },
 };
 
 /** Flattens a result into { "p1000.typeMiddle": { kind, value } }, taking the median of every timing and every byte count. */

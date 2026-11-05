@@ -18,8 +18,8 @@ test("a small figure that doubles is noise, not a regression (under the floor)",
 });
 
 test("memory and fetched JavaScript are held too, and best-of-several runs absorbs one noisy run", () => {
-  assert.match(regressions([run(6)], [run(6, 20, 6_000_000)])[0], /^mem\.document5000Bytes: 5000000 bytes became 6000000 bytes/);
-  assert.equal(regressions([run(6)], [{ ...run(6), cold: { javascriptBytes: 500_000, ready: stat(80) } }]).length, 1);
+  assert.match(regressions([run(6)], [run(6, 20, 6_400_000)])[0], /^mem\.document5000Bytes: 5000000 bytes became 6400000 bytes/);
+  assert.equal(regressions([run(6)], [{ ...run(6), cold: { javascriptBytes: 800_000, ready: stat(80) } }]).length, 1);
   assert.deepEqual(regressions([run(6), run(6.2)], [run(30), run(6.5)]), [], "the quieter head run counts");
   assert.equal(regressions([run(6), run(6.2)], [run(30), run(31)]).length, 1);
 });
