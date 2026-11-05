@@ -81,7 +81,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('tools/browser-checks/pnpm-lock.yaml') }}
+          key: playwright-ubuntu-24.04-${{ runner.os }}-${{ hashFiles('tools/browser-checks/pnpm-lock.yaml') }}
       - name: Install the browser driver and the browsers
         working-directory: tools/browser-checks
         run: |
@@ -113,7 +113,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-bench-${{ runner.os }}-${{ hashFiles('tools/browser-checks/pnpm-lock.yaml') }}
+          key: playwright-bench-ubuntu-24.04-${{ runner.os }}-${{ hashFiles('tools/browser-checks/pnpm-lock.yaml') }}
       - name: Install the browser driver and Chromium
         working-directory: tools/browser-checks
         run: |
