@@ -96,8 +96,8 @@ jobs:
           # Shared runners are slower and noisier than a desk, so the speed budgets are doubled here.
           RTE_SPEED_SCALE: "2"
 
-  # The benchmark harness, reduced (tools/bench, docs/MEASUREMENTS.md). It reports figures and fails only on an alarm, a figure several
-  # times what a full run found, so a slow shared runner does not fail it. The runner image is pinned because the machine class is part of the method.
+  # The benchmark harness, reduced (tools/bench, docs/MEASUREMENTS.md). It reports figures and fails when one is over its budget (tools/bench/budgets.json),
+  # widened three times here because a shared runner is slower than the reference machine. The runner image is pinned because the machine class is part of the method.
   bench:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -121,7 +121,7 @@ jobs:
           node node_modules/playwright/cli.js install --with-deps chromium
       - name: Allow unprivileged network namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - run: tools/bench/run.sh --quick --out bench-results.json --class "GitHub-hosted ubuntu-24.04 runner"
+      - run: tools/bench/run.sh --quick --scale 3 --out bench-results.json --class "GitHub-hosted ubuntu-24.04 runner"
         env:
           RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/node_modules
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

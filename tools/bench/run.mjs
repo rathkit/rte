@@ -1,11 +1,12 @@
 // The benchmark harness: numbers, not pass or fail. It drives the built editor in Chromium and writes what it measured, with the machine
 // and the method, to a JSON file and to the console as tables. docs/MEASUREMENTS.md says how to read them.
 //   RTE_PLAYWRIGHT=tools/browser-checks/node_modules tools/bench/run.sh [--quick] [--out results.json] [--class "name of the machine class"]
-// The browser checks (tools/browser-checks) hold the editor to its speed budgets; this reports the figures, and only an alarm (a figure
-// several times what the last full run found) fails, so a slow shared runner does not.
+// It reports the figures, and fails when one is over its budget in budgets.json (for the reference machine class; CI widens them with --scale 3,
+// because a shared runner is slower).
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { overBudget } from "./budgets.mjs";
 import os from "node:os";
 
 const args = process.argv.slice(2);
@@ -22,18 +23,12 @@ const playwrightVersion = require("playwright/package.json").version;
 
 // The plan. Full runs use these; --quick (what CI runs) uses fewer, smaller ones.
 const plan = quick
-  ? { runs: 8, paragraphs: [1000, 5000], tables: [[50, 10], [100, 50]], coldRuns: 3, throttle: [1], depth: 60 }
-  : { runs: 30, paragraphs: [1000, 5000, 20000], tables: [[50, 10], [100, 50], [200, 100]], coldRuns: 10, throttle: [1, 4], depth: 200 };
+  ? { runs: 8, paragraphs: [1000, 5000, 10000], tables: [[50, 10], [100, 50]], coldRuns: 3, throttle: [1], depth: 60 }
+  : { runs: 30, paragraphs: [1000, 5000, 10000, 20000], tables: [[50, 10], [100, 50], [200, 100]], coldRuns: 10, throttle: [1, 4], depth: 200 };
 
-// Alarms: a figure above one of these fails the run. They are about five times what a full run found on the reference machine,
-// so they catch a mistake that makes something several times slower and do not care about the machine. Milliseconds unless it says.
-const alarms = {
-  "cold.ready": 3000, "cold.firstLoad1000": 1500,
-  "p1000.load": 400, "p1000.typeMiddle": 50, "p1000.enter": 50, "p1000.pasteText": 50, "p1000.pasteHtml": 300, "p1000.undo": 100, "p1000.redo": 100,
-  "p5000.load": 1500, "p5000.typeMiddle": 150, "p5000.enter": 150, "p5000.undo": 300, "p5000.undoDeep": 300,
-  "t500.load": 400, "t500.type": 80, "t5000.load": 1500, "t5000.type": 100,
-  "mem.perUndoLevelPercent": 5,
-};
+// Budgets: a figure over one fails the run (budgets.json, for the reference machine class). A quick run on a shared runner widens them with --scale.
+const budgets = JSON.parse(readFileSync(new URL("./budgets.json", import.meta.url), "utf8")).budgets;
+const scale = Number(option("--scale") ?? 1);
 
 const stat = (xs) => {
   const s = xs.slice().sort((a, b) => a - b);
@@ -199,14 +194,6 @@ console.log(`\nmemory: ${Object.entries(results.mem).map(([k, v]) => `${k} ${k.e
 
 if (out) writeFileSync(out, `${JSON.stringify({ machine, results }, null, 2)}\n`);
 
-const get = (path) => path.split(".").reduce((o, k) => o?.[k], results);
-const tripped = [];
-for (const [path, limit] of Object.entries(alarms)) {
-  const v = get(path);
-  if (v === undefined) continue;
-  const value = typeof v === "number" ? v : v.median;
-  if (value > limit) tripped.push(`${path}: ${f(value)} is above the alarm of ${limit}`);
-}
-if (results.t5000 && results.t5000.redrawn !== 0) tripped.push(`t5000: typing redrew ${results.t5000.redrawn} other cells`);
-if (tripped.length) { console.log(`\nALARM\n  ${tripped.join("\n  ")}`); process.exit(1); }
-console.log("\nno alarms");
+const over = overBudget(results, budgets, scale);
+if (over.length) { console.log(`\nOVER BUDGET\n  ${over.join("\n  ")}`); process.exit(1); }
+console.log(`\nwithin every budget${scale === 1 ? "" : ` (scaled by ${scale})`}`);

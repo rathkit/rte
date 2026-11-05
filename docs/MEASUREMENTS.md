@@ -24,36 +24,74 @@ RTE_PLAYWRIGHT=$PWD/tools/browser-checks/node_modules pnpm bench -- --out result
 - **Memory.** The heap in use after a forced collection: an empty page, then with each size of document, then with 100 undo steps added. No other measurement runs at the same time.
 - **Slow device.** The full run repeats the paragraph and table scenarios with the CPU throttled four times (`@4x`). That is Chromium's throttling, a stand-in for a slow device and not a measurement of one.
 - **Machine class.** Every run records the CPU, threads, memory, operating system, Node, Chromium and Playwright versions and the commit, and the `--class` you give it. A figure is only comparable with another from the same class.
-- **Alarms.** The harness exits with an error if a figure is above its alarm: about five times what the full run below found. That catches a mistake that makes something several times slower, and does not depend on the machine. CI runs the quick harness on a pinned runner image (`ubuntu-24.04`) and uploads the JSON as an artifact; it does not compare runs.
+- **Budgets.** The harness exits with an error if a figure is over its budget in `tools/bench/budgets.json` (see "Budgets" below). CI runs the quick harness on a pinned runner image (`ubuntu-24.04`) with every budget widened three times (`--scale 3`), and uploads the JSON as an artifact; it does not compare runs.
 
 ### Results
 
-Full run of 2026-11-04 at commit `3a2f412`: developer laptop (Intel Core i7-11850H, 16 threads, 31 GB, Linux under WSL2), Node 26.12.0, Chromium 156.0.8078.4, Playwright 1.64.1, 30 runs per figure. Milliseconds, median / 95th percentile.
+Full run of 2026-11-05 at commit `c71fe22`: developer laptop (Intel Core i7-11850H, 16 threads, 31 GB, Linux under WSL2), Node 26.12.0, Chromium 156.0.8078.4, Playwright 1.64.1, 30 runs per figure. Milliseconds, median / 95th percentile.
 
-| | 1,000 paragraphs | 5,000 paragraphs | 20,000 paragraphs |
-| --- | --- | --- | --- |
-| Load a document | 20.5 / 27.8 | 95.3 / 139 | 442 / 672 |
-| Type (middle) | 0.9 / 1.8 | 6.3 / 7.0 | 29.2 / 40.5 |
-| Type (top / end) | 0.9 / 1.0 · 1.0 / 1.1 | 5.6 / 6.8 · 5.7 / 6.7 | 26.7 / 28.6 · 32.5 / 39.0 |
-| Enter / join blocks | 0.9 / 1.6 · 1.0 / 1.4 | 6.0 / 9.9 · 6.4 / 10.2 | 28.9 / 33.6 · 29.2 / 33.9 |
-| Paste text (3 paragraphs) | 1.1 / 1.5 | 9.2 / 10.9 | 31.1 / 96.7 |
-| Paste HTML (100 paragraphs) | 4.4 / 7.0 | 11.4 / 14.8 | 34.6 / 38.7 |
-| Undo / redo one step | 0.9 / 1.0 · 0.8 / 0.9 | 3.9 / 4.6 · 3.9 / 4.4 | 24.1 / 37.2 · 23.3 / 36.8 |
-| Undo, 200 steps of history | 1.7 / 1.8 | 4.0 / 4.4 | 25.2 / 27.9 |
+| | 1,000 paragraphs | 5,000 paragraphs | 10,000 paragraphs | 20,000 paragraphs |
+| --- | --- | --- | --- | --- |
+| Load a document | 19.9 / 26.8 | 96.3 / 197 | 197 / 362 | 421 / 750 |
+| Type (middle) | 0.9 / 2.5 | 5.8 / 6.7 | 14.5 / 16.5 | 31.1 / 48.2 |
+| Type (top · end) | 0.9 / 1.0 · 1.0 / 1.1 | 5.6 / 6.7 · 6.2 / 7.6 | 13.3 / 15.5 · 14.4 / 16.0 | 30.5 / 43.9 · 30.8 / 34.4 |
+| Enter · join blocks | 1.0 / 1.6 · 1.0 / 1.2 | 5.7 / 7.8 · 5.8 / 7.1 | 13.5 / 15.6 · 14.0 / 15.9 | 29.2 / 34.1 · 30.5 / 33.1 |
+| Paste text (3 paragraphs) | 1.1 / 1.3 | 5.8 / 7.2 | 15.3 / 18.0 | 30.8 / 34.0 |
+| Paste HTML (100 paragraphs) | 4.6 / 7.1 | 10.9 / 14.5 | 19.7 / 24.1 | 36.7 / 209 |
+| Undo · redo one step | 0.8 / 1.0 · 0.8 / 0.9 | 4.8 / 6.2 · 4.7 / 5.9 | 10.2 / 12.0 · 10.1 / 11.3 | 23.8 / 26.0 · 23.7 / 27.9 |
+| Undo, 200 steps of history | 0.9 / 1.0 | 4.1 / 5.0 | 11.7 / 13.7 | 27.5 / 30.7 |
 
 | | 500 cells | 5,000 cells | 20,000 cells |
 | --- | --- | --- | --- |
-| Load a table | 15.0 / 80.2 | 196 / 239 | 851 / 926 |
-| Type in one cell | 5.2 / 6.1 | 8.8 / 10.1 | 34.8 / 41.8 |
+| Load a table | 18.1 / 200 | 200 / 214 | 669 / 1359 |
+| Type in one cell | 5.1 / 6.1 | 9.2 / 9.9 | 27.1 / 28.6 |
 | Other cells redrawn | 0 | 0 | 0 |
 
-CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 6.0 / 10.0 and 23.2 / 38.4; loading them 95.0 / 131 and 419 / 485; typing in a cell of 500 / 5,000 cells 23.7 / 27.8 and 29.1 / 32.0.
+CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 4.1 / 8.3 and 23.9 / 27.4; loading them 85.4 / 128 and 411 / 564; typing in a cell of 500 / 5,000 cells 24.5 / 26.9 and 32.2 / 46.3.
 
-Cold start: ready 82.4 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 25.5 ms, 383 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
+Cold start: ready 85.0 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 24.6 ms, 383 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
 
-Memory: empty page 1.72 MB; a document adds 1.49 MB (1,000 paragraphs), 5.80 MB (5,000) and 22.9 MB (20,000); one undo step adds 0.02 MB, 0.40% of the 5,000-paragraph document.
+Memory: empty page 1.72 MB; a document adds 1.49 MB (1,000 paragraphs), 5.78 MB (5,000), 10.3 MB (10,000) and 22.0 MB (20,000); one undo step adds 0.02 MB, 0.40% of the 5,000-paragraph document.
 
-What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine. At 20,000 paragraphs a keystroke takes about 30 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page.
+What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine, and at 10,000 inside two. At 20,000 paragraphs a keystroke takes about 30 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page.
+
+## Budgets
+
+The numbers the project holds itself to. Bytes are in each package's `package.json` (`rathkit.budgets`, checked by `pnpm check:size` on every change); everything that is measured at run time is in `tools/bench/budgets.json` (checked by `pnpm bench` on the machine class below, and by CI with the widening above). A budget is set from the baseline run, with room for the noise between runs on the same machine (about 1.3 to 2 times the slowest figure seen), and is a promise for the reference machine class: Intel Core i7-11850H, 16 threads, 31 GB, Linux, Chromium 156. `tools/bench/budgets.test.mjs` checks that a figure over its budget is reported, and that every budget names a figure the harness produces.
+
+| What | Budget | Baseline |
+| --- | --- | --- |
+| A keystroke, Enter, join, paste of text, undo or redo (p95), 1,000 paragraphs | 5 ms | 1.0 to 2.0 ms |
+| The same, 5,000 paragraphs: inside one frame | 16 ms | 4.5 to 10 ms |
+| The same, 10,000 paragraphs: inside two frames | 24 ms | 12 to 16 ms |
+| Paste of 100 paragraphs of HTML (p95), 1,000 / 5,000 / 10,000 paragraphs | 15 / 25 / 35 ms | 8 / 13 / 20 ms |
+| Load a document (p95), 1,000 / 5,000 / 10,000 paragraphs | 40 / 250 / 500 ms | 29 / 150 / 344 ms |
+| The same with the CPU 4x slower: commands at 1,000 / 5,000 paragraphs (p95) | 30 / 100 ms | 17 / 36 ms |
+| Typing in a table cell (p95), 500 / 5,000 cells; other cells redrawn | 12 / 16 ms; none | 4.1 / 9.8 ms; none |
+| Load a table (median), 500 / 5,000 cells | 50 / 300 ms | 15 / 215 ms |
+| Cold start to ready (median) / first load of 1,000 paragraphs (median) | 250 / 60 ms | 83 / 26 ms |
+| JavaScript fetched by the conformance page | 450 KB | 393 KB |
+| Memory: one undo step, as a share of the document | 1% | 0.40% |
+| Memory: a 5,000 / 10,000-paragraph document | 8 / 14 MB | 5.8 / 10.2 MB |
+
+Not budgeted, only reported: documents of 20,000 paragraphs and tables of 20,000 cells (a keystroke takes about 30 ms in either).
+
+**Size.** Gzipped, each file on its own (see "Size" below for the method). The budgets from the first release stand: they hold today, and what to change is the next feature's to say, not this item's.
+
+| Entry point | gzipped | budget | left |
+| --- | --- | --- | --- |
+| `@rathkit/rte-core/dom` (core + browser view) | 58.8 KB | 60 KB | 1.2 KB |
+| `@rathkit/rte-core` (core) | 47.4 KB | 60 KB | 12.6 KB |
+| `@rathkit/rte-core/markdown` | 14.8 KB | 15 KB | 0.2 KB |
+| `@rathkit/rte-core/tables` | 12.8 KB | 15 KB | 2.2 KB |
+| `@rathkit/rte-core/lists` | 9.2 KB | 15 KB | 5.8 KB |
+| `@rathkit/rte-ui` / with default icons / the element | 13.2 / 13.2 / 13.9 KB | 25 / 30 / 30 KB | 11.8 / 16.8 / 16.1 KB |
+| `@rathkit/rte-headless` | 7.4 KB | 12 KB | 4.6 KB |
+| `@rathkit/rte-element` | 3.3 KB | 4 KB | 0.7 KB |
+| The other plugins (`autoformat`, `footnotes`, `find`, `word`, `svg`, `images`) | 1.9 to 5.7 KB | 15 KB each | 9.3 KB or more |
+| The framework wrappers (`react`, `vue`, `svelte`, `angular`, `jquery`) | 0.7 to 1.6 KB | 2 KB each | 0.4 KB or more |
+
+Recommendation, for the owner: keep every byte budget as it is. Three have little room and will be the first to need a decision: the core with the browser view (1.2 KB, and Embeds is estimated at about 1 KB), the Markdown plugin (0.2 KB) and the element (0.7 KB). Raising a budget is a change to its `package.json` in the same commit as the code that needs it, with the reason in the message. The numbers outside this repository that the targets were weighed against are not published here, by design: this page publishes only our own numbers and methods.
 
 ## Size
 
