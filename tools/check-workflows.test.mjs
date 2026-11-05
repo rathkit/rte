@@ -82,3 +82,11 @@ test("the pull request checks a branch ruleset can require are named for what th
   for (const good of ["feat(tables): sort rows", "chore(release): 0.1.0", "docs!: break it", "fix: a. b"]) assert.match(good, pattern, good);
   for (const bad of ["Feat: x1", "feat: Upper", "feat: ends.", "feat(a b): x1", "update things", "feat:no space"]) assert.doesNotMatch(bad, pattern, bad);
 });
+
+test("every job runs on a runner image pinned to a version, never a -latest label", () => {
+  for (const f of files) {
+    const labels = text(f).split("\n").filter((l) => /^\s*runs-on:/.test(l));
+    assert.ok(labels.length > 0, `${f} has no runs-on`);
+    for (const line of labels) assert.match(line, /runs-on:\s*[a-z]+-\d+\.\d+\s*$/, `${f}: ${line.trim()}`);
+  }
+});
