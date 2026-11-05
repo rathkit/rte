@@ -5,8 +5,12 @@
 // By default each file is gzipped on its own and summed, which is an upper bound (CI uses this). With RTE_PACK set to the
 // path of a rathkit-pack binary, each entry is also bundled and minified, and the minified numbers are the ones checked,
 // since they are what a person downloads. Those numbers are provisional while the minifier is still changing.
+// Besides the budget (a ceiling with room under it), each entry is held to the size recorded in tools/size-baseline.json plus a stated margin,
+// so growth that stays under the ceiling is still seen. An approved increase is recorded, with its reason, by
+//   pnpm check:size --record "why the size grows"      (rewrites the baseline and appends what changed to its history)
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { baselineProblems, recorded } from "./size-baseline.mjs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -46,6 +50,12 @@ function minified(entryFile) {
   }
 }
 
+const baselineFile = new URL("./size-baseline.json", import.meta.url);
+const baseline = JSON.parse(readFileSync(baselineFile, "utf8"));
+const recordIndex = process.argv.indexOf("--record");
+const reason = recordIndex >= 0 ? process.argv[recordIndex + 1] : undefined;
+if (recordIndex >= 0 && (!reason || reason.startsWith("--"))) { console.error('--record needs the reason: pnpm check:size --record "why the size grows"'); process.exit(2); }
+const measuredBytes = {};
 let failed = false;
 for (const name of readdirSync("packages")) {
   const root = join("packages", name);
@@ -74,9 +84,19 @@ for (const name of readdirSync("packages")) {
     }
     const kb = measured / 1024;
     const over = kb > b.gzipKB;
+    if (!pack) measuredBytes[`${meta.name} ${b.name}`] = measured;
     console.log(`size: ${meta.name} ${b.name}: ${kb.toFixed(1)} KB gzipped of ${b.gzipKB} KB, ${how}${pack ? `; upper bound ${(upper / 1024).toFixed(1)} KB` : ""}${over ? " OVER BUDGET" : ""}`);
     if (over) failed = true;
   }
 }
 if (pack) console.log(`size: minifier ${pack}${process.env.RTE_PACK_COMMIT ? ` (pack commit ${process.env.RTE_PACK_COMMIT}, built from a working tree)` : ""}`);
+if (!pack) {
+  if (reason) {
+    const next = recorded(baseline, measuredBytes, reason, new Date().toISOString().slice(0, 10));
+    writeFileSync(baselineFile, `${JSON.stringify(next, null, 2)}\n`);
+    console.log(`size: baseline recorded (${next.history.length - baseline.history.length} change${next.history.length - baseline.history.length === 1 ? "" : "s"}): ${reason}`);
+  } else {
+    for (const problem of baselineProblems(baseline, measuredBytes)) { console.log(`size: ${problem}`); failed = true; }
+  }
+}
 process.exit(failed ? 1 : 0);

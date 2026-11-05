@@ -24,7 +24,7 @@ RTE_PLAYWRIGHT=$PWD/tools/browser-checks/node_modules pnpm bench -- --out result
 - **Memory.** The heap in use after a forced collection: an empty page, then with each size of document, then with 100 undo steps added. No other measurement runs at the same time.
 - **Slow device.** The full run repeats the paragraph and table scenarios with the CPU throttled four times (`@4x`). That is Chromium's throttling, a stand-in for a slow device and not a measurement of one.
 - **Machine class.** Every run records the CPU, threads, memory, operating system, Node, Chromium and Playwright versions and the commit, and the `--class` you give it. A figure is only comparable with another from the same class.
-- **Budgets.** The harness exits with an error if a figure is over its budget in `tools/bench/budgets.json` (see "Budgets" below). CI runs the quick harness on a pinned runner image (`ubuntu-24.04`) with every budget widened three times (`--scale 3`), and uploads the JSON as an artifact; it does not compare runs.
+- **Budgets.** The harness exits with an error if a figure is over its budget in `tools/bench/budgets.json` (see "Budgets" below). CI runs the quick harness on a pinned runner image (`ubuntu-24.04`) with every budget widened three times (`--scale 3`), and uploads the JSON as an artifact. On a change it also runs the harness on the commit it builds on, on the same runner, and compares the two (see "Regression gates" below).
 
 ### Results
 
@@ -92,6 +92,18 @@ Not budgeted, only reported: documents of 20,000 paragraphs and tables of 20,000
 | The framework wrappers (`react`, `vue`, `svelte`, `angular`, `jquery`) | 0.7 to 1.6 KB | 2 KB each | 0.4 KB or more |
 
 Recommendation, for the owner: keep every byte budget as it is. Three have little room and will be the first to need a decision: the core with the browser view (1.2 KB, and Embeds is estimated at about 1 KB), the Markdown plugin (0.2 KB) and the element (0.7 KB). Raising a budget is a change to its `package.json` in the same commit as the code that needs it, with the reason in the message. The numbers outside this repository that the targets were weighed against are not published here, by design: this page publishes only our own numbers and methods.
+
+### Regression gates
+
+A budget is a ceiling with room under it, so it cannot see a change that makes something twice as slow, or 800 bytes larger, while staying under it. Three gates compare a change with what it builds on:
+
+- **Size.** `pnpm check:size` holds every entry point to the size recorded in `tools/size-baseline.json` plus a margin: the larger of 1% and 128 bytes. Growth beyond that fails with the old size, the new size and the way out. It also fails for an entry that has no recorded size, or that is recorded but no longer measured.
+- **Speed and memory.** The `bench` job in CI builds the commit the change is based on (the base of a pull request, or the commit before a push), measures it with this commit's harness on the same runner, measures this commit, and runs `tools/bench/compare.mjs`. Each side runs twice and the lower figure counts, so one noisy run does not fail a change. A timing (median) fails when it is both 1.5 times the base and more than 2 ms slower; the second condition keeps a 0.9 ms figure that reads 1.4 ms from being called a regression. Memory and fetched JavaScript fail at 1.1 times and 100 KB more. Both sides are measured in the same job, so the difference is not the runner's.
+- **Leaks.** `tools/leak` has no baseline: nothing may be left behind, so any growth fails (see `docs/LEAKS.md`).
+
+**Recording an approved increase.** For size, run `pnpm check:size --record "why"` in the same commit as the code that grows it; the new size, the old size, the date and the reason are appended to `history` in `tools/size-baseline.json`, and the pull request shows the diff to the owner, who reviews every change (`CODEOWNERS`). For speed and memory, add the figure to `tools/bench/accepted.json` with the ratio that is allowed and the reason, in the same commit; remove it when the cost is paid back. Raising a budget in a `package.json` or `tools/bench/budgets.json` is the same kind of change and is reviewed the same way. Nothing raises a limit without an edit to one of these files.
+
+**Shown to fail.** A deliberate 3 KB addition to the core's built file fails the size gate (`grew from 48571 to 51690 bytes (+3119), over the margin of 486 bytes`). A 6 ms delay in the editor's input handler fails the comparison for 17 figures (typing 1.0 ms became 7.1 ms with 1,000 paragraphs), where the budgets alone would have passed it: 7 ms is under the CI ceiling of 15 ms. Both are covered by tests (`tools/size-baseline.test.mjs`, `tools/bench/compare.test.mjs`).
 
 ## Size
 

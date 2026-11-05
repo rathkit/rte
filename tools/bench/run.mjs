@@ -1,6 +1,6 @@
 // The benchmark harness: numbers, not pass or fail. It drives the built editor in Chromium and writes what it measured, with the machine
 // and the method, to a JSON file and to the console as tables. docs/MEASUREMENTS.md says how to read them.
-//   RTE_PLAYWRIGHT=tools/browser-checks/node_modules tools/bench/run.sh [--quick] [--out results.json] [--class "name of the machine class"]
+//   RTE_PLAYWRIGHT=tools/browser-checks/node_modules tools/bench/run.sh [--quick] [--out results.json] [--class "name of the machine class"] [--report-only]
 // It reports the figures, and fails when one is over its budget in budgets.json (for the reference machine class; CI widens them with --scale 3,
 // because a shared runner is slower).
 import { execFileSync } from "node:child_process";
@@ -194,6 +194,7 @@ console.log(`\nmemory: ${Object.entries(results.mem).map(([k, v]) => `${k} ${k.e
 
 if (out) writeFileSync(out, `${JSON.stringify({ machine, results }, null, 2)}\n`);
 
+if (flag("--report-only")) { console.log("\nreport only: budgets not checked"); process.exit(0); }
 const over = overBudget(results, budgets, scale);
 if (over.length) { console.log(`\nOVER BUDGET\n  ${over.join("\n  ")}`); process.exit(1); }
 console.log(`\nwithin every budget${scale === 1 ? "" : ` (scaled by ${scale})`}`);

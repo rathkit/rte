@@ -84,7 +84,10 @@ git push --force-with-lease                        # to your fork
 pnpm install
 pnpm check   # zero-deps check, typecheck, tests
 pnpm build
+pnpm check:size   # fails if a package grew beyond its recorded size
 ```
+
+If your change makes a package larger or a command slower and that is the price of the feature, say so and record it: `pnpm check:size --record "why"` for size, or an entry in `tools/bench/accepted.json` for speed (see "Regression gates" in `docs/MEASUREMENTS.md`). CI fails a change that does either without that record.
 
 Use pnpm, not npm. See the README for the Node and pnpm versions.
 

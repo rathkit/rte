@@ -1,0 +1,195 @@
+{
+  "about": "The sizes (bytes, gzipped, each file on its own) that tools/check-size.mjs holds every entry point to, plus the margin. A change that grows an entry beyond the margin fails until the increase is recorded with  pnpm check:size --record \"why\"  in the same commit; the history below says what grew, when and why. The ceiling for each entry is its budget in its package.json.",
+  "margin": {
+    "percent": 1,
+    "bytes": 128
+  },
+  "sizes": {
+    "@rathkit/rte-angular angular": 1554,
+    "@rathkit/rte-angular angular forms": 1637,
+    "@rathkit/rte-core autoformat plugin": 1923,
+    "@rathkit/rte-core core": 48571,
+    "@rathkit/rte-core core + browser view": 60313,
+    "@rathkit/rte-core find plugin": 2495,
+    "@rathkit/rte-core footnotes plugin": 3878,
+    "@rathkit/rte-core images plugin": 5816,
+    "@rathkit/rte-core lists plugin": 9413,
+    "@rathkit/rte-core markdown plugin": 15124,
+    "@rathkit/rte-core svg plugin": 3813,
+    "@rathkit/rte-core tables plugin": 13131,
+    "@rathkit/rte-core word plugin": 1918,
+    "@rathkit/rte-element element": 3340,
+    "@rathkit/rte-headless headless": 7608,
+    "@rathkit/rte-icons all icons": 2147,
+    "@rathkit/rte-jquery jquery": 777,
+    "@rathkit/rte-react react": 1088,
+    "@rathkit/rte-svelte svelte": 694,
+    "@rathkit/rte-ui ui": 13478,
+    "@rathkit/rte-ui ui element": 14283,
+    "@rathkit/rte-ui ui with default icons": 13564,
+    "@rathkit/rte-vue vue": 1195
+  },
+  "history": [
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-angular angular",
+      "from": null,
+      "to": 1554,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-angular angular forms",
+      "from": null,
+      "to": 1637,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core core",
+      "from": null,
+      "to": 48571,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core core + browser view",
+      "from": null,
+      "to": 60313,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core lists plugin",
+      "from": null,
+      "to": 9413,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core tables plugin",
+      "from": null,
+      "to": 13131,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core autoformat plugin",
+      "from": null,
+      "to": 1923,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core footnotes plugin",
+      "from": null,
+      "to": 3878,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core markdown plugin",
+      "from": null,
+      "to": 15124,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core find plugin",
+      "from": null,
+      "to": 2495,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core word plugin",
+      "from": null,
+      "to": 1918,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core svg plugin",
+      "from": null,
+      "to": 3813,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-core images plugin",
+      "from": null,
+      "to": 5816,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-element element",
+      "from": null,
+      "to": 3340,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-headless headless",
+      "from": null,
+      "to": 7608,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-icons all icons",
+      "from": null,
+      "to": 2147,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-jquery jquery",
+      "from": null,
+      "to": 777,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-react react",
+      "from": null,
+      "to": 1088,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-svelte svelte",
+      "from": null,
+      "to": 694,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-ui ui",
+      "from": null,
+      "to": 13478,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-ui ui with default icons",
+      "from": null,
+      "to": 13564,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-ui ui element",
+      "from": null,
+      "to": 14283,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-05",
+      "entry": "@rathkit/rte-vue vue",
+      "from": null,
+      "to": 1195,
+      "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    }
+  ]
+}
