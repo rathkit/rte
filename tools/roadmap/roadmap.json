@@ -196,6 +196,16 @@
       "body": "Owner decision: the docs state only measured numbers with methods; any statement that compares with other products waits for a benchmark anyone can run, and for the owner's rule on naming other products.\n\nDone when: the rule is written in `CONTRIBUTING.md` and the site copy follows it."
     },
     {
+      "id": "3.13",
+      "title": "Benchmarks in their own repository, run in a container",
+      "milestone": "0.2.0-beta.0",
+      "track": "perf",
+      "priority": "P1",
+      "size": "L",
+      "flags": [],
+      "body": "The benchmark runner, its container recipe and the method live in the public repository rathkit/rte-bench, and a benchmark is run only inside an isolated, throwaway container (image pinned by digest, no network during the run). This repository keeps the published results in docs/MEASUREMENTS.md with a link, the numbers the project holds itself to (budgets, the recorded sizes, the approved increases), and the test-only manifest of the browser driver the browser checks need. The same pattern as the Rathkit Pack bundler, so one set of rules serves both.\n\nDone when: (1) rathkit/rte-bench holds the runner, a container recipe pinned by digest and the method, and docs/MEASUREMENTS.md links to it; (2) this repository holds no benchmark runner, and the only third-party code the benchmarks load, the browser driver, stays in tools/browser-checks as the test-only manifest, because the browser checks need it as well (no other tool is compared with, in either repository); (3) a published figure is made only inside the container and names the browser build, the machine, the load and the commits of both repositories; (4) the regression gate of 3.4 still fails a deliberate regression in a test branch, with the runner taken from rte-bench at a pinned commit; (5) the plan's open points are settled with the owner before this closes."
+    },
+    {
       "id": "5.1",
       "title": "Server-side use and server rendering",
       "milestone": "0.3.0-beta.0",
