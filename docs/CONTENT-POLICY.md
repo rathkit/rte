@@ -245,7 +245,7 @@ Each rule has a hostile-markup test, `rule N` in `policy.test.ts`.
    stays as text in the deepest level. The time to read Markdown grows in proportion to its length: a paragraph of 200,000 lines, 60,000
    lines each inside 30 nested quotes, and a list 24 deep with 120,000 items each read in under a second (they took 12, 8 and 15 seconds
    before; the test is `the time to read Markdown grows with its length`), and the benchmark suite times these shapes
-   (`docs/MEASUREMENTS.md`, "Markdown").
+   (`docs/MEASUREMENTS.md`, "Results").
 9. **Input is bounded.** Markup (or pasted text) longer than `maxInputLength` is refused whole: nothing is read, `onLimit` is told
    and the editor's warning handler is called. The document is not changed by a refused paste; a refused load gives an empty
    document.

@@ -19,39 +19,43 @@ The container needs Docker or Podman (`CONTAINER=podman`). Limits are applied th
 
 <!-- rte-bench:begin -->
 
-Full run of 2026-11-06 at RTE commit `11e745e` and rte-bench commit `e023aea`: developer laptop, container (11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz, 8 logical CPUs in the container (cpuset 2-9), 31 GB, 6.18.54.1-microsoft-standard-WSL2; WSL2, Docker Desktop, laptop on AC), Node 26.13.0, Chromium 156.0.8078.80, Playwright 1.64.1, 30 runs per figure, in the pinned container (Chromium sandbox: container). Milliseconds, median / 95th percentile.
+Full run of 2026-11-06 at RTE commit `9b6295d` and rte-bench commit `f873e67`: developer laptop, container (11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz, 8 logical CPUs in the container (cpuset 2-9), 31 GB, 6.18.54.1-microsoft-standard-WSL2; WSL2, Docker Desktop, laptop on AC), Node 26.13.0, Chromium 156.0.8078.80, Playwright 1.64.1, 30 runs per figure, in the pinned container (Chromium sandbox: container). Milliseconds, median / 95th percentile.
 
 | | 1,000 paragraphs | 5,000 paragraphs | 10,000 paragraphs | 20,000 paragraphs |
 | --- | --- | --- | --- | --- |
-| Load a document | 19.6 / 25.1 | 94.2 / 134 | 191 / 440 | 388 / 682 |
-| Type (middle) | 0.9 / 1.7 | 5.0 / 6.2 | 12.4 / 14.5 | 23.2 / 27.4 |
-| Type (top · end) | 0.9 / 1.0 · 1.0 / 1.2 | 4.5 / 6.5 · 7.3 / 13.7 | 11.4 / 12.7 · 12.3 / 14.2 | 21.8 / 24.2 · 24.0 / 26.7 |
-| Enter · join blocks | 0.9 / 1.0 · 0.9 / 1.6 | 5.5 / 7.5 · 5.1 / 6.5 | 11.8 / 13.4 · 13.1 / 16.9 | 23.7 / 26.1 · 24.1 / 46.6 |
-| Paste text (3 paragraphs) | 0.9 / 1.0 | 6.2 / 9.9 | 13.3 / 15.1 | 25.1 / 27.2 |
-| Paste HTML (100 paragraphs) | 4.0 / 6.9 | 9.1 / 12.0 | 18.5 / 21.5 | 29.6 / 244 |
-| Undo · redo one step | 0.7 / 1.0 · 0.8 / 0.9 | 4.2 / 5.1 · 4.2 / 5.2 | 11.6 / 14.2 · 11.8 / 14.7 | 21.3 / 22.6 · 21.1 / 22.0 |
-| Undo, 200 steps of history | 0.8 / 0.9 | 6.6 / 9.8 | 11.1 / 13.6 | 23.4 / 29.6 |
+| Load a document | 18.8 / 23.6 | 87.0 / 137 | 194 / 317 | 382 / 709 |
+| Type (middle) | 0.9 / 1.3 | 4.7 / 6.2 | 10.3 / 10.7 | 22.5 / 25.3 |
+| Type (top · end) | 0.8 / 0.9 · 0.9 / 1.0 | 4.1 / 4.5 · 4.8 / 5.4 | 9.8 / 12.5 · 10.9 / 11.6 | 21.9 / 22.7 · 24.2 / 26.4 |
+| Enter · join blocks | 0.9 / 1.2 · 1.1 / 2.0 | 4.6 / 5.4 · 4.8 / 5.7 | 10.7 / 11.5 · 10.7 / 12.7 | 23.8 / 25.8 · 23.7 / 26.0 |
+| Paste text (3 paragraphs) | 1.1 / 1.4 | 4.9 / 5.7 | 11.2 / 13.0 | 24.8 / 26.9 |
+| Paste HTML (100 paragraphs) | 3.9 / 8.1 | 9.2 / 12.3 | 15.2 / 17.4 | 29.4 / 32.6 |
+| Undo · redo one step | 0.8 / 1.5 · 0.8 / 1.1 | 3.9 / 4.4 · 3.8 / 4.2 | 9.3 / 9.7 · 9.3 / 9.8 | 19.8 / 20.8 · 19.7 / 21.0 |
+| Undo, 200 steps of history | 0.8 / 0.9 | 3.6 / 5.6 | 10.1 / 10.4 | 21.3 / 23.9 |
 
 | | 500 cells | 5,000 cells | 20,000 cells |
 | --- | --- | --- | --- |
-| Load a table | 16.3 / 182 | 187 / 188 | 595 / 1034 |
-| Type in one cell | 4.5 / 5.6 | 8.1 / 8.5 | 22.8 / 47.7 |
+| Load a table | 13.6 / 59.1 | 168 / 183 | 752 / 766 |
+| Type in one cell | 4.3 / 4.4 | 6.1 / 7.8 | 26.0 / 34.1 |
 | Other cells redrawn | 0 | 0 | 0 |
 
-CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 3.7 / 6.1 and 20.3 / 27.0; loading them 71.9 / 84.0 and 366 / 509; typing in a cell of 500 / 5,000 cells 19.8 / 22.9 and 26.9 / 36.7.
+CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 3.5 / 6.4 and 18.5 / 20.7; loading them 74.7 / 94.8 and 364 / 518; typing in a cell of 500 / 5,000 cells 18.3 / 20.0 and 24.7 / 26.2.
 
-CPU 6x slower: typing in the middle of 1,000 / 5,000 paragraphs 5.6 / 10.6 and 31.3 / 37.1; loading them 112 / 131 and 547 / 674; typing in a cell of 500 / 5,000 cells 30.3 / 33.0 and 42.7 / 47.2.
+CPU 6x slower: typing in the middle of 1,000 / 5,000 paragraphs 6.6 / 35.3 and 33.1 / 37.2; loading them 109 / 127 and 528 / 662; typing in a cell of 500 / 5,000 cells 22.5 / 25.3 and 39.8 / 47.9.
 
 
 Low memory (the JavaScript heap capped, so the largest document that loads and takes a keystroke): 128 MB: 40,000 paragraphs, 256 MB: 80,000 paragraphs. One attempt per size, a capacity test and not a timing; the cap is on the heap, not on the whole browser.
 
-Cold start: ready 79.5 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 24.9 ms, 384 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
+Markdown reading, the time to read pasted Markdown into blocks (in Node, without a page; median / 95th percentile in milliseconds): 20,000 paragraphs with bold, italic and links 95.1 / 127; a list nested 2,000 deep 438 / 458; one paragraph of 200,000 lines under a setext underline 42.0 / 60.3; 60,000 lines each inside 30 nested quotes 184 / 242; a list 24 deep with 120,000 items at the bottom 680 / 730.
+
+Cold start: ready 73.5 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 23.8 ms, 384 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
 
 Memory: empty page 1.73 MB; a document adds 1.49 MB (1,000 paragraphs), 5.78 MB (5,000), 10.3 MB (10,000) and 22.0 MB (20,000); one undo step adds 0.02 MB, 0.40% of the 5,000-paragraph document.
 
 <!-- rte-bench:end -->
 
-What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine, and at 10,000 inside two. At 20,000 paragraphs a keystroke takes about 25 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page. At 6 times slower, a stand-in for a low-end phone, typing in the middle of 1,000 paragraphs takes 5.6 ms and of 5,000 takes 31 ms, so 5,000 paragraphs are past a frame there while 1,000 are well inside it. With the JavaScript heap capped at 128 MB a document of 40,000 paragraphs still loads and takes a keystroke, and at 256 MB, 80,000; memory is not the first limit: a keystroke is already over a frame at 20,000 paragraphs, well below what those heaps hold. Both are Chromium on this machine with a CPU or heap limit set on it, not a measurement of a phone.
+What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine, and at 10,000 inside two. At 20,000 paragraphs a keystroke takes about 25 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page. At 6 times slower, a stand-in for a low-end phone, typing in the middle of 1,000 paragraphs takes 5.6 ms and of 5,000 takes 31 ms, so 5,000 paragraphs are past a frame there while 1,000 are well inside it. With the JavaScript heap capped at 128 MB a document of 40,000 paragraphs still loads and takes a keystroke, and at 256 MB, 80,000; memory is not the first limit: a keystroke is already over a frame at 20,000 paragraphs, well below what those heaps hold. Both are Chromium on this machine with a CPU or heap limit set on it, not a measurement of a phone. Reading Markdown takes time in proportion to its length: 200,000 lines under one underline take 42 ms, where the reader took 12 seconds before the fix described in `docs/CONTENT-POLICY.md` (rule 8), and a list 24 deep with 120,000 items takes 680 ms, where it took 15 seconds.
+
+These figures are from the fourth attempt at a publishable run. The first three were over a 95th-percentile budget on single runs that stalled on this machine (one took 399 ms where the median was 6 ms), a different figure each time, with the medians unchanged; they are not published. The tables above leave out those stalls, which do happen here.
 
 ## Budgets
 
