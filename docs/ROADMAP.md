@@ -82,7 +82,7 @@ Measure and gate: a benchmark suite with a stated method, numeric budgets, memor
 - [x] [3.2](https://github.com/rathkit/rte/issues/10) Write the budgets `P0`
 - [x] [3.3](https://github.com/rathkit/rte/issues/11) Memory and leaks `P0`
 - [x] [3.4](https://github.com/rathkit/rte/issues/12) Regression gates in CI `P0`
-- [ ] [3.5](https://github.com/rathkit/rte/issues/13) Throttled-CPU and low-memory runs `P2`
+- [x] [3.5](https://github.com/rathkit/rte/issues/13) Throttled-CPU and low-memory runs `P2`
 - [ ] [3.6](https://github.com/rathkit/rte/issues/14) Decide how performance is described publicly *(maintainer)* `P0`
 - [x] [3.13](https://github.com/rathkit/rte/issues/82) Benchmarks in their own repository, run in a container `P1`
 

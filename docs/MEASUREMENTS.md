@@ -19,34 +19,39 @@ The container needs Docker or Podman (`CONTAINER=podman`). Limits are applied th
 
 <!-- rte-bench:begin -->
 
-Full run of 2026-11-06 at RTE commit `b0c5ab7` and rte-bench commit `249b44f`: developer laptop, container (11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz, 8 logical CPUs in the container (cpuset 2-9), 31 GB, 6.18.54.1-microsoft-standard-WSL2; WSL2, Docker Desktop, laptop on AC), Node 26.13.0, Chromium 156.0.8078.80, Playwright 1.64.1, 30 runs per figure, in the pinned container (Chromium sandbox: container). Milliseconds, median / 95th percentile.
+Full run of 2026-11-06 at RTE commit `11e745e` and rte-bench commit `e023aea`: developer laptop, container (11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz, 8 logical CPUs in the container (cpuset 2-9), 31 GB, 6.18.54.1-microsoft-standard-WSL2; WSL2, Docker Desktop, laptop on AC), Node 26.13.0, Chromium 156.0.8078.80, Playwright 1.64.1, 30 runs per figure, in the pinned container (Chromium sandbox: container). Milliseconds, median / 95th percentile.
 
 | | 1,000 paragraphs | 5,000 paragraphs | 10,000 paragraphs | 20,000 paragraphs |
 | --- | --- | --- | --- | --- |
-| Load a document | 21.8 / 28.3 | 100 / 148 | 195 / 294 | 405 / 712 |
-| Type (middle) | 0.9 / 1.5 | 6.1 / 7.4 | 11.9 / 14.9 | 23.6 / 29.1 |
-| Type (top · end) | 0.8 / 1.0 · 0.9 / 1.0 | 5.1 / 6.2 · 6.0 / 9.1 | 11.0 / 14.9 · 11.6 / 13.8 | 23.4 / 26.2 · 24.9 / 28.6 |
-| Enter · join blocks | 0.9 / 1.5 · 0.9 / 1.2 | 5.8 / 6.8 · 5.9 / 6.9 | 12.2 / 19.3 · 12.0 / 15.9 | 24.9 / 28.8 · 26.4 / 28.8 |
-| Paste text (3 paragraphs) | 1.0 / 1.2 | 5.6 / 6.9 | 13.5 / 19.5 | 27.2 / 29.7 |
-| Paste HTML (100 paragraphs) | 4.4 / 8.8 | 11.0 / 13.8 | 17.0 / 24.1 | 31.4 / 265 |
-| Undo · redo one step | 0.8 / 0.9 · 0.7 / 0.9 | 4.5 / 7.2 · 4.3 / 12.6 | 9.5 / 10.6 · 9.6 / 10.7 | 21.2 / 23.7 · 21.5 / 23.3 |
-| Undo, 200 steps of history | 0.9 / 1.0 | 4.1 / 5.1 | 10.4 / 12.1 | 26.2 / 38.8 |
+| Load a document | 19.6 / 25.1 | 94.2 / 134 | 191 / 440 | 388 / 682 |
+| Type (middle) | 0.9 / 1.7 | 5.0 / 6.2 | 12.4 / 14.5 | 23.2 / 27.4 |
+| Type (top · end) | 0.9 / 1.0 · 1.0 / 1.2 | 4.5 / 6.5 · 7.3 / 13.7 | 11.4 / 12.7 · 12.3 / 14.2 | 21.8 / 24.2 · 24.0 / 26.7 |
+| Enter · join blocks | 0.9 / 1.0 · 0.9 / 1.6 | 5.5 / 7.5 · 5.1 / 6.5 | 11.8 / 13.4 · 13.1 / 16.9 | 23.7 / 26.1 · 24.1 / 46.6 |
+| Paste text (3 paragraphs) | 0.9 / 1.0 | 6.2 / 9.9 | 13.3 / 15.1 | 25.1 / 27.2 |
+| Paste HTML (100 paragraphs) | 4.0 / 6.9 | 9.1 / 12.0 | 18.5 / 21.5 | 29.6 / 244 |
+| Undo · redo one step | 0.7 / 1.0 · 0.8 / 0.9 | 4.2 / 5.1 · 4.2 / 5.2 | 11.6 / 14.2 · 11.8 / 14.7 | 21.3 / 22.6 · 21.1 / 22.0 |
+| Undo, 200 steps of history | 0.8 / 0.9 | 6.6 / 9.8 | 11.1 / 13.6 | 23.4 / 29.6 |
 
 | | 500 cells | 5,000 cells | 20,000 cells |
 | --- | --- | --- | --- |
-| Load a table | 16.8 / 185 | 189 / 232 | 691 / 1171 |
-| Type in one cell | 5.0 / 5.9 | 6.9 / 8.2 | 24.2 / 26.3 |
+| Load a table | 16.3 / 182 | 187 / 188 | 595 / 1034 |
+| Type in one cell | 4.5 / 5.6 | 8.1 / 8.5 | 22.8 / 47.7 |
 | Other cells redrawn | 0 | 0 | 0 |
 
-CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 3.8 / 7.8 and 23.4 / 29.1; loading them 78.1 / 105 and 369 / 487; typing in a cell of 500 / 5,000 cells 16.6 / 19.6 and 27.6 / 44.6.
+CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 3.7 / 6.1 and 20.3 / 27.0; loading them 71.9 / 84.0 and 366 / 509; typing in a cell of 500 / 5,000 cells 19.8 / 22.9 and 26.9 / 36.7.
 
-Cold start: ready 80.5 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 26.3 ms, 384 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
+CPU 6x slower: typing in the middle of 1,000 / 5,000 paragraphs 5.6 / 10.6 and 31.3 / 37.1; loading them 112 / 131 and 547 / 674; typing in a cell of 500 / 5,000 cells 30.3 / 33.0 and 42.7 / 47.2.
 
-Memory: empty page 1.73 MB; a document adds 1.49 MB (1,000 paragraphs), 5.82 MB (5,000), 10.3 MB (10,000) and 22.0 MB (20,000); one undo step adds 0.02 MB, 0.40% of the 5,000-paragraph document.
+
+Low memory (the JavaScript heap capped, so the largest document that loads and takes a keystroke): 128 MB: 40,000 paragraphs, 256 MB: 80,000 paragraphs. One attempt per size, a capacity test and not a timing; the cap is on the heap, not on the whole browser.
+
+Cold start: ready 79.5 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 24.9 ms, 384 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
+
+Memory: empty page 1.73 MB; a document adds 1.49 MB (1,000 paragraphs), 5.78 MB (5,000), 10.3 MB (10,000) and 22.0 MB (20,000); one undo step adds 0.02 MB, 0.40% of the 5,000-paragraph document.
 
 <!-- rte-bench:end -->
 
-What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine, and at 10,000 inside two. At 20,000 paragraphs a keystroke takes about 25 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page.
+What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine, and at 10,000 inside two. At 20,000 paragraphs a keystroke takes about 25 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page. At 6 times slower, a stand-in for a low-end phone, typing in the middle of 1,000 paragraphs takes 5.6 ms and of 5,000 takes 31 ms, so 5,000 paragraphs are past a frame there while 1,000 are well inside it. With the JavaScript heap capped at 128 MB a document of 40,000 paragraphs still loads and takes a keystroke, and at 256 MB, 80,000; memory is not the first limit: a keystroke is already over a frame at 20,000 paragraphs, well below what those heaps hold. Both are Chromium on this machine with a CPU or heap limit set on it, not a measurement of a phone.
 
 ## Budgets
 
