@@ -1,6 +1,6 @@
 {
   "name": "@rathkit/rte-headless",
-  "version": "0.1.0-alpha.5",
+  "version": "0.2.0-beta.0",
   "description": "How a toolbar, menu, dialog or announcement should behave for keyboard and assistive technology, with no markup or CSS of its own.",
   "keywords": [
     "rich-text",
@@ -45,7 +45,7 @@
     }
   },
   "peerDependencies": {
-    "@rathkit/rte-core": ">=0.1.0-alpha.5 <0.2.0"
+    "@rathkit/rte-core": ">=0.2.0-beta.0 <0.3.0"
   },
   "peerDependenciesMeta": {
     "@rathkit/rte-core": {

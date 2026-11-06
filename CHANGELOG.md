@@ -1,3 +1,43 @@
+## 0.2.0-beta.0 (2026-11-06)
+
+Published to the `next` dist-tag only. This is the first beta, and it is about measuring: the benchmark suite and its method now live in their own repository (`rathkit/rte-bench`) and run in a container; CI enforces numeric size and speed budgets against the base commit; there are memory and leak checks, runs at a slower CPU, and a low-memory run. `docs/MEASUREMENTS.md` has the figures and how each was taken. Markdown is now read in time proportional to its length, and its nesting limit follows the content profile. Nothing in this release breaks the API of `0.1.0-alpha.5`, but a beta can still change options, output and plugin support.
+
+### Features
+
+- **tools:** add the benchmark suite and its method ([#9](https://github.com/rathkit/rte/issues/9))
+- **tools:** write the budgets for speed, memory and cold start ([#10](https://github.com/rathkit/rte/issues/10))
+- **tools:** fail a change that grows a size or slows a command beyond a margin ([#12](https://github.com/rathkit/rte/issues/12))
+
+### Fixes
+
+- **core:** destroy() takes away every plugin, and add the leak test ([#11](https://github.com/rathkit/rte/issues/11))
+- **markdown:** read Markdown in time proportional to its length ([9b6295d](https://github.com/rathkit/rte/commit/9b6295d))
+- **tools:** leave the first small document out of the memory comparison ([dbae906](https://github.com/rathkit/rte/commit/dbae906))
+
+### Internal changes
+
+- **bench:** the harness moves to rathkit/rte-bench ([b0c5ab7](https://github.com/rathkit/rte/commit/b0c5ab7))
+
+### Documentation
+
+- say alpha.5 is on npm ([3a2f412](https://github.com/rathkit/rte/commit/3a2f412))
+- **contributing:** the rule for describing performance ([5197fc8](https://github.com/rathkit/rte/commit/5197fc8))
+- **measurements:** republish the figures from the container run ([0ebe0f5](https://github.com/rathkit/rte/commit/0ebe0f5))
+- **measurements:** add 6x CPU and low-memory figures, tick 3.5 ([#13](https://github.com/rathkit/rte/issues/13))
+- **measurements:** add the Markdown reading figures ([#80](https://github.com/rathkit/rte/issues/80))
+- **roadmap:** add 3.13, benchmarks in their own repository ([36cd181](https://github.com/rathkit/rte/commit/36cd181))
+- **roadmap:** tick 3.13, benchmarks are in rathkit/rte-bench ([#82](https://github.com/rathkit/rte/issues/82))
+
+### Build
+
+- **release:** accept beta versions and say beta in the package READMEs ([a50b53f](https://github.com/rathkit/rte/commit/a50b53f))
+
+### Continuous integration
+
+- pin every runner image to ubuntu-24.04 ([90aceee](https://github.com/rathkit/rte/commit/90aceee))
+- key the browser cache by runner image ([c71fe22](https://github.com/rathkit/rte/commit/c71fe22))
+- **bench:** run the gate in the rte-bench container ([f9b5899](https://github.com/rathkit/rte/commit/f9b5899))
+
 ## 0.1.0-alpha.5 (2026-11-04)
 
 Published to the `next` dist-tag only. This alpha renames things and tightens how content and problems are handled, so expect to change code that uses earlier alphas.
