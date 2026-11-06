@@ -14,7 +14,7 @@ A row added to one and not the other fails the test. The rules at the end each h
 | Starting `html`, `setHtml`, `value`, a form reset | This page, read in full (`loading`) |
 | Paste and drop of HTML | This page, reading meaning only (`pasting`), plus the editor's recognizers |
 | Paste of plain text | The input limit only. Plain text has no markup to filter |
-| Paste of Markdown (the `markdown` plugin) | Links and images are checked the same way; the input limit applies. Raw HTML in Markdown is text, never markup |
+| Paste of Markdown (the `markdown` plugin) | Links and images are checked the same way; the input limit applies; nesting is bounded (rule 8). Raw HTML in Markdown is text, never markup |
 | Pasted or dropped image files | The images plugin's own policy (`docs/IMAGES.md`) |
 | SVG images | Refused unless the SVG plugin is on; it rewrites them from a parsed, allow-listed copy |
 
@@ -241,6 +241,11 @@ Each rule has a hostile-markup test, `rule N` in `policy.test.ts`.
    or more, and an indent above 8 steps are ignored or clamped. Table sizes never make the reader throw.
 8. **Nesting is bounded.** An element nested deeper than `maxDepth` is left out, its content kept in the deepest element allowed.
    Any depth of markup is read without an error. (Text placed straight inside a `table`, outside a cell, belongs to no cell and goes.)
+   Markdown follows the same setting: lists and quotes nest at most `maxDepth` levels, and never more than 24, and what is nested deeper
+   stays as text in the deepest level. The time to read Markdown grows in proportion to its length: a paragraph of 200,000 lines, 60,000
+   lines each inside 30 nested quotes, and a list 24 deep with 120,000 items each read in under a second (they took 12, 8 and 15 seconds
+   before; the test is `the time to read Markdown grows with its length`), and the benchmark suite times these shapes
+   (`docs/MEASUREMENTS.md`, "Markdown").
 9. **Input is bounded.** Markup (or pasted text) longer than `maxInputLength` is refused whole: nothing is read, `onLimit` is told
    and the editor's warning handler is called. The document is not changed by a refused paste; a refused load gives an empty
    document.

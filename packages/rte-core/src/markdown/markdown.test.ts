@@ -276,3 +276,41 @@ test("a hostile pile of footnote references stays fast", () => {
   parseMarkdown(`${"[^".repeat(30000)}\n\n[^a]: x`);
   assert.ok(Date.now() - start < 3000);
 });
+
+test("line ends read trailing white space the same way as before, whatever sits before them", () => {
+  assert.equal(html("a  \nb"), "<p>a<br>b</p>");
+  assert.equal(html("a \nb"), "<p>a b</p>");
+  assert.equal(html("a\t \nb"), "<p>a<br>b</p>");
+  assert.equal(html("a  \nb"), "<p>a<br>b</p>");
+  assert.equal(html("a   \n   b   \nc"), "<p>a<br>b<br>c</p>");
+  assert.equal(html("**a**  \nb"), "<p><strong>a</strong><br>b</p>");
+  assert.equal(html("a &amp; \nb"), "<p>a &amp; b</p>");
+});
+
+test("the time to read Markdown grows with its length, for the shapes that were quadratic", () => {
+  // Each of these took several seconds before the fix and takes well under one now. The limit leaves room for a slow runner.
+  const shapes: Record<string, string> = {
+    "a paragraph of 200,000 lines under a setext underline": `${"a\n".repeat(200_000)}===`,
+    "60,000 lines each in 30 nested quotes": Array.from({ length: 60_000 }, () => `${"> ".repeat(30)}y`).join("\n"),
+    "a list 24 deep with 120,000 items at the bottom": `${Array.from({ length: 24 }, (_, i) => `${" ".repeat(i * 2)}- l`).join("\n")}\n${Array.from({ length: 120_000 }, () => `${" ".repeat(48)}- leaf`).join("\n")}`,
+  };
+  for (const [name, text] of Object.entries(shapes)) {
+    const start = Date.now();
+    parseMarkdown(text);
+    assert.ok(Date.now() - start < 3000, `${name} took ${Date.now() - start} ms`);
+  }
+});
+
+test("nesting stops where the content profile says, and never goes past 24", () => {
+  const nested = (levels: number): string => Array.from({ length: levels }, (_, i) => `${" ".repeat(i * 2)}- level ${i}`).join("\n");
+  const depthOf = (blocks: readonly Block[]): number => {
+    let d = 0;
+    let list: Block | undefined = blocks[0];
+    while (list && list.type === "ul") { d++; list = list.items[0]?.children.find((c) => c.type === "ul") as Block | undefined; }
+    return d;
+  };
+  assert.ok(depthOf(parseMarkdown(nested(40))) <= 24);
+  assert.ok(depthOf(parseMarkdown(nested(40), { maxDepth: 5 })) <= 5);
+  assert.ok(depthOf(parseMarkdown(nested(40), { maxDepth: 500 })) <= 24);
+  assert.ok(depthOf(parseMarkdown(nested(40), { maxDepth: 5 })) < depthOf(parseMarkdown(nested(40))));
+});

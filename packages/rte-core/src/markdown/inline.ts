@@ -14,6 +14,11 @@ export interface MarkdownOptions {
   readonly maxDataImageLength?: number;
   /** Keep an image whose address is relative. Default true. */
   readonly relativeImages?: boolean;
+  /**
+   * How deep lists and quotes nest before what is inside stays text, at most 24 whatever is given (the editor passes its content profile's
+   * `maxDepth`, so a stricter profile reads less). Each level reads the lines inside it again, so this also bounds the work to 24 times the text.
+   */
+  readonly maxDepth?: number;
 }
 
 /** Link reference definitions found in the document: `[label]: address "title"`. Keys come from `refLabel`. */
@@ -108,10 +113,18 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
   const brackets: (Bracket & { dead?: true })[] = [];
   let head: Delimiter | null = null;
   let tail: Delimiter | null = null;
+  // Text not yet made into a piece. Trailing white space is kept apart in `pending`, so a line break can read how much of it there is
+  // without copying the text before it (copying it at every line made a paragraph of many lines take quadratic time).
   let buffer = "";
-
+  let pending = "";
+  const add = (text: string): void => {
+    const kept = text.trimEnd().length;
+    if (kept === 0) { pending += text; return; }
+    buffer += pending + text.slice(0, kept);
+    pending = text.slice(kept);
+  };
   const flush = (): void => {
-    if (buffer !== "") { pieces.push({ k: "t", s: buffer }); buffer = ""; }
+    if (buffer !== "" || pending !== "") { pieces.push({ k: "t", s: buffer + pending }); buffer = ""; pending = ""; }
   };
   const unlink = (d: Delimiter): void => {
     if (d.prev) d.prev.next = d.next; else head = d.next;
@@ -210,29 +223,27 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
     if (c === "\\") {
       const n = src[i + 1] ?? "";
       if (n === "\n") { flush(); pieces.push({ k: "br" }); i += 2; while (src[i] === " " || src[i] === "\t") i++; continue; }
-      if (isAsciiPunct(n)) { buffer += n; i += 2; continue; }
-      buffer += c; i++; continue;
+      if (isAsciiPunct(n)) { add(n); i += 2; continue; }
+      add(c); i++; continue;
     }
     if (c === "\n") {
-      let spaces = 0;
-      const kept = buffer.trimEnd().length;
-      spaces = buffer.length - kept;
-      buffer = buffer.slice(0, kept);
-      if (spaces >= 2) { flush(); pieces.push({ k: "br" }); } else buffer += " ";
+      const spaces = pending.length;
+      pending = "";
+      if (spaces >= 2) { flush(); pieces.push({ k: "br" }); } else add(" ");
       i++;
       while (src[i] === " " || src[i] === "\t") i++;
       continue;
     }
     if (c === "&") {
       const m = /^&(?:#\d{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,31});/.exec(src.slice(i, i + 40));
-      if (m) { buffer += decodeEntities(m[0]); i += m[0].length; continue; }
-      buffer += c; i++; continue;
+      if (m) { add(decodeEntities(m[0])); i += m[0].length; continue; }
+      add(c); i++; continue;
     }
     if (c === "`") {
       let run = 1;
       while (src[i + run] === "`") run++;
       const end = closingTicks(src, i + run, run);
-      if (end === -1) { buffer += "`".repeat(run); i += run; continue; }
+      if (end === -1) { add("`".repeat(run)); i += run; continue; }
       flush();
       let body = src.slice(i + run, end).replace(/\n/g, " ");
       if (body.length >= 2 && body.startsWith(" ") && body.endsWith(" ") && body.trim() !== "") body = body.slice(1, -1);
@@ -243,7 +254,7 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
     if (c === "*" || c === "_" || c === "~") {
       let run = 1;
       while (src[i + run] === c) run++;
-      if (c === "~" && run > 2) { buffer += c.repeat(run); i += run; continue; }
+      if (c === "~" && run > 2) { add(c.repeat(run)); i += run; continue; }
       const prev = before(src, i);
       const next = after(src, i + run);
       const left = !isSpace(next) && (!isPunct(next) || isSpace(prev) || isPunct(prev));
@@ -261,7 +272,7 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
     if (c === "[" || (c === "!" && src[i + 1] === "[")) {
       const image = c === "!";
       flush();
-      if (brackets.length >= MAX_BRACKETS) { buffer += image ? "![" : "["; i += image ? 2 : 1; continue; }
+      if (brackets.length >= MAX_BRACKETS) { add(image ? "![" : "["); i += image ? 2 : 1; continue; }
       const b: Bracket & { dead?: true } = { k: "lb", image, active: true, index: pieces.length, textStart: i + (image ? 2 : 1), delimBefore: tail };
       pieces.push(b);
       brackets.push(b);
@@ -270,8 +281,8 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
     }
     if (c === "]") {
       const top = brackets.pop();
-      if (!top) { buffer += c; i++; continue; }
-      if (!top.active) { flush(); asText(top); buffer += c; i++; continue; }
+      if (!top) { add(c); i++; continue; }
+      if (!top.active) { flush(); asText(top); add(c); i++; continue; }
       // `[^label]` is a footnote reference when a definition for the label exists; otherwise it is text.
       const label = !top.image && src[top.textStart] === "^" ? src.slice(top.textStart + 1, i) : "";
       const noteId = options.notes && NOTE_LABEL.test(label) ? options.notes.use(refLabel(label)) : undefined;
@@ -285,7 +296,7 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
       }
       let tailInfo = src[i + 1] === "(" ? linkTail(i + 1) : undefined;
       if (!tailInfo && options.refs && options.refs.size > 0) tailInfo = referenceTail(src, i, top.textStart, options.refs);
-      if (!tailInfo) { flush(); asText(top); buffer += c; i++; continue; }
+      if (!tailInfo) { flush(); asText(top); add(c); i++; continue; }
       flush();
       processEmphasis(top.delimBefore);
       if (top.image) {
@@ -327,7 +338,7 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
         i = tag.end;
         continue;
       }
-      buffer += c; i++; continue;
+      add(c); i++; continue;
     }
     if ((c === "h" || c === "w") && brackets.length === 0 && !/[A-Za-z0-9]/.test(before(src, i))) {
       const bare = bareUrl(src, i, schemes);
@@ -338,7 +349,7 @@ export function parseInline(src: string, options: InlineContext = {}): Inline[] 
         continue;
       }
     }
-    buffer += c;
+    add(c);
     i++;
   }
   flush();

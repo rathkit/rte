@@ -340,6 +340,31 @@
    "stat": "value",
    "max": 0,
    "unit": "cells"
+  },
+  "markdown.paragraphs20000": {
+   "stat": "median",
+   "max": 300,
+   "unit": "ms"
+  },
+  "markdown.nestedList2000": {
+   "stat": "median",
+   "max": 1500,
+   "unit": "ms"
+  },
+  "markdown.longParagraph200000": {
+   "stat": "median",
+   "max": 300,
+   "unit": "ms"
+  },
+  "markdown.nestedQuotes60000": {
+   "stat": "median",
+   "max": 800,
+   "unit": "ms"
+  },
+  "markdown.deepListLeaves120000": {
+   "stat": "median",
+   "max": 2500,
+   "unit": "ms"
   }
  }
 }

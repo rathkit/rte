@@ -339,7 +339,7 @@ function parseList(lines: string[], start: number, depth: number, options: Inlin
 
 function parseBlocks(lines: readonly string[], depth: number, options: InlineContext): Block[] {
   const out: Block[] = [];
-  if (depth >= MAX_DEPTH) {
+  if (depth >= Math.min(MAX_DEPTH, options.maxDepth ?? MAX_DEPTH)) {
     const p = paragraph(lines.join("\n"), options);
     return p ? [p] : [];
   }

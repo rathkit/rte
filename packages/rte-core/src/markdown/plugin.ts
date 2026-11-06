@@ -67,6 +67,7 @@ export function markdown(options: MarkdownPasteOptions = {}): Plugin {
           ...(options.maxDataImageLength !== undefined ? { maxDataImageLength: options.maxDataImageLength } : {}),
           sanitizeSvg: host.editor.importOptions.sanitizeSvg,
           relativeImages: host.editor.importOptions.pasteRelativeImages ?? false,
+          ...(host.editor.importOptions.maxDepth !== undefined ? { maxDepth: host.editor.importOptions.maxDepth } : {}),
         });
         return blocks.length > 0 ? blocks : undefined;
       });
