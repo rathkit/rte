@@ -24,7 +24,8 @@ export function parseSums(text) {
 export function stagedEntries(json) {
   const list = Array.isArray(json) ? json : Object.values(json ?? {}).find(Array.isArray) ?? [];
   return list
-    .map((e) => ({ id: e.id ?? e.stageId ?? e.stage_id, name: e.name ?? e.package, version: e.version }))
+    .filter((e) => e.status === undefined || e.status === "staged")
+    .map((e) => ({ id: e.id ?? e.stageId ?? e.stage_id, name: e.packageName ?? e.name ?? e.package, version: e.version }))
     .filter((e) => e.id && e.name && e.version);
 }
 

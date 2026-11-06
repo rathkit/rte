@@ -16,6 +16,9 @@ test("staged entries are read from a list or from an object holding one", () => 
   assert.deepEqual(stagedEntries([one]), [one]);
   assert.deepEqual(stagedEntries({ staged: [one] }), [one]);
   assert.deepEqual(stagedEntries({ error: "x" }), []);
+  // the shape npm prints: packageName, and a status that must be "staged"
+  const real = { id: "s1", packageName: "@rathkit/rte-vue", version: "0.2.0-beta.0", tag: "next", status: "staged" };
+  assert.deepEqual(stagedEntries([real, { ...real, id: "s2", status: "rejected" }]), [one].map(() => ({ id: "s1", name: "@rathkit/rte-vue", version: "0.2.0-beta.0" })));
   assert.deepEqual(stagedEntries([{ name: "a", version: "1" }]), []);
 });
 
