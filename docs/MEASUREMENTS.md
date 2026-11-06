@@ -17,32 +17,36 @@ The container needs Docker or Podman (`CONTAINER=podman`). Limits are applied th
 
 ### Results
 
-Full run of 2026-11-05 at commit `c71fe22`: developer laptop (Intel Core i7-11850H, 16 threads, 31 GB, Linux under WSL2), Node 26.12.0, Chromium 156.0.8078.4, Playwright 1.64.1, 30 runs per figure. Milliseconds, median / 95th percentile.
+<!-- rte-bench:begin -->
+
+Full run of 2026-11-06 at RTE commit `b0c5ab7` and rte-bench commit `249b44f`: developer laptop, container (11th Gen Intel(R) Core(TM) i7-11850H @ 2.50GHz, 8 logical CPUs in the container (cpuset 2-9), 31 GB, 6.18.54.1-microsoft-standard-WSL2; WSL2, Docker Desktop, laptop on AC), Node 26.13.0, Chromium 156.0.8078.80, Playwright 1.64.1, 30 runs per figure, in the pinned container (Chromium sandbox: container). Milliseconds, median / 95th percentile.
 
 | | 1,000 paragraphs | 5,000 paragraphs | 10,000 paragraphs | 20,000 paragraphs |
 | --- | --- | --- | --- | --- |
-| Load a document | 19.9 / 26.8 | 96.3 / 197 | 197 / 362 | 421 / 750 |
-| Type (middle) | 0.9 / 2.5 | 5.8 / 6.7 | 14.5 / 16.5 | 31.1 / 48.2 |
-| Type (top · end) | 0.9 / 1.0 · 1.0 / 1.1 | 5.6 / 6.7 · 6.2 / 7.6 | 13.3 / 15.5 · 14.4 / 16.0 | 30.5 / 43.9 · 30.8 / 34.4 |
-| Enter · join blocks | 1.0 / 1.6 · 1.0 / 1.2 | 5.7 / 7.8 · 5.8 / 7.1 | 13.5 / 15.6 · 14.0 / 15.9 | 29.2 / 34.1 · 30.5 / 33.1 |
-| Paste text (3 paragraphs) | 1.1 / 1.3 | 5.8 / 7.2 | 15.3 / 18.0 | 30.8 / 34.0 |
-| Paste HTML (100 paragraphs) | 4.6 / 7.1 | 10.9 / 14.5 | 19.7 / 24.1 | 36.7 / 209 |
-| Undo · redo one step | 0.8 / 1.0 · 0.8 / 0.9 | 4.8 / 6.2 · 4.7 / 5.9 | 10.2 / 12.0 · 10.1 / 11.3 | 23.8 / 26.0 · 23.7 / 27.9 |
-| Undo, 200 steps of history | 0.9 / 1.0 | 4.1 / 5.0 | 11.7 / 13.7 | 27.5 / 30.7 |
+| Load a document | 21.8 / 28.3 | 100 / 148 | 195 / 294 | 405 / 712 |
+| Type (middle) | 0.9 / 1.5 | 6.1 / 7.4 | 11.9 / 14.9 | 23.6 / 29.1 |
+| Type (top · end) | 0.8 / 1.0 · 0.9 / 1.0 | 5.1 / 6.2 · 6.0 / 9.1 | 11.0 / 14.9 · 11.6 / 13.8 | 23.4 / 26.2 · 24.9 / 28.6 |
+| Enter · join blocks | 0.9 / 1.5 · 0.9 / 1.2 | 5.8 / 6.8 · 5.9 / 6.9 | 12.2 / 19.3 · 12.0 / 15.9 | 24.9 / 28.8 · 26.4 / 28.8 |
+| Paste text (3 paragraphs) | 1.0 / 1.2 | 5.6 / 6.9 | 13.5 / 19.5 | 27.2 / 29.7 |
+| Paste HTML (100 paragraphs) | 4.4 / 8.8 | 11.0 / 13.8 | 17.0 / 24.1 | 31.4 / 265 |
+| Undo · redo one step | 0.8 / 0.9 · 0.7 / 0.9 | 4.5 / 7.2 · 4.3 / 12.6 | 9.5 / 10.6 · 9.6 / 10.7 | 21.2 / 23.7 · 21.5 / 23.3 |
+| Undo, 200 steps of history | 0.9 / 1.0 | 4.1 / 5.1 | 10.4 / 12.1 | 26.2 / 38.8 |
 
 | | 500 cells | 5,000 cells | 20,000 cells |
 | --- | --- | --- | --- |
-| Load a table | 18.1 / 200 | 200 / 214 | 669 / 1359 |
-| Type in one cell | 5.1 / 6.1 | 9.2 / 9.9 | 27.1 / 28.6 |
+| Load a table | 16.8 / 185 | 189 / 232 | 691 / 1171 |
+| Type in one cell | 5.0 / 5.9 | 6.9 / 8.2 | 24.2 / 26.3 |
 | Other cells redrawn | 0 | 0 | 0 |
 
-CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 4.1 / 8.3 and 23.9 / 27.4; loading them 85.4 / 128 and 411 / 564; typing in a cell of 500 / 5,000 cells 24.5 / 26.9 and 32.2 / 46.3.
+CPU 4x slower: typing in the middle of 1,000 / 5,000 paragraphs 3.8 / 7.8 and 23.4 / 29.1; loading them 78.1 / 105 and 369 / 487; typing in a cell of 500 / 5,000 cells 16.6 / 19.6 and 27.6 / 44.6.
 
-Cold start: ready 85.0 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 24.6 ms, 383 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
+Cold start: ready 80.5 ms (median of 10 runs from a new context), first load of 1,000 paragraphs 26.3 ms, 384 KB of JavaScript fetched (uncompressed, for the conformance page, which has the core and the browser view).
 
-Memory: empty page 1.72 MB; a document adds 1.49 MB (1,000 paragraphs), 5.78 MB (5,000), 10.3 MB (10,000) and 22.0 MB (20,000); one undo step adds 0.02 MB, 0.40% of the 5,000-paragraph document.
+Memory: empty page 1.73 MB; a document adds 1.49 MB (1,000 paragraphs), 5.82 MB (5,000), 10.3 MB (10,000) and 22.0 MB (20,000); one undo step adds 0.02 MB, 0.40% of the 5,000-paragraph document.
 
-What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine, and at 10,000 inside two. At 20,000 paragraphs a keystroke takes about 30 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page.
+<!-- rte-bench:end -->
+
+What these say: through 5,000 paragraphs every command is inside a frame (16 ms) on this machine, and at 10,000 inside two. At 20,000 paragraphs a keystroke takes about 25 ms, over a frame, and a document that long is better split. Tables are the same: 5,000 cells type within a frame, 20,000 do not. This run does not say how much of that time is the editor and how much is the browser laying out the page.
 
 ## Budgets
 
@@ -63,7 +67,7 @@ The numbers the project holds itself to. Bytes are in each package's `package.js
 | Memory: one undo step, as a share of the document | 1% | 0.40% |
 | Memory: a 5,000 / 10,000-paragraph document | 8 / 14 MB | 5.8 / 10.2 MB |
 
-Not budgeted, only reported: documents of 20,000 paragraphs and tables of 20,000 cells (a keystroke takes about 30 ms in either).
+Not budgeted, only reported: documents of 20,000 paragraphs and tables of 20,000 cells (a keystroke takes about 25 ms in either).
 
 **Size.** Gzipped, each file on its own (see "Size" below for the method). The budgets from the first release stand: they hold today, and what to change is the next feature's to say, not this item's.
 
