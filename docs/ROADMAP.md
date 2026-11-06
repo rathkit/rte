@@ -17,9 +17,7 @@ answer, not a feature.
    accessibility, language and direction, performance) is covered by an item here and by checks that pass in Chromium, Firefox and WebKit.
 2. **Fast, small and lean, measured.** Every entry point has a size budget and every common action a time and memory budget, set from a
    measured baseline (0.2.0-beta.0), kept by CI gates, and published with the method in `docs/MEASUREMENTS.md`. A budget that is missed
-   is listed there with the reason and an issue. Public statements follow the benchmark suite and never go ahead of it; whether and how
-   they are compared with other products is decided in item 3.6, because this repository does not name other products and a comparison
-   needs a benchmark anyone can run.
+   is listed there with the reason and an issue. Public statements follow the benchmark suite and never go ahead of it; they are not compared with other products (decided in item 3.6: the rule is in `CONTRIBUTING.md`).
 3. **Trustworthy.** A published stability policy and a frozen plugin API, a security review and fuzzing, an accessibility conformance
    report, screen reader and device results in `docs/SUPPORT.md`, complete docs and a migration guide, provenance and signed checksums on
    every release.
@@ -49,7 +47,7 @@ The *(maintainer)* items ask for these; each issue says what is being decided.
 2. **Where product-specific migration mappings live** (4.11, 0.7.0-beta.0): the repository rule forbids naming other products, so option
    mappings and a compatibility layer need a home outside it (a private package, a separate repository, or a paid migration kit).
 3. **`rte-server` is part of 1.0** (decided; item 4.7, 0.7.0-beta.0): a zero-dependency reference server for uploads and link checks, not a hosted service.
-4. **How performance is described publicly** (3.6, 0.2.0-beta.0).
+4. **How performance is described publicly** (decided; item 3.6): only measured numbers with their method, no comparison with other products, named or not. The rule is in `CONTRIBUTING.md`.
 5. **Whether beta follows the first four milestones or fewer.** The plan calls the first beta 0.2.0-beta.0 and keeps feature work
    in later betas, as the Pack roadmap does. Any milestone can be merged into its neighbor.
 
@@ -83,7 +81,7 @@ Measure and gate: a benchmark suite with a stated method, numeric budgets, memor
 - [x] [3.3](https://github.com/rathkit/rte/issues/11) Memory and leaks `P0`
 - [x] [3.4](https://github.com/rathkit/rte/issues/12) Regression gates in CI `P0`
 - [x] [3.5](https://github.com/rathkit/rte/issues/13) Throttled-CPU and low-memory runs `P2`
-- [ ] [3.6](https://github.com/rathkit/rte/issues/14) Decide how performance is described publicly *(maintainer)* `P0`
+- [x] [3.6](https://github.com/rathkit/rte/issues/14) Decide how performance is described publicly *(maintainer)* `P0`
 - [x] [3.13](https://github.com/rathkit/rte/issues/82) Benchmarks in their own repository, run in a container `P1`
 
 ### 0.3.0-beta.0

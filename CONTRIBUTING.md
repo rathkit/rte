@@ -112,6 +112,18 @@ close a pull request that does not follow this page.
   request.
 - Changes that skip signing or the sign-off.
 
+## How we describe performance
+
+This is the owner's rule, decided for 1.0 (roadmap item 3.6). It applies to this repository, the packages' READMEs, the site and every announcement.
+
+- **Only measured numbers, each with its method.** A statement about speed, size or memory is a number from `docs/MEASUREMENTS.md` (or the size budgets in the packages), with a link to it. The method, the machine class, the date and the commits are there, and the benchmark behind them is [rathkit/rte-bench](https://github.com/rathkit/rte-bench), which anyone can run.
+- **No claim without a number.** Words such as fastest, lightweight, blazing, tiny, snappy, speedy, lightning and instant are not used. Plain words such as fast, small and lean are used only beside the number that backs them; a pull request that adds one without it is changed in review.
+- **Stand-ins are called stand-ins.** The runs with the CPU slowed down and the memory capped are Chromium with a limit set on it. They are never described as how the editor runs on a phone or any other device.
+- **No comparison with another product, named or not.** This repository, rte-bench and the site do not compare RTE with other products, and do not name them for that purpose. Anyone may run the benchmark against whatever they like; we do not publish those results for them. A change to this rule is the owner's decision and comes first as an issue.
+- **A figure that gets worse is said so.** A budget that is missed is listed in `docs/MEASUREMENTS.md` with the reason and an issue, and an approved increase is recorded where the gates read it (see "Before you open a pull request").
+
+`tools/performance-wording.test.mjs` scans the READMEs and the documents for the words and phrases above that can be found by a scan, and it runs with the other tool tests.
+
 ## Security
 
 Do not report security problems in issues. Follow the [security policy](https://github.com/rathkit/.github/blob/main/SECURITY.md).
