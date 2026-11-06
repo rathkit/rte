@@ -2,7 +2,7 @@
 
 Thank you for wanting to help. This page is the whole process, in the order you will meet it.
 
-**Status: alpha.** This repository is public and `0.1.0-alpha.5` is on npm, so outside pull requests are welcome for issues a maintainer has labeled `accepted`. Questions are welcome on Discord (see the end of this page).
+**Status: beta.** This repository is public and `0.2.0-beta.0` is on npm, so outside pull requests are welcome for issues a maintainer has labeled `accepted`. Questions are welcome on Discord (see the end of this page).
 
 ## The short version
 

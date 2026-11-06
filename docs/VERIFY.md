@@ -2,10 +2,10 @@
 
 ## Which versions
 
-Use `0.1.0-alpha.3` or later: it is the first version the release workflow published, with provenance. `0.1.0-alpha.0` was published by hand and has no provenance. `0.1.0-alpha.1` and `0.1.0-alpha.2` are GitHub pre-releases only and are not on npm (`docs/RELEASING.md` says why). The examples below use `0.1.0-alpha.3`; set `version` to the one you are checking.
+Use `0.1.0-alpha.3` or later: it is the first version the release workflow published, with provenance. `0.1.0-alpha.0` was published by hand and has no provenance. `0.1.0-alpha.1` and `0.1.0-alpha.2` are GitHub pre-releases only and are not on npm (`docs/RELEASING.md` says why). The examples below use `0.2.0-beta.0`; set `version` to the one you are checking.
 
 ```sh
-version=0.1.0-alpha.3
+version=0.2.0-beta.0
 ```
 
 Every release lists what it is made of and can be checked three ways, with tools that are not ours. None of this needs the repository.

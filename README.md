@@ -4,7 +4,7 @@ A rich text editor built from scratch, with zero runtime dependencies.
 
 > Built from scratch. Ships with nothing else.
 
-**Status: alpha.** `0.1.0-alpha.5` of all eleven packages is on npm under the `next` tag. The APIs will change between releases, and there is no API reference yet. Do not build on this.
+**Status: beta.** `0.2.0-beta.0` of all eleven packages is on npm under the `next` tag. The APIs may still change between releases, and there is no API reference yet. Do not build on this yet.
 
 ```sh
 npm install @rathkit/rte-core@next
@@ -40,7 +40,7 @@ Text with bold, italic, underline, strikethrough, code, super- and subscript, te
 | `@rathkit/rte-angular` | Early. The `rteEditor` directive, signals (`commandState`, `selected`) and an Angular forms value accessor (`@rathkit/rte-angular/forms`). Written in the compiled form, so it needs no Angular compiler |
 | `@rathkit/rte-jquery` | Early. `$(el).rteEditor(options)` over the custom element, with `rte:change` events |
 
-All eleven are on npm at `0.1.0-alpha.5` under `next`. Only the reference server package, `rte-server`, is still to come.
+All eleven are on npm at `0.2.0-beta.0` under `next`. Only the reference server package, `rte-server`, is still to come.
 
 ## Development
 
@@ -74,7 +74,7 @@ The workspace is managed with Nx. The only development tools are `nx`, `typescri
 
 ## Releases
 
-A release is a signed tag: the release workflow stages the packages with provenance, the owner approves the npm environment, and then approves the staged publish. `0.1.0-alpha.0` was published by hand, without provenance; `0.1.0-alpha.1` and `0.1.0-alpha.2` are GitHub pre-releases that never reached npm (the changelog says why); `0.1.0-alpha.3` is the first version the workflow published. To install it: `npm install @rathkit/rte-core@next`. How a release is made and verified, and what an alpha promises, is in [`docs/RELEASING.md`](docs/RELEASING.md) and [`docs/VERIFY.md`](docs/VERIFY.md); what is checked, in [`docs/SUPPORT.md`](docs/SUPPORT.md); measured sizes and speeds, in [`docs/MEASUREMENTS.md`](docs/MEASUREMENTS.md); the changes, in [`CHANGELOG.md`](CHANGELOG.md).
+A release is a signed tag: the release workflow stages the packages with provenance, the owner approves the npm environment, and then approves the staged publish. `0.1.0-alpha.0` was published by hand, without provenance; `0.1.0-alpha.1` and `0.1.0-alpha.2` are GitHub pre-releases that never reached npm (the changelog says why); `0.1.0-alpha.3` is the first version the workflow published. To install it: `npm install @rathkit/rte-core@next`. How a release is made and verified, and what an alpha or beta promises, is in [`docs/RELEASING.md`](docs/RELEASING.md) and [`docs/VERIFY.md`](docs/VERIFY.md); what is checked, in [`docs/SUPPORT.md`](docs/SUPPORT.md); measured sizes and speeds, in [`docs/MEASUREMENTS.md`](docs/MEASUREMENTS.md); the changes, in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Repository layout
 

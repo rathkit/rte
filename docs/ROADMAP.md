@@ -36,6 +36,7 @@ beta, and from beta to the release candidate, is a decision (`nx release --preid
 - [x] 0.6 Word-processor paste recognizers and a scrubbed capture set; the free paste scenarios all pass in three engines ([CONFORMANCE.md](CONFORMANCE.md)).
 - [x] 0.7 Code scanning and Dependabot alerts at zero, with a regression test for each pattern fixed.
 - [x] 0.8 Hand-testing steps for devices and screen readers ([HAND-TESTING.md](HAND-TESTING.md)); the results are items 5.4, 5.3 and 5.2.
+- [x] 0.9 The first beta, `0.2.0-beta.0` (2026-11-06): measured and gated, with the benchmark suite in `rathkit/rte-bench`; all eleven packages on `next` with provenance ([CHANGELOG.md](../CHANGELOG.md)).
 
 Waiting on the maintainer, tracked outside the milestones: the copyright holder in `NOTICE` (item 7.7) and the announcement (item 8.5).
 
