@@ -100,8 +100,10 @@ async function main() {
   rl.close();
   if (answer.trim() !== "yes") { console.log("nothing approved."); return; }
   for (const { name, id } of chosen) {
-    console.log(`\napproving ${name}@${version}`);
-    const r = spawnSync("npm", ["stage", "approve", id], { stdio: "inherit" });
+    console.log(`\napproving ${name}@${version}: open the address npm prints in your browser and approve there (Enter does nothing here)`);
+    // npm says "Press ENTER to open in the browser" and fails if no browser is set (WSL has none). Open the printed address yourself;
+    // with BROWSER set to a command that does nothing, a stray Enter is harmless and npm keeps waiting for the approval.
+    const r = spawnSync("npm", ["stage", "approve", id], { stdio: "inherit", env: { BROWSER: "true", ...process.env } });
     if (r.status !== 0) { console.error(`stopped: approving ${name} failed; the ones before it are live, the rest are still staged. Run it again: it skips the ones already published.`); process.exit(1); }
   }
   console.log("\ndone. Check: npm view @rathkit/rte-core dist-tags");
