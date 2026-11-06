@@ -21,6 +21,7 @@
     "check:graph": "node tools/check-graph.mjs",
     "check:packages": "node tools/check-packages.mjs",
     "check:release": "node tools/check-release.mjs",
+    "release:approve": "node tools/approve-release.mjs",
     "sbom": "node tools/make-sbom.mjs sbom",
     "check:secrets": "node tools/scan-secrets.mjs",
     "check:history": "node tools/scan-secrets.mjs --history && node tools/check-denylist.mjs --history",

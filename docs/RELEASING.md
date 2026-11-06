@@ -33,7 +33,7 @@ Versions, the changelog, the release commit and the tag are made by [Nx Release]
 
 1. `pnpm release:dry` shows what would change: the new version in each package, the peer ranges, the changelog entry. Nothing is written.
 2. `pnpm release` (that is, `nx release --skip-publish`) works out the version from the Conventional Commits since the last tag, bumps every package to it, adds the entry to `CHANGELOG.md`, and makes one commit (`chore(release): <version>`) and the tag `v<version>`. It never publishes (`--skip-publish`): publishing is the workflow's.
-3. Read the entry and the diff; edit `CHANGELOG.md` and amend the release commit if the notes need words that commit subjects do not give.
+3. Read the entry and the diff (Nx writes the entry from the last tag of the same prerelease line, so after a move from alpha to beta it lists the whole history: write the entry with `nx release changelog <version> --from <last tag>` instead, with the `release.git` block taken out of `nx.json` for that one command); edit `CHANGELOG.md` and amend the release commit if the notes need words that commit subjects do not give.
 4. `pnpm check:release v<version>` (tag, packages and changelog agree; refuses a tag that is not an alpha, beta or rc), then push the commit and the tag: `git push --follow-tags`.
 5. The `release` workflow runs on the tag: the full set of checks (including the check of what would be published, with the oldest supported Node), then it packs the eleven tarballs, writes `SHA256SUMS` and a software bill of materials for each package (CycloneDX, zero runtime components, made by `tools/make-sbom.mjs`), signs `SHA256SUMS` with Sigstore (keyless), and creates a GitHub pre-release with all of it and the notes (the changelog entry for the version).
 6. The `publish` job (only when `NPM_PUBLISH` is `true`) checks the downloaded files against `SHA256SUMS` and stages exactly those tarballs with provenance, access public and the `next` tag (`npm stage publish`), through npm trusted publishing: no npm token is stored anywhere, and the job asks for `id-token: write` only. It cannot make a version live: the trusted publisher on each package does not allow a direct `npm publish`.
@@ -49,6 +49,8 @@ npm stage download <stage-id>     # the exact tarball, to check against SHA256SU
 npm stage approve <stage-id>      # publishes it (asks for the two-factor code)
 npm stage reject <stage-id>       # removes it
 ```
+
+`pnpm release:approve v<version>` does the comparison for all eleven: it downloads each staged tarball and checks its hash against the release's `SHA256SUMS`, and approves nothing. With `--approve` it then asks once and runs `npm stage approve` for each (npm asks for the two-factor code each time). It stops at the first failure, and running it again continues with the ones still staged. It needs `npm login` as the owner.
 
 Approve all eleven, then check the tags (`npm view @rathkit/rte-core dist-tags`: `next` is the new version and `latest` has not moved) and install the packages in an empty project.
 
