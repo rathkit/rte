@@ -90,3 +90,12 @@ test("every job runs on a runner image pinned to a version, never a -latest labe
     for (const line of labels) assert.match(line, /runs-on:\s*[a-z]+-\d+\.\d+\s*$/, `${f}: ${line.trim()}`);
   }
 });
+
+test("the benchmark gate runs the benchmark repository's container at the commit tools/bench.ref names, never a branch", () => {
+  const ref = readFileSync(new URL("./bench.ref", import.meta.url), "utf8").trim();
+  assert.match(ref, /^[0-9a-f]{40}$/, "tools/bench.ref must hold one full commit hash");
+  const ci = text("ci.yml");
+  assert.match(ci, /repository: rathkit\/rte-bench\n\s+ref: \$\{\{ steps\.ref\.outputs\.sha \}\}/);
+  assert.match(ci, /tools\/bench\.ref/);
+  assert.match(ci, /rte-bench\/container\/run\.sh gate --rte \. --base base --limits tools\/bench/);
+});

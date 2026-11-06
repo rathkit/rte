@@ -100,15 +100,14 @@ jobs:
         env:
           RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/node_modules
 
-  # The benchmark harness, reduced (tools/bench, docs/MEASUREMENTS.md). It reports figures and fails when one is over its budget (tools/bench/budgets.json),
-  # widened three times here because a shared runner is slower than the reference machine. The runner image is pinned because the machine class is part of the method.
-  # It also runs the same harness on the commit this change builds on, on this same runner, and fails when a figure got slower or larger than that by
-  # more than the allowance (tools/bench/compare.mjs), because a wide budget cannot see a command that became twice as slow. Each side runs twice, best figure counts.
+  # The benchmark harness lives in its own repository (rathkit/rte-bench) and runs here in its pinned, offline container. tools/bench.ref names the commit
+  # of that repository this change is gated by. The gate builds this commit and the one it builds on, measures both twice, fails when this commit is
+  # over a budget (tools/bench/budgets.json) or a figure got slower or larger than on the base by more than the allowance, and lists what was accepted
+  # (tools/bench/accepted.json). The runner image is pinned because the machine class is part of the method; budgets are widened three times for a shared runner.
   bench:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
-      RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/node_modules
       # What this change builds on: the base of a pull request, or the commit before a push. Empty when there is none (a new branch).
       BASE_SHA: ${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || '' }}
     steps:
@@ -120,18 +119,16 @@ jobs:
           cache: true
           require-lockfile: true
       - run: pnpm build
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - name: Read the benchmark repository commit
+        id: ref
+        run: echo "sha=$(tr -d '[:space:]' < tools/bench.ref)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-bench-ubuntu-24.04-${{ runner.os }}-${{ hashFiles('tools/browser-checks/pnpm-lock.yaml') }}
-      - name: Install the browser driver and Chromium
-        working-directory: tools/browser-checks
-        run: |
-          pnpm install --frozen-lockfile --ignore-scripts
-          node node_modules/playwright/cli.js install --with-deps chromium
-      - name: Allow unprivileged network namespaces
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      # The base commit, built beside this one. It is measured with this commit's harness (copied over its tools), so both sides run the same method.
+          repository: rathkit/rte-bench
+          ref: ${{ steps.ref.outputs.sha }}
+          path: rte-bench
+          persist-credentials: false
+      # The base commit, built beside this one. Both are mounted read-only into the container and measured with the same harness.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: env.BASE_SHA != ''
         with:
@@ -144,27 +141,24 @@ jobs:
         run: |
           pnpm install --frozen-lockfile --prefer-offline
           pnpm build
-          rm -rf tools/bench tools/conformance/serve.mjs
-          cp -r ../tools/bench tools/bench
           cp ../tools/conformance/serve.mjs tools/conformance/serve.mjs
-      - name: Measure the base commit
+      - name: Run the gate in the container
         if: env.BASE_SHA != ''
-        run: base/tools/bench/run.sh --quick --report-only --out base-1.json --class "GitHub-hosted ubuntu-24.04 runner"
-      - run: tools/bench/run.sh --quick --scale 3 --out bench-results.json --class "GitHub-hosted ubuntu-24.04 runner"
-      - name: Measure both again, and compare
-        if: env.BASE_SHA != ''
-        run: |
-          base/tools/bench/run.sh --quick --report-only --out base-2.json --class "GitHub-hosted ubuntu-24.04 runner" > /dev/null
-          tools/bench/run.sh --quick --report-only --out head-2.json --class "GitHub-hosted ubuntu-24.04 runner" > /dev/null
-          node tools/bench/compare.mjs base-1.json,base-2.json bench-results.json,head-2.json
+        env:
+          CPUSET: "0-3"
+          MEMORY: 8g
+          GATE_CLASS: GitHub-hosted ubuntu-24.04 runner
+        run: rte-bench/container/run.sh gate --rte . --base base --limits tools/bench --scale 3
+      - name: Check the budgets only
+        if: env.BASE_SHA == ''
+        env:
+          CPUSET: "0-3"
+          MEMORY: 8g
+        run: rte-bench/container/run.sh run --rte . --limits tools/bench -- --quick --scale 3 --class "GitHub-hosted ubuntu-24.04 runner"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: bench-results
-          path: |
-            bench-results.json
-            head-2.json
-            base-1.json
-            base-2.json
+          path: rte-bench/results/*.json
           if-no-files-found: ignore
           retention-days: 30
