@@ -1,4 +1,4 @@
 {
-  "about": "Approved increases over the base commit, for tools/bench/compare.mjs. Add  \"p5000.typeMiddle\": { \"ratio\": 2, \"reason\": \"...\", \"issue\": \"#123\" }  in the same commit as the code that makes the figure slower, and remove it when the cost is paid back. Without an entry a figure may not get slower than the base by more than 1.5 times and 2 ms (times) or 1.1 times and 300 KB (bytes).",
+  "about": "Approved increases over the base commit, for the comparison in rte-bench. Add  \"p5000.typeMiddle\": { \"ratio\": 2, \"reason\": \"...\", \"issue\": \"#123\" }  in the same commit as the code that makes the figure slower, and remove it when the cost is paid back. Without an entry a figure may not get slower than the base by more than 1.5 times and 2 ms (times) or 1.1 times and 300 KB (bytes).",
   "accepted": {}
 }

@@ -4,27 +4,16 @@ Numbers are here only because they were measured, and each says how. They are no
 
 ## Benchmark suite
 
-`tools/bench` is the harness that produces speed and memory figures. It reports numbers; the browser checks below (the "Speed" section) are the separate pass or fail budgets. Anyone can reproduce a run from the repository.
+The harness that produces the speed and memory figures is in its own repository, [rathkit/rte-bench](https://github.com/rathkit/rte-bench). It runs the built editor in Chromium inside a pinned container with no network, and its README has the method: how each figure is timed, the documents and scenarios, cold start, memory, the slow-device runs, the machine class recorded with every result, and how to reproduce a published figure. This repository keeps what the product owns: the limits (`tools/bench/budgets.json`), the approved increases (`tools/bench/accepted.json`), the sizes (`tools/size-baseline.json`), the page the harness drives (`tools/conformance`), and the figures below. The repository commit of the harness that gates a change is named in `tools/bench.ref`.
 
 ```sh
 pnpm build
-pnpm --dir tools/browser-checks install --frozen-lockfile --ignore-scripts      # the browser driver, which is not a dependency of the workspace
-node tools/browser-checks/node_modules/playwright/cli.js install chromium
-RTE_PLAYWRIGHT=$PWD/tools/browser-checks/node_modules pnpm bench -- --out results.json --class "what this machine is"
+git clone https://github.com/rathkit/rte-bench ../rte-bench     # at the commit in tools/bench.ref
+pnpm bench                  # the full method, in the container; add -- --out FILE or other options of rte-bench's run.mjs
+pnpm bench:quick            # the reduced run CI makes
 ```
 
-`pnpm bench:quick` is the reduced run CI makes. Both start the conformance page on `127.0.0.1` with the network switched off (as the browser checks do), drive it in Chromium, print tables and, with `--out`, write a JSON file with every figure and the machine it came from.
-
-### Method
-
-- **Each figure is a series of runs** (30 in a full run, 8 in a quick one), reported as the median and the 95th percentile, in milliseconds. A command is timed from the call to the page having its layout (`getBoundingClientRect` is read after it), the same as the speed checks. Commands go through the editor's own entry points (`beforeinput` events, `paste`, `undo`), not through synthesized keystrokes, so the figure is the editor's work plus the browser's layout, without the browser's input pipeline.
-- **Documents.** Paragraphs of about 90 characters with bold, italic and a link, at 1,000, 5,000 and 20,000 of them. Tables of 500, 5,000 and 20,000 cells, each cell with bold and italic text.
-- **Scenarios.** Load (`setHtml`, warm); typing in the middle, at the top and at the end; Enter; joining blocks; pasting plain text (three paragraphs) and HTML (a hundred paragraphs); undo and redo of one step; undo with a history of 200 steps behind it; typing in a table cell, with a count of the other cells that were redrawn (it must be none).
-- **Cold start.** A new browser context for each run, so nothing is cached: from navigation to the editor being ready, then the first load of 1,000 paragraphs (which pays for compiling the code), and the JavaScript the page fetched (uncompressed).
-- **Memory.** The heap in use after a forced collection: an empty page, then with each size of document, then with 100 undo steps added. No other measurement runs at the same time.
-- **Slow device.** The full run repeats the paragraph and table scenarios with the CPU throttled four times (`@4x`). That is Chromium's throttling, a stand-in for a slow device and not a measurement of one.
-- **Machine class.** Every run records the CPU, threads, memory, operating system, Node, Chromium and Playwright versions and the commit, and the `--class` you give it. A figure is only comparable with another from the same class.
-- **Budgets.** The harness exits with an error if a figure is over its budget in `tools/bench/budgets.json` (see "Budgets" below). CI runs the quick harness on a pinned runner image (`ubuntu-24.04`) with every budget widened three times (`--scale 3`), and uploads the JSON as an artifact. On a change it also runs the harness on the commit it builds on, on the same runner, and compares the two (see "Regression gates" below).
+The container needs Docker or Podman (`CONTAINER=podman`). Limits are applied the same way in both: a figure over its budget in `tools/bench/budgets.json` fails the run, and CI runs the quick harness on a pinned runner image (`ubuntu-24.04`) with every budget widened three times (`--scale 3`). On a change it also runs the harness on the commit it builds on, on the same runner, and compares the two (see "Regression gates" below).
 
 ### Results
 
@@ -57,7 +46,7 @@ What these say: through 5,000 paragraphs every command is inside a frame (16 ms)
 
 ## Budgets
 
-The numbers the project holds itself to. Bytes are in each package's `package.json` (`rathkit.budgets`, checked by `pnpm check:size` on every change); everything that is measured at run time is in `tools/bench/budgets.json` (checked by `pnpm bench` on the machine class below, and by CI with the widening above). A budget is set from the baseline run, with room for the noise between runs on the same machine (about 1.3 to 2 times the slowest figure seen), and is a promise for the reference machine class: Intel Core i7-11850H, 16 threads, 31 GB, Linux, Chromium 156. `tools/bench/budgets.test.mjs` checks that a figure over its budget is reported, and that every budget names a figure the harness produces.
+The numbers the project holds itself to. Bytes are in each package's `package.json` (`rathkit.budgets`, checked by `pnpm check:size` on every change); everything that is measured at run time is in `tools/bench/budgets.json` (checked by `pnpm bench` on the machine class below, and by CI with the widening above). A budget is set from the baseline run, with room for the noise between runs on the same machine (about 1.3 to 2 times the slowest figure seen), and is a promise for the reference machine class: Intel Core i7-11850H, 16 threads, 31 GB, Linux, Chromium 156. `tools/bench/limits.test.mjs` checks that both files are well formed; rte-bench checks that every budget names a figure the harness produces.
 
 | What | Budget | Baseline |
 | --- | --- | --- |
@@ -98,12 +87,12 @@ Recommendation, for the owner: keep every byte budget as it is. Three have littl
 A budget is a ceiling with room under it, so it cannot see a change that makes something twice as slow, or 800 bytes larger, while staying under it. Three gates compare a change with what it builds on:
 
 - **Size.** `pnpm check:size` holds every entry point to the size recorded in `tools/size-baseline.json` plus a margin: the larger of 1% and 128 bytes. Growth beyond that fails with the old size, the new size and the way out. It also fails for an entry that has no recorded size, or that is recorded but no longer measured.
-- **Speed and memory.** The `bench` job in CI builds the commit the change is based on (the base of a pull request, or the commit before a push), measures it with this commit's harness on the same runner, measures this commit, and runs `tools/bench/compare.mjs`. Each side runs twice and the lower figure counts, so one noisy run does not fail a change. A timing (median) fails when it is both 1.5 times the base and more than 2 ms slower; the second condition keeps a 0.9 ms figure that reads 1.4 ms from being called a regression. Memory and fetched JavaScript fail at 1.1 times and 300 KB more (the first document measured after an empty page varies by about 190 KB between two builds of the same code, from one-time work the browser does, which a CI run showed; a leak or a bigger structure per paragraph is far above that at 5,000 paragraphs). Both sides are measured in the same job, so the difference is not the runner's.
+- **Speed and memory.** The `bench` job in CI builds the commit the change is based on (the base of a pull request, or the commit before a push), measures it with the same harness (rte-bench, at the commit in `tools/bench.ref`) on the same runner, measures this commit, and compares the two (`compare.mjs` in rte-bench, with `tools/bench/accepted.json`). Each side runs twice and the lower figure counts, so one noisy run does not fail a change. A timing (median) fails when it is both 1.5 times the base and more than 2 ms slower; the second condition keeps a 0.9 ms figure that reads 1.4 ms from being called a regression. Memory and fetched JavaScript fail at 1.1 times and 300 KB more (the first document measured after an empty page varies by about 190 KB between two builds of the same code, from one-time work the browser does, which a CI run showed; a leak or a bigger structure per paragraph is far above that at 5,000 paragraphs). Both sides are measured in the same job, so the difference is not the runner's.
 - **Leaks.** `tools/leak` has no baseline: nothing may be left behind, so any growth fails (see `docs/LEAKS.md`).
 
 **Recording an approved increase.** For size, run `pnpm check:size --record "why"` in the same commit as the code that grows it; the new size, the old size, the date and the reason are appended to `history` in `tools/size-baseline.json`, and the pull request shows the diff to the owner, who reviews every change (`CODEOWNERS`). For speed and memory, add the figure to `tools/bench/accepted.json` with the ratio that is allowed and the reason, in the same commit; remove it when the cost is paid back. Raising a budget in a `package.json` or `tools/bench/budgets.json` is the same kind of change and is reviewed the same way. Nothing raises a limit without an edit to one of these files.
 
-**Shown to fail.** A deliberate 3 KB addition to the core's built file fails the size gate (`grew from 48571 to 51690 bytes (+3119), over the margin of 486 bytes`). A 6 ms delay in the editor's input handler fails the comparison for 17 figures (typing 1.0 ms became 7.1 ms with 1,000 paragraphs), where the budgets alone would have passed it: 7 ms is under the CI ceiling of 15 ms. Both are covered by tests (`tools/size-baseline.test.mjs`, `tools/bench/compare.test.mjs`).
+**Shown to fail.** A deliberate 3 KB addition to the core's built file fails the size gate (`grew from 48571 to 51690 bytes (+3119), over the margin of 486 bytes`). A 6 ms delay in the editor's input handler fails the comparison for 17 figures (typing 1.0 ms became 7.1 ms with 1,000 paragraphs), where the budgets alone would have passed it: 7 ms is under the CI ceiling of 15 ms. Both are covered by tests (`tools/size-baseline.test.mjs` here, `compare.test.mjs` in rte-bench).
 
 ## Size
 

@@ -1,5 +1,5 @@
 {
- "about": "Runtime budgets for tools/bench, for the reference machine class in docs/MEASUREMENTS.md. stat is p95, median or value; max is in unit. CI multiplies every max by --scale. Byte budgets for the packages are in each package.json.",
+ "about": "Runtime budgets for the rte-bench harness, for the reference machine class in docs/MEASUREMENTS.md. stat is p95, median or value; max is in unit. CI multiplies every max by --scale. Byte budgets for the packages are in each package.json.",
  "budgets": {
   "p1000.load": {
    "stat": "p95",
