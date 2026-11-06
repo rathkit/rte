@@ -6,7 +6,7 @@ How a release is made, what an alpha promises, and the steps only the owner can 
 
 - All eleven packages are released together under one version, and a release is a git tag `v<version>`.
 - The first release is `0.1.0-alpha.0`. Later alphas count up (`0.1.0-alpha.1`), then betas and release candidates if there are any, then `0.1.0`.
-- **Every release while the project is in alpha goes to the `next` dist-tag. None goes to `latest`.** `publishConfig.tag` is `next` in every package, `tools/check-release.mjs` refuses any tag that is not an alpha, beta or rc, and `pnpm check:packages` fails on a package that is not an alpha version or does not name `next`. Installing `@rathkit/rte-core` with no tag therefore gets nothing until a stable release exists; to try the alpha, ask for it: `npm install @rathkit/rte-core@next`.
+- **Every release while the project is in alpha or beta goes to the `next` dist-tag. None goes to `latest`.** `publishConfig.tag` is `next` in every package, `tools/check-release.mjs` refuses any tag that is not an alpha, beta or rc, and `pnpm check:packages` fails on a package that is not an alpha or beta version or does not name `next`. Installing `@rathkit/rte-core` with no tag therefore gets nothing until a stable release exists; to try a pre-release, ask for it: `npm install @rathkit/rte-core@next`.
 - Packages ask each other for the release they were built with or a later one below the next minor (`>=0.1.0-alpha.0 <0.2.0`): a prerelease range has to name its starting point, or npm will not match prereleases.
 
 ### Semantic versioning in 0.x
@@ -18,6 +18,10 @@ How a release is made, what an alpha promises, and the steps only the owner can 
 ### What "alpha" promises
 
 It promises that the packages install with nothing else (no runtime dependencies, nothing that runs on install, nothing stored, no requests), that what is checked in `docs/SUPPORT.md` is checked on every change, and that the release can be verified (`docs/VERIFY.md`). It does not promise stable APIs, stable HTML output for every edge case, support for any browser beyond those listed, or that anyone should build on it yet. The word "alpha" is in every package's README and version.
+
+### What "beta" promises
+
+The first beta is `0.2.0-beta.0`. Everything an alpha promises still holds (nothing else to install, nothing that runs on install, the checks in `docs/SUPPORT.md` on every change, a release that can be verified), and a beta adds what the 0.2.0-beta.0 milestone built: a benchmark suite with a stated method that runs in its own repository (`rathkit/rte-bench`), numeric size and speed budgets kept by CI gates, and memory and leak tests, all described in `docs/MEASUREMENTS.md`. It still does not promise stable APIs or output, and it still goes to `next` only: the move to `latest` waits for the stable release. Moving from alpha to beta is made with an explicit version (`pnpm exec nx release 0.2.0-beta.0 --skip-publish`), because Nx makes the next prerelease of the current line on its own and leaving a line is a decision.
 
 ## Making a release
 

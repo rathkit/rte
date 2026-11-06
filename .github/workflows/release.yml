@@ -97,7 +97,7 @@ jobs:
       - name: Sign the checksums
         run: |
           "$RUNNER_TEMP/cosign" sign-blob --yes --bundle release/SHA256SUMS.sigstore.json release/SHA256SUMS
-      - name: Create the GitHub release (an alpha is always marked as a pre-release)
+      - name: Create the GitHub release (an alpha or beta is always marked as a pre-release)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

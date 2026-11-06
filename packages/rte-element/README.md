@@ -1,6 +1,6 @@
 # @rathkit/rte-element
 
-> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Beta.** Not for production yet: the APIs may still change between releases. Published to the `next` tag only.
 
 The editor as custom elements, `<rte-editor>` and `<rte-toolbar>`, for any page or framework: form-associated (it submits its value, resets, restores), with properties, attributes and events.
 

@@ -1,7 +1,7 @@
 // Checks that a release tag, the packages and the changelog agree, before anything is built for release:
 //   node tools/check-release.mjs v0.1.0-alpha.0
 // Nx Release writes the versions, the changelog entry and the tag; this checks what it made (and the hand-made first release). A tag names one
-// version for every package, there is a changelog section for it, and while the project is in alpha the tag must be an alpha
+// version for every package, there is a changelog section for it, and while the project is in alpha or beta the tag must be an alpha, beta or rc
 // (so every package goes to the `next` dist-tag and none can take `latest`). Also prints release notes with --notes.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -23,7 +23,7 @@ export function problemsWith(tag, { versions, changelog, signed = true }) {
   const problems = [];
   const m = /^v(\d+\.\d+\.\d+)-(alpha|beta|rc)\.(\d+)$/.exec(tag);
   if (!m) {
-    problems.push(`the tag "${tag}" is not an alpha, beta or rc version like v0.1.0-alpha.0: while the project is in alpha nothing is released to latest`);
+    problems.push(`the tag "${tag}" is not an alpha, beta or rc version like v0.1.0-alpha.0: while the project is in alpha or beta nothing is released to latest`);
     return problems;
   }
   const version = tag.slice(1);

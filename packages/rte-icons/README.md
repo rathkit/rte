@@ -1,6 +1,6 @@
 # @rathkit/rte-icons
 
-> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Beta.** Not for production yet: the APIs may still change between releases. Published to the `next` tag only.
 
 The icon set the interface uses, one SVG string each, 24 by 24, drawn in the current text color.
 

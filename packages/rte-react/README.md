@@ -1,6 +1,6 @@
 # @rathkit/rte-react
 
-> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Beta.** Not for production yet: the APIs may still change between releases. Published to the `next` tag only.
 
 The editor for React: a component and hooks over the headless layer. A component re-renders only when the value it reads changes. No editor or accessibility logic lives here.
 

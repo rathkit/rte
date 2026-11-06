@@ -1,6 +1,6 @@
 # @rathkit/rte-angular
 
-> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Beta.** Not for production yet: the APIs may still change between releases. Published to the `next` tag only.
 
 The editor for Angular: a standalone directive, signals over the headless layer, and an Angular forms value accessor. A signal changes only when the value it holds does. The editor runs outside Angular's change detection and only what it reports (an edit, the editor being ready) is brought back in, so typing does not check your views.
 

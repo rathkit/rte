@@ -1,6 +1,6 @@
 # @rathkit/rte-svelte
 
-> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Beta.** Not for production yet: the APIs may still change between releases. Published to the `next` tag only.
 
 The editor for Svelte: stores and an action over the headless layer. Svelte's store contract is a plain shape, so this package needs nothing from Svelte itself.
 

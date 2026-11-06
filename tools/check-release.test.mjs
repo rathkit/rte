@@ -15,6 +15,12 @@ test("a consistent alpha release has no problems", () => {
   assert.deepEqual(problemsWith("v0.1.0-alpha.0", { versions: same, changelog }), []);
 });
 
+test("a beta release is fine too", () => {
+  const beta = { "@a/x": "0.2.0-beta.0", "@a/y": "0.2.0-beta.0" };
+  const log = "# Changelog\n\n## [0.2.0-beta.0] - 2026-11-07\n\nFirst beta.\n";
+  assert.deepEqual(problemsWith("v0.2.0-beta.0", { versions: beta, changelog: log }), []);
+});
+
 test("a stable tag is refused while in alpha, and so is a tag that is not a version", () => {
   assert.match(problemsWith("v0.1.0", { versions: { "@a/x": "0.1.0" }, changelog })[0], /nothing is released to latest/);
   assert.match(problemsWith("latest", { versions: same, changelog })[0], /not an alpha/);

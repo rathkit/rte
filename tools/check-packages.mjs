@@ -46,10 +46,10 @@ for (const dir of packages) {
   if (readFileSync(join(pkgDir, "NOTICE"), "utf8") !== notice) fail(`${pkg.name}: NOTICE differs from the repository's`);
   if (pkg.license !== "Apache-2.0") fail(`${pkg.name}: license field is ${pkg.license}`);
   if (pkg.private) fail(`${pkg.name}: still private`);
-  if (!/^\d+\.\d+\.\d+-alpha\.\d+$/.test(pkg.version)) fail(`${pkg.name}: version ${pkg.version} is not an alpha`);
+  if (!/^\d+\.\d+\.\d+-(alpha|beta)\.\d+$/.test(pkg.version)) fail(`${pkg.name}: version ${pkg.version} is not an alpha or beta`);
   const publish = pkg.publishConfig ?? {};
   if (publish.access !== "public" || publish.provenance !== true) fail(`${pkg.name}: publishConfig needs access public and provenance true`);
-  if (publish.tag !== "next") fail(`${pkg.name}: publishConfig.tag is ${publish.tag}; an alpha must never take latest`);
+  if (publish.tag !== "next") fail(`${pkg.name}: publishConfig.tag is ${publish.tag}; an alpha or beta must never take latest`);
   if (!pkg.engines?.node) fail(`${pkg.name}: no engines.node`);
   if (!pkg.bugs?.url || !pkg.repository?.directory || !Array.isArray(pkg.keywords) || pkg.keywords.length === 0) fail(`${pkg.name}: bugs, repository.directory or keywords is missing`);
   if (!pkg.repository?.url?.includes("github.com/rathkit/rte")) fail(`${pkg.name}: repository url is ${pkg.repository?.url}`);
@@ -60,7 +60,7 @@ for (const dir of packages) {
   for (const [dep, range] of Object.entries(pkg.peerDependencies ?? {})) {
     if (dep.startsWith("@rathkit/") && !range.startsWith(`>=${pkg.version} <`)) fail(`${pkg.name}: peer ${dep} is "${range}"; it must start at this release (>=${pkg.version}) or npm will not match a prerelease`);
   }
-  if (!/alpha/i.test(readFileSync(join(pkgDir, "README.md"), "utf8"))) fail(`${pkg.name}: the README does not say alpha`);
+  if (!/alpha|beta/i.test(readFileSync(join(pkgDir, "README.md"), "utf8"))) fail(`${pkg.name}: the README does not say alpha or beta`);
   if (!pkg.repository || !pkg.homepage) fail(`${pkg.name}: repository or homepage is missing`);
   const targets = (value) => (typeof value === "string" ? [value] : value && typeof value === "object" ? Object.values(value).flatMap(targets) : []);
   for (const target of targets(pkg.exports)) {

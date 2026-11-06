@@ -1,6 +1,6 @@
 # @rathkit/rte-headless
 
-> **Alpha.** Not for production: the APIs will change between releases. Published to the `next` tag only.
+> **Beta.** Not for production yet: the APIs may still change between releases. Published to the `next` tag only.
 
 How a toolbar, menu, dialog, tooltip and live announcement should behave for the keyboard and assistive technology, with no markup or CSS of its own. Draw the elements yourself and this makes them behave (roving focus, ARIA state, focus returned to the editor); also external stores for any framework.
 
