@@ -29,15 +29,21 @@ export function stagedEntries(json) {
     .filter((e) => e.id && e.name && e.version);
 }
 
-/** What is wrong with the staged set for `version`, given the package names that should be there (empty when fine). */
-export function problemsWith(entries, names, version) {
+/**
+ * Splits the package names into those staged for `version` and the rest, and lists what is wrong (empty when fine):
+ * a name staged more than once is a problem; a name not staged is left to the caller, which checks whether it is already published.
+ */
+export function splitStaged(entries, names, version) {
+  const staged = [];
+  const missing = [];
   const problems = [];
   for (const name of names) {
     const found = entries.filter((e) => e.name === name && e.version === version);
-    if (found.length === 0) problems.push(`${name}@${version} is not staged`);
-    if (found.length > 1) problems.push(`${name}@${version} is staged ${found.length} times (${found.map((e) => e.id).join(", ")}); reject the extra ones by hand`);
+    if (found.length === 0) missing.push(name);
+    else if (found.length > 1) problems.push(`${name}@${version} is staged ${found.length} times (${found.map((e) => e.id).join(", ")}); reject the extra ones by hand`);
+    else staged.push({ name, id: found[0].id });
   }
-  return problems;
+  return { staged, missing, problems };
 }
 
 const tarballName = (name, version) => `${name.replace(/^@/, "").replace("/", "-")}-${version}.tgz`;
@@ -61,10 +67,19 @@ async function main() {
   const listed = spawnSync("npm", ["stage", "list", "--json"], { encoding: "utf8" });
   if (listed.status !== 0) { console.error(listed.stderr || listed.stdout); process.exit(1); }
   const entries = stagedEntries(JSON.parse(listed.stdout));
-  const problems = problemsWith(entries, names, version);
+  const { staged, missing, problems } = splitStaged(entries, names, version);
+  // A package that is not staged is fine only if that version is already on npm (a run that stopped half way).
+  const published = [];
+  for (const name of missing) {
+    const live = spawnSync("npm", ["view", `${name}@${version}`, "version"], { encoding: "utf8" });
+    if (live.status === 0 && live.stdout.trim() === version) published.push(name);
+    else problems.push(`${name}@${version} is neither staged nor published`);
+  }
   if (problems.length) { for (const p of problems) console.error(`  ${p}`); process.exit(1); }
+  for (const name of published) console.log(`already published ${name}@${version}`);
+  const chosen = staged;
+  if (chosen.length === 0) { console.log(`nothing is staged: all ${published.length} packages are already published.`); return; }
 
-  const chosen = names.map((name) => ({ name, id: entries.find((e) => e.name === name && e.version === version).id }));
   const bad = [];
   for (const { name, id } of chosen) {
     const dir = mkdtempSync(join(work, "dl-"));
@@ -87,7 +102,7 @@ async function main() {
   for (const { name, id } of chosen) {
     console.log(`\napproving ${name}@${version}`);
     const r = spawnSync("npm", ["stage", "approve", id], { stdio: "inherit" });
-    if (r.status !== 0) { console.error(`stopped: approving ${name} failed; the ones before it are live, the rest are still staged. Run again to continue.`); process.exit(1); }
+    if (r.status !== 0) { console.error(`stopped: approving ${name} failed; the ones before it are live, the rest are still staged. Run it again: it skips the ones already published.`); process.exit(1); }
   }
   console.log("\ndone. Check: npm view @rathkit/rte-core dist-tags");
 }

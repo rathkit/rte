@@ -50,7 +50,7 @@ npm stage approve <stage-id>      # publishes it (asks for the two-factor code)
 npm stage reject <stage-id>       # removes it
 ```
 
-`pnpm release:approve v<version>` does the comparison for all eleven: it downloads each staged tarball and checks its hash against the release's `SHA256SUMS`, and approves nothing. With `--approve` it then asks once and runs `npm stage approve` for each (npm asks for the two-factor code each time). It stops at the first failure, and running it again continues with the ones still staged. It needs `npm login` as the owner.
+`pnpm release:approve v<version>` does the comparison for all eleven: it downloads each staged tarball and checks its hash against the release's `SHA256SUMS`, and approves nothing. With `--approve` it then asks once and runs `npm stage approve` for each (npm asks for the two-factor code each time). It stops at the first failure, and running it again continues with the ones still staged (a package already on npm is skipped). It needs `npm login` as the owner.
 
 Approve all eleven, then check the tags (`npm view @rathkit/rte-core dist-tags`: `next` is the new version and `latest` has not moved) and install the packages in an empty project.
 

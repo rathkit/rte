@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseSums, problemsWith, stagedEntries } from "./approve-release.mjs";
+import { parseSums, splitStaged, stagedEntries } from "./approve-release.mjs";
 
 const hash = "a".repeat(64);
 
@@ -22,10 +22,10 @@ test("staged entries are read from a list or from an object holding one", () => 
   assert.deepEqual(stagedEntries([{ name: "a", version: "1" }]), []);
 });
 
-test("a missing or doubled package is a problem", () => {
+test("a package that is not staged is left to the caller, and a doubled one is a problem", () => {
   const e = [{ id: "1", name: "a", version: "1" }, { id: "2", name: "b", version: "1" }, { id: "3", name: "b", version: "1" }];
-  assert.deepEqual(problemsWith(e, ["a"], "1"), []);
-  assert.match(problemsWith(e, ["c"], "1")[0], /c@1 is not staged/);
-  assert.match(problemsWith(e, ["b"], "1")[0], /staged 2 times/);
-  assert.deepEqual(problemsWith(e, ["a"], "2"), ["a@2 is not staged"]);
+  assert.deepEqual(splitStaged(e, ["a"], "1"), { staged: [{ name: "a", id: "1" }], missing: [], problems: [] });
+  assert.deepEqual(splitStaged(e, ["c"], "1").missing, ["c"]);
+  assert.match(splitStaged(e, ["b"], "1").problems[0], /staged 2 times/);
+  assert.deepEqual(splitStaged(e, ["a"], "2").missing, ["a"]);
 });
