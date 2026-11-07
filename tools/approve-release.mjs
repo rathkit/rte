@@ -99,13 +99,29 @@ async function main() {
   const answer = await rl.question(`Approve ${chosen.length} packages at ${version}? This publishes them and cannot be undone. Type "yes": `);
   rl.close();
   if (answer.trim() !== "yes") { console.log("nothing approved."); return; }
+  // One code from the authenticator app serves every package while it is valid (about half a minute), so ask once and pass it to each
+  // approval. With no code (an account that signs in by browser or security key) npm asks for each package on its own, as before.
+  const rl2 = createInterface({ input: process.stdin, output: process.stdout });
+  let otp = (await rl2.question("Code from your authenticator app (6 digits; leave empty to approve in the browser for each package): ")).trim();
+  if (otp !== "" && !/^\d{6}$/.test(otp)) { rl2.close(); console.error("that is not a 6-digit code; nothing approved."); process.exit(1); }
   for (const { name, id } of chosen) {
-    console.log(`\napproving ${name}@${version}: open the address npm prints in your browser and approve there (Enter does nothing here)`);
-    // npm says "Press ENTER to open in the browser" and fails if no browser is set (WSL has none). Open the printed address yourself;
-    // with BROWSER set to a command that does nothing, a stray Enter is harmless and npm keeps waiting for the approval.
-    const r = spawnSync("npm", ["stage", "approve", id], { stdio: "inherit", env: { BROWSER: "true", ...process.env } });
-    if (r.status !== 0) { console.error(`stopped: approving ${name} failed; the ones before it are live, the rest are still staged. Run it again: it skips the ones already published.`); process.exit(1); }
+    for (;;) {
+      console.log(`\napproving ${name}@${version}`);
+      const args = ["stage", "approve", id, ...(otp ? ["--otp", otp] : [])];
+      // npm says "Press ENTER to open in the browser" and fails if no browser is set (WSL has none). With BROWSER set to a command
+      // that does nothing, a stray Enter is harmless and npm keeps waiting for the approval opened by hand.
+      const r = spawnSync("npm", args, { stdio: "inherit", env: { BROWSER: "true", ...process.env } });
+      if (r.status === 0) break;
+      const again = otp ? (await rl2.question("That failed; the code may have expired. Enter a fresh 6-digit code to retry this package (empty to stop): ")).trim() : "";
+      if (!/^\d{6}$/.test(again)) {
+        rl2.close();
+        console.error(`stopped: approving ${name} failed; the ones before it are live, the rest are still staged. Run it again: it skips the ones already published.`);
+        process.exit(1);
+      }
+      otp = again;
+    }
   }
+  rl2.close();
   console.log("\ndone. Check: npm view @rathkit/rte-core dist-tags");
 }
 
