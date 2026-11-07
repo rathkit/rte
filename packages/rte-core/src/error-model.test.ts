@@ -164,7 +164,7 @@ function random(seed: number): () => number {
 }
 const PIECES = [
   "<", ">", "</", "/>", "<p>", "</p>", "<div", "<b>", "</i>", "<ul>", "<li>", "</ul>", "<ol start=", "<table>", "<tr>", "<td colspan=", "</table>", "<a href=", "<img src=",
-  '"', "'", "=", "&", "&#", "&#x", "&amp", "&#xFFFFFFF;", "&#0;", "&nbsp;", "\u0000", "\ud800", "\udfff", "‮", "﻿", "<!--", "-->", "<![CDATA[", "<!", "<?",
+  '"', "'", "=", "&", "&#", "&#x", "&amp", "&#xFFFFFFF;", "&#0;", "&nbsp;", "\u0000", "\ud800", "\udfff", "‮", "﻿", "<!--", "-->", "--!>", "<![CDATA[", "<!", "<?",
   "<script>", "</script", "<style>", "<pre>", "<code>", "<blockquote>", "<h1>", "<h7>", "<br/>", "<hr>", "<sup data-note=", "<section class=footnotes>", "<dl>", "<dt>", "<dd>",
   "text", " ", "\n", "\t", "x".repeat(300), "9".repeat(30), "-1", "javascript:", "data:image/png;base64,", "style=", "color:red;", "position:", "((((", "))))", "\\",
 ];
