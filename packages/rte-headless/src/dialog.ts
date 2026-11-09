@@ -1,6 +1,6 @@
 // A modal dialog: focus moves in, Tab stays inside, Escape cancels, the page behind is out of reach, and focus goes back to where it
 // came from. It uses the browser's own `<dialog>` when the element is one, which gives all of that for free; otherwise it does the work.
-import type { Field } from "@rathkit/rte-core";
+import type { Field, Warning } from "@rathkit/rte-core";
 import { uniqueId } from "./disclosure.ts";
 import type { Unsubscribe } from "./types.ts";
 
@@ -10,8 +10,8 @@ export interface DialogOptions {
   readonly opener?: HTMLElement | null;
   readonly editor?: { focus(): void };
   readonly onClose?: (result: "submit" | "cancel") => void;
-  /** Called with a developer-facing warning, such as a dialog with no name. Default: the console. */
-  readonly warn?: (message: string) => void;
+  /** Called with a problem the helper carried on from, such as a dialog with no name (`missing-label`). Same shape as the editor's `onWarning`. Default: the console. */
+  readonly onWarning?: (warning: Warning) => void;
 }
 
 export interface Dialog {
@@ -25,9 +25,11 @@ const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([typ
 
 export function createDialog(options: DialogOptions): Dialog {
   const { dialog } = options;
-  const warn = options.warn ?? ((m: string) => console.warn(`[rte] ${m}`));
+  const handler = options.onWarning ?? ((w: Warning) => console.warn(`[rte] ${w.code}: ${w.message}`));
+  // A handler that throws must not stop the dialog from being made.
+  const warn = (warning: Warning): void => { try { handler(warning); } catch { /* the handler's own failure is not ours to raise */ } };
   const native = typeof HTMLDialogElement !== "undefined" && dialog instanceof HTMLDialogElement && typeof dialog.showModal === "function";
-  if (!dialog.hasAttribute("aria-labelledby") && !dialog.hasAttribute("aria-label")) warn("A dialog needs a name: give it aria-labelledby or aria-label.");
+  if (!dialog.hasAttribute("aria-labelledby") && !dialog.hasAttribute("aria-label")) warn({ code: "missing-label", message: "A dialog needs a name: give it aria-labelledby or aria-label." });
   dialog.setAttribute("role", "dialog");
   dialog.setAttribute("aria-modal", "true");
   let isOpen = false;

@@ -36,7 +36,7 @@ editor down. Warnings are for developers; show a user-facing message with your o
 | `copy-failed` | Copying to the clipboard failed (Copy as Markdown) | Nothing was copied |
 | `upload-failed` | The `uploadImage` function threw or rejected | The image was left out (and `onImageRejected` was told) |
 | `bad-option` | An option cannot be used (an unknown content profile, a depth that is not a whole number of at least 1) | The profile's value was used |
-| `missing-label` | `<rte-editor>` has no `label`, `aria-label` or `aria-labelledby` | Nothing; the editor has no accessible name until one is given |
+| `missing-label` | `<rte-editor>` has no `label`, `aria-label` or `aria-labelledby`; or a dialog given to `createDialog` in `@rathkit/rte-headless` has no `aria-label` or `aria-labelledby` | Nothing; it has no accessible name until one is given |
 | `late-options` | `options` was set on `<rte-editor>` after it was connected | Nothing; they have no effect |
 | `listener-failed` | Your `change`, `focus`, `blur` or `selection` listener, a `subscribe` listener or a `select` callback threw | The listener was skipped; the others still ran |
 
@@ -70,8 +70,14 @@ An option that cannot be used is reported (`bad-option`) and replaced by the def
 checked one by one (see [CONTENT-POLICY.md](CONTENT-POLICY.md)): a profile that does not exist, a limit that is not a whole number
 of at least 0 (a depth, at least 1), a list of link schemes that holds anything but scheme names.
 
+## Without an editor
+
+`@rathkit/rte-headless` has no editor, but its dialog helper (`createDialog`) uses the same channel: an `onWarning` option with the
+same `{ code, message }` shape and the same default (the console, as `[rte] <code>: <message>`). It reports one problem,
+`missing-label`: a dialog with no accessible name.
+
 ## Not covered by this model
 
-`@rathkit/rte-headless` has no editor; its dialog helper takes a `warn(message)` option of its own (default `console.warn`) and says
-`A dialog needs a name` through it. Your own callbacks given as options (`onMaxLength`, `onImageRejected`, `uploadImage`) are called
-as you wrote them; a throw inside `uploadImage` is reported, the others are yours to handle.
+Your own callbacks given as options (`onMaxLength`, `onImageRejected`, `uploadImage`) are called as you wrote them; a throw inside
+`uploadImage` is reported, the others are yours to handle.
+
