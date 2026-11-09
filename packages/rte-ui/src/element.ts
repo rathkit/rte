@@ -14,7 +14,10 @@ type Host = HTMLElement & { readonly editor?: unknown };
 
 const STYLE_ATTRIBUTES = ["theme", "scheme", "density"] as const;
 
-export class RteUiElement extends HTMLElement {
+// On a server there is no HTMLElement, so the class then extends a plain class: importing this module works there, and `define` does nothing.
+const ElementBase = (globalThis.HTMLElement ?? class {}) as typeof HTMLElement;
+
+export class RteUiElement extends ElementBase {
   static observedAttributes = [...STYLE_ATTRIBUTES, "selection-toolbar", "context-menu", "status"];
 
   private current: Ui | undefined;
@@ -83,7 +86,8 @@ export class RteUiElement extends HTMLElement {
   }
 }
 
-/** Registers <rte-ui>. Safe to call more than once. */
+/** Registers <rte-ui>. Safe to call more than once, and does nothing where there is no `customElements` (a server). */
 export function defineUi(name = "rte-ui"): void {
+  if (typeof customElements === "undefined") return;
   if (!customElements.get(name)) customElements.define(name, RteUiElement);
 }

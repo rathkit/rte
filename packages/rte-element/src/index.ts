@@ -5,8 +5,9 @@ import { RteToolbarElement } from "./toolbar-element.ts";
 
 export { RteEditorElement, RteToolbarElement, type RteElementOptions };
 
-/** Registers the elements. Safe to call more than once. */
+/** Registers the elements. Safe to call more than once, and does nothing where there is no `customElements` (a server). */
 export function define(names: { readonly editor?: string; readonly toolbar?: string } = {}): void {
+  if (typeof customElements === "undefined") return;
   const editor = names.editor ?? "rte-editor";
   const toolbar = names.toolbar ?? "rte-toolbar";
   if (!customElements.get(editor)) customElements.define(editor, RteEditorElement);

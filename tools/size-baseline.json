@@ -18,7 +18,7 @@
     "@rathkit/rte-core svg plugin": 3813,
     "@rathkit/rte-core tables plugin": 13131,
     "@rathkit/rte-core word plugin": 1918,
-    "@rathkit/rte-element element": 3340,
+    "@rathkit/rte-element element": 3476,
     "@rathkit/rte-headless headless": 7608,
     "@rathkit/rte-icons all icons": 2147,
     "@rathkit/rte-jquery jquery": 777,
@@ -190,6 +190,13 @@
       "from": null,
       "to": 1195,
       "reason": "the sizes at the start of the ratchet (0.2.0-beta.0)"
+    },
+    {
+      "date": "2026-11-09",
+      "entry": "@rathkit/rte-element element",
+      "from": 3340,
+      "to": 3476,
+      "reason": "server rendering (5.1): the element classes extend a plain class when there is no HTMLElement, and define() does nothing without customElements, so importing them in Node works"
     }
   ]
 }

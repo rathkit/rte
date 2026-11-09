@@ -1,9 +1,10 @@
 // <rte-toolbar>: a plain toolbar for an <rte-editor>, built from the editor's interface items and made to behave by the headless layer.
 // Unstyled, with text labels: style it from the page, or draw your own from `editor.ui` and the headless layer instead.
 import { createToolbar, type Toolbar } from "@rathkit/rte-headless";
+import { ElementBase } from "./base.ts";
 import type { RteEditorElement } from "./editor-element.ts";
 
-export class RteToolbarElement extends HTMLElement {
+export class RteToolbarElement extends ElementBase {
   static observedAttributes = ["for", "label", "slot-name"];
   private toolbar: Toolbar | undefined;
   private unbind: (() => void) | undefined;

@@ -100,10 +100,13 @@ if (problems.length === 0) {
     fail(`npm ls --omit=dev failed: ${String(error.stdout ?? error.stderr ?? error).split("\n").slice(0, 4).join(" | ")}`);
   }
 
-  // The ones that run in Node import, entry point by entry point.
+  // The ones that run in Node import, entry point by entry point. Importing must not need a browser (a server-rendered app imports
+  // everything it uses on the server); only what runs against a page, such as `define()`, is left until the client.
   const nodeSafe = {
-    "@rathkit/rte-core": ["", "/lists", "/tables", "/find", "/autoformat", "/markdown", "/footnotes", "/word", "/svg", "/images"],
+    "@rathkit/rte-core": ["", "/dom", "/standard", "/lists", "/tables", "/find", "/autoformat", "/markdown", "/footnotes", "/word", "/svg", "/images"],
     "@rathkit/rte-headless": [""],
+    "@rathkit/rte-element": ["", "/define"],
+    "@rathkit/rte-ui": ["", "/standard", "/element", "/element/define"],
     "@rathkit/rte-icons": [""],
     "@rathkit/rte-themes": [""],
   };
@@ -113,11 +116,20 @@ if (problems.length === 0) {
      for (const node of nodes) {
       try {
         const out = run(node, ["--input-type=module", "-e", `const m = await import(${JSON.stringify(name + sub)}); console.log(Object.keys(m).length)`], { cwd: project });
-        if (Number(out.trim()) === 0) fail(`${name}${sub} imports but exports nothing`);
+        if (Number(out.trim()) === 0 && !sub.endsWith("/define")) fail(`${name}${sub} imports but exports nothing`);
       } catch (error) {
         fail(`${name}${sub} does not import with ${node}: ${String(error.stderr ?? error).split("\n").find((l) => /Error/.test(l)) ?? error}`);
       }
      }
+    }
+  }
+
+  // Registering the elements on a server (a server-rendered app runs this once while it loads) does nothing and does not throw.
+  for (const [name, fn] of [["@rathkit/rte-element", "define"], ["@rathkit/rte-ui/element", "defineUi"]]) {
+    try {
+      run("node", ["--input-type=module", "-e", `const m = await import(${JSON.stringify(name)}); m.${fn}()`], { cwd: project });
+    } catch (error) {
+      fail(`${name}: ${fn}() throws in Node: ${String(error.stderr ?? error).split("\n").find((l) => /Error/.test(l)) ?? error}`);
     }
   }
 
