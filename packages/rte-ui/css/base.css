@@ -109,7 +109,7 @@
 
   /* ---- the selection toolbar: a short row of controls over selected text ---- */
   [data-rte-part="floating"] {
-    position: absolute; z-index: 15; display: flex; align-items: center; gap: var(--rte-space-1); padding: var(--rte-space-1);
+    position: absolute; z-index: 15; display: flex; flex-wrap: wrap; box-sizing: border-box; max-width: 100%; align-items: center; gap: var(--rte-space-1); padding: var(--rte-space-1);
     background: var(--rte-surface-raised); border: var(--rte-border-width) solid var(--rte-border); border-radius: var(--rte-radius-m); box-shadow: var(--rte-shadow-popover);
   }
   [data-rte-part="floating"][hidden] { display: none; }

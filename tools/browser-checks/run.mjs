@@ -2113,6 +2113,52 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
+// --- a phone turned on its side, and a long press: the layout follows the new size, the selection is kept, and the browser keeps the long press
+// (the emulation turns the window, it does not rotate a device: the real rotation is in the hand-testing script)
+for (const [name, type] of engines) {
+  const touch = name !== "firefox";
+  const t = await open(type, { viewport: { width: 390, height: 844 }, ...(touch ? { hasTouch: true } : {}) }, "", "ui");
+  const { page } = t;
+  const para = "#second [data-rte-part=content] p";
+  const bar = "#second [data-rte-part=floating]";
+  const pick = () => page.evaluate((q) => { const e = window.__two.editor; e.focus(); const n = document.querySelector(q).lastChild; e.selectDom(n, 2, n, 9); }, para);
+  const state = () => page.evaluate(([q, b]) => {
+    const e = window.__two.editor.snapshot.selection;
+    const items = [...document.querySelectorAll("#root [data-rte-part=toolbar] [data-rte-item]")].filter((x) => x.getBoundingClientRect().width > 0);
+    const floating = document.querySelector(b);
+    const f = floating && !floating.hidden ? floating.getBoundingClientRect() : null;
+    return {
+      sideways: document.documentElement.scrollWidth > innerWidth + 1,
+      offscreen: items.filter((x) => { const r = x.getBoundingClientRect(); return r.left < -1 || r.right > innerWidth + 1; }).length,
+      selection: e ? [e.anchor.offset, e.focus.offset] : null,
+      floatingInside: f ? f.left >= -1 && f.right <= innerWidth + 1 : "none",
+    };
+  }, [para, bar]);
+  await pick();
+  await page.waitForTimeout(250);
+  const upright = await state();
+  for (const [label, size] of [["landscape", { width: 844, height: 390 }], ["portrait again", { width: 390, height: 844 }]]) {
+    await page.setViewportSize(size);
+    await page.waitForTimeout(300);
+    const now = await state();
+    check(`${name} (rotate) ${label}: the page does not scroll sideways and every toolbar control is on the screen`, !now.sideways && now.offscreen === 0, now);
+    check(`${name} (rotate) ${label}: the selection is kept`, JSON.stringify(now.selection) === JSON.stringify(upright.selection) && now.selection !== null, [upright.selection, now.selection]);
+    check(`${name} (rotate) ${label}: the selection toolbar, if shown, is inside the screen from side to side`, now.floatingInside === "none" || now.floatingInside === true, now);
+  }
+  // A touch long press makes a context menu event; the editor's own menu stays out of it, so the browser's handles and menu are left alone.
+  await pick();
+  const longPress = await page.evaluate((q) => {
+    const target = document.querySelector(q);
+    const event = new PointerEvent("contextmenu", { bubbles: true, cancelable: true, pointerType: "touch", clientX: 40, clientY: 40 });
+    target.dispatchEvent(event);
+    const menu = document.querySelector("#second [data-rte-part=menu]:not([hidden])");
+    return { prevented: event.defaultPrevented, menuOpen: !!menu };
+  }, para);
+  check(`${name} (rotate) a touch long press is left to the browser: no editor menu, the event is not cancelled`, !longPress.prevented && !longPress.menuOpen, longPress);
+  check(`${name} (rotate) no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
 // --- input-method composition (Chromium, through the debugging protocol; a simulation, not a real input method)
 {
   const t = await open(chromium);
