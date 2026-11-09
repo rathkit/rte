@@ -2,7 +2,7 @@
 // build of an app links), so this package needs no Angular compiler of its own. Options are read once when the editor starts, as the
 // custom element reads them; the editor lives outside Angular's change detection and only what it reports is brought back in.
 import * as i0 from "@angular/core";
-import { ElementRef, EventEmitter, NgZone, inject, signal } from "@angular/core";
+import { ElementRef, EventEmitter, NgZone, PLATFORM_ID, inject, signal } from "@angular/core";
 import type { Editor } from "@rathkit/rte-core/dom";
 import type { Selection } from "@rathkit/rte-core";
 import { createEditor, type StandardOptions } from "@rathkit/rte-core/standard";
@@ -30,6 +30,9 @@ export class RteEditor {
 
   private readonly element = inject(ElementRef<HTMLElement>).nativeElement as HTMLElement;
   private readonly zone = inject(NgZone);
+  // Angular's server renderer has a document but not what an editor needs (no MutationObserver, no selection), and an editor on a server is
+  // nothing anyone can use, so there it is made on the client only. The server sends the named surface, as the other wrappers do.
+  private readonly onClient = inject(PLATFORM_ID) === "browser";
   private readOnlyNow = false;
   private disabledNow = false;
   private stop = (): void => undefined;
@@ -55,6 +58,7 @@ export class RteEditor {
   }
 
   ngOnInit(): void {
+    if (!this.onClient) return;
     const made = this.zone.runOutsideAngular(() => createEditor({ ...this.options, element: this.element, html: this.defaultValue, readOnly: this.readOnlyNow, disabled: this.disabledNow }));
     const offs = [
       made.on("change", (html) => this.zone.run(() => this.change.emit(html))),

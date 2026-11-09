@@ -7,6 +7,10 @@ declare module "@angular/core" {
   export class ElementRef<T = unknown> { readonly nativeElement: T }
   export class NgZone { runOutsideAngular<T>(fn: () => T): T; run<T>(fn: () => T): T }
   export class EventEmitter<T> { emit(value: T): void; subscribe(next: (value: T) => void): { unsubscribe(): void } }
+  export class InjectionToken<T> { constructor(description: string); readonly ɵtype?: T }
+  /** Says which platform the app runs on: "browser" in a browser, "server" when Angular renders on a server. */
+  export const PLATFORM_ID: InjectionToken<unknown>;
+  export function inject<T>(token: InjectionToken<T>): T;
   export function inject<T>(token: abstract new (...args: never[]) => T, options?: { self?: boolean; optional?: boolean }): T;
   export const ɵɵFactoryTarget: { readonly Directive: number };
   // The two types an Angular build reads from the .d.ts file to know what a directive is and what it takes.
