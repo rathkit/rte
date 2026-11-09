@@ -3,3 +3,6 @@ packages: []
 minimumReleaseAge: 4320
 strictDepBuilds: true
 autoInstallPeers: false
+# Newer than what @angular/build asks for, to take the fixes for published advisories in vite (8.3.3).
+overrides:
+  vite: 8.3.6
