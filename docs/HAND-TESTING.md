@@ -57,6 +57,8 @@ Korean one if available.
 
 iOS Safari, Android Chrome; one tablet with a keyboard attached.
 
+To open the demo on a phone, run `node tools/conformance/serve.mjs --lan` (after `pnpm build`) on a computer on the same network and open the address it prints (`/ui/demo/`). It serves the built files, read-only, to private addresses only, until you stop it. Under WSL2 the address it prints is not reachable from other devices unless WSL uses mirrored networking (or the port is forwarded from Windows and allowed through its firewall). The page has four editors: the first has the toolbar, the second has the selection toolbar and the context menu turned on, and the fourth is the custom element.
+
 0. Select text by long-press. Expect: the browser's own handles and menu show,
    with no extra toolbar or menu on top of them, even with both turned on.
 1. Tap into the editor. Expect: the keyboard opens and the caret is visible
@@ -71,6 +73,11 @@ iOS Safari, Android Chrome; one tablet with a keyboard attached.
 6. Rotate the device. Expect: layout reflows; the selection is kept.
 7. Paste from another app. Expect: formatting is kept as documented in
    `PASTE.md`; no raw markup shows.
+8. In the second editor, select a few words, in portrait and in landscape. Expect: native handles show and the selection toolbar does not sit on top of them (step 0), and if it shows, it is inside the screen from side to side.
+9. Look at the first editor's toolbar in portrait. Expect: it wraps onto more rows, every control is on the screen, none is cut off, and the page does not scroll sideways.
+10. Tap each toolbar button once, with a finger (not a stylus or mouse). Expect: each one works on the first tap, none needs a second tap or a long press, and no tooltip stays over the button.
+11. Open the Link and Image dialogs and a menu (text color, table). Expect: each fits the screen in both orientations and the keyboard does not cover its fields (the page scrolls to the focused field).
+12. With the keyboard open, rotate the device, then rotate back. Expect: the caret and the selection are where they were, and typing goes on from there.
 
 ## Pasting from other tools
 
