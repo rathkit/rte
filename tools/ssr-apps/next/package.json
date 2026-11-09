@@ -1,0 +1,15 @@
+{
+  "name": "rte-ssr-next",
+  "private": true,
+  "description": "A Next.js app that renders the React wrapper on the server and hydrates it, for checking server rendering. Its own project with its own lockfile: nothing here is part of the main workspace or ships.",
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p 3000"
+  },
+  "dependencies": {
+    "next": "16.4.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

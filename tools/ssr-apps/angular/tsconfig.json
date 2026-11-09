@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "isolatedModules": true,
+    "types": ["node"]
+  },
+  "angularCompilerOptions": { "strictTemplates": true },
+  "files": ["src/main.ts", "src/main.server.ts", "src/server.ts"]
+}

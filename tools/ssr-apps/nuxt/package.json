@@ -1,0 +1,14 @@
+{
+  "name": "rte-ssr-nuxt",
+  "private": true,
+  "description": "A Nuxt app that renders the Vue wrapper on the server and hydrates it, for checking server rendering. Its own project with its own lockfile: nothing here is part of the main workspace or ships.",
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "start": "HOST=0.0.0.0 PORT=3000 node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "nuxt": "4.6.4",
+    "vue": "3.5.44"
+  }
+}

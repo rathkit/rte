@@ -1,0 +1,5 @@
+# A project of its own, so Angular never enters the main lockfile. The same supply-chain rules as the main workspace apply.
+packages: []
+minimumReleaseAge: 4320
+strictDepBuilds: true
+autoInstallPeers: false

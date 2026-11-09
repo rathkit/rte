@@ -1,0 +1,28 @@
+{
+  "name": "rte-ssr-angular",
+  "private": true,
+  "description": "An Angular app that renders the Angular wrapper on the server and hydrates it, for checking server rendering. Its own project with its own lockfile: nothing here is part of the main workspace or ships.",
+  "type": "module",
+  "scripts": {
+    "build": "ng build",
+    "start": "node dist/app/server/server.mjs"
+  },
+  "dependencies": {
+    "@angular/common": "22.2.3",
+    "@angular/compiler": "22.2.3",
+    "@angular/core": "22.2.3",
+    "@angular/platform-browser": "22.2.3",
+    "@angular/platform-server": "22.2.3",
+    "@angular/router": "22.2.3",
+    "@angular/ssr": "22.2.3",
+    "rxjs": "7.8.2",
+    "tslib": "2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "22.2.3",
+    "@angular/cli": "22.2.3",
+    "@angular/compiler-cli": "22.2.3",
+    "@types/node": "26.6.6",
+    "typescript": "6.0.3"
+  }
+}
