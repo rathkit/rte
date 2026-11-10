@@ -173,7 +173,9 @@ export function createFloating(options: FloatingOptions): Floating {
     on<Event>(root.ownerDocument.defaultView ?? window, "resize", () => { if (!bar.hidden) place(); });
     // Alt+F10 moves the focus into the bar; Escape in the bar puts it back and hides the bar until the selection changes.
     on<KeyboardEvent>(editor.element, "keydown", (e) => {
-      touched = false;
+      // A phone's keyboard reports its typing as a key press too (key "Unidentified", key code 229), even while the person is only
+      // selecting words with a finger; only a key from a keyboard says the person has stopped touching.
+      if (e.key !== "Unidentified" && e.keyCode !== 229 && !e.isComposing) touched = false;
       if (e.key === "F10" && e.altKey && !bar.hidden) {
         e.preventDefault();
         bar.querySelector<HTMLElement>("[data-rte-item][tabindex='0']")?.focus();

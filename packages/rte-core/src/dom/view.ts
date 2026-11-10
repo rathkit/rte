@@ -608,7 +608,8 @@ export class Editor {
           const range = event.getTargetRanges()[0];
           const from = range ? posFromDom(this.element, range.startContainer, range.startOffset) : null;
           const to = range ? posFromDom(this.element, range.endContainer, range.endOffset) : null;
-          this.apply("type", (doc, sel) => insertText(doc, from && to ? { anchor: from, focus: to } : sel, text));
+          // Its own undo step: one undo puts the word back as it was typed, and does not take the typing before it along.
+          this.apply("replace", (doc, sel) => insertText(doc, from && to ? { anchor: from, focus: to } : sel, text));
           return true;
         }
         case "insertFromPaste": case "insertFromPasteAsQuotation": {

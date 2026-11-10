@@ -2161,6 +2161,28 @@ for (const [name, type] of engines) {
     return { prevented: event.defaultPrevented, menuOpen: !!menu };
   }, para);
   check(`${name} (rotate) a touch long press is left to the browser: no editor menu, the event is not cancelled`, !longPress.prevented && !longPress.menuOpen, longPress);
+  // A phone's keyboard reports its typing as a key press (key code 229) even while a finger is only selecting words: that must not bring the editor's own bar over the browser's.
+  await page.evaluate((q) => {
+    const el = document.querySelector(q);
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", clientX: 40, clientY: 40 }));
+    el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerType: "touch", clientX: 40, clientY: 40 }));
+    const key = new KeyboardEvent("keydown", { bubbles: true, key: "Unidentified", keyCode: 229 });
+    el.dispatchEvent(key);
+  }, para);
+  await pick();
+  await page.waitForTimeout(300);
+  check(`${name} (rotate) after a touch and a phone-keyboard key press, selecting words shows no editor bar over the browser's menu`, (await state()).floatingInside === "none", await state());
+  // A suggestion from the keyboard's bar replaces the word just typed; one undo puts the word back as it was typed, with the words before it.
+  await page.evaluate(() => { const e = window.__two.editor; e.setHtml("<p>one two</p>"); e.focus(); const n = document.querySelector("#second [data-rte-part=content] p").firstChild; e.selectDom(n, 7, n, 7); });
+  await page.keyboard.type(" teh");
+  // (The caret stays where typing left it, as it does when the bar is used; a synthetic event carries no target range, so the text goes in at the caret.)
+  await page.evaluate((q) => {
+    document.querySelector(q).dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertReplacementText", data: "X" }));
+  }, para);
+  const replaced = await page.evaluate(() => window.__two.editor.getHtml());
+  await page.evaluate(() => window.__two.editor.undo());
+  const undone = await page.evaluate(() => window.__two.editor.getHtml());
+  check(`${name} (rotate) a suggestion replaces the word, and one undo puts back the word as typed, keeping the words before it`, replaced.includes("one two tehX") && undone.includes("one two teh") && !undone.includes("tehX"), [replaced, undone]);
   check(`${name} (rotate) no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
