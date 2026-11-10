@@ -273,10 +273,17 @@ export function createFloating(options: FloatingOptions): Floating {
       else words();
     });
 
+    // The browser asks for a menu when a finger lets go of a selection handle, and says "mouse" when it does: what counts is the last
+    // thing that touched the editor. A key from a keyboard says the finger is done (a phone keyboard's key press, code 229, does not).
+    let touching = false;
+    const noteTouch = (e: Event): void => { touching = (e as PointerEvent).pointerType === "touch"; };
+    const noteKey = (e: Event): void => { const k = e as KeyboardEvent; if (k.key !== "Unidentified" && k.keyCode !== 229 && !k.isComposing) touching = false; };
+    editor.element.addEventListener("pointerdown", noteTouch, true);
+    editor.element.addEventListener("keydown", noteKey, true);
     const onContextMenu = (e: MouseEvent): void => {
       // Left to the browser: the touch long-press (it brings the selection handles), and Shift with the right button, the way out to the
       // browser's own menu (its spelling suggestions, say). Shift+F10, the key for a context menu, also reports Shift, but is not a click.
-      if ((e.shiftKey && e.button === 2) || (e as PointerEvent).pointerType === "touch") return;
+      if ((e.shiftKey && e.button === 2) || (e as PointerEvent).pointerType === "touch" || touching) return;
       if (toolbar.items.length === 0) return;
       e.preventDefault();
       // From the keyboard there is no pointer: the menu goes where the selection is.
@@ -295,7 +302,7 @@ export function createFloating(options: FloatingOptions): Floating {
     };
     editor.element.addEventListener("contextmenu", onContextMenu);
     redraws.push(draw);
-    stops.push(() => { editor.element.removeEventListener("contextmenu", onContextMenu); stopState(); menu?.destroy(); toolbar.destroy(); anchor.remove(); popup.remove(); });
+    stops.push(() => { editor.element.removeEventListener("contextmenu", onContextMenu); editor.element.removeEventListener("pointerdown", noteTouch, true); editor.element.removeEventListener("keydown", noteKey, true); stopState(); menu?.destroy(); toolbar.destroy(); anchor.remove(); popup.remove(); });
   }
 
   return {

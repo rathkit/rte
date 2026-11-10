@@ -2,7 +2,7 @@
 //   node tools/conformance/serve.mjs [port]      (default: a free port, printed on the first line)
 //   node tools/conformance/serve.mjs --lan [port] for a phone on the same network (hand testing, docs/HAND-TESTING.md): listens on every
 //   interface, answers a request whose Host is a private address (10.x, 172.16-31.x, 192.168.x) or a .local name, prints the demo address, and
-//   serves the same read-only files as above, for as long as it runs. Use it on a network you trust.
+//   serves the same read-only files as above, for as long as it runs. It also prints what the demo's event recorder page posts to /__log (a log line each, nothing is saved). Use it on a network you trust.
 // Only files under packages/rte-core/conformance and packages/rte-core/dist are served, and, under /headless/ /element/, /ui/, /themes/, /icons/ and /frameworks/ (the framework check apps), the dist, demo and css folders of the other packages.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -22,6 +22,14 @@ const privateHost = /^(127\.0\.0\.1|localhost|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\
 const server = createServer(async (req, res) => {
   const host = req.headers.host ?? "";
   const url = new URL(req.url ?? "/", "http://localhost");
+  // The event recorder page of the demo (hand testing) sends what it saw here, and it is printed, nothing more: no file is written.
+  if (lan && req.method === "POST" && url.pathname === "/__log" && privateHost.test(host)) {
+    let size = 0;
+    const parts = [];
+    req.on("data", (c) => { size += c.length; if (size <= 65536) parts.push(c); });
+    req.on("end", () => { console.log(Buffer.concat(parts).toString("utf8").replace(/[^\x20-\x7e\n\u00a0-\uffff]/g, "?")); res.writeHead(204).end(); });
+    return;
+  }
   const prefix = Object.keys(packages).find((p) => url.pathname.startsWith(p));
   const isHeadless = prefix !== undefined;
   const base = prefix ? (packages[prefix] ?? root) : root;

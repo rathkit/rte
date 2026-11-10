@@ -2161,6 +2161,16 @@ for (const [name, type] of engines) {
     return { prevented: event.defaultPrevented, menuOpen: !!menu };
   }, para);
   check(`${name} (rotate) a touch long press is left to the browser: no editor menu, the event is not cancelled`, !longPress.prevented && !longPress.menuOpen, longPress);
+  // Letting go of a selection handle makes the browser ask for a context menu and say "mouse"; the finger that touched last decides.
+  const handleMenu = await page.evaluate((q) => {
+    const el = document.querySelector(q);
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", clientX: 40, clientY: 40 }));
+    el.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerType: "touch", clientX: 40, clientY: 40 }));
+    const event = new PointerEvent("contextmenu", { bubbles: true, cancelable: true, pointerType: "mouse", clientX: 40, clientY: 40 });
+    el.dispatchEvent(event);
+    return { prevented: event.defaultPrevented, menuOpen: !!document.querySelector("#second [data-rte-part=menu]:not([hidden])") };
+  }, para);
+  check(`${name} (rotate) a context menu asked for after a finger touch is left to the browser, whatever pointer it names`, !handleMenu.prevented && !handleMenu.menuOpen, handleMenu);
   // A phone's keyboard reports its typing as a key press (key code 229) even while a finger is only selecting words: that must not bring the editor's own bar over the browser's.
   await page.evaluate((q) => {
     const el = document.querySelector(q);
@@ -2183,6 +2193,19 @@ for (const [name, type] of engines) {
   await page.evaluate(() => window.__two.editor.undo());
   const undone = await page.evaluate(() => window.__two.editor.getHtml());
   check(`${name} (rotate) a suggestion replaces the word, and one undo puts back the word as typed, keeping the words before it`, replaced.includes("one two tehX") && undone.includes("one two teh") && !undone.includes("tehX"), [replaced, undone]);
+  // A keyboard's suggestion arrives as a delete and a type a moment apart; one undo puts the word back as typed.
+  await page.evaluate(() => { const e = window.__two.editor; e.setHtml("<p>one two</p>"); e.focus(); const n = document.querySelector("#second [data-rte-part=content] p").firstChild; e.selectDom(n, 7, n, 7); });
+  await page.keyboard.type(" naurd");
+  const suggested = await page.evaluate((q) => {
+    const e = window.__two.editor; const el = document.querySelector(q); const n = el.firstChild;
+    e.selectDom(n, 10, n, 13);
+    el.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "deleteContentBackward" }));
+    document.querySelector(q).dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "ture" }));
+    const after = e.getHtml();
+    e.undo();
+    return [after, e.getHtml()];
+  }, para);
+  check(`${name} (rotate) a keyboard suggestion (a delete, then a type) is one undo step that puts the word back`, suggested[0].includes("one two nature") && suggested[1].includes("one two naurd"), suggested);
   check(`${name} (rotate) no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }

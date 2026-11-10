@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>rte event recorder</title>
+<script type="importmap">
+{ "imports": {
+  "@rathkit/rte-core/standard": "/dist/standard/index.js",
+  "@rathkit/rte-core/dom": "/dist/dom/index.js",
+  "@rathkit/rte-headless": "/headless/dist/index.js",
+  "@rathkit/rte-icons": "/icons/dist/index.js"
+} }
+</script>
+<link rel="stylesheet" href="/ui/css/base.css">
+<link rel="stylesheet" href="/themes/css/light.css">
+<style>body { margin: 12px; font-family: system-ui, sans-serif; background: #e9edf2; } button { font-size: 16px; padding: 8px 12px; } #log { white-space: pre-wrap; font: 11px/1.3 monospace; max-height: 30vh; overflow: auto; background: #fff; padding: 6px; margin-top: 8px; }</style>
+<p><b>Event recorder.</b> Use the editor as you did when you found the problem. Every event is sent to the computer that serves this page. Press "Mark" before each thing you do, and say what you did.</p>
+<p><button id="mark">Mark</button> <button id="clear">Clear log view</button> <span id="sent"></span></p>
+<div id="root"></div>
+<div id="log"></div>
+<script type="module">
+import { createEditor } from "@rathkit/rte-core/standard";
+import { createStandardUi } from "/ui/dist/standard.js";
+
+const t0 = performance.now();
+const view = document.getElementById("log");
+let queue = [];
+let count = 0;
+const say = (text) => {
+  const line = `${Math.round(performance.now() - t0)} ${text}`;
+  queue.push(line);
+  view.textContent += line + "\n";
+  view.scrollTop = view.scrollHeight;
+};
+const flush = () => {
+  if (!queue.length) return;
+  const body = queue.join("\n");
+  queue = [];
+  count++;
+  fetch("/__log", { method: "POST", body, keepalive: true }).then(() => { document.getElementById("sent").textContent = `sent ${count}`; }).catch(() => { document.getElementById("sent").textContent = "could not send"; });
+};
+setInterval(flush, 700);
+document.getElementById("mark").addEventListener("click", () => say("=== MARK ==="));
+document.getElementById("clear").addEventListener("click", () => { view.textContent = ""; });
+
+const root = document.getElementById("root");
+const surface = document.createElement("div");
+const editor = createEditor({ element: surface, html: "<p>Type a word here.</p>" });
+const ui = createStandardUi(editor, { root, style: { theme: "light" }, selectionToolbar: true, contextMenu: true });
+const el = root.querySelector("[data-rte-surface]") ?? surface;
+const bar = () => root.querySelector("[data-rte-part=floating]");
+const barState = () => { const b = bar(); return b ? (b.hidden ? "bar:hidden" : "bar:SHOWN") : "bar:none"; };
+const doc = () => JSON.stringify(editor.getHtml());
+const sel = () => { const s = getSelection(); return `dom[${s.anchorOffset}-${s.focusOffset}]${s.isCollapsed ? "caret" : "range"} eng${JSON.stringify([editor.snapshot.selection.anchor.offset, editor.snapshot.selection.focus.offset])}`; };
+
+for (const type of ["pointerdown", "pointerup", "pointercancel", "touchstart", "touchend", "contextmenu"]) {
+  el.addEventListener(type, (e) => say(`${type} ${e.pointerType ?? ""} ${barState()}`), true);
+}
+for (const type of ["keydown", "keyup"]) el.addEventListener(type, (e) => say(`${type} key=${e.key} code=${e.keyCode} comp=${e.isComposing}`), true);
+for (const type of ["compositionstart", "compositionupdate", "compositionend"]) el.addEventListener(type, (e) => say(`${type} data=${JSON.stringify(e.data)} doc=${doc()}`), true);
+for (const type of ["beforeinput", "input"]) {
+  el.addEventListener(type, (e) => {
+    let ranges = "";
+    try { ranges = e.getTargetRanges ? JSON.stringify(e.getTargetRanges().map((r) => [r.startOffset, r.endOffset])) : ""; } catch { /* some browsers have none */ }
+    say(`${type} ${e.inputType} data=${JSON.stringify(e.data)} comp=${e.isComposing} ranges=${ranges} ${sel()} doc=${doc()}`);
+  }, true);
+}
+document.addEventListener("selectionchange", () => say(`selectionchange ${sel()} ${barState()}`));
+editor.subscribe((s, p, c) => say(`engine ${c?.docChanged ? "doc" : ""}${c?.selectionChanged ? " sel" : ""} undoable=${editor.canUndo ?? "?"} ${barState()} doc=${doc()}`));
+window.__events = { editor };
+say("ready " + navigator.userAgent);
+</script>

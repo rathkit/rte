@@ -85,6 +85,8 @@ export class Editor {
   /** The editor's state, commands, keys and plugins. It has no DOM, so everything it does can be driven without a page. */
   readonly engine: Engine;
   private composing = false;
+  /** When the last deleting input event came (see `onBeforeInput`). */
+  private deletedAt: number | undefined;
   private reading = false;
   private userReadOnly = false;
   private isDisabled = false;
@@ -530,8 +532,8 @@ export class Editor {
   }
 
   /** Runs one edit as a history step. Edits of one kind in a row (typing, deleting) share a step. */
-  private apply(kind: string, op: (doc: Doc, sel: Selection) => EditResult): boolean {
-    return this.engine.apply(kind, op);
+  private apply(kind: string, op: (doc: Doc, sel: Selection) => EditResult, join = false): boolean {
+    return this.engine.apply(kind, op, join);
   }
 
   /** After an input method finishes, take the text it produced, and where it left the caret, from the DOM. */
@@ -559,6 +561,10 @@ export class Editor {
     if (this.composing || event.isComposing) return;
     if (this.engine.readOnly) { event.preventDefault(); return; }
     const type = event.inputType;
+    // A phone keyboard takes a suggestion in two events a moment apart: it deletes the part of the word that changes, then types the new
+    // part. People do not delete and type within 40 ms, so the typing joins the step of the deleting, and one undo puts the word back.
+    const joins = type === "insertText" && this.deletedAt !== undefined && event.timeStamp - this.deletedAt < 40;
+    this.deletedAt = type.startsWith("deleteContent") ? event.timeStamp : undefined;
     const handled = ((): boolean => {
       switch (type) {
         case "insertText": {
@@ -571,7 +577,7 @@ export class Editor {
             if (taken.storedMarks) this.engine.setStoredMarks(taken.storedMarks);
             return true;
           }
-          this.apply("type", (doc, sel) => insertText(doc, sel, data, this.engine.storedMarks));
+          this.apply("type", (doc, sel) => insertText(doc, sel, data, this.engine.storedMarks), joins);
           return true;
         }
         case "insertParagraph": this.apply("split", (doc, sel) => splitBlock(doc, sel, this.engine.behaviors)); return true;

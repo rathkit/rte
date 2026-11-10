@@ -221,7 +221,7 @@ export class Engine {
    * Runs one edit against the current document and selection as a single history step. Neighbouring edits of the same
    * `kind` ("type", "delete") share one step. False when nothing changed, or when the editor is read-only.
    */
-  apply(kind: string, op: (doc: Doc, sel: Selection) => EditResult): boolean {
+  apply(kind: string, op: (doc: Doc, sel: Selection) => EditResult, join = false): boolean {
     if (this.readOnlyMode) return false;
     this.refresh();
     const before: Level = { doc: this.doc, selection: this.sel };
@@ -237,11 +237,12 @@ export class Engine {
     }
     if (docChanged) {
       const groups = kind === "type" || kind === "delete";
-      if (!(groups && this.lastKind === kind)) {
+      // `join`: the edit is the second half of one the person made in one go (a keyboard's suggestion deletes, then types), so it joins the step before.
+      if (!(join || (groups && this.lastKind === kind))) {
         this.undoStack.push(before);
         if (this.undoStack.length > MAX_HISTORY) this.undoStack.shift();
       }
-      this.lastKind = kind;
+      this.lastKind = join ? "replace" : kind;
       this.redoStack = [];
       const top = this.undoStack[this.undoStack.length - 1];
       if (top) top.after = result.selection;
