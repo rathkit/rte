@@ -2100,12 +2100,18 @@ for (const [name, type] of engines) {
       await page.waitForTimeout(100);
       const corner = await page.evaluate(() => { const g = document.querySelector("[data-rte-resize-handle]"); if (!g) return null; const b = g.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
       check(`${name} (narrow) a tap on an image selects it and shows the resize handle`, !!corner, corner);
+      // The browser's own handles and Copy menu come with a selection that has something in it: under a finger the page holds only a caret.
+      check(`${name} (narrow) a tap on an image leaves the page with a caret, not a selection, while the image stays picked`, await page.evaluate(() => { const s = getSelection(); return s.isCollapsed && document.querySelectorAll("#root img[data-rte-image-selected]").length === 1; }), await page.evaluate(() => [getSelection().isCollapsed, getSelection().toString()]));
       if (corner) {
         await touch("touchStart", corner.x, corner.y);
         for (let i = 1; i <= 5; i++) await touch("touchMove", corner.x + i * 8, corner.y + i * 8);
         await touch("touchEnd", 0, 0);
         await page.waitForTimeout(100);
         check(`${name} (narrow) dragging the handle with a finger resizes the image`, await page.evaluate(() => { const m = /width="(\d+)"/.exec(window.__one.editor.getHtml()); return !!m && Number(m[1]) > 60; }), await page.evaluate(() => window.__one.editor.getHtml().replace(/src="[^"]*"/, "src=…")));
+        // A tap beside the picture is an ordinary tap: the picture is let go and the caret goes where the finger was.
+        await page.tap("#root [data-rte-part=content] p");
+        await page.waitForTimeout(100);
+        check(`${name} (narrow) a tap beside the image lets it go`, await page.evaluate(() => document.querySelectorAll("#root img[data-rte-image-selected]").length === 0 && document.querySelectorAll("[data-rte-resize-handle]").length === 0), await page.evaluate(() => [document.querySelectorAll("#root img[data-rte-image-selected]").length]));
       }
     }
   }

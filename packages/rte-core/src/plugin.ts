@@ -52,6 +52,12 @@ export interface ViewHost {
   listen(target: object, type: string, handler: (event: never) => void): void;
   /** Called after the page was changed by the plugin itself, so the editor does not take it for a change from outside. */
   quiet(): void;
+  /**
+   * Shows the selection the editor holds as a caret at its end on the page, so a touch screen draws no handles and no Copy menu of its
+   * own over it (a picked image, say). The editor's own selection is unchanged. It ends when the person moves the caret or touches
+   * anything but an image, or when the editor's selection changes.
+   */
+  holdSelection(): void;
   /** Called after the editor has drawn each change. */
   onChange(listener: (change: ViewChange) => void): Unsubscribe;
   /** The position in the document for a place in the page (`Node`, offset), or null. */

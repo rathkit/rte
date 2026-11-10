@@ -132,6 +132,7 @@ export class Editor {
       element: this.element, engine: this.engine, ops,
       listen: (target, type, handler) => this.listen(target as EventTarget, type, handler as (e: Event) => void),
       quiet: () => { this.observer.takeRecords(); },
+      holdSelection: () => { this.held = this.engine.selection; this.writeSelection(); },
       onChange: (listener) => { this.changeListeners.add(listener); return () => this.changeListeners.delete(listener); },
       posFromDom: (node, offset) => posFromDom(this.element, node as Node, offset),
       domFromPos: (pos) => domFromPos(this.element, pos),
@@ -188,6 +189,8 @@ export class Editor {
     // Chromium reports a click's `selectionchange` before the caret has landed and not again, so the place a click ends up is read when
     // the pointer is released (the focus is in by then, so the read is allowed).
     this.listen(this.element, "pointerup", () => this.readSelection());
+    // Touching anything but a picture ends a held selection, so a tap beside the picture puts the caret there.
+    this.listen(this.element, "pointerdown", (e) => { if (!((e as Event).target instanceof HTMLImageElement)) this.held = null; });
     // A triple click selects a block; Chrome and Safari run its end on to the start of the next one, Firefox does not. (A pointer event's
     // `detail` is always 0 in Chrome, so the mouse event, which counts the clicks, is the one to ask.)
     this.listen(this.element, "mouseup", (e) => {
@@ -453,6 +456,9 @@ export class Editor {
   /** Set while a selection is read when some point had to be moved to a text position. */
   private fellBack = false;
 
+  /** The selection the editor holds while the page shows only a caret at its end (see `holdSelection`). */
+  private held: Selection | null = null;
+
   private readSelection(force = false): void {
     if (!force && !this.element.contains(document.activeElement)) return;
     const domSel = document.getSelection();
@@ -465,6 +471,12 @@ export class Editor {
     const anchor = first ? this.posOf(first.startContainer, first.startOffset) : this.posOf(domSel.anchorNode, domSel.anchorOffset);
     const focus = last ? this.posOf(last.endContainer, last.endOffset) : this.posOf(domSel.focusNode, domSel.focusOffset);
     if (!anchor || !focus) return;
+    if (this.held) {
+      const end = this.held.focus;
+      const at = (p: Pos): boolean => p.offset === end.offset && p.path.length === end.path.length && p.path.every((n, i) => n === end.path[i]);
+      if (at(anchor) && at(focus)) return;
+      this.held = null;
+    }
     const doc = this.engine.document;
     // What the page reports is already on the page, so it must not be written back to it.
     this.reading = true;
@@ -513,7 +525,8 @@ export class Editor {
     if (!domSel || (document.activeElement !== this.element && !this.element.contains(document.activeElement))) return;
     const a = domFromPos(this.element, this.engine.selection.anchor);
     const f = domFromPos(this.element, this.engine.selection.focus);
-    if (a && f) domSel.setBaseAndExtent(a.node, a.offset, f.node, f.offset);
+    if (this.held && this.engine.selection !== this.held) this.held = null;
+    if (a && f) domSel.setBaseAndExtent(this.held ? f.node : a.node, this.held ? f.offset : a.offset, f.node, f.offset);
   }
 
   /** Runs one edit as a history step. Edits of one kind in a row (typing, deleting) share a step. */

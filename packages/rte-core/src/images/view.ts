@@ -21,6 +21,7 @@ export class ImageSelection {
   private readonly root: HTMLElement;
   private readonly engine: Engine;
   private readonly quiet: () => void;
+  private touched = false;
 
   constructor(private readonly host: ViewHost) {
     this.root = host.element as HTMLElement;
@@ -36,7 +37,10 @@ export class ImageSelection {
       if (!(target instanceof HTMLImageElement) || !this.root.contains(target) || this.engine.readOnly) return;
       const at = this.host.posFromDom(target.parentNode as Node, [...(target.parentNode as Node).childNodes].indexOf(target));
       if (at) this.engine.setSelection(imageSelection(at.path, at.offset));
+      // A finger on a picture would bring up the browser's own handles and Copy menu over the resize handle: the page shows only a caret.
+      if (at && this.touched) this.host.holdSelection();
     };
+    this.root.addEventListener("pointerdown", (e) => { this.touched = (e as PointerEvent).pointerType === "touch"; }, true);
     this.root.addEventListener("mousedown", select);
     // The browser puts its own selection in once the press is over (a caret beside the image, in some), so it is made again.
     this.root.addEventListener("click", select);
