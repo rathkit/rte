@@ -5,27 +5,27 @@
     "bytes": 128
   },
   "sizes": {
-    "@rathkit/rte-angular angular": 1554,
-    "@rathkit/rte-angular angular forms": 1637,
+    "@rathkit/rte-angular angular": 1598,
+    "@rathkit/rte-angular angular forms": 1681,
     "@rathkit/rte-core autoformat plugin": 1923,
     "@rathkit/rte-core core": 48571,
     "@rathkit/rte-core core + browser view": 60313,
     "@rathkit/rte-core find plugin": 2495,
     "@rathkit/rte-core footnotes plugin": 3878,
-    "@rathkit/rte-core images plugin": 5816,
+    "@rathkit/rte-core images plugin": 5988,
     "@rathkit/rte-core lists plugin": 9413,
-    "@rathkit/rte-core markdown plugin": 15124,
+    "@rathkit/rte-core markdown plugin": 15211,
     "@rathkit/rte-core svg plugin": 3813,
-    "@rathkit/rte-core tables plugin": 13131,
+    "@rathkit/rte-core tables plugin": 13307,
     "@rathkit/rte-core word plugin": 1918,
     "@rathkit/rte-element element": 3476,
-    "@rathkit/rte-headless headless": 7608,
-    "@rathkit/rte-icons all icons": 2147,
+    "@rathkit/rte-headless headless": 7675,
+    "@rathkit/rte-icons all icons": 2181,
     "@rathkit/rte-jquery jquery": 777,
     "@rathkit/rte-react react": 1088,
     "@rathkit/rte-svelte svelte": 694,
     "@rathkit/rte-ui ui": 13478,
-    "@rathkit/rte-ui ui element": 14283,
+    "@rathkit/rte-ui ui element": 14327,
     "@rathkit/rte-ui ui with default icons": 13564,
     "@rathkit/rte-vue vue": 1195
   },
@@ -197,6 +197,62 @@
       "from": 3340,
       "to": 3476,
       "reason": "server rendering (5.1): the element classes extend a plain class when there is no HTMLElement, and define() does nothing without customElements, so importing them in Node works"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-angular angular",
+      "from": 1554,
+      "to": 1598,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-angular angular forms",
+      "from": 1637,
+      "to": 1681,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-core tables plugin",
+      "from": 13131,
+      "to": 13307,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-core markdown plugin",
+      "from": 15124,
+      "to": 15211,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-core images plugin",
+      "from": 5816,
+      "to": 5988,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-headless headless",
+      "from": 7608,
+      "to": 7675,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-icons all icons",
+      "from": 2147,
+      "to": 2181,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-10",
+      "entry": "@rathkit/rte-ui ui element",
+      "from": 14283,
+      "to": 14327,
+      "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
     }
   ]
 }

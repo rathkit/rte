@@ -9,12 +9,15 @@ import { inRow, locateCell, toGrid } from "../tablegrid.ts";
 import type { ViewHost } from "../plugin.ts";
 
 const SIZE = 22;
+/** The side of a grip on a touch screen: larger for a finger, but not so large that it covers the middle of a one-line cell and takes the tap meant for it. */
+const TOUCH_SIZE = 30;
 const COLOR = "#17408b";
 
 type Kind = "row" | "column" | "width" | "height";
 
 export class TableGrips {
   private readonly grips = new Map<Kind, HTMLElement>();
+  private readonly size = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches ? TOUCH_SIZE : SIZE;
   private guide: HTMLElement | undefined;
   private readonly stops: (() => void)[] = [];
   private cell: HTMLElement | undefined;
@@ -87,7 +90,9 @@ export class TableGrips {
     el.setAttribute("data-rte-grip", kind);
     el.setAttribute("role", "presentation");
     const cursor = kind === "row" ? "ns-resize" : kind === "column" ? "ew-resize" : kind === "width" ? "col-resize" : "row-resize";
-    el.style.cssText = `position:fixed;z-index:2147483646;width:${SIZE}px;height:${SIZE}px;box-sizing:border-box;background:${COLOR};border:2px solid #fff;border-radius:${kind === "row" || kind === "column" ? "4px" : "50%"};cursor:${cursor};touch-action:none;opacity:0.9`;
+    el.style.cssText = `position:fixed;z-index:2147483646;width:${this.size}px;height:${this.size}px;box-sizing:border-box;background:${COLOR};border:2px solid #fff;border-radius:${kind === "row" || kind === "column" ? "4px" : "50%"};cursor:${cursor};touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;opacity:0.9`;
+    // The browser's own menu must not open over a grip that is held.
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
     el.addEventListener("pointerdown", (e) => this.start(kind, e));
     document.body.appendChild(el);
     return el;
@@ -103,10 +108,10 @@ export class TableGrips {
       const el = this.grips.get(kind);
       if (el) { el.style.left = `${x}px`; el.style.top = `${y}px`; }
     };
-    put("row", t.left - SIZE - 2, c.top + c.height / 2 - SIZE / 2);
-    put("column", c.left + c.width / 2 - SIZE / 2, t.top - SIZE - 2);
-    put("width", c.right - SIZE / 2, c.top + c.height / 2 - SIZE / 2);
-    put("height", c.left + c.width / 2 - SIZE / 2, c.bottom - SIZE / 2);
+    put("row", t.left - this.size - 2, c.top + c.height / 2 - this.size / 2);
+    put("column", c.left + c.width / 2 - this.size / 2, t.top - this.size - 2);
+    put("width", c.right - this.size / 2, c.top + c.height / 2 - this.size / 2);
+    put("height", c.left + c.width / 2 - this.size / 2, c.bottom - this.size / 2);
   }
 
   private start(kind: Kind, event: PointerEvent): void {
@@ -114,6 +119,8 @@ export class TableGrips {
     const table = this.table;
     if (!cell || !table || event.button !== 0) return;
     event.preventDefault();
+    // Keep every move of this finger coming to us, even when it strays off the grip.
+    try { this.grips.get(kind)?.setPointerCapture(event.pointerId); } catch { /* a pointer that is already gone */ }
     const path = this.path;
     const c = cell.getBoundingClientRect();
     const t = table.getBoundingClientRect();

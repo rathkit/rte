@@ -9,6 +9,8 @@ import type { ViewExtension, ViewHost } from "../plugin.ts";
 export const SELECTED_IMAGE = "data-rte-image-selected";
 /** The smallest an image can be dragged to, in pixels. */
 const MIN = 16;
+/** The side of the square that takes a finger on the resize handle; the dot drawn in it is smaller. */
+const HIT = 28;
 
 export class ImageSelection {
   private marked: HTMLElement | undefined;
@@ -74,16 +76,22 @@ export class ImageSelection {
       return;
     }
     if (!this.handle) {
+      // A finger needs more than 12px to land on: the handle is a 28px square that cannot be selected or long-pressed (so the browser's own
+      // menu does not open over it), with the visible dot in its middle; the whole square takes the drag, and touch-action stops the page panning.
       const handle = document.createElement("div");
       handle.setAttribute("data-rte-resize-handle", "");
-      handle.style.cssText = "position:fixed;z-index:2147483646;width:12px;height:12px;background:#17408b;border:2px solid #fff;border-radius:3px;cursor:nwse-resize;touch-action:none;box-sizing:border-box";
+      handle.style.cssText = `position:fixed;z-index:2147483646;width:${HIT}px;height:${HIT}px;display:flex;align-items:center;justify-content:center;cursor:nwse-resize;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent`;
+      const dot = document.createElement("div");
+      dot.style.cssText = "width:12px;height:12px;background:#17408b;border:2px solid #fff;border-radius:3px;box-sizing:border-box;pointer-events:none";
+      handle.appendChild(dot);
+      handle.addEventListener("contextmenu", (e) => e.preventDefault());
       handle.addEventListener("pointerdown", (e) => this.start(e));
       document.body.appendChild(handle);
       this.handle = handle;
     }
     const box = img.getBoundingClientRect();
-    this.handle.style.left = `${box.right - 8}px`;
-    this.handle.style.top = `${box.bottom - 8}px`;
+    this.handle.style.left = `${box.right - HIT / 2 - 2}px`;
+    this.handle.style.top = `${box.bottom - HIT / 2 - 2}px`;
   }
 
   private available(): boolean {
@@ -94,6 +102,8 @@ export class ImageSelection {
     const img = this.marked;
     if (!img || event.button !== 0) return;
     event.preventDefault();
+    // Keep every move of this finger coming to us, even when it strays off the handle.
+    try { this.handle?.setPointerCapture(event.pointerId); } catch { /* a pointer that is already gone */ }
     const box = img.getBoundingClientRect();
     const guide = document.createElement("div");
     guide.setAttribute("data-rte-resize-line", "");
@@ -107,8 +117,8 @@ export class ImageSelection {
       this.drag.guide.style.width = `${this.drag.width}px`;
       this.drag.guide.style.height = `${this.drag.width * ratio}px`;
       if (this.handle) {
-        this.handle.style.left = `${box.left + this.drag.width - 8}px`;
-        this.handle.style.top = `${box.top + this.drag.width * ratio - 8}px`;
+        this.handle.style.left = `${box.left + this.drag.width - HIT / 2 - 2}px`;
+        this.handle.style.top = `${box.top + this.drag.width * ratio - HIT / 2 - 2}px`;
       }
     };
     const end = (cancel: boolean): void => {

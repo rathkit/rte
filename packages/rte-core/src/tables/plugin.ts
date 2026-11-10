@@ -66,7 +66,7 @@ export function tables(options: TablesOptions = {}): Plugin {
       });
       // Lines for the whole table, from anywhere in it.
       host.ui("toolbar.main", {
-        kind: "menu", id: "table-style", label: "Table lines", icon: "cell-style", group: "insert", order: 2.5,
+        kind: "menu", id: "table-style", label: "Table lines", icon: "table-lines", group: "insert", order: 2.5,
         items: [
           ...LINES.map(([key, label]): UiItem => ({ kind: "button", id: `table-border-${key}`, command: "table.border", arg: key, label })),
           { kind: "button", id: "table-border-outline", command: "table.border", arg: { line: "thin", sides: ["top", "right", "bottom", "left"] }, label: "Outline" },

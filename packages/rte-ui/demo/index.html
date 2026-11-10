@@ -27,7 +27,8 @@ import { createStandardUi } from "/ui/dist/standard.js";
 const sample = `<h1>Rathkit RTE</h1><p>A rich text editor <strong>built from scratch</strong>, with <em>nothing</em> else in it. It has <a href="https://rathkit.com">links</a>, <code>inline code</code>, and text that is <u>underlined</u> or <s>struck through</s>.</p>
 <h2>Lists</h2><ul><li>Bulleted items<ul><li>and nested ones</li></ul></li><li>in a list</li></ul><ol><li>Numbered</li><li>too</li></ol>
 <blockquote><p>A quotation sits in the margin.</p></blockquote><pre>const editor = "code blocks keep their spacing";</pre>
-<table><tr><th>Part</th><th>Size</th></tr><tr><td>Core</td><td>17 KB</td></tr><tr><td>Lists</td><td>3.5 KB</td></tr></table><dl><dt>Term</dt><dd>What it means.</dd></dl>`;
+<table><tr><th>Part</th><th>Size</th></tr><tr><td>Core</td><td>17 KB</td></tr><tr><td>Lists</td><td>3.5 KB</td></tr></table><dl><dt>Term</dt><dd>What it means.</dd></dl>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABkCAIAAACO1KzYAAAB9UlEQVR42u3Ci2oPAADF4d/jkCSSRJJIEkkiSSSJJJFkm5nZxTab+ZvNNruYmV1ss5mZzTa7mBFJDkmexnucztfHmiKlcdYWKY2zrlhpnPUlSuNsuKk0zsZSpXE2lSqNs/mW0jhbypTG2XpbaZxt5UrjbC9XGmfHHaVxdlYojbOrUmmc3VVK4+ypUhpnb7XSOPvuKo2zv0ZpnAO1SuMcrFUa51Cd0jiH7ymNc6ReaZyjDUrjHGtQGuf4faVxTjQqjXPygdI4pwpK45wuKI1z5qHSOGeblMY590hpnPPNSuNcaFYa52KL0jiXHiuNc7lVaZwrbUrjXG1TGudau9I4158ojXOjQ2mc4k6lcUo6lcYp7VIap6xbaZzyp0rjVPQojVPZozRO9TOlcWp6lcape640Tn2f0jgNfUrjNL5QGqfQrzRO04DSOM2DSuO0DCqN0zqkNE77S6VxOoaVxukaURqne0RpnJ5RpXF6XymN0zemNE7/uNI4A+NK4wy9VhpneEJpnNE3SuOMTSqNMz6pNM7EW6VxJqeUxpl6pzTO9LTSODPTSuPMziiNM/9eaZyFWaVxluaUxlmeUxpnZV5pnNUPSuN8WVAa5+ui0jjfFpXG+b6kNM6PZaVxfn5UGufXitI4v1eUxvnzSWmcv6tK4/z7rDT+H9Valdg9Cm20AAAAAElFTkSuQmCC" alt="A sample picture to select and resize" width="160" height="100"></p>`;
 
 function make(rootId, style, html, options = {}, uiOptions = {}) {
   const root = document.getElementById(rootId);
