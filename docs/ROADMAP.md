@@ -90,7 +90,7 @@ Measure and gate: a benchmark suite with a stated method, numeric budgets, memor
 Platforms and accessibility: server rendering, touch, input methods, screen readers, the keyboard and contrast audit, language packs, the browser support window and clipboard completeness.
 
 - [x] [5.1](https://github.com/rathkit/rte/issues/15) Server-side use and server rendering `P0`
-- [ ] [5.2](https://github.com/rathkit/rte/issues/16) Touch and mobile pass `P0`
+- [x] [5.2](https://github.com/rathkit/rte/issues/16) Touch and mobile pass `P0` (iOS Safari and a tablet with a keyboard are not run: [#83](https://github.com/rathkit/rte/issues/83))
 - [ ] [5.3](https://github.com/rathkit/rte/issues/17) Input method (IME) pass `P0`
 - [ ] [5.4](https://github.com/rathkit/rte/issues/18) Screen reader pass `P0`
 - [ ] [5.5](https://github.com/rathkit/rte/issues/19) Keyboard, contrast, motion and zoom audit `P0`
