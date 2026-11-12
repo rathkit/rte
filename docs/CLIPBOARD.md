@@ -1,7 +1,7 @@
 # Clipboard: copy, cut, paste, drag and drop
 
 What the editor writes when content leaves it, what it reads when content comes in, and where each case is checked. Every row below
-was run in Chromium, Firefox and WebKit by `tools/browser-checks/run.mjs`. The checks for this page are named
+was run in Chromium, Firefox and WebKit by `tools/browser-checks/run.mjs`, unless the row says otherwise. The checks for this page are named
 "clipboard: …" (the matrix block); the older ones it also leans on are named in the "Check" column. A row marked **not checked** says
 why. How pasted HTML is cleaned is in [PASTE.md](PASTE.md) and [CONTENT-POLICY.md](CONTENT-POLICY.md); images are in
 [IMAGES.md](IMAGES.md); Markdown is in [MARKDOWN.md](MARKDOWN.md).
@@ -18,8 +18,8 @@ Copy, cut and a drag that starts in the editor write the same formats, built fro
 | `text/html` | Always: the selected blocks, structure kept (a part of a list is a list, a range of cells is a table, a rule between two selected blocks comes along) | "copy writes the model's html and text", "clipboard: copy across a rule writes the rule" |
 | `text/plain` | Always: a line per block; the cells of one table row are separated by tabs | "clipboard: copy of a cell range writes a table and tab-separated rows" |
 | `text/markdown` | With the Markdown plugin (`copy: "markdown"`, the default); `copy: "plain"` also makes the plain text Markdown | "clipboard: copy writes html, plain text and, with the Markdown plugin, Markdown" |
-| Other formats | A plugin may add any with the `copyFormat` hook ([PLUGINS.md](PLUGINS.md)) | Unit tests only |
-| Files | Never. An image is written as an `<img>` in the HTML, not as a file | — |
+| Other formats | A plugin may add any with the `copyFormat` hook ([PLUGINS.md](PLUGINS.md)) | A unit test checks that a formatter that throws is skipped; **not checked** in a browser |
+| Files | None: copy writes only the formats above, so an image goes as an `<img>` in the HTML (read from the code) | **Not checked** |
 
 Where the selection is:
 
@@ -42,14 +42,14 @@ paste handlers see the raw clipboard (HTML, plain text, RTF, and the list of for
 Every cell of this grid is one check, named "clipboard: grid: *source* pasted into a *place*" (for example "clipboard: grid: plain text
 pasted into a cell range"). The caret is inside the text of the place, so the results show what joins on either side of it.
 
-| Source on the clipboard | Paragraph | Code block | One table cell | A range of cells | List item |
+| Source on the clipboard | `paragraph` | `code block` | `cell` | `cell range` | `list item` |
 | --- | --- | --- | --- | --- | --- |
-| HTML with plain text (a web page, a word processor, another editor) | Cleaned HTML, joined at the caret | The plain text, as it is | The blocks, inside the cell | The blocks in the first cell; the other selected cells are emptied | Each block an item, joined at the caret |
-| One copied spreadsheet cell (a one-cell table) | Its text | Its text | Its text | Fills every selected cell | Its text |
-| Plain text | A paragraph per part between blank lines | As it is | Paragraphs, inside the cell | Paragraphs in the first cell; the others are emptied | An item per part |
-| Tab-separated text (a spreadsheet, a terminal) | Text with tabs, a line break per line | As it is | Fills the cells from this one, growing the table if needed | Fills the cells from the first selected one | Text with tabs and line breaks |
-| Plain text that looks like Markdown (with the Markdown plugin) | Heading text joined at the caret, then the list | As it is | The structure, inside the cell | The structure in the first cell; the others are emptied | An item per line |
-| An image file, nothing else (Chromium and WebKit) | An image, through the image policy | **Nothing goes in**: a code block holds only text | An image in the cell | An image in the first cell; the others are emptied | An image in the item |
+| `html`: HTML with plain text (a web page, a word processor, another editor) | Cleaned HTML, joined at the caret | The plain text, as it is | The blocks, inside the cell | The blocks in the first cell; the other selected cells are emptied | Each block an item, joined at the caret |
+| `one cell`: one copied spreadsheet cell (a one-cell table) | Its text | Its text | Its text | Fills every selected cell | Its text |
+| `plain text` | A paragraph per part between blank lines | As it is | Paragraphs, inside the cell | Paragraphs in the first cell; the others are emptied | An item per part |
+| `tab-separated text` (a spreadsheet, a terminal) | Text with tabs, a line break per line | As it is | Fills the cells from this one, growing the table if needed | Fills the cells from the first selected one | Text with tabs and line breaks |
+| `Markdown text`: plain text that looks like Markdown (with the Markdown plugin) | Heading text joined at the caret, then the list | As it is | The structure, inside the cell | The structure in the first cell; the others are emptied | An item per line |
+| `an image`: an image file, nothing else (Chromium and WebKit) | An image, through the image policy | **Nothing goes in**: a code block holds only text | An image in the cell | An image in the first cell; the others are emptied | An image in the item |
 
 More, each with its own check:
 
@@ -58,7 +58,7 @@ More, each with its own check:
 | A table pasted into a cell | Fills the cells from that one and grows the table | "clipboard: a table pasted into a cell fills the cells and grows the table" |
 | A list pasted into a list item | Joins the list | "clipboard: a list pasted into a list item joins the list" |
 | A file that is not an image | Ignored unless a plugin's file handler takes it | Checked by drop: "clipboard: a dropped file that is not an image is ignored"; **not checked** by paste |
-| Anything, into a read-only editor | Refused | "clipboard: read-only: copy and cut write, nothing is deleted, paste is refused" (plain text), "paste event and a cut event change nothing" |
+| Anything, into a read-only editor | Refused | "clipboard: read-only: copy and cut write, nothing is deleted, paste is refused" (plain text), "access (readonly): a paste event and a cut event change nothing" (Chromium and WebKit) |
 | The scrubbed captures from word processors and spreadsheets (`fixtures/paste`) | Every one pasted; none makes a request outside the machine, none throws | "… captures pasted, none made an outside request"; what they turn into is checked by the conformance suites ([CONFORMANCE.md](CONFORMANCE.md)) |
 | An image on the clipboard in Firefox | **Not checked** (see "Known gaps") | — |
 
@@ -83,7 +83,7 @@ need the two to share state, which breaks once a page loads two copies of the pa
 | Drop HTML from outside | Goes in where it is dropped, cleaned as a paste is | "clipboard: markup dropped from outside goes in where it is dropped" (the drop event is made up) |
 | Drop an image file | An image, through the image policy | "a dropped image file becomes an image", and the image checks |
 | Drop any other file | Ignored unless a plugin's file handler takes it | "clipboard: a dropped file that is not an image is ignored" (made-up drop) |
-| Drop into a read-only editor | Refused | "dropping text, markup and files changes nothing" |
+| Drop into a read-only editor | Refused | "access (readonly): dropping text, markup and files changes nothing" (made-up drops) |
 | Drag to another application | **Not checked**: the browser hands the formats above to the system; what the other application reads is up to it | — |
 
 ## Limits
@@ -99,10 +99,12 @@ How long a large paste takes is not given here; measured figures are only in [ME
 
 ## Known gaps
 
-- **A clipboard with only `text/markdown`** (and no plain text or HTML) is ignored. Every source seen so far writes plain text beside it.
-- **Text wins over files.** When the clipboard has text or HTML and a file, the file is not read. A file copied in a file manager
-  that also puts its name on the clipboard pastes as the name; an image copied from a web page that also writes `<img src>` pastes as that
-  remote address (kept but not loaded, see `loadRemoteImages`) and does not go through `uploadImage`.
+- **A clipboard with only `text/markdown`** (and no plain text or HTML) is ignored. Seen with a made-up paste event in Chromium and
+  WebKit; not a browser check.
+- **Text wins over files.** When the clipboard has text or HTML and a file, the file is not read (seen with made-up paste events in
+  Chromium and WebKit; not a browser check). So a file copied in a file manager that also puts its name on the clipboard pastes as the
+  name, and an image copied from a web page that also writes `<img src>` pastes as that address, which is then handled as any pasted
+  image address is ([IMAGES.md](IMAGES.md)), not as a file.
 - **An image pasted into a code block is dropped without a word.** A code block holds only text; no warning is reported.
 - **An image on the clipboard in Firefox is not checked.** Firefox, as the browser checks run it, hands the paste event an empty
   clipboard for an image written by the page, so the file route is checked there only by drop.
