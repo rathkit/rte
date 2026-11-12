@@ -2328,6 +2328,113 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
+// --- languages (docs/LOCALIZATION.md): message packs loaded when wanted, plural forms, numbers, and a mirrored right-to-left interface.
+// The packs are test fixtures (packages/rte-ui/demo/test-packs), not shipped translations.
+for (const [name, type] of engines) {
+  const browser = await type.launch();
+  const context = await browser.newContext();
+  await context.route("**/*", (route) => (/^(http:\/\/127\.0\.0\.1|data:|blob:|about:)/.test(route.request().url()) ? route.continue() : route.abort()));
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
+  await page.goto(new URL("/ui/demo/languages.html", base).href);
+  await page.waitForFunction("window.__langReady===true");
+  const attrs = (sel, ...names) => page.evaluate(([s, n]) => { const e = document.querySelector(s); return e ? n.map((a) => e.getAttribute(a)) : null; }, [sel, names]);
+  const rect = (sel) => page.evaluate((s) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r ? { left: r.left, right: r.right, top: r.top, bottom: r.bottom } : null; }, sel);
+  const status = (id) => page.evaluate((i) => document.querySelector(`#${i} [data-rte-part=status]`).textContent, id);
+
+  // Arabic, loaded after the interface was built: words, language and direction on the interface, not on the writing area.
+  check(`${name} (lang) a pack loaded later puts its language and direction on the toolbar`, JSON.stringify(await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label")) === JSON.stringify(["ar", "rtl", "التنسيق"]), await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label"));
+  check(`${name} (lang) and leaves the writing area in the page's language and direction`, await page.evaluate(() => { const c = document.querySelector("#ar [data-rte-part=content]"); return !c.hasAttribute("dir") && !c.hasAttribute("lang") && getComputedStyle(window.__ar.editor.element).direction === "ltr"; }), "content");
+  check(`${name} (lang) a control is named, and its tip given, in the pack's words`, JSON.stringify(await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label", "data-rte-tip")) === JSON.stringify(["غامق", "غامق (Ctrl+B)"]), await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label", "data-rte-tip"));
+  check(`${name} (lang) a select's choices are in the pack's words`, (await page.evaluate(() => document.querySelector('#ar select[data-rte-item=block] option[value="1"]').textContent)) === "عنوان 1", "select");
+  // Mirrored: the first control (undo) is at the right, the toolbar runs leftwards, and the arrow keys follow what is seen.
+  const undo = await rect("#ar [data-rte-part=toolbar] [data-rte-item=undo]");
+  const bold = await rect("#ar [data-rte-part=toolbar] [data-rte-item=bold]");
+  check(`${name} (lang) a right-to-left toolbar starts at the right`, undo.left > bold.right, { undo, bold });
+  await page.evaluate(() => document.querySelector("#ar [data-rte-part=toolbar] [data-rte-item=undo]").focus());
+  await page.keyboard.press("ArrowLeft");
+  check(`${name} (lang) ArrowLeft moves to the next control in a right-to-left toolbar`, (await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"))) === "redo", await page.evaluate(() => document.activeElement.getAttribute("data-rte-item")));
+  await page.keyboard.press("ArrowRight");
+  check(`${name} (lang) and ArrowRight back`, (await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"))) === "undo", "back");
+  // The tooltip lines up with its control's right edge.
+  await page.evaluate(() => document.querySelector("#ar [data-rte-part=toolbar] [data-rte-item=bold]").focus());
+  await page.keyboard.press("ArrowLeft");
+  await page.waitForTimeout(80);
+  const tipFor = await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"));
+  const tip = await rect("#ar [data-rte-part=tooltip]");
+  const control = await rect(`#ar [data-rte-part=toolbar] [data-rte-item="${tipFor}"]`);
+  check(`${name} (lang) a tooltip lines up with the right edge of its control`, !!tip && Math.abs(tip.right - control.right) <= 1 && tip.top >= control.bottom, { tip, control });
+  await page.keyboard.press("Escape");
+  // A menu opens under its button from the right, with the room for the check mark on the right.
+  await page.click("#ar [data-rte-part=toolbar] [data-rte-item=table]");
+  await page.waitForTimeout(80);
+  const menu = await rect("#ar [data-rte-part=toolbar] [data-rte-item=table] + [data-rte-part=menu]");
+  const host = await rect("#ar [data-rte-part=toolbar] [data-rte-item=table]");
+  check(`${name} (lang) a menu opens from its button's right edge`, !!menu && Math.abs(menu.right - host.right) <= 1, { menu, host });
+  check(`${name} (lang) a menu entry keeps the room for its check mark on the right`, await page.evaluate(() => { const s = getComputedStyle(document.querySelector("#ar [data-rte-menu-item=table-header]")); return parseFloat(s.paddingRight) > parseFloat(s.paddingLeft); }), "padding");
+  await page.keyboard.press("Escape");
+  // The context menu opens to the left of the pointer.
+  const para = await rect("#ar [contenteditable=true] p");
+  const at = { x: Math.round(para.left + 300), y: Math.round(para.top + 5) };
+  await page.mouse.click(at.x, at.y, { button: "right" });
+  await page.waitForTimeout(150);
+  const ctx = await rect("#ar [data-rte-context]");
+  check(`${name} (lang) the context menu opens to the left of the pointer, in the pack's words`, !!ctx && Math.abs(ctx.right - at.x) <= 1 && (await page.evaluate(() => document.querySelector("#ar [data-rte-context] [data-rte-menu-item=bold] [data-rte-part=label]").textContent)) === "غامق", { ctx, at });
+  await page.keyboard.press("Escape");
+  // A dialog: its words, its direction, and a problem that names the field in the pack's words.
+  await page.evaluate(() => { const n = document.querySelector("#ar [contenteditable=true] p").firstChild; window.__ar.editor.selectDom(n, 0, n, 2); });
+  await page.click("#ar [data-rte-part=toolbar] [data-rte-item=link]");
+  await page.waitForTimeout(80);
+  const dialog = "#ar dialog[open]";
+  check(`${name} (lang) a dialog is in the pack's words and direction`, await page.evaluate((d) => { const e = document.querySelector(d); return e.getAttribute("dir") === "rtl" && e.querySelector("[data-rte-part=dialog-title]").textContent === "رابط" && e.querySelector("[data-rte-part=field-label]").textContent === "العنوان" && [...e.querySelectorAll("[data-rte-part=action]")].map((b) => b.textContent).join() === "إلغاء,موافق"; }, dialog), "dialog");
+  await page.click(`${dialog} [data-rte-part=action][data-primary]`);
+  check(`${name} (lang) a field's problem names the field in the pack's words`, (await page.evaluate((d) => document.querySelector(`${d} [data-rte-part=field-error]`).textContent, dialog)) === "العنوان مطلوب.", await page.evaluate((d) => document.querySelector(`${d} [data-rte-part=field-error]`)?.textContent, dialog));
+  await page.keyboard.press("Escape");
+  // The keyboard shortcuts list names each command in the pack's words.
+  await page.click("#ar [data-rte-part=toolbar] [data-rte-item=shortcuts]");
+  await page.waitForTimeout(80);
+  check(`${name} (lang) the keyboard shortcuts list is in the pack's words`, await page.evaluate(() => { const d = document.querySelector("#ar dialog[data-rte-shortcuts]"); const cells = [...d.querySelectorAll("td")].map((c) => c.textContent); return d.querySelector("h2").textContent === "اختصارات لوحة المفاتيح" && cells.includes("غامق") && cells.includes("تراجع"); }), "shortcuts");
+  await page.keyboard.press("Escape");
+  // Plural forms: Arabic has six. Each count below falls in a different one, and the number is written the language's way.
+  const forms = { 0: "zero", 1: "one", 2: "two", 3: "few", 11: "many", 100: "other" };
+  for (const [n, form] of Object.entries(forms)) {
+    await page.evaluate((k) => window.__ar.editor.setHtml(k === 0 ? "<p></p>" : `<p>${Array.from({ length: k }, () => "ب").join(" ")}</p>`), Number(n));
+    await page.waitForTimeout(250);
+    const want = await page.evaluate(([k, f]) => window.__packs.ar.messages["status.words"][f].replace("{count}", new Intl.NumberFormat("ar").format(k)), [Number(n), form]);
+    const got = (await status("ar")).split(" · ")[0];
+    check(`${name} (lang) ${n} words take the Arabic "${form}" form`, got === want, { got, want });
+  }
+  // Back to no pack: English again, and the interface takes the page's direction.
+  await page.evaluate(() => window.__ar.ui.setStyle({ theme: "light" }));
+  check(`${name} (lang) taking the pack away says English again and lets go of the language and direction`, JSON.stringify(await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label")) === JSON.stringify([null, null, "Formatting"]) && (await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label"))[0] === "Bold", await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label"));
+  // A pack that lacks a word says it in English.
+  await page.evaluate(() => window.__ar.ui.setStyle({ theme: "light", locale: "ar", dir: "rtl", messages: { "item.bold": "غامق" } }));
+  check(`${name} (lang) a word a pack lacks is said in English`, JSON.stringify([(await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label"))[0], (await attrs("#ar [data-rte-part=toolbar] [data-rte-item=italic]", "aria-label"))[0]]) === JSON.stringify(["غامق", "Italic"]), "fallback");
+
+  // German, given when the editor was made: two plural forms, German numbers, and the writing area's own words.
+  check(`${name} (lang) a pack given at the start names the toolbar`, JSON.stringify(await attrs("#de [data-rte-part=toolbar]", "lang", "dir", "aria-label")) === JSON.stringify(["de", "ltr", "Formatierung"]), await attrs("#de [data-rte-part=toolbar]", "lang", "dir", "aria-label"));
+  check(`${name} (lang) the writing area names a task's checkbox in the editor's words`, (await page.evaluate(() => document.querySelector("#de [data-rte-check]")?.getAttribute("aria-label"))) === "Erledigt", "task");
+  await page.evaluate(() => { window.__de.editor.setHtml("<p>Ein Satz.</p>"); window.__de.editor.focus(); window.__de.editor.engine.commands.run("footnote.insert"); });
+  await page.waitForTimeout(50);
+  check(`${name} (lang) and a footnote and the list of notes`, JSON.stringify(await page.evaluate(() => [document.querySelector("#de sup[data-rte-note]")?.getAttribute("aria-label"), document.querySelector("#de [data-rte-notes]")?.getAttribute("aria-label")])) === JSON.stringify(["Fußnote 1", "Anmerkungen"]), await page.evaluate(() => [document.querySelector("#de sup[data-rte-note]")?.getAttribute("aria-label"), document.querySelector("#de [data-rte-notes]")?.getAttribute("aria-label")]));
+  for (const [html, want] of [["<p>Wort</p>", "1 Wort · 4 Zeichen"], ["<p>zwei Wörter</p>", "2 Wörter · 11 Zeichen"], [`<p>${"a ".repeat(1234)}</p>`, "1.234 Wörter · 2.467 Zeichen"]]) {
+    await page.evaluate((h) => window.__de.editor.setHtml(h), html);
+    await page.waitForTimeout(250);
+    check(`${name} (lang) the German status line says "${want}"`, (await status("de")) === want, await status("de"));
+  }
+
+  // A right-to-left page and no pack: the interface is mirrored by the page's direction alone, in English.
+  const pageUndo = await rect("#page [data-rte-part=toolbar] [data-rte-item=undo]");
+  const pageBold = await rect("#page [data-rte-part=toolbar] [data-rte-item=bold]");
+  check(`${name} (lang) on a right-to-left page the toolbar is mirrored with no pack and no dir of its own`, pageUndo.left > pageBold.right && (await attrs("#page [data-rte-part=toolbar]", "dir"))[0] === null && (await attrs("#page [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label"))[0] === "Bold", { pageUndo, pageBold });
+  await page.evaluate(() => document.querySelector("#page [data-rte-part=toolbar] [data-rte-item=undo]").focus());
+  await page.keyboard.press("ArrowLeft");
+  check(`${name} (lang) and ArrowLeft moves to the next control`, (await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"))) === "redo", "page keys");
+  check(`${name} (lang) the languages page raised no errors`, errors.length === 0, errors);
+  await browser.close();
+}
+
 // --- memory: how much one undo level adds, as a share of the document
 {
   const t = await open(chromium);
