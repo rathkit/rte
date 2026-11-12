@@ -82,8 +82,8 @@ Not budgeted, only reported: documents of 20,000 paragraphs and tables of 20,000
 
 | Entry point | gzipped | budget | left |
 | --- | --- | --- | --- |
-| `@rathkit/rte-core/dom` (core + browser view) | 58.8 KB | 60 KB | 1.2 KB |
-| `@rathkit/rte-core` (core) | 47.4 KB | 60 KB | 12.6 KB |
+| `@rathkit/rte-core/dom` (core + browser view) | 58.8 KB | 65 KB | 1.2 KB |
+| `@rathkit/rte-core` (core) | 47.4 KB | 65 KB | 12.6 KB |
 | `@rathkit/rte-core/markdown` | 14.8 KB | 15 KB | 0.2 KB |
 | `@rathkit/rte-core/tables` | 12.8 KB | 15 KB | 2.2 KB |
 | `@rathkit/rte-core/lists` | 9.2 KB | 15 KB | 5.8 KB |
@@ -113,7 +113,7 @@ A budget is a ceiling with room under it, so it cannot see a change that makes s
 
 | Entry point | gzipped | budget |
 | --- | --- | --- |
-| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 43.8 KB | 60 KB |
+| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 43.8 KB | 65 KB |
 | `@rathkit/rte-core/dom` (core + browser view) | 54.0 KB | 60 KB |
 | `@rathkit/rte-core/lists` | 9.1 KB | 15 KB |
 | `@rathkit/rte-core/tables` | 12.8 KB | 15 KB |

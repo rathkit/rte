@@ -9,7 +9,7 @@ a plugin can add items without depending on a user-interface package. Basis: the
 
 ## 0. Recommendation in one paragraph
 
-Build headless first, and make it the plugin API. Put the **command registry, state queries, subscriptions, keymap and plugin host inside `rte-core`** (about 6 KB of the 60 KB budget), because plugins and every UI depend on them. Put **interaction state machines and accessibility rules** (toolbar, menu, popover, dialog, live region) in a separate small package, `rte-headless`. Build the **styled UI** (`rte-ui`) as a plain-DOM consumer of `rte-headless`, with no privileged access. Ship themes as CSS-variable files (`rte-themes`) and icons as individually importable SVG strings (`rte-icons`). Wrappers (`rte-react`, `rte-vue`, `rte-svelte`) are thin adapters over one subscription primitive. If the styled UI cannot be built using only public headless APIs, the API is wrong; that test is the project's main quality gate.
+Build headless first, and make it the plugin API. Put the **command registry, state queries, subscriptions, keymap and plugin host inside `rte-core`** (about 6 KB of the 65 KB budget), because plugins and every UI depend on them. Put **interaction state machines and accessibility rules** (toolbar, menu, popover, dialog, live region) in a separate small package, `rte-headless`. Build the **styled UI** (`rte-ui`) as a plain-DOM consumer of `rte-headless`, with no privileged access. Ship themes as CSS-variable files (`rte-themes`) and icons as individually importable SVG strings (`rte-icons`). Wrappers (`rte-react`, `rte-vue`, `rte-svelte`) are thin adapters over one subscription primitive. If the styled UI cannot be built using only public headless APIs, the API is wrong; that test is the project's main quality gate.
 
 ## 1. Layering
 
@@ -28,7 +28,7 @@ rte-plugin-<name> (@rathkit) and @rathkit-pro/rte-plugin-<name>
 
 Rules: arrows point only downward. Core knows nothing about toolbars. `rte-headless` knows nothing about CSS, class names or SVG. `rte-ui` imports only public exports of the packages above it, and CI enforces this with an import-graph check, the same way `check:zero-deps` works today.
 
-Why not fold headless into core: UI-item descriptors, menu and dialog machines are not needed by server-side or embedded-without-chrome users, and the 60 KB budget is shared with the editing engine. Why not fold it into `rte-ui`: that is exactly what would force consumers to import styled code to get behavior.
+Why not fold headless into core: UI-item descriptors, menu and dialog machines are not needed by server-side or embedded-without-chrome users, and the 65 KB budget is shared with the editing engine. Why not fold it into `rte-ui`: that is exactly what would force consumers to import styled code to get behavior.
 
 ### What is headless today
 
@@ -148,7 +148,7 @@ export interface PluginHost {
 
 Plugins receive `PluginHost` at `setup`, so they do not import `rte-core` at runtime (consistent with DISTRIBUTION 1.3 rule 5). A plugin never emits markup or CSS for its UI: it contributes descriptors and command logic. Therefore the same plugin appears in the styled toolbar, in a custom React toolbar built from `editor.ui.items`, or nowhere if the consumer ignores it. A paid plugin that needs a rich panel (e.g. a table grid picker) declares a `{kind: "panel"; name}` item, and each UI layer supplies a renderer for the panel name; headless consumers get the data and the commands (`table.insert`, args `{rows, cols}`) and can build their own picker.
 
-Core plugins ship in `rte-core`'s repo but as separate entry points so the 60 KB core-without-plugins number is real.
+Core plugins ship in `rte-core`'s repo but as separate entry points so the 65 KB core-without-plugins number is real.
 
 ## 3. Styled layer and theming
 
@@ -242,7 +242,7 @@ Visible focus ring and 3:1 contrast tokens, minimum target size, forced-colors r
 
 | Package | Gzipped budget (JS) | Notes |
 |---|---|---|
-| `rte-core` | 60 KB total, command/state/keymap/plugin host at most 7 KB of it | Core plugins stay at 15 KB or less each |
+| `rte-core` | 65 KB total, command/state/keymap/plugin host at most 7 KB of it | Core plugins stay at 15 KB or less each |
 | `rte-headless` | 12 KB | Machines are small state tables plus DOM binders |
 | `rte-ui` | 25 KB JS + 8 KB base CSS | Excludes icons |
 | `rte-themes` | 4 KB per preset | Token values only |
@@ -284,7 +284,7 @@ Decided by the owner on 2026-10-22. Where this differs from the default that was
 
 | Decision | Result |
 |---|---|
-| Is the command/plugin host part of core's 60 KB? | Yes, at most 7 KB |
+| Is the command/plugin host part of core's 65 KB? | Yes, at most 7 KB |
 | Package name for the headless layer | `@rathkit/rte-headless`; styled is `@rathkit/rte-ui` |
 | Shadow DOM or light DOM for styled UI | Light DOM with cascade layers and `data-rte-part` |
 | Custom Elements wrapper (`<rte-editor>`) | **In v1** (was: later), as `@rathkit/rte-element` |

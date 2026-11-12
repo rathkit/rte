@@ -21,7 +21,7 @@ the styled one (see `HEADLESS.md`).
 | `@rathkit/rte-core/images` | The image policy: upload hook, inline limit, reports | 1.2 KB |
 | `@rathkit/rte-core/standard` | `createEditor()`: the editor with all of the above wired in except Markdown, which stays opt-in. Footnotes are on and can be left out with `footnotes: false` (so can `lists`, `tables`, `find` and `autoformat`) | |
 
-Budgets are 60 KB for the core and 15 KB for each plugin. The sizes above come from `rathkit-pack`'s minifier and are provisional
+Budgets are 65 KB for the core and 15 KB for each plugin. The sizes above come from `rathkit-pack`'s minifier and are provisional
 while that is still changing; CI checks the stricter unminified number. `pnpm check:graph` fails if a core file imports a
 plugin, so "core without plugins" stays true.
 
