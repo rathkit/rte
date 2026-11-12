@@ -82,7 +82,9 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       const box = root.getBoundingClientRect();
       const at = target.getBoundingClientRect();
       // Lined up with the control's start: its left edge, or its right edge in a right-to-left interface.
-      const x = getComputedStyle(popup).direction === "rtl" ? at.right - box.left - popup.offsetWidth : at.left - box.left;
+      // Measured from inside the root's border, where an absolutely placed element starts.
+      const left0 = box.left + root.clientLeft;
+      const x = getComputedStyle(popup).direction === "rtl" ? at.right - left0 - popup.offsetWidth : at.left - left0;
       popup.style.top = `${Math.round(at.bottom - box.top + 6)}px`;
       popup.style.left = `${Math.round(Math.max(0, Math.min(x, box.width - popup.offsetWidth)))}px`;
     },
