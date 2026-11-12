@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Warning } from "@rathkit/rte-core";
-import { createDialog } from "./dialog.ts";
+import { checkFields, createDialog } from "./dialog.ts";
 
 /** Just enough of an element for the helper to start; there is no DOM in these tests. */
 const element = (attributes: Record<string, string> = {}) => {
@@ -40,4 +40,15 @@ test("with no handler the warning goes to the console in the editor's format", (
 test("a handler that throws does not stop the dialog from being made", () => {
   const dialog = createDialog({ dialog: element(), onWarning: () => { throw new Error("handler"); } });
   assert.equal(dialog.isOpen, false);
+});
+
+test("a field's message names the field: {label} in a given message stands for its label", () => {
+  const input = { value: "", setAttribute: () => undefined, removeAttribute: () => undefined, focus: () => undefined } as unknown as HTMLInputElement;
+  const slot = { id: "x", textContent: "" };
+  const form = { querySelector: (s: string) => (s.startsWith("[name") ? input : slot) } as unknown as HTMLElement;
+  const heard: string[] = [];
+  const check = checkFields(form, [{ name: "href", type: "url", label: "Adresse", required: true }], { required: "{label} ist erforderlich." }, (m) => heard.push(m));
+  assert.equal(check.ok, false);
+  assert.equal(slot.textContent, "Adresse ist erforderlich.");
+  assert.deepEqual(heard, ["Adresse ist erforderlich."]);
 });

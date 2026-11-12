@@ -102,7 +102,7 @@ export interface FormCheck {
 /**
  * Checks a dialog's form against the fields an item asked for. Each field that is missing or wrong gets `aria-invalid` and is tied to
  * its message by `aria-describedby`; put an element marked `data-rte-error="<field name>"` where the message should appear. The first
- * bad field takes the focus, and the messages are announced when an announcer is given.
+ * bad field takes the focus, and the messages are announced when an announcer is given. In `messages`, `{label}` stands for the field's label.
  */
 export function checkFields(form: HTMLElement, fields: readonly Field[], messages: { readonly required?: string; readonly url?: string } = {}, announce?: (message: string) => void): FormCheck {
   const values: Record<string, string | boolean> = {};
@@ -119,8 +119,8 @@ export function checkFields(form: HTMLElement, fields: readonly Field[], message
     const value = input.value.trim();
     values[field.name] = value;
     let problem = "";
-    if (field.required && value === "") problem = messages.required ?? `${field.label} is required.`;
-    else if (value !== "" && field.type === "url" && /^\s*(javascript|vbscript|data):/i.test(value)) problem = messages.url ?? `${field.label} must be a web, mail or phone address.`;
+    if (field.required && value === "") problem = messages.required?.replaceAll("{label}", field.label) ?? `${field.label} is required.`;
+    else if (value !== "" && field.type === "url" && /^\s*(javascript|vbscript|data):/i.test(value)) problem = messages.url?.replaceAll("{label}", field.label) ?? `${field.label} must be a web, mail or phone address.`;
     const slot = form.querySelector<HTMLElement>(`[data-rte-error="${field.name}"]`);
     if (slot) slot.textContent = problem;
     if (problem) {
