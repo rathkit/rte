@@ -55,6 +55,22 @@ does (style-class fills and number formats, typed values, headings inferred from
 
 `pnpm check:fixtures` checks `provenance` and `expect` when a fixture has them.
 
+## Making real captures
+
+Real captures are what issue 24 asks for, and only someone with the applications can make them. The reconstructed fixtures stand in until then. A useful round, about an hour:
+
+1. Start the capture server (`node tools/paste-capture/serve.mjs`) and open the page in the browser you copy in.
+2. For each source in the list below, write the samples in `samples.md` (S1 to S5 for text sources, X1 to X3 for spreadsheets) once, with made-up content, then copy each one and paste it into the capture page. Fill in source app, sample, browser and OS before every paste.
+3. Sources worth adding, by class: a desktop word processor, an online document editor, a desktop spreadsheet, an online spreadsheet, a desktop mail client (compose and a received message), web mail (compose and a received message), and two or three ordinary web pages.
+4. Repeat in a second browser where you can (Chromium and Firefox on Windows, Safari on a Mac): each browser wraps the clipboard differently.
+5. Scrub, check and look at the result before committing:
+
+        node tools/paste-capture/scrub.mjs tools/paste-capture/captures --out fixtures/paste
+        pnpm check:fixtures
+
+   Read each scrubbed file once for anything real that slipped through. Raw captures stay out of git.
+6. Run `pnpm check:fixtures` and the browser checks. A new real capture that fails a free-tier scenario is a finding: say so in the issue rather than adding an expectation to make it pass.
+
 ## Privacy
 
 Captures contain whatever you copied. Use sample content you wrote, never real documents. Review the scrubbed fixtures before committing them.
