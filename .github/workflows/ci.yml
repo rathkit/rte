@@ -55,6 +55,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # The test message packs against every word the built editor says: no key missing or unused, plural forms as the language has them.
+      - run: pnpm check:messages
       - run: pnpm check:size
       # The public surface: every name each package exports, against the list checked in (tools/exports.snapshot.txt).
       - run: pnpm check:exports
