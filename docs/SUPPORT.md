@@ -46,12 +46,12 @@ To record a CI run: `gh run download <run id> --pattern 'compat-*' --dir <folder
 
 | Engine | Version | Stands in for | CI job (Playwright) | Last recorded run |
 | --- | --- | --- | --- | --- |
-| Chromium | 156.0.8078.4 | Chrome, Edge and other Chromium browsers | `browsers` (1.64.1) | passed, 519 of 519 (a local run, 2026-11-12, `65ba27199a42`) |
-| Firefox | 157.0 | Firefox | `browsers` (1.64.1) | passed, 504 of 504 (a local run, 2026-11-12, `65ba27199a42`) |
-| WebKit | 27.2 | Safari (the Linux build is not Safari) | `browsers` (1.64.1) | passed, 511 of 511 (a local run, 2026-11-12, `65ba27199a42`) |
-| Chromium | 153.0.8010.12 | Chrome, Edge and other Chromium browsers | `browsers-oldest` (1.63.0) | passed, 519 of 519 (a local run, 2026-11-12, `65ba27199a42`) |
-| Firefox | 155.0 | Firefox | `browsers-oldest` (1.63.0) | passed, 504 of 504 (a local run, 2026-11-12, `65ba27199a42`) |
-| WebKit | 26.6 | Safari (the Linux build is not Safari) | `browsers-oldest` (1.63.0) | passed, 511 of 511 (a local run, 2026-11-12, `65ba27199a42`) |
+| Chromium | 156.0.8078.4 | Chrome, Edge and other Chromium browsers | `browsers` (1.64.1) | passed, 694 of 694 ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
+| Firefox | 157.0 | Firefox | `browsers` (1.64.1) | passed, 673 of 673 ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
+| WebKit | 27.2 | Safari (the Linux build is not Safari) | `browsers` (1.64.1) | passed, 686 of 686 ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
+| Chromium | 153.0.8010.12 | Chrome, Edge and other Chromium browsers | `browsers-oldest` (1.63.0) | passed, 694 of 694 ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
+| Firefox | 155.0 | Firefox | `browsers-oldest` (1.63.0) | passed, 673 of 673 ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
+| WebKit | 26.6 | Safari (the Linux build is not Safari) | `browsers-oldest` (1.63.0) | passed, 680 of 680 ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
 
 | Device | Last recorded run |
 | --- | --- |
@@ -60,8 +60,8 @@ To record a CI run: `gh run download <run id> --pattern 'compat-*' --dir <folder
 
 | Node | What runs | Last recorded run |
 | --- | --- | --- |
-| 22.14.0 | the oldest Node that `engines` allows: every entry point is imported from the packed packages (check:packages) | not run |
-| 26 (26.12.0) | builds, tests and checks everything in the check job, and imports the packed packages | passed (a local run, 2026-11-12, `65ba27199a42`) |
+| 22.14.0 | the oldest Node that `engines` allows: every entry point is imported from the packed packages (check:packages) | passed ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
+| 26 (26.13.1) | builds, tests and checks everything in the check job, and imports the packed packages | passed ([CI](https://github.com/rathkit/rte/actions/runs/43256430200), 2026-11-12, `b9d444d220e7`) |
 
 | Framework | Wrapper | Versions the wrapper accepts | Version checked | Last recorded run |
 | --- | --- | --- | --- | --- |
