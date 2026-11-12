@@ -150,6 +150,14 @@ export function deleteSelection(doc: Doc, sel: Selection): EditResult {
   const s = ordinalOf(doc, start.path);
   const e = ordinalOf(doc, end.path);
   const paths = containerPaths(doc);
+  // Rules between the two ends go first (last first, so the paths of the earlier ones stay right). A rule holds no container, so the
+  // ends keep their places in reading order.
+  const rules = rulePaths(doc).filter((rule) => rule.before > s && rule.before <= e);
+  if (rules.length > 0) {
+    const bare = fixup(rules.reduceRight((d, rule) => mapBlockList(d, rule.path, (blocks, index) => blocks.filter((_, i) => i !== index)), doc));
+    const now = containerPaths(bare);
+    if (now.length === paths.length) return deleteSelection(bare, { anchor: { path: now[s] as Path, offset: start.offset }, focus: { path: now[e] as Path, offset: end.offset } });
+  }
   const startKind = kindAt(doc, start.path);
   const endKind = kindAt(doc, end.path);
   const head = sliceInline(getContent(doc, start.path), 0, start.offset);
@@ -683,7 +691,8 @@ export function extractSelection(doc: Doc, sel: Selection): Block[] {
           }));
           return any ? [{ ...block, rows }] : [];
         }
-        case "hr": return [];
+        // A rule has no text, so it is in the selection when the selection runs from a container before it to one after it.
+        case "hr": return first < n && n <= last ? [block] : [];
       }
     });
   return cropBlocks(doc.blocks);

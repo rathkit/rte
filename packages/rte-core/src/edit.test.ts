@@ -155,3 +155,23 @@ test("transposeChars swaps the characters either side of the caret, or the last 
   assert.equal(run("<p>a</p>", 1), "<p>a</p>", "one character");
   assert.equal(run("<p>a<br>b</p>", 2), "<p>a<br>b</p>", "a line break is not swapped");
 });
+
+test("a copied selection keeps the rules between the blocks it covers, and a drag moves them", async () => {
+  const { containerPaths } = await import("./path.ts");
+  const d = doc("<p>a</p><hr><p>b</p><hr><p>c</p>");
+  const paths = containerPaths(d);
+  const range = (from: number, to: number, toOffset: number): Selection => ({ anchor: { path: paths[from] as number[], offset: 0 }, focus: { path: paths[to] as number[], offset: toOffset } });
+  assert.equal(exportHtml({ blocks: extractSelection(d, range(0, 2, 1)) }), "<p>a</p><hr><p>b</p><hr><p>c</p>");
+  assert.equal(exportHtml({ blocks: extractSelection(d, range(0, 1, 1)) }), "<p>a</p><hr><p>b</p>", "only the rule between the selected blocks");
+  assert.equal(exportHtml({ blocks: extractSelection(d, range(1, 1, 1)) }), "<p>b</p>", "a selection in one block takes no rule");
+  const moved = moveSelection(doc("<p>a</p><hr><p>b</p><p>z</p>"), { anchor: { path: [0], offset: 0 }, focus: { path: [2], offset: 1 } }, { path: [3], offset: 1 }, false);
+  assert.equal(html(moved), "<p></p><p>za</p><hr><p>b</p>");
+});
+
+test("deleting a selection removes the rules inside it, and keeps the ones at its edges", () => {
+  const del = (h: string, a: [number[], number], b: [number[], number]) => html(deleteSelection(doc(h), { anchor: { path: a[0], offset: a[1] }, focus: { path: b[0], offset: b[1] } }));
+  assert.equal(del("<p>xa</p><hr><p>bc</p>", [[0], 1], [[2], 1]), "<p>xc</p>");
+  assert.equal(del("<hr><p>xa</p><hr><hr><p>bc</p><hr>", [[1], 1], [[4], 1]), "<hr><p>xc</p><hr>", "two in a row inside; the outer ones stay");
+  assert.equal(del("<blockquote><p>a</p><hr><p>b</p></blockquote><hr><p>c</p>", [[0, 0], 0], [[2], 1]), "<blockquote><p></p></blockquote>");
+  assert.equal(del("<p>xa</p><hr><pre>code</pre>", [[0], 1], [[2], 2]), "<p>x</p><pre>de</pre>", "blocks that do not join lose the rule between them too");
+});
