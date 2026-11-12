@@ -15,6 +15,8 @@ export interface SourceViewOptions {
 export interface SourceView {
   toggle(opener: HTMLElement): void;
   readonly isOpen: boolean;
+  /** Words may have changed: write them again. */
+  refresh(): void;
   destroy(): void;
 }
 
@@ -25,6 +27,8 @@ export function createSourceView(options: SourceViewOptions): SourceView {
   area.spellcheck = false;
   area.setAttribute("aria-label", options.message("source.label"));
   area.setAttribute("autocapitalize", "off");
+  // HTML reads left to right, whatever the language of the interface or the document.
+  area.dir = "ltr";
   content.appendChild(area);
   let original = "";
   let opener: HTMLElement | undefined;
@@ -69,6 +73,7 @@ export function createSourceView(options: SourceViewOptions): SourceView {
   return {
     toggle(from) { if (area.hidden) open(from); else close(true); },
     get isOpen() { return !area.hidden; },
+    refresh() { area.setAttribute("aria-label", options.message("source.label")); },
     destroy() {
       toolbar.removeEventListener("click", guard, true);
       toolbar.removeEventListener("keydown", guard, true);

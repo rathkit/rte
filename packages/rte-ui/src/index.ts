@@ -2,5 +2,5 @@
 // items, on the headless layer, and styles them with tokens. Load `base.css` and a theme from @rathkit/rte-themes. Icons: pass them in
 // `style.icons`, or use `@rathkit/rte-ui/standard`, which brings the default set.
 export { createUi } from "./ui.ts";
-export { DEFAULT_MESSAGES } from "./messages.ts";
-export type { MessageKey, PartContext, PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
+export { DEFAULT_MESSAGES, messageCatalog, type CatalogEditor } from "./messages.ts";
+export type { Message, MessageKey, MessagePack, PartContext, PluralMessage, PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";

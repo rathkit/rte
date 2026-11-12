@@ -1,12 +1,13 @@
 // A list of the keys the editor answers to, read from the editor's own key map so it is never out of date: what each does, and the key.
 import { createDialog, type Dialog } from "@rathkit/rte-headless";
+import { keyOf } from "./messages.ts";
 import type { UiEditor } from "./types.ts";
 
 export interface ShortcutsOptions {
   readonly editor: UiEditor;
   readonly root: HTMLElement;
   readonly part: <E extends HTMLElement>(el: E, name: string) => E;
-  readonly message: (key: string) => string;
+  readonly message: (key: string, fallback?: string) => string;
 }
 
 export interface Shortcuts {
@@ -65,7 +66,7 @@ export function createShortcuts(options: ShortcutsOptions): Shortcuts {
       if (!keys) continue;
       const row = document.createElement("tr");
       const what = document.createElement("td");
-      what.textContent = labels.get(binding.command) ?? binding.command;
+      what.textContent = message(keyOf.command(binding.command), labels.get(binding.command) ?? binding.command);
       const how = document.createElement("td");
       const kbd = document.createElement("kbd");
       kbd.textContent = keys;
