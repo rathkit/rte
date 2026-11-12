@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "about": "Rathkit RTE compatibility matrix. Made by tools/compat-matrix.mjs; the schema is in docs/SUPPORT.md, \"Compatibility matrix\". A result is only ever copied from a run's results file; \"not run\" means no run was recorded.",
+  "browsers": [
+    {
+      "job": "browsers",
+      "engine": "chromium",
+      "standsFor": "Chrome, Edge and other Chromium browsers",
+      "playwright": "1.64.1",
+      "version": "156.0.8078.4",
+      "result": {
+        "status": "passed",
+        "passed": 519,
+        "failed": 0,
+        "date": "2026-11-12",
+        "commit": "65ba27199a42e6f7d0a9900ee75a99521b13c99a",
+        "source": "local",
+        "run": null
+      }
+    },
+    {
+      "job": "browsers",
+      "engine": "firefox",
+      "standsFor": "Firefox",
+      "playwright": "1.64.1",
+      "version": "157.0",
+      "result": {
+        "status": "passed",
+        "passed": 504,
+        "failed": 0,
+        "date": "2026-11-12",
+        "commit": "65ba27199a42e6f7d0a9900ee75a99521b13c99a",
+        "source": "local",
+        "run": null
+      }
+    },
+    {
+      "job": "browsers",
+      "engine": "webkit",
+      "standsFor": "Safari (the Linux build is not Safari)",
+      "playwright": "1.64.1",
+      "version": "27.2",
+      "result": {
+        "status": "passed",
+        "passed": 511,
+        "failed": 0,
+        "date": "2026-11-12",
+        "commit": "65ba27199a42e6f7d0a9900ee75a99521b13c99a",
+        "source": "local",
+        "run": null
+      }
+    },
+    {
+      "job": "browsers-oldest",
+      "engine": "chromium",
+      "standsFor": "Chrome, Edge and other Chromium browsers",
+      "playwright": "1.63.0",
+      "version": "153.0.8010.12",
+      "result": {
+        "status": "passed",
+        "passed": 519,
+        "failed": 0,
+        "date": "2026-11-12",
+        "commit": "65ba27199a42e6f7d0a9900ee75a99521b13c99a",
+        "source": "local",
+        "run": null
+      }
+    },
+    {
+      "job": "browsers-oldest",
+      "engine": "firefox",
+      "standsFor": "Firefox",
+      "playwright": "1.63.0",
+      "version": "155.0",
+      "result": {
+        "status": "passed",
+        "passed": 504,
+        "failed": 0,
+        "date": "2026-11-12",
+        "commit": "65ba27199a42e6f7d0a9900ee75a99521b13c99a",
+        "source": "local",
+        "run": null
+      }
+    },
+    {
+      "job": "browsers-oldest",
+      "engine": "webkit",
+      "standsFor": "Safari (the Linux build is not Safari)",
+      "playwright": "1.63.0",
+      "version": "26.6",
+      "result": {
+        "status": "passed",
+        "passed": 511,
+        "failed": 0,
+        "date": "2026-11-12",
+        "commit": "65ba27199a42e6f7d0a9900ee75a99521b13c99a",
+        "source": "local",
+        "run": null
+      }
+    }
+  ],
+  "devices": [
+    {
+      "platform": "iOS and iPadOS",
+      "result": {
+        "status": "not run"
+      }
+    },
+    {
+      "platform": "Android",
+      "result": {
+        "status": "not run"
+      }
+    }
+  ],
+  "node": [
+    {
+      "version": "22.14.0",
+      "role": "the oldest Node that `engines` allows: every entry point is imported from the packed packages (check:packages)",
+      "ran": null,
+      "result": {
+        "status": "not run"
+      }
+    },
+    {
+      "version": "26",
+      "role": "builds, tests and checks everything in the check job, and imports the packed packages",
+      "ran": "26.12.0",
+      "result": {
+        "status": "passed",
+        "date": "2026-11-12",
+        "commit": "65ba27199a42e6f7d0a9900ee75a99521b13c99a",
+        "source": "local",
+        "run": null
+      }
+    }
+  ],
+  "frameworks": [
+    {
+      "name": "React",
+      "package": "react",
+      "wrapper": "@rathkit/rte-react",
+      "supports": ">=18",
+      "checked": "19.3.1",
+      "result": {
+        "status": "not run"
+      }
+    },
+    {
+      "name": "Vue",
+      "package": "vue",
+      "wrapper": "@rathkit/rte-vue",
+      "supports": ">=3.4",
+      "checked": "3.5.44",
+      "result": {
+        "status": "not run"
+      }
+    },
+    {
+      "name": "Svelte",
+      "package": "svelte",
+      "wrapper": "@rathkit/rte-svelte",
+      "supports": null,
+      "checked": "5.57.2",
+      "result": {
+        "status": "not run"
+      }
+    },
+    {
+      "name": "Angular",
+      "package": "@angular/core",
+      "wrapper": "@rathkit/rte-angular",
+      "supports": ">=20.0.0",
+      "checked": "22.2.3",
+      "result": {
+        "status": "not run"
+      }
+    },
+    {
+      "name": "jQuery",
+      "package": "jquery",
+      "wrapper": "@rathkit/rte-jquery",
+      "supports": null,
+      "checked": "4.0.0",
+      "result": {
+        "status": "not run"
+      }
+    }
+  ]
+}

@@ -6,6 +6,7 @@
 import type { UiItem } from "@rathkit/rte-core";
 import { createMenu, createToolbar, type Menu, type Toolbar } from "@rathkit/rte-headless";
 import { setIcon } from "./icon.ts";
+import { keyOf } from "./messages.ts";
 import type { UiEditor } from "./types.ts";
 
 export const FLOATING_SLOT = "toolbar.floating";
@@ -78,7 +79,7 @@ export function createFloating(options: FloatingOptions): Floating {
   // ---- the selection toolbar ---------------------------------------------------------------------------------
   if (options.selectionToolbar) {
     seed(FLOATING_SLOT, SELECTION_DEFAULTS);
-    const toolbar = createToolbar(editor, { slot: FLOATING_SLOT, label: message("floating.label") });
+    const toolbar = createToolbar(editor, { slot: FLOATING_SLOT });
     const bar = part(document.createElement("div"), "floating");
     bar.hidden = true;
     root.appendChild(bar);
@@ -95,7 +96,7 @@ export function createFloating(options: FloatingOptions): Floating {
         button.type = "button";
         button.setAttribute("data-rte-item", item.id);
         const state = toolbar.state(item.id);
-        const label = message(`item.${item.id}`, state?.label ?? item.id);
+        const label = message(keyOf.item(item.id), state?.label ?? item.id);
         button.setAttribute("aria-label", label);
         button.setAttribute("data-rte-tip", state?.shortcutLabel ? `${label} (${state.shortcutLabel})` : label);
         if (!iconInto(button, state?.icon)) {
@@ -108,6 +109,7 @@ export function createFloating(options: FloatingOptions): Floating {
       bar.replaceChildren(...controls);
       unbind?.();
       unbind = toolbar.bind(bar, { onOpen: (item) => { if (item.kind === "dialog") options.openDialog(item, returnTo); } });
+      bar.setAttribute("aria-label", message("floating.label"));
     };
     let unbind: (() => void) | undefined;
     draw();
@@ -231,13 +233,14 @@ export function createFloating(options: FloatingOptions): Floating {
       menu = createMenu({
         trigger: anchor, menu: popup,
         onOpen: () => {
-          // At the pointer, moved back in when it would run off the screen.
+          // At the pointer, moved back in when it would run off the screen. A right-to-left menu opens to the left of the pointer.
           popup.style.position = "fixed";
           popup.style.insetBlockStart = popup.style.insetInlineStart = "auto";
           const w = popup.offsetWidth;
           const h = popup.offsetHeight;
           const view = root.ownerDocument.documentElement;
-          popup.style.left = `${Math.max(4, Math.min(at.x, view.clientWidth - w - 4))}px`;
+          const x = getComputedStyle(popup).direction === "rtl" ? at.x - w : at.x;
+          popup.style.left = `${Math.max(4, Math.min(x, view.clientWidth - w - 4))}px`;
           popup.style.top = `${Math.max(4, Math.min(at.y, view.clientHeight - h - 4))}px`;
         },
         onSelect: (entry) => {
@@ -257,7 +260,7 @@ export function createFloating(options: FloatingOptions): Floating {
         const item = entries.get(id);
         const state = toolbar.state(id);
         if (!item || !state) continue;
-        const label = message(`item.${id}`, state.label);
+        const label = message(keyOf.item(id), state.label);
         const name = entry.querySelector<HTMLElement>('[data-rte-part="label"]');
         if (name) name.textContent = label;
         const keys = entry.querySelector<HTMLElement>('[data-rte-part="menu-keys"]');
@@ -292,7 +295,7 @@ export function createFloating(options: FloatingOptions): Floating {
       if (x === 0 && y === 0) {
         const selection = root.ownerDocument.getSelection();
         const rect = selection && selection.rangeCount > 0 ? selection.getRangeAt(0).getBoundingClientRect() : editor.element.getBoundingClientRect();
-        x = rect.left;
+        x = getComputedStyle(popup).direction === "rtl" ? rect.right : rect.left;
         y = rect.bottom;
       }
       at = { x, y };

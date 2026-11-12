@@ -61,6 +61,16 @@ test("the fixture check catches what the scrubber exists to remove", () => {
   assert.deepEqual(problemsIn({ ...raw, payloads: { "text/html": scrubText(dirty) } }), []);
 });
 
+test("the fixture check reads a fixture's provenance and expectations when it has them", () => {
+  const base = { source: { app: "a", browser: "b", os: "c", sample: "d" }, payloads: { "text/html": "<p>x</p>" } };
+  const good = { ...base, provenance: { kind: "reconstructed", note: "approximation" }, expect: { includes: ["x"], excludes: [] } };
+  assert.deepEqual(problemsIn(good), []);
+  assert.match(problemsIn({ ...good, provenance: { kind: "real", note: "n" } }).join(), /provenance\.kind/);
+  assert.match(problemsIn({ ...good, provenance: { kind: "capture" } }).join(), /no note/);
+  assert.match(problemsIn({ ...good, expect: { includes: ["x"] } }).join(), /expect needs/);
+  assert.match(problemsIn({ ...good, expect: { includes: [""], excludes: [] } }).join(), /expect needs/);
+});
+
 test("scrubCapture refuses a capture it cannot name", () => {
   assert.equal(scrubCapture({ meta: {}, payloads: {} }), null);
 });

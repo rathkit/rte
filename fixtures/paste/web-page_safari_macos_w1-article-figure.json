@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "source": {
+    "app": "web-page",
+    "sample": "W1-article-figure",
+    "browser": "safari",
+    "os": "macos"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<head><meta charset=\"UTF-8\"></head><div style=\"caret-color: rgb(0, 0, 0); color: rgb(0, 0, 0); font-style: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none;\"><article class=\"post\"><header class=\"post-header\"><h1 class=\"post-title\" style=\"box-sizing: border-box; margin: 0px 0px 0.5rem; font-weight: 700; line-height: 1.2; font-size: 2.25rem; color: rgb(33, 37, 41); font-family: system-ui, sans-serif;\">How to build a raised bed</h1><p class=\"byline\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">By <a href=\"https://www.example.org/authors/sam-rowe\" rel=\"author\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">Sam Rowe</a> &middot; <time datetime=\"2026-03-14\">March 14, 2026</time></p></header><div class=\"post-body\"><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">A raised bed warms up <strong>earlier in spring</strong> and drains well. You need <em>untreated</em> lumber, screws and soil.</p><figure class=\"post-figure\"><img src=\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27800%27 height=%27450%27%3E%3C/svg%3E\" data-src=\"/media/raised-bed.jpg\" srcset=\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27800%27 height=%27450%27%3E%3C/svg%3E 800w\" loading=\"lazy\" alt=\"A finished raised bed\" width=\"800\" height=\"450\"><figcaption style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Raised beds along the south fence.</figcaption></figure><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><img src=\"https://images.example.net/garden/plot-7.jpg\" alt=\"Plot seven in June\" width=\"640\" height=\"480\"></p><h2 id=\"materials\" style=\"box-sizing: border-box; margin: 1.5rem 0px 0.5rem; font-weight: 700; line-height: 1.2; font-size: 1.75rem; color: rgb(33, 37, 41); font-family: system-ui, sans-serif;\">Materials<a class=\"anchor\" href=\"https://www.example.org/raised-bed#materials\" aria-hidden=\"true\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">#</a></h2><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">See the <a href=\"https://www.example.org/guides/lumber\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">lumber guide</a> and the <a href=\"#materials\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">list below</a>. Read more: <a href=\"https://www.example.org/raised-bed?utm_source=newsletter&amp;utm_medium=email\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">this page</a>.</p><aside class=\"related\"><h3 style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Related</h3><ul><li style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><a href=\"https://www.example.org/compost\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">Composting basics</a></li></ul></aside><div class=\"share-buttons\"><button type=\"button\" onclick=\"share()\">Share</button><button type=\"button\">Save</button></div></div></article></div>",
+    "text/plain": "How to build a raised bed\n\nBy Sam Rowe · March 14, 2026\n\nA raised bed warms up earlier in spring and drains well. You need untreated lumber, screws and soil.\n\nRaised beds along the south fence.\n\nMaterials#\n\nSee the lumber guide and the list below. Read more: this page.\n\nRelated\n\n• Composting basics\n\nShareSave"
+  },
+  "expect": {
+    "includes": [
+      "How to build a raised bed</h1>",
+      "<a href=\"https://www.example.org/authors/sam-rowe\">Sam Rowe</a>",
+      "March 14, 2026",
+      "<strong>earlier in spring</strong>",
+      "<em>untreated</em>",
+      "Raised beds along the south fence.",
+      "<img src=\"https://images.example.net/garden/plot-7.jpg\" alt=\"Plot seven in June\"",
+      "Materials",
+      "<a href=\"https://www.example.org/guides/lumber\">lumber guide</a>",
+      "<a href=\"https://www.example.org/raised-bed?utm_source=newsletter&amp;utm_medium=email\">this page</a>",
+      "Composting basics"
+    ],
+    "excludes": [
+      "onclick",
+      "<button",
+      "data-src",
+      "loading=",
+      "box-sizing",
+      "/media/raised-bed.jpg"
+    ]
+  }
+}

@@ -7,12 +7,26 @@ import { join } from "node:path";
 const MAX_FILE_BYTES = 400_000;
 const META_KEYS = ["app", "browser", "os", "sample"];
 const FAKE_GUID = /^00000000-0000-4000-8000-[0-9a-f]{12}$/;
+const PROVENANCE_KINDS = ["capture", "reconstructed"];
 
 /** Returns a list of problems found in one parsed fixture. Never includes the offending text itself. */
 export function problemsIn(fixture) {
   const problems = [];
   const keys = Object.keys(fixture.source ?? {}).sort();
   if (keys.join() !== META_KEYS.join()) problems.push(`source has keys [${keys}], expected [${META_KEYS}]`);
+  // A fixture that is not a scrubbed capture says so: `provenance.kind` is "reconstructed", with a note on what it approximates.
+  if ("provenance" in fixture) {
+    const { kind, note } = fixture.provenance ?? {};
+    if (!PROVENANCE_KINDS.includes(kind)) problems.push(`provenance.kind is not one of [${PROVENANCE_KINDS}]`);
+    if (typeof note !== "string" || note.trim() === "") problems.push("provenance has no note");
+  }
+  // What free paste must keep (`includes`) and must not (`excludes`), checked by the paste tests and the browser checks.
+  if ("expect" in fixture) {
+    const lists = [fixture.expect?.includes, fixture.expect?.excludes];
+    if (!lists.every((list) => Array.isArray(list) && list.every((item) => typeof item === "string" && item !== ""))) {
+      problems.push("expect needs includes and excludes, lists of non-empty strings");
+    }
+  }
   for (const [type, text] of Object.entries(fixture.payloads ?? {})) {
     if (typeof text !== "string") continue;
     const where = `payload ${type}`;

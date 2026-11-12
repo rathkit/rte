@@ -7,8 +7,8 @@ import { createFloating, type Floating } from "./floating.ts";
 import { setIcon } from "./icon.ts";
 import { createShortcuts } from "./shortcuts.ts";
 import { createSourceView } from "./source.ts";
-import { text } from "./messages.ts";
-import type { PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
+import { keyOf, text, UI_ITEMS } from "./messages.ts";
+import type { MessageKey, PartName, StyleProvider, Ui, UiEditor, UiOptions } from "./types.ts";
 
 let counter = 0;
 
@@ -35,7 +35,15 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     for (const cls of style.classes?.[name]?.split(/\s+/).filter(Boolean) ?? []) el.classList.add(cls);
     return el;
   };
-  const message = (key: Parameters<typeof text>[1], fallback = "", values: Record<string, string> = {}): string => text(style.messages, key, fallback, values);
+  const message = (key: MessageKey, fallback = "", values: Record<string, string | number> = {}): string => text(style.messages, key, fallback, values, style.locale);
+  /** The interface's language and direction, on an element of the interface. The writing area keeps the page's: its text is the author's. */
+  const speak = (el: Element): void => {
+    if (style.locale) el.setAttribute("lang", style.locale);
+    else el.removeAttribute("lang");
+    if (style.dir) el.setAttribute("dir", style.dir);
+    else el.removeAttribute("dir");
+  };
+  const speakAll = (): void => { for (const el of root.children) if (el !== contentEl) speak(el); };
 
   // ---- structure -----------------------------------------------------------------------------------------
   root.classList.add("rte-root");
@@ -52,13 +60,14 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     const counts = editor.counts?.();
     if (!counts) return;
     const words = counts.document.words;
+    const characters = counts.document.characters;
     statusEl.textContent = counts.selection.words > 0
-      ? message("status.selection", "", { selected: String(counts.selection.words), total: String(words) })
-      : `${message(words === 1 ? "status.word" : "status.words", "", { count: String(words) })} · ${message("status.characters", "", { count: String(counts.document.characters) })}`;
+      ? message("status.selection", "", { selected: counts.selection.words, total: words, count: words })
+      : `${message("status.words", "", { count: words })} · ${message("status.characters", "", { count: characters })}`;
   };
   // Find and replace, when the editor has it: a bar between the toolbar and the writing area.
   const findBar: FindBar | undefined = editor.commands.list().some((c) => c.name === "find.set")
-    ? createFindBar({ editor, part: (el, name) => part(el, name as PartName), message: (key, fallback, values) => message(key as never, fallback, values), icon: (name) => iconFor(name), announce: (m) => announcer.announce(m) })
+    ? createFindBar({ editor, part: (el, name) => part(el, name as PartName), message: (key, fallback, values) => message(key as MessageKey, fallback, values), icon: (name) => iconFor(name), announce: (m) => announcer.announce(m) })
     : undefined;
   if (findBar) root.insertBefore(findBar.element, contentEl);
   const stopStatus = editor.counts && options.status !== false ? editor.subscribe(() => { statusTimer ??= setTimeout(showStatus, 150); }) : undefined;
@@ -72,20 +81,26 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     onShow: (target, popup) => {
       const box = root.getBoundingClientRect();
       const at = target.getBoundingClientRect();
+      // Lined up with the control's start: its left edge, or its right edge in a right-to-left interface.
+      // Measured from inside the root's border, where an absolutely placed element starts.
+      const left0 = box.left + root.clientLeft;
+      const x = getComputedStyle(popup).direction === "rtl" ? at.right - left0 - popup.offsetWidth : at.left - left0;
       popup.style.top = `${Math.round(at.bottom - box.top + 6)}px`;
-      popup.style.left = `${Math.round(Math.max(0, Math.min(at.left - box.left, box.width - popup.offsetWidth)))}px`;
+      popup.style.left = `${Math.round(Math.max(0, Math.min(x, box.width - popup.offsetWidth)))}px`;
     },
   });
   // The HTML source view, when the editor can give its HTML: a button for it joins the toolbar.
-  const removeSourceItem = editor.getHtml ? editor.ui.add(slot, { kind: "panel", id: "source", name: "source", label: "HTML source", icon: "source", group: "tools", order: 1 }) : undefined;
-  const removeShortcutsItem = editor.ui.add(slot, { kind: "panel", id: "shortcuts", name: "shortcuts", label: "Keyboard shortcuts", icon: "keyboard", group: "tools", order: 2 });
-  const toolbar = createToolbar(editor, { slot, label: message("toolbar.label") });
-  const shortcuts = createShortcuts({ editor, root, part: (el, name) => part(el, name as PartName), message: (key) => message(key as never) });
-  const sourceView = editor.getHtml ? createSourceView({ editor, content: contentEl, toolbar: toolbarEl, part: (el, name) => part(el, name as PartName), message: (key) => message(key as never), announce: (m) => announcer.announce(m) }) : undefined;
+  const removeSourceItem = editor.getHtml ? editor.ui.add(slot, { kind: "panel", id: "source", name: "source", label: UI_ITEMS.source, icon: "source", group: "tools", order: 1 }) : undefined;
+  const removeShortcutsItem = editor.ui.add(slot, { kind: "panel", id: "shortcuts", name: "shortcuts", label: UI_ITEMS.shortcuts, icon: "keyboard", group: "tools", order: 2 });
+  // Named in draw(), once the style (and so the language) is known.
+  const toolbar = createToolbar(editor, { slot });
+  const shortcuts = createShortcuts({ editor, root, part: (el, name) => part(el, name as PartName), message: (key, fallback) => message(key as MessageKey, fallback) });
+  const sourceView = editor.getHtml ? createSourceView({ editor, content: contentEl, toolbar: toolbarEl, part: (el, name) => part(el, name as PartName), message: (key) => message(key as MessageKey), announce: (m) => announcer.announce(m) }) : undefined;
 
   // ---- look: theme attributes, tokens, classes, icons, words --------------------------------------------------
   const iconSpans = new Map<HTMLElement, string>();
-  const dialogs = new Map<string, { dialog: Dialog; element: HTMLDialogElement; form: HTMLFormElement; title: HTMLElement; ok: HTMLElement; cancel: HTMLElement; from: { opener: HTMLElement } }>();
+  // `words`: each field's label and choice, with its key and its English words, so a change of language reaches an open dialog too.
+  const dialogs = new Map<string, { dialog: Dialog; element: HTMLDialogElement; form: HTMLFormElement; title: HTMLElement; ok: HTMLElement; cancel: HTMLElement; from: { opener: HTMLElement }; words: [HTMLElement, MessageKey, string][] }>();
 
   function applyStyle(given: StyleProvider): void {
     const previous = style;
@@ -110,7 +125,13 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       appliedClasses.set(name, classes);
       for (const el of parts.get(name) ?? []) el.classList.add(...classes);
     }
-    if (!sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) { draw(); findBar?.refresh(); shortcuts.refresh(); floating?.refresh(); }
+    speakAll();
+    // A different language changes words, plural forms and the way numbers are written, so everything with words is written again.
+    const language = previous.locale !== next.locale || previous.dir !== next.dir;
+    if (language || !sameEntries(previous.icons, next.icons) || !sameEntries(previous.messages, next.messages) || previous.parts !== next.parts) {
+      draw(); findBar?.refresh(); shortcuts.refresh(); sourceView?.refresh(); floating?.refresh();
+      if (statusEl.isConnected) showStatus();
+    }
     syncDialogs();
   }
 
@@ -123,7 +144,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   let floating: Floating | undefined;
 
   function labelOf(item: UiItem): string {
-    return message(`item.${item.id}` as `item.${string}`, toolbar.state(item.id)?.label ?? item.id);
+    return message(keyOf.item(item.id), toolbar.state(item.id)?.label ?? item.id);
   }
 
   function control(item: UiItem): HTMLElement | undefined {
@@ -137,7 +158,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       for (const o of item.options) {
         const option = document.createElement("option");
         option.value = String(o.value);
-        option.textContent = o.label;
+        option.textContent = message(keyOf.option(item.id, o.value), o.label);
         select.appendChild(option);
       }
       return select;
@@ -293,6 +314,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
     // Our click listener goes after the headless layer's, so by the time it runs the command has run and the state is the new one.
     toolbarEl.removeEventListener("click", onToolbarClick);
     toolbarEl.addEventListener("click", onToolbarClick);
+    toolbarEl.setAttribute("aria-label", message("toolbar.label"));
     names();
     menuEntries();
   }
@@ -342,6 +364,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       d.title.textContent = labelOf(item);
       d.ok.textContent = message("dialog.ok");
       d.cancel.textContent = message("dialog.cancel");
+      for (const [el, key, english] of d.words) el.textContent = message(key, english);
     }
   }
 
@@ -356,11 +379,12 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       const title = part(document.createElement("h2"), "dialog-title");
       title.id = titleId;
       form.appendChild(title);
+      const words: [HTMLElement, MessageKey, string][] = [];
       for (const field of item.fields) {
         const inputId = `rte-field-${++counter}`;
         const label = part(document.createElement("label"), "field-label");
         label.htmlFor = inputId;
-        label.textContent = field.label;
+        words.push([label, keyOf.field(item.id, field.name), field.label]);
         // A choice is a list to pick from; everything else is an input (the others read the same way: by name, with a value).
         const input = (field.type === "choice" ? part(document.createElement("select"), "field") : part(document.createElement("input"), "field")) as HTMLInputElement;
         input.id = inputId;
@@ -369,7 +393,7 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
           for (const choice of field.choices ?? []) {
             const option = document.createElement("option");
             option.value = choice.value;
-            option.textContent = choice.label;
+            words.push([option, keyOf.choice(item.id, field.name, choice.value), choice.label]);
             input.appendChild(option);
           }
         } else {
@@ -403,13 +427,16 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
       cancel.addEventListener("click", () => dialog.close("cancel"));
       form.addEventListener("submit", (e) => {
         e.preventDefault();
-        const check = checkFields(form, item.fields, { required: message("field.required", "", { label: "{label}" }), url: message("field.url") }, (m) => announcer.announce(m));
+        // The fields as the person sees them, so a problem names the field in the interface's language.
+        const fields = item.fields.map((f) => ({ ...f, label: message(keyOf.field(item.id, f.name), f.label) }));
+        const check = checkFields(form, fields, { required: message("field.required", "", { label: "{label}" }), url: message("field.url", "", { label: "{label}" }) }, (m) => announcer.announce(m));
         if (!check.ok) return;
         dialog.close("submit");
         editor.commands.run(item.command, check.values);
       });
-      entry = { dialog, element, form, title, ok, cancel, from };
+      entry = { dialog, element, form, title, ok, cancel, from, words };
       dialogs.set(item.id, entry);
+      speak(element);
       syncDialogs();
     }
     // Fill the dialog with what the command says is there now: the address of the link under the caret, say. A text value fills a
@@ -439,10 +466,11 @@ export function createUi(editor: UiEditor, options: UiOptions): Ui {
   floating = options.selectionToolbar || options.contextMenu
     ? createFloating({
       editor, root, selectionToolbar: options.selectionToolbar === true, contextMenu: options.contextMenu === true,
-      part: (el, name) => part(el, name as PartName), message: (key, fallback) => message(key as never, fallback), icon: (name) => iconFor(name),
+      part: (el, name) => part(el, name as PartName), message: (key, fallback) => message(key as MessageKey, fallback), icon: (name) => iconFor(name),
       openDialog,
     })
     : undefined;
+  speakAll();
   if (stopStatus) showStatus();
 
   return {

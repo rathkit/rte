@@ -14,6 +14,7 @@
     "check:zero-deps": "node tools/check-zero-deps.mjs",
     "check:denylist": "node tools/check-denylist.mjs",
     "check:fixtures": "node tools/check-fixtures.mjs",
+    "check:messages": "node tools/check-messages.mjs",
     "test:tools": "node --test \"tools/**/*.test.mjs\"",
     "check": "pnpm check:zero-deps && pnpm check:graph && pnpm check:fixtures && pnpm test:tools && pnpm typecheck && pnpm test",
     "check:size": "node tools/check-size.mjs",

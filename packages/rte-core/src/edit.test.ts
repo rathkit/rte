@@ -155,3 +155,43 @@ test("transposeChars swaps the characters either side of the caret, or the last 
   assert.equal(run("<p>a</p>", 1), "<p>a</p>", "one character");
   assert.equal(run("<p>a<br>b</p>", 2), "<p>a<br>b</p>", "a line break is not swapped");
 });
+
+test("a copied selection keeps the rules between the blocks it covers, and a drag moves them", async () => {
+  const { containerPaths } = await import("./path.ts");
+  const d = doc("<p>a</p><hr><p>b</p><hr><p>c</p>");
+  const paths = containerPaths(d);
+  const range = (from: number, to: number, toOffset: number): Selection => ({ anchor: { path: paths[from] as number[], offset: 0 }, focus: { path: paths[to] as number[], offset: toOffset } });
+  assert.equal(exportHtml({ blocks: extractSelection(d, range(0, 2, 1)) }), "<p>a</p><hr><p>b</p><hr><p>c</p>");
+  assert.equal(exportHtml({ blocks: extractSelection(d, range(0, 1, 1)) }), "<p>a</p><hr><p>b</p>", "only the rule between the selected blocks");
+  assert.equal(exportHtml({ blocks: extractSelection(d, range(1, 1, 1)) }), "<p>b</p>", "a selection in one block takes no rule");
+  const moved = moveSelection(doc("<p>a</p><hr><p>b</p><p>z</p>"), { anchor: { path: [0], offset: 0 }, focus: { path: [2], offset: 1 } }, { path: [3], offset: 1 }, false);
+  assert.equal(html(moved), "<p></p><p>za</p><hr><p>b</p>");
+});
+
+test("deleting a selection removes the rules inside it, and keeps the ones at its edges", () => {
+  const del = (h: string, a: [number[], number], b: [number[], number]) => html(deleteSelection(doc(h), { anchor: { path: a[0], offset: a[1] }, focus: { path: b[0], offset: b[1] } }));
+  assert.equal(del("<p>xa</p><hr><p>bc</p>", [[0], 1], [[2], 1]), "<p>xc</p>");
+  assert.equal(del("<hr><p>xa</p><hr><hr><p>bc</p><hr>", [[1], 1], [[4], 1]), "<hr><p>xc</p><hr>", "two in a row inside; the outer ones stay");
+  assert.equal(del("<blockquote><p>a</p><hr><p>b</p></blockquote><hr><p>c</p>", [[0, 0], 0], [[2], 1]), "<blockquote><p></p></blockquote>");
+  assert.equal(del("<p>xa</p><hr><pre>code</pre>", [[0], 1], [[2], 2]), "<p>x</p><pre>de</pre>", "blocks that do not join lose the rule between them too");
+});
+
+test("the plain text of a selection puts a tab between the cells of a row, as a spreadsheet reads it", async () => {
+  const { selectedText } = await import("./edit.ts");
+  const { containerPaths } = await import("./path.ts");
+  const text = (h: string) => { const d = doc(h); const paths = containerPaths(d); const last = paths[paths.length - 1] as number[]; return selectedText(d, { anchor: { path: paths[0] as number[], offset: 0 }, focus: { path: last, offset: 99 } }); };
+  assert.equal(text("<table><tr><td>a1</td><td>b1</td></tr><tr><td>a2</td><td>b2</td></tr></table>"), "a1\tb1\na2\tb2");
+  assert.equal(text("<p>before</p><table><tr><td>a1</td><td></td><td>c1</td></tr></table><p>after</p>"), "before\na1\t\tc1\nafter", "an empty cell keeps its place");
+  assert.equal(text("<table><tr><td><p>x</p><p>y</p></td><td>z</td></tr></table>"), "x\ny\tz", "paragraphs in one cell stay on their own lines");
+  assert.equal(text("<table><tr><td><table><tr><td>i1</td><td>i2</td></tr></table></td><td>o2</td></tr></table>"), "i1\ti2\to2", "a table in a cell");
+});
+
+test("blocks pasted into a code block go in as their text, a line to a block, and nothing is lost", () => {
+  const into = (blocks: string, offset = 1) => insertBlocks(doc("<pre>xy</pre>"), at([0], offset), importBlocks(blocks, { styles: "semantic" }));
+  assert.equal(html(into("<p>a <b>b</b></p><p>c</p>")), "<pre>xa b\ncy</pre>");
+  assert.deepEqual(into("<p>a <b>b</b></p><p>c</p>").selection.focus, { path: [0], offset: 6 }, "the caret ends after what was pasted");
+  assert.equal(html(into("<h1>T</h1><ul><li>one</li><li>two</li></ul>")), "<pre>xT\none\ntwoy</pre>");
+  assert.equal(html(into("<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>")), "<pre>xa\tb\nc\tdy</pre>");
+  assert.equal(html(into("<pre>  one\n    two</pre><p>three</p>")), "<pre>x  one\n    two\nthreey</pre>");
+  assert.equal(html(insertBlocks(doc("<pre>xy</pre>"), { anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 2 } }, importText("1\n\n2"))), "<pre>1\n2</pre>", "over a selection");
+});

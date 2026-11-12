@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>rte-ui languages</title>
+<!-- The interface in other languages, for the browser checks: message packs from ./test-packs (test fixtures, not shipped translations). -->
+<script type="importmap">
+{ "imports": {
+  "@rathkit/rte-core/standard": "/dist/standard/index.js",
+  "@rathkit/rte-core/dom": "/dist/dom/index.js",
+  "@rathkit/rte-headless": "/headless/dist/index.js",
+  "@rathkit/rte-icons": "/icons/dist/index.js"
+} }
+</script>
+<link rel="stylesheet" href="/ui/css/base.css">
+<link rel="stylesheet" href="/themes/css/light.css">
+<style>body { margin: 24px; font-family: system-ui, sans-serif; background: #e9edf2; } .rte-root { margin-top: 24px; }</style>
+<div id="ar"></div>
+<div id="de"></div>
+<div dir="rtl"><div id="page"></div></div>
+<script type="module">
+import { createEditor } from "@rathkit/rte-core/standard";
+import { createStandardUi } from "/ui/dist/standard.js";
+
+function make(id, html, options = {}, style = {}) {
+  const editor = createEditor({ element: document.createElement("div"), html, ...options });
+  const ui = createStandardUi(editor, { root: document.getElementById(id), style, selectionToolbar: true, contextMenu: true });
+  return { editor, ui };
+}
+// Arabic: built in English, then its pack is loaded when it is wanted and put in place, as a page would on a change of language.
+window.__ar = make("ar", "<p>نص للتجربة</p>", {}, { theme: "light" });
+const ar = (await import("./test-packs/ar.js")).default;
+window.__ar.ui.setStyle({ theme: "light", ...ar });
+// German: the pack is loaded first, so the writing area's own words are German from the start too.
+const de = (await import("./test-packs/de.js")).default;
+window.__de = make("de", "<ul><li><input type=\"checkbox\" checked> Aufgabe</li></ul><p>Ein Satz.</p>", { messages: de.messages }, { theme: "light", ...de });
+// A right-to-left page and no pack: English words, mirrored by the page's direction alone.
+window.__page = make("page", "<p>Text on a right-to-left page.</p>", {}, { theme: "light" });
+window.__packs = { ar, de };
+window.__langReady = true;
+</script>

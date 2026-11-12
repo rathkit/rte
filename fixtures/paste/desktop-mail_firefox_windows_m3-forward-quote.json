@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "source": {
+    "app": "desktop-mail",
+    "sample": "M3-forward-quote",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/rtf",
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "\n<html xmlns:v=\"urn:schemas-example-com:vml\"\nxmlns:o=\"urn:schemas-example-com:office\"\nxmlns:w=\"urn:schemas-example-com:processor\"\nxmlns=\"http://www.w3.org/TR/REC-html40\">\n\n<head>\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\n<meta name=ProgId content=Mail.Message>\n<meta name=Generator content=\"Desktop mail client 16\">\n<meta name=Originator content=\"Desktop mail client 16\">\n<link rel=File-List\nhref=\"file:///C:/Users/user/AppData/Local/Temp/clip/01/clip_filelist.xml\">\n<!--[if gte mso 9]><xml>\n <o:DocumentProperties>\n  <o:Author>Sample Author</o:Author>\n  <o:Template>Normal</o:Template>\n  <o:Revision>3</o:Revision>\n </o:DocumentProperties>\n <o:OfficeDocumentSettings>\n  <o:AllowPNG/>\n </o:OfficeDocumentSettings>\n</xml><![endif]-->\n<!--[if gte mso 9]><xml>\n <w:WordDocument>\n  <w:View>Normal</w:View>\n  <w:Zoom>0</w:Zoom>\n  <w:TrackMoves/>\n  <w:DoNotOptimizeForBrowser/>\n </w:WordDocument>\n</xml><![endif]-->\n<style>\n<!--\n /* Font Definitions */\n @font-face\n\t{font-family:\"Body Serif\";\n\tpanose-1:2 4 5 3 5 4 6 3 2 4;\n\tmso-font-charset:0;\n\tmso-generic-font-family:roman;\n\tmso-font-pitch:variable;}\n /* Style Definitions */\n p.MsoNormal, li.MsoNormal, div.MsoNormal\n\t{mso-style-unhide:no;\n\tmso-style-qformat:yes;\n\tmso-style-parent:\"\";\n\tmargin-top:0in;\n\tmargin-right:0in;\n\tmargin-bottom:8.0pt;\n\tmargin-left:0in;\n\tline-height:107%;\n\tmso-pagination:widow-orphan;\n\tfont-size:12.0pt;\n\tfont-family:\"Body Serif\",serif;}\nh1\n\t{mso-style-priority:9;\n\tmso-style-qformat:yes;\n\tmso-style-link:\"Heading 1 Char\";\n\tmso-outline-level:1;\n\tfont-size:20.0pt;}\np.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst\n\t{mso-style-priority:34;\n\tmargin-left:.5in;\n\tmso-add-space:auto;}\n@list l0\n\t{mso-list-id:101;\n\tmso-list-type:hybrid;\n\tmso-list-template-ids:-1 67698703 67698713 67698715;}\n@list l0:level1\n\t{mso-level-tab-stop:none;\n\tmso-level-number-position:left;\n\ttext-indent:-.25in;}\n.MsoChpDefault\n\t{mso-style-type:export-only;\n\tmso-default-props:yes;}\ndiv.Section1\n\t{page:Section1;}\n-->\n</style>\n<!--[if gte mso 10]>\n<style>\n /* Style Definitions */\n table.MsoNormalTable\n\t{mso-style-name:\"Table Normal\";\n\tmso-tstyle-rowband-size:0;\n\tmso-style-noshow:yes;\n\tmso-padding-alt:0in 5.4pt 0in 5.4pt;}\n</style>\n<![endif]-->\n</head>\n\n<body lang=EN-US style='tab-interval:.5in;word-wrap:break-word'>\n<!--StartFragment-->\n<div class=Section1>\n\n<p class=MsoNormal>Forwarding for the record.<o:p></o:p></p>\n\n<div>\n\n<div style='border:none;border-top:solid #E1E1E1 1.0pt;padding:3.0pt 0in 0in 0in'>\n\n<p class=MsoNormal><b>From:</b> Kim Ash &lt;kim.ash@example.com&gt; <br>\n<b>Sent:</b> Friday, November 6, 2026 4:02 PM<br>\n<b>Subject:</b> FW: Shed keys<o:p></o:p></p>\n\n</div>\n\n<p class=MsoNormal><o:p>&nbsp;</o:p></p>\n\n<p class=MsoNormal>There are now three keys:<o:p></o:p></p>\n\n<p class=MsoListParagraphCxSpFirst style='margin-left:0.5in;mso-add-space:auto;\ntext-indent:-.25in;mso-list:l3 level1 lfo1'><![if !supportLists]><span\nstyle='font-family:\"Symbol\";mso-fareast-font-family:\"Symbol\"'><span\nstyle='mso-list:Ignore'>·<span style='font:7.0pt \"Body Serif\"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n</span></span></span><![endif]>One with the coordinator<o:p></o:p></p>\n<p class=MsoListParagraphCxSpLast style='margin-left:0.5in;mso-add-space:auto;\ntext-indent:-.25in;mso-list:l3 level1 lfo1'><![if !supportLists]><span\nstyle='font-family:\"Symbol\";mso-fareast-font-family:\"Symbol\"'><span\nstyle='mso-list:Ignore'>·<span style='font:7.0pt \"Body Serif\"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\n</span></span></span><![endif]>One in the lock box<o:p></o:p></p>\n\n<blockquote style='border:none;border-left:solid #CCCCCC 1.0pt;padding:0in 0in 0in 6.0pt;margin-left:4.8pt;margin-right:0in'>\n\n<p class=MsoNormal>The third key is lost. Please check your coats.<o:p></o:p></p>\n\n</blockquote>\n\n</div>\n\n</div>\n\n<!--EndFragment-->\n</body>\n\n</html>\n",
+    "text/plain": "Forwarding for the record.\n\nFrom: Kim Ash <kim.ash@example.com>\n\nSent: Friday, November 6, 2026 4:02 PM\n\nSubject: FW: Shed keys\n\nThere are now three keys:\n\n·\nOne with the coordinator\n\n·\nOne in the lock box\n\nThe third key is lost. Please check your coats."
+  },
+  "expect": {
+    "includes": [
+      "Forwarding for the record.",
+      "<strong>Subject:</strong> FW: Shed keys",
+      "<ul><li>One with the coordinator</li><li>One in the lock box</li></ul>",
+      "<blockquote><p>The third key is lost. Please check your coats.</p></blockquote>"
+    ],
+    "excludes": [
+      "#CCCCCC"
+    ]
+  }
+}

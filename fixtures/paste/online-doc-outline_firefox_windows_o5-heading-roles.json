@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "source": {
+    "app": "online-doc-outline",
+    "sample": "O5-heading-roles",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\n<!--StartFragment--><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1001\" paraeid=\"{00000000-0000-4000-8000-000000000201}{1}\" role=\"heading\" aria-level=\"1\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Meeting Minutes</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1002\" paraeid=\"{00000000-0000-4000-8000-000000000202}{2}\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Held in the library annex. </span></span><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"font-weight:bold;\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Quorum reached.</span></span><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\"> Next meeting </span></span><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"font-style:italic;\"><span class=\"NormalTextRun SCXW1000001 BCX8\">TBD</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1003\" paraeid=\"{00000000-0000-4000-8000-000000000203}{3}\" role=\"heading\" aria-level=\"2\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Attendance</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1004\" paraeid=\"{00000000-0000-4000-8000-000000000204}{4}\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Members present: </span></span><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"text-decoration:underline;\"><span class=\"NormalTextRun SCXW1000001 BCX8\">twelve</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1005\" paraeid=\"{00000000-0000-4000-8000-000000000205}{5}\" role=\"heading\" aria-level=\"3\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Small print</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div><!--EndFragment-->\n</body>\n</html>",
+    "text/plain": "Meeting Minutes\n\nHeld in the library annex. Quorum reached. Next meeting TBD\n\nAttendance\n\nMembers present: twelve\n\nSmall print"
+  },
+  "expect": {
+    "includes": [
+      "<h1>Meeting Minutes</h1>",
+      "<h2>Attendance</h2>",
+      "<h3>Small print</h3>",
+      "<strong>Quorum reached.</strong>",
+      "<em>TBD</em>",
+      "<u>twelve</u>"
+    ],
+    "excludes": [
+      "SCXW",
+      "BCX",
+      "paraid",
+      "data-ccp",
+      " </p>"
+    ]
+  }
+}

@@ -113,12 +113,12 @@
       {
         "name": "core",
         "entry": "dist/index.js",
-        "gzipKB": 60
+        "gzipKB": 65
       },
       {
         "name": "core + browser view",
         "entry": "dist/dom/index.js",
-        "gzipKB": 60
+        "gzipKB": 65
       },
       {
         "name": "lists plugin",

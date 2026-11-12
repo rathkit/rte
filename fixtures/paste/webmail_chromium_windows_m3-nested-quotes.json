@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "source": {
+    "app": "webmail",
+    "sample": "M3-nested-quotes",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\r\n<!--StartFragment--><div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\">Agreed with Kim below.</div><blockquote type=\"cite\" style=\"margin:0 0 0 .8ex;border-left:2px solid #1010ff;padding-left:1ex\"><div class=\"cite-prefix\">On 11/8/26 7:40 PM, Kim Ash wrote:<br></div><div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\">We should water twice a week.</div><blockquote type=\"cite\" style=\"margin:0 0 0 .8ex;border-left:2px solid #ff1010;padding-left:1ex\"><div class=\"cite-prefix\">On 11/8/26 6:15 PM, Robin Vale wrote:<br></div><div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\">How often should we water?</div><blockquote type=\"cite\"><div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\">&gt; Original question from the newsletter.</div></blockquote></blockquote></blockquote><!--EndFragment-->\r\n</body>\r\n</html>",
+    "text/plain": "Agreed with Kim below.\r\n\r\nOn 11/8/26 7:40 PM, Kim Ash wrote:\r\n\r\nWe should water twice a week.\r\n\r\nOn 11/8/26 6:15 PM, Robin Vale wrote:\r\n\r\nHow often should we water?\r\n\r\n> Original question from the newsletter."
+  },
+  "expect": {
+    "includes": [
+      "Agreed with Kim below.",
+      "<blockquote>",
+      "We should water twice a week.",
+      "<blockquote><p>On 11/8/26 6:15 PM, Robin Vale wrote:",
+      "&gt; Original question from the newsletter."
+    ],
+    "excludes": [
+      "#1010ff",
+      "cite-prefix"
+    ]
+  }
+}

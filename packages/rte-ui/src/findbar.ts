@@ -9,7 +9,7 @@ export interface FindBarOptions {
   readonly editor: UiEditor & { rangeFor?(from: { path: number[]; offset: number }, to: { path: number[]; offset: number }): Range | null };
   /** Makes an element a named part of the interface. */
   readonly part: <E extends HTMLElement>(el: E, name: string) => E;
-  readonly message: (key: string, fallback?: string, values?: Record<string, string>) => string;
+  readonly message: (key: string, fallback?: string, values?: Record<string, string | number>) => string;
   readonly icon: (name: string) => string | (() => Node) | undefined;
   readonly announce: (message: string) => void;
 }
@@ -140,8 +140,8 @@ export function createFindBar(options: FindBarOptions): FindBar {
     matchCase.setAttribute("aria-pressed", String(state.matchCase));
     wholeWord.setAttribute("aria-pressed", String(state.wholeWord));
     const text = state.query === "" ? "" : state.matches.length === 0 ? message("find.none")
-      : state.index >= 0 ? message("find.count", "", { current: String(state.index + 1), total: String(state.matches.length) })
-        : message("find.total", "", { total: String(state.matches.length) });
+      : state.index >= 0 ? message("find.count", "", { current: state.index + 1, total: state.matches.length, count: state.matches.length })
+        : message("find.total", "", { total: state.matches.length, count: state.matches.length });
     count.textContent = text;
     // Said once typing pauses, not on every key, and only when it differs from what was said last.
     if (text !== lastCount) {

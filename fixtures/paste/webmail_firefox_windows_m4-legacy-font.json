@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "source": {
+    "app": "webmail",
+    "sample": "M4-legacy-font",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\n<!--StartFragment--><div><font face=\"Verdana\" size=\"2\" color=\"#336699\">Dear members,</font></div><center><font size=\"4\"><b>Harvest Supper</b></font></center><div align=\"right\"><i>Saturday, 6 pm</i></div><p style=\"margin:0\"><font face=\"Verdana\"><u>Bring</u> a dish to share. RSVP to <a href=\"mailto:supper@example.com?subject=RSVP\">supper@example.com</a>.</font></p><hr size=\"1\" noshade><div><small>You are getting this because you joined the garden list. <a href=\"https://lists.example.org/unsubscribe?u=0\">Unsubscribe</a></small></div><!--EndFragment-->\n</body>\n</html>",
+    "text/plain": "Dear members,\nHarvest Supper\nSaturday, 6 pm\n\nBring a dish to share. RSVP to supper@example.com.\n\nYou are getting this because you joined the garden list. Unsubscribe"
+  },
+  "expect": {
+    "includes": [
+      "Dear members,",
+      "<strong>Harvest Supper</strong>",
+      "<em>Saturday, 6 pm</em>",
+      "<u>Bring</u> a dish to share.",
+      "<a href=\"mailto:supper@example.com?subject=RSVP\">",
+      "<hr>",
+      "<a href=\"https://lists.example.org/unsubscribe?u=0\">Unsubscribe</a>"
+    ],
+    "excludes": [
+      "<font",
+      "<center",
+      "Verdana"
+    ]
+  }
+}

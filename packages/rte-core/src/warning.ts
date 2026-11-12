@@ -4,7 +4,7 @@
 /** Why a warning was made. The codes are stable: a host can switch on them. */
 export const WARNING_CODES = [
   "plugin-failed", "plugin-rejected", "plugin-message", "key-conflict", "content-too-long", "content-unreadable",
-  "copy-failed", "upload-failed", "bad-option", "missing-label", "late-options", "listener-failed",
+  "copy-failed", "upload-failed", "bad-option", "missing-label", "late-options", "listener-failed", "unsupported-browser",
 ] as const;
 
 /** One of the codes in `WARNING_CODES`. */

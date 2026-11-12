@@ -94,11 +94,11 @@ Platforms and accessibility: server rendering, touch, input methods, screen read
 - [ ] [5.3](https://github.com/rathkit/rte/issues/17) Input method (IME) pass `P0`
 - [ ] [5.4](https://github.com/rathkit/rte/issues/18) Screen reader pass `P0`
 - [ ] [5.5](https://github.com/rathkit/rte/issues/19) Keyboard, contrast, motion and zoom audit `P0`
-- [ ] [5.6](https://github.com/rathkit/rte/issues/20) Localization: stable message ids and language packs `P0`
-- [ ] [5.7](https://github.com/rathkit/rte/issues/21) Published compatibility matrix `P0`
-- [ ] [5.8](https://github.com/rathkit/rte/issues/22) Browser support window and older engines `P1`
-- [ ] [1.9](https://github.com/rathkit/rte/issues/23) Clipboard completeness `P0`
-- [ ] [1.10](https://github.com/rathkit/rte/issues/24) Grow the scrubbed paste captures `P1`
+- [x] [5.6](https://github.com/rathkit/rte/issues/20) Localization: stable message ids and language packs `P0`
+- [ ] [5.7](https://github.com/rathkit/rte/issues/21) Published compatibility matrix `P0` (the data is in docs/compat-matrix.json; the site page is not done)
+- [x] [5.8](https://github.com/rathkit/rte/issues/22) Browser support window and older engines `P1`
+- [x] [1.9](https://github.com/rathkit/rte/issues/23) Clipboard completeness `P0` (the matrix: [CLIPBOARD.md](CLIPBOARD.md))
+- [ ] [1.10](https://github.com/rathkit/rte/issues/24) Grow the scrubbed paste captures `P1` (84 reconstructed fixtures added; real captures are still 80)
 
 ### 0.4.0-beta.0
 

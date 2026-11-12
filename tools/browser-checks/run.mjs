@@ -2,15 +2,19 @@
 // drag and drop, input-method composition, outside requests and speed. Playwright is not a dependency of this repo;
 // point RTE_PLAYWRIGHT at a node_modules folder that has it.
 //   RTE_PLAYWRIGHT=tools/browser-checks/node_modules tools/browser-checks/run.sh
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { crc32, deflateSync } from "node:zlib";
+import { provenance } from "../compat-matrix.mjs";
 
 const base = process.argv[2];
 const require = createRequire(`${process.env.RTE_PLAYWRIGHT}/`);
 const { chromium, firefox, webkit } = require("playwright");
 const engines = [["chromium", chromium], ["firefox", firefox], ["webkit", webkit]];
+// What each engine reports itself as, and how its checks went (a check belongs to the engine its name starts with), for RTE_RESULTS below.
+const versions = {};
+const tally = {};
 const fixtureDir = join(import.meta.dirname, "../../fixtures/paste");
 
 // A valid 1 by 1 PNG, built here (a literal base64 string could contain a word the denylist check looks for).
@@ -34,6 +38,9 @@ function onePixelPng() {
 let failures = 0;
 let passes = 0;
 const check = (name, ok, detail) => {
+  const engine = /^(chromium|firefox|webkit)\b/.exec(name)?.[1] ?? "other";
+  tally[engine] ??= { passed: 0, failed: 0 };
+  tally[engine][ok ? "passed" : "failed"]++;
   if (ok) passes++;
   else {
     failures++;
@@ -45,6 +52,7 @@ async function open(type, options = {}, cfg = "", demo = false, init = undefined
   const page_url = demo === "element" ? "/element/demo/" : demo === "ui" ? "/ui/demo/" : "/headless/demo/";
   const ready_flag = demo === "element" ? "window.__elementReady===true" : demo === "ui" ? "window.__uiReady===true" : "window.__demoReady===true";
   const browser = await type.launch();
+  versions[type.name()] ??= browser.version();
   const context = await browser.newContext(options);
   if (init) await context.addInitScript(init);
   const outside = [];
@@ -980,9 +988,308 @@ for (const [name, type] of engines) {
     await reset("");
     await page.evaluate((p) => window.__conf.paste(p), fx.payloads);
     pasted++;
+    // A fixture's expectations: what free paste must keep and must not (checked without a browser too, in paste-fixtures.test.ts).
+    if (fx.expect) {
+      const out = await html();
+      const wrong = [...fx.expect.includes.filter((s) => !out.includes(s)), ...fx.expect.excludes.filter((s) => out.includes(s)).map((s) => `not ${s}`)];
+      check(`${name} ${file} pastes as expected`, wrong.length === 0, { wrong, out: out.slice(0, 400) });
+    }
   }
   check(`${name} ${pasted} captures pasted, none made an outside request`, t.outside.length === 0, t.outside.slice(0, 3));
   check(`${name} no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
+// --- the clipboard matrix (docs/CLIPBOARD.md): what copy, cut and drag write, and what paste and drop read, in each kind of place, in one
+// editor and between two on the same page. The system clipboard is written by a click and read with a real Ctrl+V, so Firefox (which
+// ignores the data of a made-up paste event) is covered as well. Each check's name starts "clipboard:" and the doc names it.
+for (const [name, type] of engines) {
+  const t = await open(type, name === "chromium" ? { permissions: ["clipboard-read", "clipboard-write"] } : {});
+  const { page } = t;
+  const cb = (what, ok, detail) => check(`${name} clipboard: ${what}`, ok, detail);
+  // A second editor on the page: the standard one with Markdown, made from the built files, with the given options.
+  const second = (options = {}) => page.evaluate(async (o) => {
+    const { createEditor } = await import("../dist/standard/index.js");
+    const { markdown } = await import("../dist/markdown/index.js");
+    window.__b?.destroy();
+    document.getElementById("ed2")?.remove();
+    const el = document.createElement("div");
+    el.id = "ed2";
+    el.style.cssText = "min-height:80px;border:1px solid #888;padding:8px;margin-top:16px";
+    document.body.appendChild(el);
+    window.__warnings = [];
+    window.__b = createEditor({ element: el, plugins: [markdown()], onWarning: (w) => window.__warnings.push(w.code), ...o });
+  }, options);
+  const ed = (id) => (id === "ed" ? "window.__editor" : "window.__b");
+  const html = (id = "ed") => page.evaluate(`${ed(id)}.getHtml()`);
+  const set = (id, value) => page.evaluate(([e, v]) => { const editor = e === "ed" ? window.__editor : window.__b; editor.setHtml(v); editor.focus(); }, [id, value]);
+  // Selects from the first text inside `from` at `so` to the first text inside `to` at `eo`.
+  const sel = (id, from, so, to, eo) => page.evaluate(([e, a, ao, b, bo]) => {
+    const root = document.getElementById(e);
+    const text = (s) => { const n = root.querySelector(s); return document.createTreeWalker(n, NodeFilter.SHOW_TEXT).nextNode() ?? n; };
+    const editor = e === "ed" ? window.__editor : window.__b;
+    editor.focus();
+    editor.selectDom(text(a), ao, text(b ?? a), bo);
+  }, [id, from, so, to, eo]);
+  // Presses Ctrl+C or Ctrl+X and returns every format the editor wrote.
+  const copy = async (key = "C") => {
+    await page.evaluate((k) => { window.__copied = null; document.addEventListener(k, (e) => { window.__copied = Object.fromEntries([...e.clipboardData.types].map((ty) => [ty, e.clipboardData.getData(ty)])); }, { once: true }); }, key === "X" ? "cut" : "copy");
+    await page.keyboard.press(`Control+${key}`);
+    return page.evaluate(() => window.__copied);
+  };
+  // Puts formats on the system clipboard, from a click so the browser allows it. `image/png` is given as base64.
+  const clip = async (data) => {
+    await page.evaluate((d) => {
+      window.__clip = undefined;
+      const b = document.createElement("button");
+      b.id = "clip";
+      b.style.cssText = "position:fixed;right:0;bottom:0";
+      b.onclick = () => {
+        const item = {};
+        for (const [k, v] of Object.entries(d)) item[k] = new Blob([k === "image/png" ? Uint8Array.from(atob(v), (c) => c.charCodeAt(0)) : v], { type: k });
+        navigator.clipboard.write([new ClipboardItem(item)]).then(() => { window.__clip = "ok"; }, (e) => { window.__clip = String(e); });
+        b.remove();
+      };
+      document.body.appendChild(b);
+    }, data);
+    await page.click("#clip");
+    await page.waitForFunction("window.__clip !== undefined");
+    return page.evaluate(() => window.__clip);
+  };
+  const paste = async () => { await page.keyboard.press("Control+V"); await page.waitForTimeout(150); };
+  // A real mouse drag from the middle of the selection to the end of the text in `target`, or to a screen point.
+  const drag = async (target) => {
+    const from = await page.evaluate(() => { const r = getSelection().getRangeAt(0).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    const to = typeof target === "string" ? await page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.right - 2, y: r.y + r.height / 2 }; }, target) : target;
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 5, from.y + 5, { steps: 3 });
+    await page.mouse.move(to.x, to.y, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+  };
+  const table = "<table><tbody><tr><td>a1</td><td>b1</td></tr><tr><td>a2</td><td>b2</td></tr></tbody></table>";
+  await second();
+
+  // What copy writes.
+  await set("ed2", '<p>a <strong>bold</strong> <a href="https://e.com">l</a></p>');
+  await sel("ed2", "p", 0, "a", 1);
+  const md = await copy();
+  cb("copy writes html, plain text and, with the Markdown plugin, Markdown", md?.["text/html"] === '<p>a <strong>bold</strong> <a href="https://e.com">l</a></p>' && md?.["text/plain"] === "a bold l" && md?.["text/markdown"] === "a **bold** [l](https://e.com)", md);
+  await set("ed", "<pre><code>if (x) {\n  y();\n}</code></pre>");
+  await sel("ed", "pre", 0, "pre", 17);
+  const code = await copy();
+  cb("copy in a code block writes the code as it is", code?.["text/plain"] === "if (x) {\n  y();\n}" && code?.["text/html"] === "<pre>if (x) {\n  y();\n}</pre>", code);
+  await set("ed", table);
+  await sel("ed", "tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2);
+  const cells = await copy();
+  cb("copy of a cell range writes a table and tab-separated rows", cells?.["text/plain"] === "a1\tb1\na2\tb2" && cells?.["text/html"] === table, cells);
+  await set("ed", "<p>one</p><hr><p>two</p>");
+  await sel("ed", "p:first-child", 0, "p:last-child", 3);
+  const rule = await copy();
+  cb("copy across a rule writes the rule", rule?.["text/html"] === "<p>one</p><hr><p>two</p>", rule);
+  const cutRule = await copy("X");
+  cb("cut across a rule takes the rule with it", cutRule?.["text/html"] === "<p>one</p><hr><p>two</p>" && (await html()) === "<p></p>", await html());
+
+  // What paste reads, in each kind of place.
+  await set("ed", "<pre><code>xy</code></pre>");
+  await clip({ "text/html": "<p>a <b>b</b></p><p>c</p>", "text/plain": "  a b\n\nc" });
+  await sel("ed", "pre", 1, "pre", 1);
+  await paste();
+  cb("paste into a code block inserts the plain text as it is", (await html()) === "<pre>x  a b\n\ncy</pre>", await html());
+  await set("ed", "<pre><code>xy</code></pre>");
+  await clip({ "text/plain": "a\tb\nc\td" });
+  await sel("ed", "pre", 1, "pre", 1);
+  await paste();
+  cb("tab-separated text pasted into a code block stays text", (await html()) === "<pre>xa\tb\nc\tdy</pre>", await html());
+  await set("ed", table);
+  await clip({ "text/html": "<table><tr><td>X</td><td>Y</td><td>Z</td></tr></table>", "text/plain": "X\tY\tZ" });
+  await sel("ed", "td", 0, "td", 0);
+  await paste();
+  cb("a table pasted into a cell fills the cells and grows the table", (await html()) === "<table><tbody><tr><td>X</td><td>Y</td><td>Z</td></tr><tr><td>a2</td><td>b2</td><td></td></tr></tbody></table>", await html());
+  await set("ed", table);
+  await clip({ "text/plain": "x\ty\nz\tw" });
+  await sel("ed", "td", 0, "td", 0);
+  await paste();
+  cb("tab-separated text pasted into a cell fills the cells", (await html()) === "<table><tbody><tr><td>x</td><td>y</td></tr><tr><td>z</td><td>w</td></tr></tbody></table>", await html());
+  await set("ed", table);
+  await clip({ "text/html": "<table><tr><td>S</td></tr></table>", "text/plain": "S" });
+  await sel("ed", "tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2);
+  await paste();
+  cb("one copied cell pasted over a cell range fills every selected cell", (await html()) === "<table><tbody><tr><td>S</td><td>S</td></tr><tr><td>S</td><td>S</td></tr></tbody></table>", await html());
+  await set("ed", "<p>x</p>");
+  await sel("ed", "p", 1, "p", 1);
+  await paste();
+  cb("one copied cell pasted into text is text", (await html()) === "<p>xS</p>", await html());
+  await set("ed", table);
+  await clip({ "text/plain": "plain" });
+  await sel("ed", "tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2);
+  await paste();
+  cb("plain text pasted over a cell range goes in the first cell and empties the rest", (await html()) === "<table><tbody><tr><td>plain</td><td></td></tr><tr><td></td><td></td></tr></tbody></table>", await html());
+  await set("ed", "<ul><li>ab</li></ul>");
+  await clip({ "text/html": "<ul><li>x</li><li>y</li></ul>", "text/plain": "x\ny" });
+  await sel("ed", "li", 1, "li", 1);
+  await paste();
+  cb("a list pasted into a list item joins the list", (await html()) === "<ul><li>ax</li><li>yb</li></ul>", await html());
+
+  // The whole grid: each kind of clipboard content into each kind of place (Markdown in the second editor, which has the plugin).
+  const places = {
+    paragraph: ["<p>xy</p>", ["p", 1, "p", 1]],
+    "code block": ["<pre><code>xy</code></pre>", ["pre", 1, "pre", 1]],
+    cell: [table, ["td", 1, "td", 1]],
+    "cell range": [table, ["tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2]],
+    "list item": ["<ul><li>xy</li></ul>", ["li", 1, "li", 1]],
+  };
+  const row = (a, b) => `<table><tbody><tr>${a}</tr><tr>${b}</tr></tbody></table>`;
+  // Whether this engine hands a paste event the image that was written to the system clipboard. Firefox as Playwright runs it, and the older
+  // WebKit of the older driver, deliver an empty clipboard; the editor never sees the image there, so the image rows are not run and the drop
+  // route covers files. This asks the browser itself (a listener that runs before the editor's), not the editor.
+  let imageIn = false;
+  {
+    await set("ed", "<p>x</p>");
+    await clip({ "image/png": onePixelPng().split(",")[1] });
+    await sel("ed", "p", 1, "p", 1);
+    await page.evaluate(() => { window.__files = -1; document.addEventListener("paste", (e) => { window.__files = e.clipboardData.files.length; }, { capture: true, once: true }); });
+    await paste();
+    imageIn = (await page.evaluate(() => window.__files)) > 0;
+    if (!imageIn) console.log(`note: ${name} hands the paste event no image written to the system clipboard; the image paste rows are left to the drop checks`);
+  }
+  const grid = [
+    ["html", { "text/html": "<p>a <b>b</b></p><p>c</p>", "text/plain": "a b\n\nc" }, ["<p>xa <strong>b</strong></p><p>cy</p>", "<pre>xa b\n\ncy</pre>", row("<td><p>aa <strong>b</strong></p><p>c1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><p>a <strong>b</strong></p><p>c</p></td><td></td>", "<td></td><td></td>"), "<ul><li>xa <strong>b</strong></li><li>cy</li></ul>"]],
+    ["one cell", { "text/html": "<table><tr><td>S</td></tr></table>", "text/plain": "S" }, ["<p>xSy</p>", "<pre>xSy</pre>", row("<td>aS1</td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td>S</td><td>S</td>", "<td>S</td><td>S</td>"), "<ul><li>xSy</li></ul>"]],
+    ["plain text", { "text/plain": "one\n\ntwo" }, ["<p>xone</p><p>twoy</p>", "<pre>xone\n\ntwoy</pre>", row("<td><p>aone</p><p>two1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><p>one</p><p>two</p></td><td></td>", "<td></td><td></td>"), "<ul><li>xone</li><li>twoy</li></ul>"]],
+    ["tab-separated text", { "text/plain": "x\ty\nz\tw" }, ["<p>xx\ty<br>z\twy</p>", "<pre>xx\ty\nz\twy</pre>", row("<td>x</td><td>y</td>", "<td>z</td><td>w</td>"), row("<td>x</td><td>y</td>", "<td>z</td><td>w</td>"), "<ul><li>xx\ty<br>z\twy</li></ul>"]],
+    ["Markdown text", { "text/plain": "# T\n\n- i\n- j" }, ["<p>xT</p><ul><li>i</li><li>j</li></ul><p>y</p>", "<pre>x# T\n\n- i\n- jy</pre>", row("<td><p>aT</p><ul><li>i</li><li>j</li></ul><p>1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><h1>T</h1><ul><li>i</li><li>j</li></ul></td><td></td>", "<td></td><td></td>"), "<ul><li>xT</li><li>i</li><li>jy</li></ul>"]],
+    ...(!imageIn ? [] : [["an image", { "image/png": onePixelPng().split(",")[1] }, ["<p>x<img>y</p>", "<pre>xy</pre>", row("<td>a<img>1</td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><img></td><td></td>", "<td></td><td></td>"), "<ul><li>x<img>y</li></ul>"]]]),
+  ];
+  for (const [what, data, expected] of grid) {
+    const id = what === "Markdown text" ? "ed2" : "ed";
+    for (const [i, [place, [start, selection]]] of Object.entries(places).entries()) {
+      await clip(data);
+      await set(id, start);
+      await sel(id, ...selection);
+      await paste();
+      const got = (await html(id)).replace(/<img src="data:image\/png;base64,[^"]*">/g, "<img>");
+      cb(`grid: ${what} pasted into a ${place}`, got === expected[i], got);
+    }
+  }
+
+  // Markdown, with the plugin: read from plain text, but never in a code block.
+  await set("ed2", "<p>x</p>");
+  await clip({ "text/plain": "# Title\n\n- one\n- two" });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("Markdown plain text pasted with the plugin becomes structure", (await html("ed2")) === "<p>xTitle</p><ul><li>one</li><li>two</li></ul>", await html("ed2"));
+  await set("ed2", "<pre><code>xy</code></pre>");
+  await sel("ed2", "pre", 1, "pre", 1);
+  await paste();
+  cb("Markdown plain text pasted into a code block stays text", (await html("ed2")) === "<pre>x# Title\n\n- one\n- twoy</pre>", await html("ed2"));
+
+  // Between two editors on the page.
+  const rich = '<h2>T</h2><p>a <strong>b</strong> <em>c</em> <a href="https://e.com/">l</a></p><ul><li>one<ul><li>nested</li></ul></li></ul><ol><li>n</li></ol><blockquote><p>q</p></blockquote><pre>code\n  x</pre>' + table + "<hr><p>tail</p>";
+  await set("ed", rich);
+  await page.evaluate(() => window.__editor.selectAll());
+  await copy();
+  await set("ed2", "");
+  await paste();
+  cb("everything copied in one editor pastes the same in another", (await html("ed2")) === (await html()), [await html(), await html("ed2")]);
+  await set("ed", "<p>from <em>A</em> here</p>");
+  await set("ed2", "<p>B:</p>");
+  await sel("ed", "p", 0, "em", 1);
+  await copy("X");
+  await sel("ed2", "p", 2, "p", 2);
+  await paste();
+  cb("cut in one editor and paste in another moves the text", (await html()) === "<p>&nbsp;here</p>" && (await html("ed2")) === "<p>B:from <em>A</em></p>", [await html(), await html("ed2")]);
+  await set("ed", "<p>alpha</p>");
+  await set("ed2", "<p>beta</p>");
+  await sel("ed", "p", 0, "p", 5);
+  await drag("#ed2 p");
+  cb("a drag from one editor to another copies", (await html()) === "<p>alpha</p>" && (await html("ed2")) === "<p>betaalpha</p>", [await html(), await html("ed2")]);
+  await sel("ed2", "p", 0, "p", 4);
+  await drag("#ed p");
+  cb("and back", (await html()) === "<p>alphabeta</p>", [await html(), await html("ed2")]);
+
+  // Dragging out to a place that takes no drop, and dropping in from outside.
+  await set("ed", "<p>alpha</p><p>gamma</p>");
+  await sel("ed", "p", 0, "p", 5);
+  const outside = await page.evaluate(() => { const r = document.getElementById("ed2").getBoundingClientRect(); return { x: r.x + 10, y: r.bottom + 120 }; });
+  await drag(outside);
+  cb("a drag out to a place that takes no drop leaves the text", (await html()) === "<p>alpha</p><p>gamma</p>", await html());
+  await page.evaluate(() => {
+    const field = document.createElement("textarea");
+    field.id = "field";
+    field.style.cssText = "display:block;width:300px;height:60px;margin-top:16px";
+    document.body.appendChild(field);
+  });
+  await sel("ed", "p", 0, "p", 5);
+  const into = await page.evaluate(() => { const r = document.getElementById("field").getBoundingClientRect(); return { x: r.x + 20, y: r.y + 20 }; });
+  await drag(into);
+  cb("a drag out into a text field on the page moves the text", (await html()) === "<p></p><p>gamma</p>" && (await page.evaluate(() => document.getElementById("field").value)) === "alpha", [await html(), await page.evaluate(() => document.getElementById("field").value)]);
+  await page.evaluate(() => document.getElementById("field").remove());
+  await set("ed", "<p>alpha</p><p>gamma</p>");
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.setData("text/html", "<b>B</b>");
+    dt.setData("text/plain", "B");
+    const r = document.querySelector("#ed p:last-child").getBoundingClientRect();
+    document.getElementById("ed").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.right - 2, clientY: r.y + r.height / 2 }));
+  });
+  cb("markup dropped from outside goes in where it is dropped", (await html()) === "<p>alpha</p><p>gamma<strong>B</strong></p>", await html());
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(["hello"], "a.txt", { type: "text/plain" }));
+    const r = document.querySelector("#ed p").getBoundingClientRect();
+    document.getElementById("ed").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.right - 2, clientY: r.y + r.height / 2 }));
+  });
+  await page.waitForTimeout(100);
+  cb("a dropped file that is not an image is ignored", (await html()) === "<p>alpha</p><p>gamma<strong>B</strong></p>", await html());
+
+  // An image on the clipboard, with no text beside it (when this engine delivers one: see the probe above).
+  if (imageIn) {
+    await set("ed", "<p>x</p>");
+    const wrote = await clip({ "image/png": onePixelPng().split(",")[1] });
+    await sel("ed", "p", 1, "p", 1);
+    await paste();
+    await page.waitForTimeout(150);
+    cb("an image on the clipboard pastes as an image", wrote === "ok" && (await html()).startsWith('<p>x<img src="data:image/png;base64,'), [wrote, (await html()).slice(0, 60)]);
+  }
+
+  // Read-only: copy works, cut writes and deletes nothing, paste is refused.
+  await set("ed", "<p>keep</p>");
+  await page.evaluate(() => window.__editor.setReadOnly(true));
+  await sel("ed", "p", 0, "p", 4);
+  const ro = await copy();
+  const roCut = await copy("X");
+  await clip({ "text/plain": "NO" });
+  await sel("ed", "p", 0, "p", 4);
+  await paste();
+  cb("read-only: copy and cut write, nothing is deleted, paste is refused", ro?.["text/plain"] === "keep" && roCut?.["text/plain"] === "keep" && (await html()) === "<p>keep</p>", [ro, roCut, await html()]);
+  await page.evaluate(() => window.__editor.setReadOnly(false));
+
+  // Limits: past the input limit nothing is read (HTML falls back to the plain text), and past maxLength the paste is refused whole.
+  await second({ content: { maxInputLength: 100 } });
+  await set("ed2", "<p>x</p>");
+  await clip({ "text/plain": "y".repeat(150) });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("plain text past the input limit is refused and reported", (await html("ed2")) === "<p>x</p>" && (await page.evaluate(() => window.__warnings)).includes("content-too-long"), [await html("ed2"), await page.evaluate(() => window.__warnings)]);
+  await page.evaluate(() => { window.__warnings.length = 0; });
+  await clip({ "text/html": `<p>${"z".repeat(150)}</p>`, "text/plain": "short" });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("markup past the input limit falls back to the plain text, and is reported", (await html("ed2")) === "<p>xshort</p>" && (await page.evaluate(() => window.__warnings)).includes("content-too-long"), [await html("ed2"), await page.evaluate(() => window.__warnings)]);
+  await set("ed2", "<pre><code>x</code></pre>");
+  await clip({ "text/plain": "y".repeat(150) });
+  await sel("ed2", "pre", 1, "pre", 1);
+  await paste();
+  cb("plain text past the input limit is refused in a code block too", (await html("ed2")) === "<pre>x</pre>", await html("ed2"));
+  await second({ maxLength: 10 });
+  await set("ed2", "<p>x</p>");
+  await clip({ "text/plain": "0123456789abc" });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("a paste past maxLength is refused whole", (await html("ed2")) === "<p>x</p>", await html("ed2"));
+  cb("no page errors", t.errors.length === 0, t.errors);
   await t.browser.close();
 }
 
@@ -1330,6 +1637,34 @@ for (const [name, type] of engines) {
   await page.evaluate(() => document.getElementById("limited").setAttribute("placeholder", "Changed"));
   check(`${name} (element) changing the placeholder attribute takes effect`, await page.evaluate(() => document.querySelector("#limited [contenteditable=true]").getAttribute("aria-placeholder") === "Changed"), "changed");
   check(`${name} (element) removing an element leaves no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
+// --- the support window (docs/SUPPORT.md): every engine here has what the editor needs, and a browser without it is told so
+for (const [name, type] of engines) {
+  const t = await open(type);
+  const missing = await t.page.evaluate(async () => (await import("/dist/dom/index.js")).missingFeatures());
+  check(`${name} support: missingFeatures() finds nothing missing`, Array.isArray(missing) && missing.length === 0, missing);
+  const told = await t.page.evaluate(async () => {
+    const { Editor } = await import("/dist/dom/index.js");
+    const seen = [];
+    const kept = InputEvent.prototype.getTargetRanges;
+    delete InputEvent.prototype.getTargetRanges;
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    let started = false;
+    try {
+      const editor = new Editor({ element, html: "<p>old</p>", onWarning: (w) => seen.push(w) });
+      started = editor.getHtml() === "<p>old</p>";
+      editor.destroy();
+    } finally {
+      InputEvent.prototype.getTargetRanges = kept;
+      element.remove();
+    }
+    return { started, codes: seen.map((w) => w.code), message: seen.find((w) => w.code === "unsupported-browser")?.message ?? "" };
+  });
+  check(`${name} support: an editor in a browser without beforeinput target ranges reports unsupported-browser, names it, and still starts`, told.started && told.codes.join() === "unsupported-browser" && told.message.includes("getTargetRanges"), told);
+  check(`${name} support: no page errors`, t.errors.length === 0, t.errors);
   await t.browser.close();
 }
 
@@ -2328,6 +2663,113 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
+// --- languages (docs/LOCALIZATION.md): message packs loaded when wanted, plural forms, numbers, and a mirrored right-to-left interface.
+// The packs are test fixtures (packages/rte-ui/demo/test-packs), not shipped translations.
+for (const [name, type] of engines) {
+  const browser = await type.launch();
+  const context = await browser.newContext();
+  await context.route("**/*", (route) => (/^(http:\/\/127\.0\.0\.1|data:|blob:|about:)/.test(route.request().url()) ? route.continue() : route.abort()));
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e).slice(0, 160)));
+  await page.goto(new URL("/ui/demo/languages.html", base).href);
+  await page.waitForFunction("window.__langReady===true");
+  const attrs = (sel, ...names) => page.evaluate(([s, n]) => { const e = document.querySelector(s); return e ? n.map((a) => e.getAttribute(a)) : null; }, [sel, names]);
+  const rect = (sel) => page.evaluate((s) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r ? { left: r.left, right: r.right, top: r.top, bottom: r.bottom } : null; }, sel);
+  const status = (id) => page.evaluate((i) => document.querySelector(`#${i} [data-rte-part=status]`).textContent, id);
+
+  // Arabic, loaded after the interface was built: words, language and direction on the interface, not on the writing area.
+  check(`${name} (lang) a pack loaded later puts its language and direction on the toolbar`, JSON.stringify(await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label")) === JSON.stringify(["ar", "rtl", "التنسيق"]), await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label"));
+  check(`${name} (lang) and leaves the writing area in the page's language and direction`, await page.evaluate(() => { const c = document.querySelector("#ar [data-rte-part=content]"); return !c.hasAttribute("dir") && !c.hasAttribute("lang") && getComputedStyle(window.__ar.editor.element).direction === "ltr"; }), "content");
+  check(`${name} (lang) a control is named, and its tip given, in the pack's words`, JSON.stringify(await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label", "data-rte-tip")) === JSON.stringify(["غامق", "غامق (Ctrl+B)"]), await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label", "data-rte-tip"));
+  check(`${name} (lang) a select's choices are in the pack's words`, (await page.evaluate(() => document.querySelector('#ar select[data-rte-item=block] option[value="1"]').textContent)) === "عنوان 1", "select");
+  // Mirrored: the first control (undo) is at the right, the toolbar runs leftwards, and the arrow keys follow what is seen.
+  const undo = await rect("#ar [data-rte-part=toolbar] [data-rte-item=undo]");
+  const bold = await rect("#ar [data-rte-part=toolbar] [data-rte-item=bold]");
+  check(`${name} (lang) a right-to-left toolbar starts at the right`, undo.left > bold.right, { undo, bold });
+  await page.evaluate(() => document.querySelector("#ar [data-rte-part=toolbar] [data-rte-item=undo]").focus());
+  await page.keyboard.press("ArrowLeft");
+  check(`${name} (lang) ArrowLeft moves to the next control in a right-to-left toolbar`, (await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"))) === "redo", await page.evaluate(() => document.activeElement.getAttribute("data-rte-item")));
+  await page.keyboard.press("ArrowRight");
+  check(`${name} (lang) and ArrowRight back`, (await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"))) === "undo", "back");
+  // The tooltip lines up with its control's right edge.
+  await page.evaluate(() => document.querySelector("#ar [data-rte-part=toolbar] [data-rte-item=bold]").focus());
+  await page.keyboard.press("ArrowLeft");
+  await page.waitForTimeout(80);
+  const tipFor = await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"));
+  const tip = await rect("#ar [data-rte-part=tooltip]");
+  const control = await rect(`#ar [data-rte-part=toolbar] [data-rte-item="${tipFor}"]`);
+  check(`${name} (lang) a tooltip lines up with the right edge of its control`, !!tip && Math.abs(tip.right - control.right) <= 1 && tip.top >= control.bottom, { tip, control });
+  await page.keyboard.press("Escape");
+  // A menu opens under its button from the right, with the room for the check mark on the right.
+  await page.click("#ar [data-rte-part=toolbar] [data-rte-item=table]");
+  await page.waitForTimeout(80);
+  const menu = await rect("#ar [data-rte-part=toolbar] [data-rte-item=table] + [data-rte-part=menu]");
+  const host = await rect("#ar [data-rte-part=toolbar] [data-rte-item=table]");
+  check(`${name} (lang) a menu opens from its button's right edge`, !!menu && Math.abs(menu.right - host.right) <= 1, { menu, host });
+  check(`${name} (lang) a menu entry keeps the room for its check mark on the right`, await page.evaluate(() => { const s = getComputedStyle(document.querySelector("#ar [data-rte-menu-item=table-header]")); return parseFloat(s.paddingRight) > parseFloat(s.paddingLeft); }), "padding");
+  await page.keyboard.press("Escape");
+  // The context menu opens to the left of the pointer.
+  const para = await rect("#ar [contenteditable=true] p");
+  const at = { x: Math.round(para.left + 300), y: Math.round(para.top + 5) };
+  await page.mouse.click(at.x, at.y, { button: "right" });
+  await page.waitForTimeout(150);
+  const ctx = await rect("#ar [data-rte-context]");
+  check(`${name} (lang) the context menu opens to the left of the pointer, in the pack's words`, !!ctx && Math.abs(ctx.right - at.x) <= 1 && (await page.evaluate(() => document.querySelector("#ar [data-rte-context] [data-rte-menu-item=bold] [data-rte-part=label]").textContent)) === "غامق", { ctx, at });
+  await page.keyboard.press("Escape");
+  // A dialog: its words, its direction, and a problem that names the field in the pack's words.
+  await page.evaluate(() => { const n = document.querySelector("#ar [contenteditable=true] p").firstChild; window.__ar.editor.selectDom(n, 0, n, 2); });
+  await page.click("#ar [data-rte-part=toolbar] [data-rte-item=link]");
+  await page.waitForTimeout(80);
+  const dialog = "#ar dialog[open]";
+  check(`${name} (lang) a dialog is in the pack's words and direction`, await page.evaluate((d) => { const e = document.querySelector(d); return e.getAttribute("dir") === "rtl" && e.querySelector("[data-rte-part=dialog-title]").textContent === "رابط" && e.querySelector("[data-rte-part=field-label]").textContent === "العنوان" && [...e.querySelectorAll("[data-rte-part=action]")].map((b) => b.textContent).join() === "إلغاء,موافق"; }, dialog), "dialog");
+  await page.click(`${dialog} [data-rte-part=action][data-primary]`);
+  check(`${name} (lang) a field's problem names the field in the pack's words`, (await page.evaluate((d) => document.querySelector(`${d} [data-rte-part=field-error]`).textContent, dialog)) === "العنوان مطلوب.", await page.evaluate((d) => document.querySelector(`${d} [data-rte-part=field-error]`)?.textContent, dialog));
+  await page.keyboard.press("Escape");
+  // The keyboard shortcuts list names each command in the pack's words.
+  await page.click("#ar [data-rte-part=toolbar] [data-rte-item=shortcuts]");
+  await page.waitForTimeout(80);
+  check(`${name} (lang) the keyboard shortcuts list is in the pack's words`, await page.evaluate(() => { const d = document.querySelector("#ar dialog[data-rte-shortcuts]"); const cells = [...d.querySelectorAll("td")].map((c) => c.textContent); return d.querySelector("h2").textContent === "اختصارات لوحة المفاتيح" && cells.includes("غامق") && cells.includes("تراجع"); }), "shortcuts");
+  await page.keyboard.press("Escape");
+  // Plural forms: Arabic has six. Each count below falls in a different one, and the number is written the language's way.
+  const forms = { 0: "zero", 1: "one", 2: "two", 3: "few", 11: "many", 100: "other" };
+  for (const [n, form] of Object.entries(forms)) {
+    await page.evaluate((k) => window.__ar.editor.setHtml(k === 0 ? "<p></p>" : `<p>${Array.from({ length: k }, () => "ب").join(" ")}</p>`), Number(n));
+    await page.waitForTimeout(250);
+    const want = await page.evaluate(([k, f]) => window.__packs.ar.messages["status.words"][f].replace("{count}", new Intl.NumberFormat("ar").format(k)), [Number(n), form]);
+    const got = (await status("ar")).split(" · ")[0];
+    check(`${name} (lang) ${n} words take the Arabic "${form}" form`, got === want, { got, want });
+  }
+  // Back to no pack: English again, and the interface takes the page's direction.
+  await page.evaluate(() => window.__ar.ui.setStyle({ theme: "light" }));
+  check(`${name} (lang) taking the pack away says English again and lets go of the language and direction`, JSON.stringify(await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label")) === JSON.stringify([null, null, "Formatting"]) && (await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label"))[0] === "Bold", await attrs("#ar [data-rte-part=toolbar]", "lang", "dir", "aria-label"));
+  // A pack that lacks a word says it in English.
+  await page.evaluate(() => window.__ar.ui.setStyle({ theme: "light", locale: "ar", dir: "rtl", messages: { "item.bold": "غامق" } }));
+  check(`${name} (lang) a word a pack lacks is said in English`, JSON.stringify([(await attrs("#ar [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label"))[0], (await attrs("#ar [data-rte-part=toolbar] [data-rte-item=italic]", "aria-label"))[0]]) === JSON.stringify(["غامق", "Italic"]), "fallback");
+
+  // German, given when the editor was made: two plural forms, German numbers, and the writing area's own words.
+  check(`${name} (lang) a pack given at the start names the toolbar`, JSON.stringify(await attrs("#de [data-rte-part=toolbar]", "lang", "dir", "aria-label")) === JSON.stringify(["de", "ltr", "Formatierung"]), await attrs("#de [data-rte-part=toolbar]", "lang", "dir", "aria-label"));
+  check(`${name} (lang) the writing area names a task's checkbox in the editor's words`, (await page.evaluate(() => document.querySelector("#de [data-rte-check]")?.getAttribute("aria-label"))) === "Erledigt", "task");
+  await page.evaluate(() => { window.__de.editor.setHtml("<p>Ein Satz.</p>"); window.__de.editor.focus(); window.__de.editor.engine.commands.run("footnote.insert"); });
+  await page.waitForTimeout(50);
+  check(`${name} (lang) and a footnote and the list of notes`, JSON.stringify(await page.evaluate(() => [document.querySelector("#de sup[data-rte-note]")?.getAttribute("aria-label"), document.querySelector("#de [data-rte-notes]")?.getAttribute("aria-label")])) === JSON.stringify(["Fußnote 1", "Anmerkungen"]), await page.evaluate(() => [document.querySelector("#de sup[data-rte-note]")?.getAttribute("aria-label"), document.querySelector("#de [data-rte-notes]")?.getAttribute("aria-label")]));
+  for (const [html, want] of [["<p>Wort</p>", "1 Wort · 4 Zeichen"], ["<p>zwei Wörter</p>", "2 Wörter · 11 Zeichen"], [`<p>${"a ".repeat(1234)}</p>`, "1.234 Wörter · 2.467 Zeichen"]]) {
+    await page.evaluate((h) => window.__de.editor.setHtml(h), html);
+    await page.waitForTimeout(250);
+    check(`${name} (lang) the German status line says "${want}"`, (await status("de")) === want, await status("de"));
+  }
+
+  // A right-to-left page and no pack: the interface is mirrored by the page's direction alone, in English.
+  const pageUndo = await rect("#page [data-rte-part=toolbar] [data-rte-item=undo]");
+  const pageBold = await rect("#page [data-rte-part=toolbar] [data-rte-item=bold]");
+  check(`${name} (lang) on a right-to-left page the toolbar is mirrored with no pack and no dir of its own`, pageUndo.left > pageBold.right && (await attrs("#page [data-rte-part=toolbar]", "dir"))[0] === null && (await attrs("#page [data-rte-part=toolbar] [data-rte-item=bold]", "aria-label"))[0] === "Bold", { pageUndo, pageBold });
+  await page.evaluate(() => document.querySelector("#page [data-rte-part=toolbar] [data-rte-item=undo]").focus());
+  await page.keyboard.press("ArrowLeft");
+  check(`${name} (lang) and ArrowLeft moves to the next control`, (await page.evaluate(() => document.activeElement.getAttribute("data-rte-item"))) === "redo", "page keys");
+  check(`${name} (lang) the languages page raised no errors`, errors.length === 0, errors);
+  await browser.close();
+}
+
 // --- memory: how much one undo level adds, as a share of the document
 {
   const t = await open(chromium);
@@ -2357,4 +2799,12 @@ for (const [name, type] of engines) {
 }
 
 console.log(`${passes} passed, ${failures} failed`);
+// With RTE_RESULTS set to a file, what ran and how it went, for the compatibility matrix (tools/compat-matrix.mjs). The checks that are not
+// named for an engine (speed and memory, in Chromium) are counted under "other".
+if (process.env.RTE_RESULTS) {
+  const playwright = JSON.parse(readFileSync(join(dirname(require.resolve("playwright")), "package.json"), "utf8")).version;
+  const perEngine = Object.fromEntries(engines.map(([name]) => [name, { version: versions[name] ?? null, ...(tally[name] ?? { passed: 0, failed: 0 }) }]));
+  const results = { kind: "browser-checks", playwright, node: process.version, engines: perEngine, other: tally.other ?? { passed: 0, failed: 0 }, passed: passes, failed: failures, ...provenance() };
+  writeFileSync(process.env.RTE_RESULTS, `${JSON.stringify(results, null, 2)}\n`);
+}
 process.exit(failures ? 1 : 0);

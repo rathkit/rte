@@ -219,6 +219,7 @@ way, an image caption is cut at 1,000 characters, an indent is at most 8 steps, 
 | Empty paragraphs | Kept (they were written) | Dropped |
 | A trailing run of non-breaking spaces | Kept | Dropped (a word processor's paragraph mark) |
 | Image with a relative address (`a.png`, `/a.png`) | Kept | Refused (a pasted path would be fetched from the page's own origin), unless `pasteRelativeImages` |
+| Link whose address starts with a host name (`www.example.com/a`, `example.com`) | Kept as written | Given `https://`, unless the name ends like a file (`page.html`) |
 | One-cell table | Kept | Unwrapped to its content |
 | Limits and schemes | The profile's | The profile's |
 

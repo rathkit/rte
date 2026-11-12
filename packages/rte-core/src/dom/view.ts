@@ -15,9 +15,10 @@ import type { Warning } from "../warning.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
-import { cellChain, containerPaths, getContent, pathKey, setContent, type Pos, type Selection } from "../path.ts";
+import { cellChain, containerPaths, getBlock, getContent, pathKey, sameCells, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
 import { imageSelection } from "../imageselect.ts";
+import { missingFeatures } from "./support.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
 /** Input types the browser may ask for that are commands here: the command, and what it is given ("data" is the event's text). */
@@ -62,6 +63,12 @@ export interface EditorOptions {
   readonly spellcheck?: boolean;
   /** Put the caret in the editor when it is made. */
   readonly autofocus?: boolean;
+  /**
+   * The words the writing area says to assistive technology, by the ids in `CONTENT_MESSAGES` (`content.notes`, `content.done`,
+   * `content.footnote`); the others are said in English. Other keys are not read, so a message pack's `messages` can be given as it is.
+   * Read when the editor is made.
+   */
+  readonly messages?: Readonly<Record<string, unknown>>;
 }
 
 type Listener = (editor: Editor) => void;
@@ -93,21 +100,14 @@ export class Editor {
   private ownTabindex = false;
   private savedTabindex: string | null = null;
   private readonly loadRemoteImages: boolean;
+  private readonly messages: Readonly<Record<string, unknown>> | undefined;
   private readonly unhandled: ((inputType: string) => void) | undefined;
   private dragSource: Selection | null = null;
+  /** A drag from here was dropped where nothing took it, so a move asked for afterwards must not delete the source. */
+  private droppedNowhere = false;
   private readonly renderCache = createRenderCache();
   /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
-  private readonly observer = new MutationObserver((records) => {
-    for (const record of records) {
-      let node: Node | null = record.target;
-      // Inside a table the cells around the change are marked too, so only they are drawn again, not the whole table.
-      for (let up: Node | null = node; up && up !== this.element; up = up.parentNode) {
-        if (up instanceof HTMLElement && (up.tagName === "TD" || up.tagName === "TH")) this.renderCache.dirty.add(up);
-      }
-      while (node && node.parentNode !== this.element) node = node.parentNode;
-      if (node) this.renderCache.dirty.add(node);
-    }
-  });
+  private readonly observer: MutationObserver;
   private readonly cleanups: (() => void)[] = [];
   private readonly changeListeners = new Set<(change: ViewChange) => void>();
   /** Set while `setHtml` replaces the document, so replacing it is not reported as an edit. */
@@ -119,6 +119,7 @@ export class Editor {
   constructor(options: EditorOptions) {
     this.element = options.element;
     this.loadRemoteImages = options.loadRemoteImages ?? false;
+    this.messages = options.messages;
     this.unhandled = options.onUnhandledInput;
     this.engine = createEngine({
       readOnly: (options.readOnly ?? false) || (options.disabled ?? false),
@@ -129,6 +130,20 @@ export class Editor {
       ...(options.onWarning ? { onWarning: options.onWarning } : {}),
       ...(options.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
       ...(options.onMaxLength ? { onMaxLength: options.onMaxLength } : {}),
+    });
+    // A browser below the support window is told about before anything that needs the missing features is touched (docs/SUPPORT.md).
+    const missing = missingFeatures();
+    if (missing.length > 0) this.engine.report({ code: "unsupported-browser", message: `This browser lacks what the editor needs: ${missing.join(", ")}. The editor starts, but nothing is promised about how it behaves; see the support window in docs/SUPPORT.md.` });
+    this.observer = new MutationObserver((records) => {
+      for (const record of records) {
+        let node: Node | null = record.target;
+        // Inside a table the cells around the change are marked too, so only they are drawn again, not the whole table.
+        for (let up: Node | null = node; up && up !== this.element; up = up.parentNode) {
+          if (up instanceof HTMLElement && (up.tagName === "TD" || up.tagName === "TH")) this.renderCache.dirty.add(up);
+        }
+        while (node && node.parentNode !== this.element) node = node.parentNode;
+        if (node) this.renderCache.dirty.add(node);
+      }
     });
     this.viewHost = {
       element: this.element, engine: this.engine, ops,
@@ -182,7 +197,18 @@ export class Editor {
     this.listen(this.element, "copy", (e) => this.onCopy(e as ClipboardEvent, false));
     this.listen(this.element, "cut", (e) => this.onCopy(e as ClipboardEvent, true));
     this.listen(this.element, "dragstart", (e) => this.onDragStart(e as DragEvent));
-    this.listen(this.element, "dragend", () => { this.dragSource = null; });
+    this.listen(this.element, "dragend", () => { this.dragSource = null; this.droppedNowhere = false; });
+    // A drag from here that is dropped somewhere else on the page. Firefox asks the source to delete the dragged selection (`deleteByDrag`)
+    // even after a drop on a part of the page that takes no drop, which would lose the text: a drop that nothing accepted, on something that
+    // is not editable, is noted and that delete refused. And the drag is over here: Firefox sends the drag end to the dragged text, which a
+    // move has just removed, so it may never reach this editor.
+    this.listen(document, "drop", (e) => {
+      const target = e.target;
+      if (!this.dragSource || (target instanceof Node && this.element.contains(target))) return;
+      const editable = target instanceof HTMLElement && (target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement);
+      if (!e.defaultPrevented && !editable) this.droppedNowhere = true;
+      this.dragSource = null;
+    });
     this.listen(this.element, "dragover", (e) => this.onDragOver(e as DragEvent));
     this.listen(this.element, "drop", (e) => this.onDrop(e as DragEvent));
     this.listen(this.element, "compositionstart", () => { this.composing = true; });
@@ -401,13 +427,35 @@ export class Editor {
 
   /** Pastes raw clipboard data through the same pipeline a paste event uses. */
   paste(data: ClipboardData): void {
+    this.engine.refresh();
+    const doc = this.engine.document;
+    const { anchor, focus } = this.engine.selection;
+    // Into a code block, the clipboard's own plain text goes in as it is, so indentation and blank lines are kept. Plugins still see it first.
+    if (data.text && pathKey(anchor.path) === pathKey(focus.path) && getBlock(doc, focus.path)?.type === "pre") {
+      const text = data.text.replace(/\r\n?/g, "\n");
+      for (const handler of this.engine.pasteHandlers) {
+        const taken = handler(data);
+        if (taken) { this.insertSettled(taken); return; }
+      }
+      const options = this.engine.importOptions;
+      const max = options.maxInputLength ?? Number.POSITIVE_INFINITY;
+      if (text.length > max) { options.onLimit?.({ limit: "maxInputLength", max, length: text.length }); return; }
+      this.apply("paste", (d, sel) => insertText(d, sel, text, []));
+      return;
+    }
     let blocks = pasteBlocks(data, this.engine.pasteHandlers, this.engine.importOptions);
     if (blocks.length === 0) return;
+    const inTable = cellChain(doc, focus.path).length > 0;
     // Plain text with tabs, pasted into a table, is cells.
     if (!data.html?.trim() && data.text) {
-      this.engine.refresh();
-      const table = cellChain(this.engine.document, this.engine.selection.focus.path).length > 0 ? tableFromText(data.text) : undefined;
+      const table = inTable ? tableFromText(data.text) : undefined;
       if (table) blocks = [table];
+    }
+    // One copied cell pastes as text, except over a range of cells, which it fills (the paste pipeline has taken the cell's table away).
+    if (inTable && blocks.length === 1 && blocks[0]?.type !== "table" && data.html && !sameCells(cellChain(doc, anchor.path), cellChain(doc, focus.path))) {
+      const options = this.engine.importOptions;
+      const cell = importBlocks(data.html, { ...options, styles: "semantic", relativeImages: options.pasteRelativeImages ?? false });
+      if (cell.length === 1 && cell[0]?.type === "table") blocks = cell;
     }
     this.insertSettled(blocks);
   }
@@ -439,7 +487,7 @@ export class Editor {
   }
 
   private draw(): void {
-    renderDoc(this.engine.document, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
+    renderDoc(this.engine.document, this.element, { loadRemoteImages: this.loadRemoteImages, ...(this.messages ? { messages: this.messages } : {}) }, this.renderCache);
     const blocks = this.engine.document.blocks;
     this.element.toggleAttribute("data-rte-empty", blocks.length === 1 && blocks[0]?.type === "p" && blocks[0].content.length === 0);
     // Changes drawing just made are not disturbances; throw their records away.
@@ -599,7 +647,8 @@ export class Editor {
           if (text !== "") this.apply("type", (doc, sel) => insertText(doc, sel, text.replace(/\r?\n/g, " ")));
           return true;
         }
-        case "deleteByCut": case "deleteByDrag": this.apply("cut", deleteSelection); return true;
+        case "deleteByCut": this.apply("cut", deleteSelection); return true;
+        case "deleteByDrag": if (!this.droppedNowhere) this.apply("cut", deleteSelection); return true;
         case "historyUndo": this.undo(); return true;
         case "historyRedo": this.redo(); return true;
         case "formatBold": this.toggle("bold"); return true;
@@ -718,6 +767,7 @@ export class Editor {
     for (const [type, value] of Object.entries(this.copyFormats())) event.dataTransfer.setData(type, value);
     event.dataTransfer.effectAllowed = this.engine.readOnly ? "copy" : "copyMove";
     this.dragSource = this.engine.selection;
+    this.droppedNowhere = false;
   }
 
   private onDragOver(event: DragEvent): void {

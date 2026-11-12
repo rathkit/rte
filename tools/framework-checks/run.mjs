@@ -1,6 +1,8 @@
 // Drives the wrappers, built against real React, Vue, Svelte, Angular and jQuery, in Chromium, Firefox and WebKit.
 //   RTE_PLAYWRIGHT=<node_modules> RTE_PACK=<binary> tools/framework-checks/run.sh
+import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { provenance } from "../compat-matrix.mjs";
 import { growth, probeScript, settle, snapshot } from "../leak/probe.mjs";
 
 const base = process.argv[2];
@@ -326,4 +328,10 @@ for (const [engine, type] of engines) {
 }
 
 console.log(`framework checks: ${passes} passed, ${failures} failed`);
+// With RTE_RESULTS set to a file, the framework versions this folder pins and how the run went, for the compatibility matrix (tools/compat-matrix.mjs).
+if (process.env.RTE_RESULTS) {
+  const pinned = JSON.parse(readFileSync(new URL("package.json", import.meta.url), "utf8")).devDependencies;
+  const results = { kind: "framework-checks", versions: pinned, passed: passes, failed: failures, ...provenance() };
+  writeFileSync(process.env.RTE_RESULTS, `${JSON.stringify(results, null, 2)}\n`);
+}
 process.exit(failures ? 1 : 0);

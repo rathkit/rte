@@ -57,6 +57,11 @@ export interface ImportOptions {
   readonly styles?: "semantic" | "allowlist";
   /** URL schemes a link may use besides relative and fragment addresses. */
   readonly linkSchemes?: readonly string[];
+  /**
+   * Give a link whose address starts with a host name (`www.example.com/a`, `example.com`) an `https://` scheme, instead of keeping
+   * it as a relative address that would point into the page's own site. Default false; pasting turns it on.
+   */
+  readonly addLinkScheme?: boolean;
   /** Keep empty paragraphs. Content that is loaded keeps them; pasted content does not. */
   readonly keepEmptyBlocks?: boolean;
   /** Largest `data:` image address, in characters. 0 refuses every `data:` image. Default 12 million. */
@@ -78,6 +83,7 @@ export interface ImportOptions {
 interface Settings {
   readonly allowStyles: boolean;
   readonly schemes: ReadonlySet<string>;
+  readonly addLinkScheme: boolean;
   readonly keepEmpty: boolean;
   readonly maxData: number;
   readonly relative: boolean;
@@ -132,6 +138,18 @@ export function safeUrl(raw: string | undefined, schemes: ReadonlySet<string>): 
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(probe);
   if (scheme && !schemes.has((scheme[1] as string).toLowerCase())) return undefined;
   return raw.trim();
+}
+
+// A host name at the start of an address, with an optional port, followed by a path, query, fragment or nothing.
+const HOST_START = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+([a-z]{2,63})(?::\d{1,5})?(?:[/?#]|$)/i;
+// Names that end like a file (`page.html`, `notes.pdf`) are more likely a relative file than a site.
+const FILE_ENDING = /^(?:html?|php|aspx?|jsp|pdf|docx?|xlsx?|pptx?|txt|md|csv|png|jpe?g|gif|svg|webp)$/i;
+
+/** `www.example.com/a` becomes `https://www.example.com/a`; any other address is returned as it was. */
+function withHostScheme(raw: string | undefined): string | undefined {
+  const value = raw?.trim() ?? "";
+  const host = HOST_START.exec(value);
+  return host && !FILE_ENDING.test(host[1] as string) ? `https://${value}` : raw;
 }
 
 /** Returns the image address when it is a remote address or a real raster image, otherwise undefined. */
@@ -544,7 +562,7 @@ function convertElement(el: HElement, sink: Sink, ctx: Ctx, settings: Settings):
       return;
     }
     case "a": {
-      const href = safeUrl(el.attrs.href, settings.schemes);
+      const href = safeUrl(settings.addLinkScheme ? withHostScheme(el.attrs.href) : el.attrs.href, settings.schemes);
       const change = styleMarks(el, ctx, settings);
       if (href !== undefined) change.add.push({ type: "link", href, ...((el.attrs.target ?? "").toLowerCase() === "_blank" ? { newTab: true } : {}) });
       // A link with no usable address is plain text, never an empty anchor. Its underline was the link's styling either way.
@@ -688,12 +706,18 @@ function convertDefinitionList(el: HElement, ctx: Ctx, settings: Settings): Out[
   return entries.length > 0 ? [{ type: "dl", entries }] : [];
 }
 
+const blankNodes = (nodes: readonly HNode[]): boolean =>
+  nodes.every((n) => (n.type === "text" ? n.text.trim() === "" : n.tag !== "img" && blankNodes(n.children)));
+
+/** The empty row of no height a word processor writes after a table to size columns that do not line up: layout, not content. */
+const isSizingRow = (row: HElement): boolean => (row.attrs.height ?? "").trim() === "0" && blankNodes(row.children);
+
 function convertTable(el: HElement, ctx: Ctx, settings: Settings): Block {
   const rowEls: HElement[] = [];
   const collect = (nodes: readonly HNode[]): void => {
     for (const n of nodes) {
       if (n.type !== "el") continue;
-      if (n.tag === "tr") rowEls.push(n);
+      if (n.tag === "tr" && !isSizingRow(n)) rowEls.push(n);
       else if (n.tag === "thead" || n.tag === "tbody" || n.tag === "tfoot") collect(n.children);
     }
   };
@@ -912,6 +936,7 @@ export function importBlocks(html: string, options: ImportOptions = {}): Block[]
   const settings: Settings = {
     allowStyles: (options.styles ?? "allowlist") === "allowlist",
     schemes: new Set(options.linkSchemes ?? DEFAULT_LINK_SCHEMES),
+    addLinkScheme: options.addLinkScheme ?? false,
     keepEmpty: options.keepEmptyBlocks ?? false,
     maxData: options.maxDataImageLength ?? CONTENT_PROFILES.standard.maxDataImageLength,
     relative: options.relativeImages ?? true,

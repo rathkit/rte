@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "source": {
+    "app": "desktop-writer",
+    "sample": "D5-notes-fields",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/rtf",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html xmlns:v=\"urn:schemas-example-com:vml\"\nxmlns:o=\"urn:schemas-example-com:office\"\nxmlns:w=\"urn:schemas-example-com:processor\"\nxmlns=\"http://www.w3.org/TR/REC-html40\">\n\n<head>\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\n<meta name=ProgId content=Processor.Document>\n<meta name=Generator content=\"Desktop word processor 16\">\n<meta name=Originator content=\"Desktop word processor 16\">\n<link rel=File-List\nhref=\"file:///C:/Users/user/AppData/Local/Temp/clip/01/clip_filelist.xml\">\n<!--[if gte mso 9]><xml>\n <o:DocumentProperties>\n  <o:Author>Sample Author</o:Author>\n  <o:Template>Normal</o:Template>\n  <o:Revision>3</o:Revision>\n </o:DocumentProperties>\n <o:OfficeDocumentSettings>\n  <o:AllowPNG/>\n </o:OfficeDocumentSettings>\n</xml><![endif]-->\n<!--[if gte mso 9]><xml>\n <w:WordDocument>\n  <w:View>Normal</w:View>\n  <w:Zoom>0</w:Zoom>\n  <w:TrackMoves/>\n  <w:DoNotOptimizeForBrowser/>\n </w:WordDocument>\n</xml><![endif]-->\n<style>\n<!--\n /* Font Definitions */\n @font-face\n\t{font-family:\"Body Serif\";\n\tpanose-1:2 4 5 3 5 4 6 3 2 4;\n\tmso-font-charset:0;\n\tmso-generic-font-family:roman;\n\tmso-font-pitch:variable;}\n /* Style Definitions */\n p.MsoNormal, li.MsoNormal, div.MsoNormal\n\t{mso-style-unhide:no;\n\tmso-style-qformat:yes;\n\tmso-style-parent:\"\";\n\tmargin-top:0in;\n\tmargin-right:0in;\n\tmargin-bottom:8.0pt;\n\tmargin-left:0in;\n\tline-height:107%;\n\tmso-pagination:widow-orphan;\n\tfont-size:12.0pt;\n\tfont-family:\"Body Serif\",serif;}\nh1\n\t{mso-style-priority:9;\n\tmso-style-qformat:yes;\n\tmso-style-link:\"Heading 1 Char\";\n\tmso-outline-level:1;\n\tfont-size:20.0pt;}\np.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst\n\t{mso-style-priority:34;\n\tmargin-left:.5in;\n\tmso-add-space:auto;}\n@list l0\n\t{mso-list-id:101;\n\tmso-list-type:hybrid;\n\tmso-list-template-ids:-1 67698703 67698713 67698715;}\n@list l0:level1\n\t{mso-level-tab-stop:none;\n\tmso-level-number-position:left;\n\ttext-indent:-.25in;}\n.MsoChpDefault\n\t{mso-style-type:export-only;\n\tmso-default-props:yes;}\ndiv.Section1\n\t{page:Section1;}\n-->\n</style>\n<!--[if gte mso 10]>\n<style>\n /* Style Definitions */\n table.MsoNormalTable\n\t{mso-style-name:\"Table Normal\";\n\tmso-tstyle-rowband-size:0;\n\tmso-style-noshow:yes;\n\tmso-padding-alt:0in 5.4pt 0in 5.4pt;}\n</style>\n<![endif]-->\n</head>\n\n<body lang=EN-US style='tab-interval:.5in;word-wrap:break-word'>\n<!--StartFragment-->\n<div class=Section1>\n\n<p class=MsoNormal>The bed fee covers water and repairs<a style='mso-footnote-id:ftn1'\nhref=\"#_ftn1\" name=\"_ftnref1\" title=\"\"><span class=MsoFootnoteReference><span\nstyle='mso-special-character:footnote'><![if !supportFootnotes]><span\nclass=MsoFootnoteReference><span style='font-size:12.0pt;line-height:107%'>[1]</span></span><![endif]></span></span></a>.\nThe committee reviewed it on <span style='mso-field-code:\" DATE \\\\@ \\0022MMMM d, yyyy\\0022 \"'>November\n2, 2026</span><span class=MsoCommentReference><span style='font-size:8.0pt'>&nbsp;<a\nstyle='mso-comment-reference:SA_1;mso-comment-date:20261102T0915'></a><span\nstyle='mso-special-character:comment'>&nbsp;</span></span></span>.<o:p></o:p></p>\n\n<p class=MsoNormal><span style='mso-tab-count:1'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Indented line after a tab.<o:p></o:p></p>\n\n<p class=MsoNormal style='page-break-before:always'><span style='mso-no-proof:yes'>Text with a manual line<br>\nbreak in it.</span><o:p></o:p></p>\n\n<span style='font-size:12.0pt;line-height:107%;font-family:\"Body Serif\",serif;mso-ansi-language:EN-US'><br clear=all style='mso-special-character:line-break;page-break-before:always'>\n</span>\n\n<div style='mso-element:comment-list'><![if !supportAnnotations]>\n\n<hr class=msocomoff align=left size=1 width=\"33%\">\n\n<![endif]>\n\n<div style='mso-element:comment'><![if !supportAnnotations]>\n\n<div id=\"_com_1\" class=msocomtxt language=JavaScript\nonmouseover=\"msoCommentShow('_anchor_1','_com_1')\"\nonmouseout=\"msoCommentHide('_com_1')\"><![endif]>\n\n<p class=MsoCommentText><span class=MsoCommentReference><span style='font-size:8.0pt'><span\nstyle='mso-special-character:comment'>&nbsp;</span></span></span>Check the date with the treasurer.</p>\n\n<![if !supportAnnotations]></div>\n\n<![endif]></div>\n\n</div>\n\n<div style='mso-element:footnote-list'><![if !supportFootnotes]><br clear=all>\n\n<hr align=left size=1 width=\"33%\">\n\n<![endif]>\n\n<div style='mso-element:footnote' id=ftn1>\n\n<p class=MsoFootnoteText><a style='mso-footnote-id:ftn1' href=\"#_ftnref1\"\nname=\"_ftn1\" title=\"\"><span class=MsoFootnoteReference><span style='mso-special-character:\nfootnote'><![if !supportFootnotes]><span class=MsoFootnoteReference><span\nstyle='font-size:10.0pt;line-height:107%'>[1]</span></span><![endif]></span></span></a>\nSet each spring by the members.</p>\n\n</div>\n\n</div>\n\n</div>\n\n<!--EndFragment-->\n</body>\n\n</html>\n",
+    "text/plain": "The bed fee covers water and repairs[1].\r\nThe committee reviewed it on November\r\n2, 2026 .\r\n\r\nIndented line after a tab.\r\n\r\nText with a manual line\r\n\r\nbreak in it.\r\n\r\nCheck the date with the treasurer.\r\n\r\n[1]\r\nSet each spring by the members."
+  },
+  "expect": {
+    "includes": [
+      "The bed fee covers water and repairs",
+      "November 2, 2026",
+      "Indented line after a tab.",
+      "Text with a manual line<br>",
+      "Set each spring by the members."
+    ],
+    "excludes": [
+      "msoCommentShow",
+      "onmouse",
+      "language="
+    ]
+  }
+}

@@ -150,6 +150,14 @@ export function deleteSelection(doc: Doc, sel: Selection): EditResult {
   const s = ordinalOf(doc, start.path);
   const e = ordinalOf(doc, end.path);
   const paths = containerPaths(doc);
+  // Rules between the two ends go first (last first, so the paths of the earlier ones stay right). A rule holds no container, so the
+  // ends keep their places in reading order.
+  const rules = rulePaths(doc).filter((rule) => rule.before > s && rule.before <= e);
+  if (rules.length > 0) {
+    const bare = fixup(rules.reduceRight((d, rule) => mapBlockList(d, rule.path, (blocks, index) => blocks.filter((_, i) => i !== index)), doc));
+    const now = containerPaths(bare);
+    if (now.length === paths.length) return deleteSelection(bare, { anchor: { path: now[s] as Path, offset: start.offset }, focus: { path: now[e] as Path, offset: end.offset } });
+  }
   const startKind = kindAt(doc, start.path);
   const endKind = kindAt(doc, end.path);
   const head = sliceInline(getContent(doc, start.path), 0, start.offset);
@@ -535,6 +543,15 @@ export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[],
   const content = getContent(d, pos.path);
   const before = sliceInline(content, 0, pos.offset);
   const after = sliceInline(content, pos.offset);
+  // A code block holds text only: what is pasted into one goes in as its plain text, a line to a block, as copy writes it.
+  if (getBlock(d, pos.path)?.type === "pre") {
+    const pasted: Doc = { blocks };
+    const paths = containerPaths(pasted);
+    const first = paths[0];
+    const last = paths[paths.length - 1];
+    if (!first || !last) return cleared;
+    return insertText(d, caret(pos), selectedText(pasted, { anchor: { path: first, offset: 0 }, focus: { path: last, offset: inlineLength(getContent(pasted, last)) } }), []);
+  }
   const only = blocks.length === 1 ? blocks[0] : undefined;
 
   // Inline-only paste joins the text where the caret is.
@@ -683,22 +700,38 @@ export function extractSelection(doc: Doc, sel: Selection): Block[] {
           }));
           return any ? [{ ...block, rows }] : [];
         }
-        case "hr": return [];
+        // A rule has no text, so it is in the selection when the selection runs from a container before it to one after it.
+        case "hr": return first < n && n <= last ? [block] : [];
       }
     });
   return cropBlocks(doc.blocks);
 }
 
-/** Plain text of a selection, for copy. Containers are separated by newlines. */
+/**
+ * Plain text of a selection, for copy. Containers are separated by newlines, except that the cells of one table row are separated by
+ * tabs, which is how a spreadsheet (and a paste into a table here) reads rows of cells.
+ */
 export function selectedText(doc: Doc, sel: Selection): string {
   const { start, end } = order(doc, sel);
   const paths = containerPaths(doc);
   const s = ordinalOf(doc, start.path);
   const e = ordinalOf(doc, end.path);
-  const parts: string[] = [];
+  let text = "";
+  let chain: Path[] = [];
   for (let i = s; i <= e; i++) {
-    const content = getContent(doc, paths[i] as Path);
-    parts.push(inlineText(sliceInline(content, i === s ? start.offset : 0, i === e ? end.offset : Number.POSITIVE_INFINITY)));
+    const path = paths[i] as Path;
+    const content = getContent(doc, path);
+    const next = cellChain(doc, path);
+    if (i > s) {
+      // The outermost cells that differ: in the same row of the same table, they are next to each other on one line.
+      let k = 0;
+      while (k < chain.length && k < next.length && pathKey(chain[k] as Path) === pathKey(next[k] as Path)) k++;
+      const a = chain[k];
+      const b = next[k];
+      text += a && b && pathKey(a.slice(0, -1)) === pathKey(b.slice(0, -1)) ? "\t" : "\n";
+    }
+    chain = next;
+    text += inlineText(sliceInline(content, i === s ? start.offset : 0, i === e ? end.offset : Number.POSITIVE_INFINITY));
   }
-  return parts.join("\n");
+  return text;
 }

@@ -55,6 +55,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # The test message packs against every word the built editor says: no key missing or unused, plural forms as the language has them.
+      - run: pnpm check:messages
       - run: pnpm check:size
       # The public surface: every name each package exports, against the list checked in (tools/exports.snapshot.txt).
       - run: pnpm check:exports
@@ -62,6 +64,13 @@ jobs:
       - run: pnpm check:packages
       # The release tooling still works with the installed dev tools (a patched dependency once broke it unseen). Nothing is written.
       - run: pnpm release:dry
+      # The compatibility matrix (docs/compat-matrix.json): the Node versions this job ran, kept with the run, and refused if the matrix does not list them.
+      - run: node tools/compat-matrix.mjs --node compat-node.json "$RTE_SMOKE_NODES"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: compat-node
+          path: compat-node.json
+          retention-days: 90
 
   browsers:
     runs-on: ubuntu-24.04
@@ -95,6 +104,16 @@ jobs:
           RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/node_modules
           # Shared runners are slower and noisier than a desk, so the speed budgets are doubled here.
           RTE_SPEED_SCALE: "2"
+          RTE_RESULTS: ${{ github.workspace }}/compat-browsers.json
+      # The engine versions that ran must be the ones the compatibility matrix says; the results are kept with the run, to be recorded from.
+      - run: node tools/compat-matrix.mjs --check compat-browsers.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: compat-browsers
+          path: compat-browsers.json
+          if-no-files-found: ignore
+          retention-days: 90
       # Editors made and destroyed thousands of times, in all three engines (docs/LEAKS.md): nothing may be left on the page.
       - run: tools/leak/run.sh
         env:
@@ -162,3 +181,42 @@ jobs:
           path: rte-bench/results/*.json
           if-no-files-found: ignore
           retention-days: 30
+
+  # The oldest engines in the support window (docs/SUPPORT.md, "Support window"): the same browser checks, with the browsers of the Playwright release
+  # before the one in tools/browser-checks. That driver is a project of its own too (tools/browser-checks/oldest), its lockfile pinning the exact tarball.
+  browsers-oldest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4
+        with:
+          cache: true
+          require-lockfile: true
+      - run: pnpm build
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-oldest-ubuntu-24.04-${{ runner.os }}-${{ hashFiles('tools/browser-checks/oldest/pnpm-lock.yaml') }}
+      - name: Install the older browser driver and its browsers
+        working-directory: tools/browser-checks/oldest
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          node node_modules/playwright/cli.js install --with-deps chromium firefox webkit
+      - name: Allow unprivileged network namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: tools/browser-checks/run.sh
+        env:
+          RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/oldest/node_modules
+          RTE_SPEED_SCALE: "2"
+          RTE_RESULTS: ${{ github.workspace }}/compat-browsers-oldest.json
+      - run: node tools/compat-matrix.mjs --check compat-browsers-oldest.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: compat-browsers-oldest
+          path: compat-browsers-oldest.json
+          if-no-files-found: ignore
+          retention-days: 90

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "source": {
+    "app": "online-doc",
+    "sample": "O4-checklist-links",
+    "browser": "safari",
+    "os": "macos"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<head><meta charset=\"UTF-8\"></head><b style=\"caret-color: rgb(0, 0, 0); color: rgb(0, 0, 0); font-style: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none; font-weight: normal;\" id=\"docs-internal-guid-00000000-0000-4000-8000-000000000101\"><ul style=\"margin-top:0;margin-bottom:0;padding-inline-start:28px;\"><li dir=\"ltr\" role=\"checkbox\" aria-checked=\"true\" style=\"list-style-type:none;font-size:11pt;font-family:Arial,sans-serif;\" aria-level=\"1\"><img src=\"data:image/png;base64,AAAA\" width=\"17.6px\" height=\"17.6px\" alt=\"checked\" aria-roledescription=\"checkbox\" style=\"margin-right:3px;\" /><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt;display:inline-block;vertical-align:top;margin-top:0;\" role=\"presentation\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:line-through;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\">Order seed</span></p></li><li dir=\"ltr\" role=\"checkbox\" aria-checked=\"false\" style=\"list-style-type:none;font-size:11pt;font-family:Arial,sans-serif;\" aria-level=\"1\"><img src=\"data:image/png;base64,AAAA\" width=\"17.6px\" height=\"17.6px\" alt=\"unchecked\" aria-roledescription=\"checkbox\" style=\"margin-right:3px;\" /><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt;display:inline-block;vertical-align:top;margin-top:0;\" role=\"presentation\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\">Book the hall</span></p></li></ul><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt;\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\">Read the </span><a href=\"https://www.example.org/handbook\" style=\"text-decoration:none;\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:underline;vertical-align:baseline;white-space:pre;white-space:pre-wrap;color:#1155cc;\">full handbook</span></a><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\"> or write to </span><a href=\"mailto:volunteers@example.com\" style=\"text-decoration:none;\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:underline;vertical-align:baseline;white-space:pre;white-space:pre-wrap;color:#1155cc;\">volunteers@example.com</span></a><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\">. Old link: </span><a href=\"www.example.org/old\" style=\"text-decoration:none;\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:underline;vertical-align:baseline;white-space:pre;white-space:pre-wrap;color:#1155cc;\">archive</span></a></p><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt;\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\">Inline code: </span><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;font-family:'Body Mono',monospace;\">plots.length</span><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\">.</span></p><p dir=\"ltr\" style=\"line-height:1.38;margin-top:0pt;margin-bottom:0pt;\"><span style=\"font-size:11pt;font-family:Arial,sans-serif;color:#000000;background-color:transparent;font-weight:400;font-style:normal;font-variant:normal;text-decoration:none;vertical-align:baseline;white-space:pre;white-space:pre-wrap;\"><span style=\"border:none;display:inline-block;overflow:hidden;width:200px;height:120px;\"><img src=\"https://images.example.net/doc/0001.png\" alt=\"Shed floor plan\" width=\"200\" height=\"120\" style=\"margin-left:0px;margin-top:0px;\" /></span></span></p></b><br>",
+    "text/plain": "•\nOrder seed\n\n•\nBook the hall\n\nRead the full handbook or write to volunteers@example.com. Old link: archive\n\nInline code: plots.length."
+  },
+  "expect": {
+    "includes": [
+      "type=\"checkbox\" disabled checked",
+      "Order seed",
+      "Book the hall",
+      "<a href=\"https://www.example.org/handbook\">full handbook</a>",
+      "<a href=\"https://www.example.org/old\">archive</a>",
+      "<a href=\"mailto:volunteers@example.com\">",
+      "plots.length",
+      "<img src=\"https://images.example.net/doc/0001.png\" alt=\"Shed floor plan\""
+    ],
+    "excludes": [
+      "aria-checked",
+      "AAAA",
+      "alt=\"checked\""
+    ]
+  }
+}

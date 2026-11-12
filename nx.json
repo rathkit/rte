@@ -38,7 +38,9 @@
     "test": {
       "inputs": [
         "default",
-        "^production"
+        "^production",
+        "{workspaceRoot}/fixtures/**/*",
+        "{workspaceRoot}/docs/CONTENT-POLICY.md"
       ],
       "cache": true,
       "dependsOn": [

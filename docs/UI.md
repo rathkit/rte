@@ -53,15 +53,19 @@ interface StyleProvider {
   tokens?: Partial<Record<TokenName, string>>;   // set on the root; beats the preset
   icons?: Record<string, string | (() => Node)>; // SVG markup you trust, or a function; the rest fall back to the defaults
   classes?: Partial<Record<PartName, string>>;   // extra classes on every element of a part
-  messages?: Partial<Record<MessageKey, string>>;// every word the interface says, which is also how to translate it
+  messages?: Partial<Record<MessageKey, Message>>;// every word the interface says, by stable id: words, or plural forms
+  locale?: string;                               // the interface's language: `lang`, plural rules, numbers
+  dir?: "ltr" | "rtl";                           // the interface's direction; default: the page's
   parts?: { button?: (context) => HTMLElement }; // last resort: your own element for a button (it must still be accessible)
 }
 ui.setStyle(next);   // switch at run time: nothing is rebuilt
+ui.setStyle({ ...next, ...pack });   // a message pack ({ locale, dir, messages }) is part of a style
 ```
 
 Order of precedence: the defaults in `base.css` (light values, used only if no theme is loaded), then the preset, then `tokens`, then your CSS.
 Icons are parsed by the browser inside a `<template>` and must be exactly one `<svg>` with no script or event handlers, or they are ignored and the item shows
-its words instead. `messages` can rename any item (`item.bold`), the dialog buttons, and what is announced ("{label} on").
+its words instead. `messages` can rename any item (`item.bold`), a select's choices, a dialog's fields, the dialog buttons, and what is announced ("{label} on").
+Other languages, plural forms, the keys and right-to-left interfaces are in [LOCALIZATION.md](LOCALIZATION.md).
 
 ## Accessibility the interface adds on the headless layer
 

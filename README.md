@@ -31,7 +31,7 @@ Text with bold, italic, underline, strikethrough, code, super- and subscript, te
 | `@rathkit/rte-core` | Early. Document model, HTML import and export, editing operations, an engine with named commands, keys and a plugin host, a model-driven browser view, and the free standard plugins (lists, tables, find and replace, word-processor lists, SVG, images) as separate entry points. See `docs/PLUGINS.md` |
 | `@rathkit/rte-headless` | Early. How a toolbar behaves for keyboard and assistive technology (roving focus, ARIA state, focus kept in the editor) a live-region announcer, menus, popovers and dialogs, with no markup or CSS |
 | `@rathkit/rte-element` | Early. `<rte-editor>` and `<rte-toolbar>` custom elements: form-associated, with properties, attributes and events. See `docs/ELEMENT.md` |
-| `@rathkit/rte-ui` | Early. The styled interface: toolbar and link dialog on the headless layer, themeable by preset, tokens, icons, classes and messages. See `docs/UI.md` |
+| `@rathkit/rte-ui` | Early. The styled interface: toolbar and link dialog on the headless layer, themeable by preset, tokens, icons, classes and messages, with message packs for other languages and a mirrored right-to-left interface. See `docs/UI.md` and `docs/LOCALIZATION.md` |
 | `@rathkit/rte-themes` | Early. Preset themes (light, dark, auto, high contrast) and density as token files, with tests for contrast |
 | `@rathkit/rte-icons` | Early. The icon set, one SVG string each |
 | `@rathkit/rte-react` | Early. `RteEditor`, `useRteEditor`, and the hooks `useCommand` and `useSelector`, over the headless layer; a component re-renders only when the value it reads changes |

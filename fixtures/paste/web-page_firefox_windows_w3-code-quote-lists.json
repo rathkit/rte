@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "source": {
+    "app": "web-page",
+    "sample": "W3-code-quote-lists",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\n<!--StartFragment--><h2>Watering script</h2><p>Run <code>water --zone north</code> or press <kbd>Ctrl</kbd>+<kbd>W</kbd>. The <abbr title=\"soil moisture sensor\">SMS</abbr> reading is <mark>low</mark>.</p><pre class=\"highlight\"><code class=\"language-js\"><span class=\"kw\">const</span> total = plots * <span class=\"num\">2</span>;\n<span class=\"kw\">if</span> (total &gt; <span class=\"num\">10</span>) alert(<span class=\"str\">\"big\"</span>);\n</code></pre><blockquote cite=\"https://www.example.org/quotes\"><p>The best time to plant a tree was twenty years ago.</p><footer>&mdash; <cite>Proverb</cite></footer></blockquote><dl><dt>Mulch</dt><dd>A layer over the soil.</dd><dt>Tilth</dt><dd>The state of the soil.</dd></dl><ol start=\"3\" type=\"a\"><li>Third step<ul><li>with a note</li></ul></li><li>Fourth step</li></ol><p>Line one<br>line two<wbr>long&shy;word</p><!--EndFragment-->\n</body>\n</html>",
+    "text/plain": "Watering script\n\nRun water --zone north or press Ctrl+W. The SMS reading is low.\n\nconst total = plots * 2;\nif (total > 10) alert(\"big\");\n\nThe best time to plant a tree was twenty years ago.\n— Proverb\n\nMulch\n\nA layer over the soil.\n\nTilth\n\nThe state of the soil.\n\n• Third step\n\n• with a note\n\n• Fourth step\n\nLine one\nline twolong­word"
+  },
+  "expect": {
+    "includes": [
+      "<h2>Watering script</h2>",
+      "<code>water --zone north</code>",
+      "<code>Ctrl</code>",
+      "SMS",
+      "low",
+      "<pre>const total = plots * 2;\nif (total &gt; 10) alert(\"big\");",
+      "<blockquote><p>The best time to plant a tree was twenty years ago.</p>",
+      "Proverb",
+      "<dl><dt>Mulch</dt><dd>A layer over the soil.</dd><dt>Tilth</dt>",
+      "<li>Third step<ul><li>with a note</li></ul></li><li>Fourth step</li>",
+      "Line one<br>line two"
+    ],
+    "excludes": [
+      "language-js",
+      "class=\"kw\"",
+      "<abbr"
+    ]
+  }
+}

@@ -198,8 +198,10 @@ export function createToolbar(editor: HeadlessEditor, options: ToolbarOptions = 
       if (!el) return;
       const vertical = (options.orientation ?? "horizontal") === "vertical";
       const index = controls().indexOf(el);
-      const next = vertical ? "ArrowDown" : "ArrowRight";
-      const prev = vertical ? "ArrowUp" : "ArrowLeft";
+      // In a right-to-left toolbar the controls run from right to left, so the arrow keys follow what is seen.
+      const rtl = !vertical && getComputedStyle(root).direction === "rtl";
+      const next = vertical ? "ArrowDown" : rtl ? "ArrowLeft" : "ArrowRight";
+      const prev = vertical ? "ArrowUp" : rtl ? "ArrowRight" : "ArrowLeft";
       if (e.key === next) focusAt(index + 1);
       else if (e.key === prev) focusAt(index - 1);
       else if (e.key === "Home") focusAt(0);

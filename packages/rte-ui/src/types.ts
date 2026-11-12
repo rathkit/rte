@@ -8,15 +8,48 @@ export type PartName =
   | "menu-host" | "menu" | "menu-item" | "menu-separator" | "menu-keys" | "swatch" | "tooltip" | "status" | "source" | "shortcuts" | "floating" | "findbar" | "find-line" | "find-row" | "find-label" | "find-field" | "find-count"
   | "dialog" | "dialog-title" | "field-label" | "field-check" | "field" | "field-error" | "actions" | "action";
 
-/** Words the interface says. Each has a default in English; this table is also the way to translate it. */
+/** Words the interface says, by stable id. Each has a default in English; this table is also the way to translate it. */
 export type MessageKey =
   | "toolbar.label" | "floating.label" | "context.label" | "dialog.ok" | "dialog.cancel" | "field.required" | "field.url"
   | "toggle.on" | "toggle.off"
-  | "status.word" | "status.words" | "status.characters" | "status.selection"
+  | "status.words" | "status.characters" | "status.selection"
   | "source.label" | "shortcuts.title" | "shortcuts.action" | "shortcuts.keys" | "shortcuts.close"
   | "find.find" | "find.replaceWith" | "find.previous" | "find.next" | "find.close" | "find.matchCase" | "find.wholeWord" | "find.replace" | "find.replaceAll" | "find.none" | "find.count" | "find.total"
-  /** Rename any item: `item.bold`, `item.link`, and so on. */
-  | `item.${string}`;
+  /**
+   * Rename any item: `item.bold`, `item.link`; a select's choice: `item.block=1`; a dialog's field: `item.link.href`; a field's choice:
+   * `item.image-properties.align=left`.
+   */
+  | `item.${string}`
+  /** A command, as the keyboard shortcuts list names it: `command.format.bold`. */
+  | `command.${string}`;
+
+/**
+ * Words that depend on a number: one form for each plural category the language has (the categories of `Intl.PluralRules`, such as
+ * `one`, `two`, `few` and `many`), and `other`, which every language has and which is used when a form is missing.
+ */
+export interface PluralMessage {
+  readonly zero?: string;
+  readonly one?: string;
+  readonly two?: string;
+  readonly few?: string;
+  readonly many?: string;
+  readonly other: string;
+}
+
+/** What a key says: words, with `{name}` for a value, or a plural message. */
+export type Message = string | PluralMessage;
+
+/**
+ * A language for the interface: plain data, kept in a module of its own so it is loaded only when it is wanted. It is a part of a style,
+ * so `ui.setStyle({ ...style, ...pack })` puts it in place. Keys it lacks are said in English.
+ */
+export interface MessagePack {
+  /** The language, as a BCP 47 tag (`de`, `ar`, `pt-BR`): it picks the plural rules and the way numbers are written. */
+  readonly locale: string;
+  /** Which way the language runs. `rtl` mirrors the toolbar, menus, tooltips and dialogs. Default: as the page around the editor. */
+  readonly dir?: "ltr" | "rtl";
+  readonly messages: Readonly<Partial<Record<MessageKey, Message>>>;
+}
 
 /** What a replacement part gets: the same headless state the default part uses, and a way to run the item. */
 export interface PartContext {
@@ -38,7 +71,15 @@ export interface StyleProvider {
   readonly icons?: Readonly<Record<string, string | (() => Node)>>;
   /** Extra classes added to every element of a part, for utility-class systems. */
   readonly classes?: Partial<Record<PartName, string>>;
-  readonly messages?: Partial<Record<MessageKey, string>>;
+  /** Words, by stable id, over the English defaults. A plural message picks its form by the language in `locale`. */
+  readonly messages?: Partial<Record<MessageKey, Message>>;
+  /**
+   * The interface's language (a BCP 47 tag): set as `lang` on the interface, not on the writing area, and used for plural rules and
+   * numbers. Default: none, and English plural rules.
+   */
+  readonly locale?: string;
+  /** The interface's direction, set as `dir` on the interface, not on the writing area. Default: as the page around the editor. */
+  readonly dir?: "ltr" | "rtl";
   /** The one code hook, a last resort: replace the element of a part. It must follow the same accessibility rules. */
   readonly parts?: { readonly button?: (context: PartContext) => HTMLElement };
 }

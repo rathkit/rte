@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "source": {
+    "app": "webmail",
+    "sample": "M2-signature",
+    "browser": "safari",
+    "os": "macos"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<head><meta charset=\"UTF-8\"></head><div style=\"caret-color: rgb(0, 0, 0); color: rgb(0, 0, 0); font-style: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none; font-family: Arial, sans-serif; font-size: small;\"><div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\">Thanks all!</div><div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\"><br></div><div class=\"mail-signature\"><div dir=\"ltr\">--&nbsp;<br><font color=\"#38761d\" face=\"georgia, serif\"><b>Sam Rowe</b></font><br><font size=\"1\" color=\"#666666\">Volunteer coordinator &middot; <a href=\"https://www.example.org/\" target=\"_blank\">example.org</a></font><br><img src=\"https://mail.example.com/sig/0?view=fimg\" width=\"96\" height=\"24\" style=\"display:none\"><img src=\"cid:sig-logo@example.com\" alt=\"logo\" width=\"96\" height=\"24\"></div></div></div>",
+    "text/plain": "Thanks all!\n\n--\nSam Rowe\nVolunteer coordinator · example.org"
+  },
+  "expect": {
+    "includes": [
+      "Thanks all!",
+      "<strong>Sam Rowe</strong>",
+      "Volunteer coordinator",
+      "href=\"https://www.example.org/\"",
+      "example.org</a>"
+    ],
+    "excludes": [
+      "<font",
+      "cid:",
+      "fimg",
+      "<img"
+    ]
+  }
+}
