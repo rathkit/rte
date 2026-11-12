@@ -88,7 +88,7 @@ To record a CI run: `gh run download <run id> --pattern 'compat-*' --dir <folder
 
 ## What the browser checks cover
 
-About 740 checks per run (`tools/browser-checks`): typing, Enter, Backspace and Delete, the system clipboard (copy, cut and paste of text and HTML), drag and drop of text, dropped and pasted images, input-method composition (Chromium only, through the debugging protocol, which simulates it), lists, tables, find and replace, the source view, the toolbar, menus, dialogs, tooltips, the custom element in a form, the styled interface in four themes with density and token changes, forced colors and reduced motion, a phone-sized viewport (touch in Chromium and WebKit, a narrow window in Firefox), and the speed and memory figures in `MEASUREMENTS.md`.
+About 2,000 checks per run, counted over the three engines, (`tools/browser-checks`): typing, Enter, Backspace and Delete, the system clipboard (copy, cut and paste of text and HTML), drag and drop of text, dropped and pasted images, input-method composition (Chromium only, through the debugging protocol, which simulates it), lists, tables, find and replace, the source view, the toolbar, menus, dialogs, tooltips, the custom element in a form, the styled interface in four themes with density and token changes, forced colors and reduced motion, a phone-sized viewport (touch in Chromium and WebKit, a narrow window in Firefox), and the speed and memory figures in `MEASUREMENTS.md`.
 
 Paste conformance: 80 scrubbed clipboard captures from word processors and spreadsheets, and the office and mixed-source conformance suites, in the three engines.
 

@@ -34,7 +34,7 @@ somewhere odd, or when browsers disagree.
 
 10. **A rule between two blocks is deleted first.** Backspace at the start of the block after it, or Delete at the end of the block
     before it, removes the rule and leaves the text where it was (it never lets the text jump across and leave the rule behind). A rule
-    at the very start or end is removed the same way. With two in a row, each press removes the nearest.
+    at the very start or end is removed the same way. With two in a row, each press removes the nearest. A selection that covers a rule removes it too: cutting, typing over the selection, or deleting it (including select all) leaves no rule behind.
 
 ## Clicking
 
