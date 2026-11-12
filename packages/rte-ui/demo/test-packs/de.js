@@ -22,6 +22,8 @@ export default {
     "shortcuts.action": "Aktion",
     "shortcuts.keys": "Tasten",
     "shortcuts.close": "Schließen",
+    "shortcuts.leave": "Schreibbereich verlassen",
+    "shortcuts.leaveKeys": "Escape, dann Tab",
     "find.find": "Suchen",
     "find.replaceWith": "Ersetzen durch",
     "find.previous": "Vorheriger Treffer",

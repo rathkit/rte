@@ -26,6 +26,8 @@ export default {
     "shortcuts.action": "الإجراء",
     "shortcuts.keys": "المفاتيح",
     "shortcuts.close": "إغلاق",
+    "shortcuts.leave": "مغادرة منطقة الكتابة",
+    "shortcuts.leaveKeys": "Escape ثم Tab",
     "find.find": "بحث",
     "find.replaceWith": "استبدال بـ",
     "find.previous": "المطابقة السابقة",

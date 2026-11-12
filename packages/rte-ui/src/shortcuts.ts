@@ -59,21 +59,25 @@ export function createShortcuts(options: ShortcutsOptions): Shortcuts {
     head.appendChild(headRow);
     const body = document.createElement("tbody");
     const seen = new Set<string>();
-    for (const binding of editor.keymap.list()) {
-      if (seen.has(binding.command)) continue;
-      seen.add(binding.command);
-      const keys = editor.keymap.shortcutFor(binding.command);
-      if (!keys) continue;
-      const row = document.createElement("tr");
+    const row = (action: string, keys: string): void => {
+      const tr = document.createElement("tr");
       const what = document.createElement("td");
-      what.textContent = message(keyOf.command(binding.command), labels.get(binding.command) ?? binding.command);
+      what.textContent = action;
       const how = document.createElement("td");
       const kbd = document.createElement("kbd");
       kbd.textContent = keys;
       how.appendChild(kbd);
-      row.append(what, how);
-      body.appendChild(row);
+      tr.append(what, how);
+      body.appendChild(tr);
+    };
+    for (const binding of editor.keymap.list()) {
+      if (seen.has(binding.command)) continue;
+      seen.add(binding.command);
+      const keys = editor.keymap.shortcutFor(binding.command);
+      if (keys) row(message(keyOf.command(binding.command), labels.get(binding.command) ?? binding.command), keys);
     }
+    // Where a list or a table takes Tab, the way out of the writing area is not the usual one, so it is said (WCAG 2.1.2).
+    if (editor.keymap.list().some((b) => b.key === "Tab")) row(message("shortcuts.leave"), message("shortcuts.leaveKeys"));
     table.replaceChildren(head, body);
   };
 
