@@ -986,6 +986,287 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
+// --- the clipboard matrix (docs/CLIPBOARD.md): what copy, cut and drag write, and what paste and drop read, in each kind of place, in one
+// editor and between two on the same page. The system clipboard is written by a click and read with a real Ctrl+V, so Firefox (which
+// ignores the data of a made-up paste event) is covered as well. Each check's name starts "clipboard:" and the doc names it.
+for (const [name, type] of engines) {
+  const t = await open(type, name === "chromium" ? { permissions: ["clipboard-read", "clipboard-write"] } : {});
+  const { page } = t;
+  const cb = (what, ok, detail) => check(`${name} clipboard: ${what}`, ok, detail);
+  // A second editor on the page: the standard one with Markdown, made from the built files, with the given options.
+  const second = (options = {}) => page.evaluate(async (o) => {
+    const { createEditor } = await import("../dist/standard/index.js");
+    const { markdown } = await import("../dist/markdown/index.js");
+    window.__b?.destroy();
+    document.getElementById("ed2")?.remove();
+    const el = document.createElement("div");
+    el.id = "ed2";
+    el.style.cssText = "min-height:80px;border:1px solid #888;padding:8px;margin-top:16px";
+    document.body.appendChild(el);
+    window.__warnings = [];
+    window.__b = createEditor({ element: el, plugins: [markdown()], onWarning: (w) => window.__warnings.push(w.code), ...o });
+  }, options);
+  const ed = (id) => (id === "ed" ? "window.__editor" : "window.__b");
+  const html = (id = "ed") => page.evaluate(`${ed(id)}.getHtml()`);
+  const set = (id, value) => page.evaluate(([e, v]) => { const editor = e === "ed" ? window.__editor : window.__b; editor.setHtml(v); editor.focus(); }, [id, value]);
+  // Selects from the first text inside `from` at `so` to the first text inside `to` at `eo`.
+  const sel = (id, from, so, to, eo) => page.evaluate(([e, a, ao, b, bo]) => {
+    const root = document.getElementById(e);
+    const text = (s) => { const n = root.querySelector(s); return document.createTreeWalker(n, NodeFilter.SHOW_TEXT).nextNode() ?? n; };
+    const editor = e === "ed" ? window.__editor : window.__b;
+    editor.focus();
+    editor.selectDom(text(a), ao, text(b ?? a), bo);
+  }, [id, from, so, to, eo]);
+  // Presses Ctrl+C or Ctrl+X and returns every format the editor wrote.
+  const copy = async (key = "C") => {
+    await page.evaluate((k) => { window.__copied = null; document.addEventListener(k, (e) => { window.__copied = Object.fromEntries([...e.clipboardData.types].map((ty) => [ty, e.clipboardData.getData(ty)])); }, { once: true }); }, key === "X" ? "cut" : "copy");
+    await page.keyboard.press(`Control+${key}`);
+    return page.evaluate(() => window.__copied);
+  };
+  // Puts formats on the system clipboard, from a click so the browser allows it. `image/png` is given as base64.
+  const clip = async (data) => {
+    await page.evaluate((d) => {
+      window.__clip = undefined;
+      const b = document.createElement("button");
+      b.id = "clip";
+      b.style.cssText = "position:fixed;right:0;bottom:0";
+      b.onclick = () => {
+        const item = {};
+        for (const [k, v] of Object.entries(d)) item[k] = new Blob([k === "image/png" ? Uint8Array.from(atob(v), (c) => c.charCodeAt(0)) : v], { type: k });
+        navigator.clipboard.write([new ClipboardItem(item)]).then(() => { window.__clip = "ok"; }, (e) => { window.__clip = String(e); });
+        b.remove();
+      };
+      document.body.appendChild(b);
+    }, data);
+    await page.click("#clip");
+    await page.waitForFunction("window.__clip !== undefined");
+    return page.evaluate(() => window.__clip);
+  };
+  const paste = async () => { await page.keyboard.press("Control+V"); await page.waitForTimeout(150); };
+  // A real mouse drag from the middle of the selection to the end of the text in `target`, or to a screen point.
+  const drag = async (target) => {
+    const from = await page.evaluate(() => { const r = getSelection().getRangeAt(0).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    const to = typeof target === "string" ? await page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.right - 2, y: r.y + r.height / 2 }; }, target) : target;
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 5, from.y + 5, { steps: 3 });
+    await page.mouse.move(to.x, to.y, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(150);
+  };
+  const table = "<table><tbody><tr><td>a1</td><td>b1</td></tr><tr><td>a2</td><td>b2</td></tr></tbody></table>";
+  await second();
+
+  // What copy writes.
+  await set("ed2", '<p>a <strong>bold</strong> <a href="https://e.com">l</a></p>');
+  await sel("ed2", "p", 0, "a", 1);
+  const md = await copy();
+  cb("copy writes html, plain text and, with the Markdown plugin, Markdown", md?.["text/html"] === '<p>a <strong>bold</strong> <a href="https://e.com">l</a></p>' && md?.["text/plain"] === "a bold l" && md?.["text/markdown"] === "a **bold** [l](https://e.com)", md);
+  await set("ed", "<pre><code>if (x) {\n  y();\n}</code></pre>");
+  await sel("ed", "pre", 0, "pre", 17);
+  const code = await copy();
+  cb("copy in a code block writes the code as it is", code?.["text/plain"] === "if (x) {\n  y();\n}" && code?.["text/html"] === "<pre>if (x) {\n  y();\n}</pre>", code);
+  await set("ed", table);
+  await sel("ed", "tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2);
+  const cells = await copy();
+  cb("copy of a cell range writes a table and tab-separated rows", cells?.["text/plain"] === "a1\tb1\na2\tb2" && cells?.["text/html"] === table, cells);
+  await set("ed", "<p>one</p><hr><p>two</p>");
+  await sel("ed", "p:first-child", 0, "p:last-child", 3);
+  const rule = await copy();
+  cb("copy across a rule writes the rule", rule?.["text/html"] === "<p>one</p><hr><p>two</p>", rule);
+  const cutRule = await copy("X");
+  cb("cut across a rule takes the rule with it", cutRule?.["text/html"] === "<p>one</p><hr><p>two</p>" && (await html()) === "<p></p>", await html());
+
+  // What paste reads, in each kind of place.
+  await set("ed", "<pre><code>xy</code></pre>");
+  await clip({ "text/html": "<p>a <b>b</b></p><p>c</p>", "text/plain": "  a b\n\nc" });
+  await sel("ed", "pre", 1, "pre", 1);
+  await paste();
+  cb("paste into a code block inserts the plain text as it is", (await html()) === "<pre>x  a b\n\ncy</pre>", await html());
+  await set("ed", "<pre><code>xy</code></pre>");
+  await clip({ "text/plain": "a\tb\nc\td" });
+  await sel("ed", "pre", 1, "pre", 1);
+  await paste();
+  cb("tab-separated text pasted into a code block stays text", (await html()) === "<pre>xa\tb\nc\tdy</pre>", await html());
+  await set("ed", table);
+  await clip({ "text/html": "<table><tr><td>X</td><td>Y</td><td>Z</td></tr></table>", "text/plain": "X\tY\tZ" });
+  await sel("ed", "td", 0, "td", 0);
+  await paste();
+  cb("a table pasted into a cell fills the cells and grows the table", (await html()) === "<table><tbody><tr><td>X</td><td>Y</td><td>Z</td></tr><tr><td>a2</td><td>b2</td><td></td></tr></tbody></table>", await html());
+  await set("ed", table);
+  await clip({ "text/plain": "x\ty\nz\tw" });
+  await sel("ed", "td", 0, "td", 0);
+  await paste();
+  cb("tab-separated text pasted into a cell fills the cells", (await html()) === "<table><tbody><tr><td>x</td><td>y</td></tr><tr><td>z</td><td>w</td></tr></tbody></table>", await html());
+  await set("ed", table);
+  await clip({ "text/html": "<table><tr><td>S</td></tr></table>", "text/plain": "S" });
+  await sel("ed", "tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2);
+  await paste();
+  cb("one copied cell pasted over a cell range fills every selected cell", (await html()) === "<table><tbody><tr><td>S</td><td>S</td></tr><tr><td>S</td><td>S</td></tr></tbody></table>", await html());
+  await set("ed", "<p>x</p>");
+  await sel("ed", "p", 1, "p", 1);
+  await paste();
+  cb("one copied cell pasted into text is text", (await html()) === "<p>xS</p>", await html());
+  await set("ed", table);
+  await clip({ "text/plain": "plain" });
+  await sel("ed", "tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2);
+  await paste();
+  cb("plain text pasted over a cell range goes in the first cell and empties the rest", (await html()) === "<table><tbody><tr><td>plain</td><td></td></tr><tr><td></td><td></td></tr></tbody></table>", await html());
+  await set("ed", "<ul><li>ab</li></ul>");
+  await clip({ "text/html": "<ul><li>x</li><li>y</li></ul>", "text/plain": "x\ny" });
+  await sel("ed", "li", 1, "li", 1);
+  await paste();
+  cb("a list pasted into a list item joins the list", (await html()) === "<ul><li>ax</li><li>yb</li></ul>", await html());
+
+  // The whole grid: each kind of clipboard content into each kind of place (Markdown in the second editor, which has the plugin).
+  const places = {
+    paragraph: ["<p>xy</p>", ["p", 1, "p", 1]],
+    "code block": ["<pre><code>xy</code></pre>", ["pre", 1, "pre", 1]],
+    cell: [table, ["td", 1, "td", 1]],
+    "cell range": [table, ["tr:nth-child(1) td:nth-child(1)", 0, "tr:nth-child(2) td:nth-child(2)", 2]],
+    "list item": ["<ul><li>xy</li></ul>", ["li", 1, "li", 1]],
+  };
+  const row = (a, b) => `<table><tbody><tr>${a}</tr><tr>${b}</tr></tbody></table>`;
+  const grid = [
+    ["html", { "text/html": "<p>a <b>b</b></p><p>c</p>", "text/plain": "a b\n\nc" }, ["<p>xa <strong>b</strong></p><p>cy</p>", "<pre>xa b\n\ncy</pre>", row("<td><p>aa <strong>b</strong></p><p>c1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><p>a <strong>b</strong></p><p>c</p></td><td></td>", "<td></td><td></td>"), "<ul><li>xa <strong>b</strong></li><li>cy</li></ul>"]],
+    ["one cell", { "text/html": "<table><tr><td>S</td></tr></table>", "text/plain": "S" }, ["<p>xSy</p>", "<pre>xSy</pre>", row("<td>aS1</td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td>S</td><td>S</td>", "<td>S</td><td>S</td>"), "<ul><li>xSy</li></ul>"]],
+    ["plain text", { "text/plain": "one\n\ntwo" }, ["<p>xone</p><p>twoy</p>", "<pre>xone\n\ntwoy</pre>", row("<td><p>aone</p><p>two1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><p>one</p><p>two</p></td><td></td>", "<td></td><td></td>"), "<ul><li>xone</li><li>twoy</li></ul>"]],
+    ["tab-separated text", { "text/plain": "x\ty\nz\tw" }, ["<p>xx\ty<br>z\twy</p>", "<pre>xx\ty\nz\twy</pre>", row("<td>x</td><td>y</td>", "<td>z</td><td>w</td>"), row("<td>x</td><td>y</td>", "<td>z</td><td>w</td>"), "<ul><li>xx\ty<br>z\twy</li></ul>"]],
+    ["Markdown text", { "text/plain": "# T\n\n- i\n- j" }, ["<p>xT</p><ul><li>i</li><li>j</li></ul><p>y</p>", "<pre>x# T\n\n- i\n- jy</pre>", row("<td><p>aT</p><ul><li>i</li><li>j</li></ul><p>1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><h1>T</h1><ul><li>i</li><li>j</li></ul></td><td></td>", "<td></td><td></td>"), "<ul><li>xT</li><li>i</li><li>jy</li></ul>"]],
+    ...(name === "firefox" ? [] : [["an image", { "image/png": onePixelPng().split(",")[1] }, ["<p>x<img>y</p>", "<pre>xy</pre>", row("<td>a<img>1</td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><img></td><td></td>", "<td></td><td></td>"), "<ul><li>x<img>y</li></ul>"]]]),
+  ];
+  for (const [what, data, expected] of grid) {
+    const id = what === "Markdown text" ? "ed2" : "ed";
+    for (const [i, [place, [start, selection]]] of Object.entries(places).entries()) {
+      await clip(data);
+      await set(id, start);
+      await sel(id, ...selection);
+      await paste();
+      const got = (await html(id)).replace(/<img src="data:image\/png;base64,[^"]*">/g, "<img>");
+      cb(`grid: ${what} pasted into a ${place}`, got === expected[i], got);
+    }
+  }
+
+  // Markdown, with the plugin: read from plain text, but never in a code block.
+  await set("ed2", "<p>x</p>");
+  await clip({ "text/plain": "# Title\n\n- one\n- two" });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("Markdown plain text pasted with the plugin becomes structure", (await html("ed2")) === "<p>xTitle</p><ul><li>one</li><li>two</li></ul>", await html("ed2"));
+  await set("ed2", "<pre><code>xy</code></pre>");
+  await sel("ed2", "pre", 1, "pre", 1);
+  await paste();
+  cb("Markdown plain text pasted into a code block stays text", (await html("ed2")) === "<pre>x# Title\n\n- one\n- twoy</pre>", await html("ed2"));
+
+  // Between two editors on the page.
+  const rich = '<h2>T</h2><p>a <strong>b</strong> <em>c</em> <a href="https://e.com/">l</a></p><ul><li>one<ul><li>nested</li></ul></li></ul><ol><li>n</li></ol><blockquote><p>q</p></blockquote><pre>code\n  x</pre>' + table + "<hr><p>tail</p>";
+  await set("ed", rich);
+  await page.evaluate(() => window.__editor.selectAll());
+  await copy();
+  await set("ed2", "");
+  await paste();
+  cb("everything copied in one editor pastes the same in another", (await html("ed2")) === (await html()), [await html(), await html("ed2")]);
+  await set("ed", "<p>from <em>A</em> here</p>");
+  await set("ed2", "<p>B:</p>");
+  await sel("ed", "p", 0, "em", 1);
+  await copy("X");
+  await sel("ed2", "p", 2, "p", 2);
+  await paste();
+  cb("cut in one editor and paste in another moves the text", (await html()) === "<p>&nbsp;here</p>" && (await html("ed2")) === "<p>B:from <em>A</em></p>", [await html(), await html("ed2")]);
+  await set("ed", "<p>alpha</p>");
+  await set("ed2", "<p>beta</p>");
+  await sel("ed", "p", 0, "p", 5);
+  await drag("#ed2 p");
+  cb("a drag from one editor to another copies", (await html()) === "<p>alpha</p>" && (await html("ed2")) === "<p>betaalpha</p>", [await html(), await html("ed2")]);
+  await sel("ed2", "p", 0, "p", 4);
+  await drag("#ed p");
+  cb("and back", (await html()) === "<p>alphabeta</p>", [await html(), await html("ed2")]);
+
+  // Dragging out to a place that takes no drop, and dropping in from outside.
+  await set("ed", "<p>alpha</p><p>gamma</p>");
+  await sel("ed", "p", 0, "p", 5);
+  const outside = await page.evaluate(() => { const r = document.getElementById("ed2").getBoundingClientRect(); return { x: r.x + 10, y: r.bottom + 120 }; });
+  await drag(outside);
+  cb("a drag out to a place that takes no drop leaves the text", (await html()) === "<p>alpha</p><p>gamma</p>", await html());
+  await page.evaluate(() => {
+    const field = document.createElement("textarea");
+    field.id = "field";
+    field.style.cssText = "display:block;width:300px;height:60px;margin-top:16px";
+    document.body.appendChild(field);
+  });
+  await sel("ed", "p", 0, "p", 5);
+  const into = await page.evaluate(() => { const r = document.getElementById("field").getBoundingClientRect(); return { x: r.x + 20, y: r.y + 20 }; });
+  await drag(into);
+  cb("a drag out into a text field on the page moves the text", (await html()) === "<p></p><p>gamma</p>" && (await page.evaluate(() => document.getElementById("field").value)) === "alpha", [await html(), await page.evaluate(() => document.getElementById("field").value)]);
+  await page.evaluate(() => document.getElementById("field").remove());
+  await set("ed", "<p>alpha</p><p>gamma</p>");
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.setData("text/html", "<b>B</b>");
+    dt.setData("text/plain", "B");
+    const r = document.querySelector("#ed p:last-child").getBoundingClientRect();
+    document.getElementById("ed").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.right - 2, clientY: r.y + r.height / 2 }));
+  });
+  cb("markup dropped from outside goes in where it is dropped", (await html()) === "<p>alpha</p><p>gamma<strong>B</strong></p>", await html());
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    dt.items.add(new File(["hello"], "a.txt", { type: "text/plain" }));
+    const r = document.querySelector("#ed p").getBoundingClientRect();
+    document.getElementById("ed").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true, clientX: r.right - 2, clientY: r.y + r.height / 2 }));
+  });
+  await page.waitForTimeout(100);
+  cb("a dropped file that is not an image is ignored", (await html()) === "<p>alpha</p><p>gamma<strong>B</strong></p>", await html());
+
+  // An image on the clipboard, with no text beside it. Firefox, as Playwright runs it, hands the paste event an empty clipboard for an
+  // image written this way, so there the file route is checked by the drop above and in the image checks.
+  if (name !== "firefox") {
+    await set("ed", "<p>x</p>");
+    const wrote = await clip({ "image/png": onePixelPng().split(",")[1] });
+    await sel("ed", "p", 1, "p", 1);
+    await paste();
+    await page.waitForTimeout(150);
+    cb("an image on the clipboard pastes as an image", wrote === "ok" && (await html()).startsWith('<p>x<img src="data:image/png;base64,'), [wrote, (await html()).slice(0, 60)]);
+  }
+
+  // Read-only: copy works, cut writes and deletes nothing, paste is refused.
+  await set("ed", "<p>keep</p>");
+  await page.evaluate(() => window.__editor.setReadOnly(true));
+  await sel("ed", "p", 0, "p", 4);
+  const ro = await copy();
+  const roCut = await copy("X");
+  await clip({ "text/plain": "NO" });
+  await sel("ed", "p", 0, "p", 4);
+  await paste();
+  cb("read-only: copy and cut write, nothing is deleted, paste is refused", ro?.["text/plain"] === "keep" && roCut?.["text/plain"] === "keep" && (await html()) === "<p>keep</p>", [ro, roCut, await html()]);
+  await page.evaluate(() => window.__editor.setReadOnly(false));
+
+  // Limits: past the input limit nothing is read (HTML falls back to the plain text), and past maxLength the paste is refused whole.
+  await second({ content: { maxInputLength: 100 } });
+  await set("ed2", "<p>x</p>");
+  await clip({ "text/plain": "y".repeat(150) });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("plain text past the input limit is refused and reported", (await html("ed2")) === "<p>x</p>" && (await page.evaluate(() => window.__warnings)).includes("content-too-long"), [await html("ed2"), await page.evaluate(() => window.__warnings)]);
+  await page.evaluate(() => { window.__warnings.length = 0; });
+  await clip({ "text/html": `<p>${"z".repeat(150)}</p>`, "text/plain": "short" });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("markup past the input limit falls back to the plain text, and is reported", (await html("ed2")) === "<p>xshort</p>" && (await page.evaluate(() => window.__warnings)).includes("content-too-long"), [await html("ed2"), await page.evaluate(() => window.__warnings)]);
+  await set("ed2", "<pre><code>x</code></pre>");
+  await clip({ "text/plain": "y".repeat(150) });
+  await sel("ed2", "pre", 1, "pre", 1);
+  await paste();
+  cb("plain text past the input limit is refused in a code block too", (await html("ed2")) === "<pre>x</pre>", await html("ed2"));
+  await second({ maxLength: 10 });
+  await set("ed2", "<p>x</p>");
+  await clip({ "text/plain": "0123456789abc" });
+  await sel("ed2", "p", 1, "p", 1);
+  await paste();
+  cb("a paste past maxLength is refused whole", (await html("ed2")) === "<p>x</p>", await html("ed2"));
+  cb("no page errors", t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
 // --- images: inline limit, upload hook, svg cleaning, byte checks
 {
   const pngBytes = (n) => { const a = new Uint8Array(n); a.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]); return Array.from(a); };
