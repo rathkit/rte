@@ -2,15 +2,19 @@
 // drag and drop, input-method composition, outside requests and speed. Playwright is not a dependency of this repo;
 // point RTE_PLAYWRIGHT at a node_modules folder that has it.
 //   RTE_PLAYWRIGHT=tools/browser-checks/node_modules tools/browser-checks/run.sh
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { crc32, deflateSync } from "node:zlib";
+import { provenance } from "../compat-matrix.mjs";
 
 const base = process.argv[2];
 const require = createRequire(`${process.env.RTE_PLAYWRIGHT}/`);
 const { chromium, firefox, webkit } = require("playwright");
 const engines = [["chromium", chromium], ["firefox", firefox], ["webkit", webkit]];
+// What each engine reports itself as, and how its checks went (a check belongs to the engine its name starts with), for RTE_RESULTS below.
+const versions = {};
+const tally = {};
 const fixtureDir = join(import.meta.dirname, "../../fixtures/paste");
 
 // A valid 1 by 1 PNG, built here (a literal base64 string could contain a word the denylist check looks for).
@@ -34,6 +38,9 @@ function onePixelPng() {
 let failures = 0;
 let passes = 0;
 const check = (name, ok, detail) => {
+  const engine = /^(chromium|firefox|webkit)\b/.exec(name)?.[1] ?? "other";
+  tally[engine] ??= { passed: 0, failed: 0 };
+  tally[engine][ok ? "passed" : "failed"]++;
   if (ok) passes++;
   else {
     failures++;
@@ -45,6 +52,7 @@ async function open(type, options = {}, cfg = "", demo = false, init = undefined
   const page_url = demo === "element" ? "/element/demo/" : demo === "ui" ? "/ui/demo/" : "/headless/demo/";
   const ready_flag = demo === "element" ? "window.__elementReady===true" : demo === "ui" ? "window.__uiReady===true" : "window.__demoReady===true";
   const browser = await type.launch();
+  versions[type.name()] ??= browser.version();
   const context = await browser.newContext(options);
   if (init) await context.addInitScript(init);
   const outside = [];
@@ -2773,4 +2781,12 @@ for (const [name, type] of engines) {
 }
 
 console.log(`${passes} passed, ${failures} failed`);
+// With RTE_RESULTS set to a file, what ran and how it went, for the compatibility matrix (tools/compat-matrix.mjs). The checks that are not
+// named for an engine (speed and memory, in Chromium) are counted under "other".
+if (process.env.RTE_RESULTS) {
+  const playwright = JSON.parse(readFileSync(join(dirname(require.resolve("playwright")), "package.json"), "utf8")).version;
+  const perEngine = Object.fromEntries(engines.map(([name]) => [name, { version: versions[name] ?? null, ...(tally[name] ?? { passed: 0, failed: 0 }) }]));
+  const results = { kind: "browser-checks", playwright, node: process.version, engines: perEngine, other: tally.other ?? { passed: 0, failed: 0 }, passed: passes, failed: failures, ...provenance() };
+  writeFileSync(process.env.RTE_RESULTS, `${JSON.stringify(results, null, 2)}\n`);
+}
 process.exit(failures ? 1 : 0);

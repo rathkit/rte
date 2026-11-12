@@ -4,13 +4,7 @@ This page says what is checked, with which browsers, and what is not. It claims 
 
 ## Browsers
 
-Every browser check runs in all three engines of Playwright 1.64.1, headless, on Linux (the numbers are of the build that ran on 2026-10-24):
-
-| Engine | Version | Stands in for |
-| --- | --- | --- |
-| Chromium | 156.0.8078.4 | Chrome, Edge and other Chromium browsers |
-| Firefox | 157.0 | Firefox |
-| WebKit | 27.2 (Playwright's build for Linux) | Safari |
+Every browser check runs in all three engines of Playwright 1.64.1, headless, on Linux, and again with the engines of Playwright 1.63.0 ("Support window" below). The exact version of each engine, as the run reported it, is in the [compatibility matrix](#compatibility-matrix).
 
 "Stands in for" is a statement about the engine, not about the product: the browser checks do not run Safari, Chrome or Edge themselves, and they do not run on macOS or Windows. The WebKit build on Linux is not Safari on macOS or iOS.
 
@@ -20,13 +14,7 @@ The packages are tested under Node 22.14.0 (the oldest that `engines` allows) an
 
 The policy: the current and the previous major version of Chrome, Edge and the other Chromium browsers, of Firefox and of Safari, and of the browsers on iOS and iPadOS (which all use WebKit) and on Android. A browser older than that is below the window.
 
-How much of it is tested: the browser checks run twice in CI, on every pull request. The `browsers` job in CI uses the browsers of the Playwright release in `tools/browser-checks` (the table above), and the `browsers-oldest` job runs the same checks with the browsers of the release before it, pinned by its own lockfile in `tools/browser-checks/oldest`. The versions are the ones each Playwright release reports for its builds:
-
-| Engine | `browsers` (Playwright 1.64.1) | `browsers-oldest` (Playwright 1.63.0) |
-| --- | --- | --- |
-| Chromium | 156.0.8078.4 | 153.0.8010.12 |
-| Firefox | 157.0 | 155.0 |
-| WebKit | 27.2 | 26.6 |
+How much of it is tested: the browser checks run twice in CI, on every pull request. The `browsers` job in CI uses the browsers of the Playwright release in `tools/browser-checks` (Playwright 1.64.1), and the `browsers-oldest` job runs the same checks with the browsers of the release before it (Playwright 1.63.0), pinned by its own lockfile in `tools/browser-checks/oldest`. The engine versions of both jobs, as each run reported them, are in the [compatibility matrix](#compatibility-matrix) below.
 
 The older set is the floor that runs. When `tools/browser-checks` moves to a new Playwright release, `tools/browser-checks/oldest` moves to the release it replaces, and both columns change in the same pull request. Nothing checks by itself that the older column is at or below the previous major of each product on a given day: the owner confirms that when either pin moves. Both columns are Linux builds of the engines, not the products (see above). The phones are not in CI: Android was tested by hand (Chrome 156.0.8078.80 and Firefox 159.0.1 on 2026-11-10, "Touch and phones" below), and iOS and iPadOS have not been run.
 
@@ -40,6 +28,63 @@ else createEditor({ element });
 ```
 
 `missingFeatures()` is safe to call on a server: in Node, with no DOM, it lists the browser features and does not throw. A browser check makes sure each engine in both columns lacks nothing, and that an editor made in a page with `getTargetRanges` taken away reports `unsupported-browser`, names it, and starts.
+
+## Compatibility matrix
+
+Which browsers, Node versions and frameworks, and the result of the last recorded run of each. The table is made by `tools/compat-matrix.mjs` from `docs/compat-matrix.json`, and that file is made only from the results files the checks leave behind, so nothing in it is typed by hand and a cell no run has filled says "not run".
+
+How it is kept from drifting:
+
+- The versions in it are the repository's own pins: both Playwright releases, the Node versions in `ci.yml` and `.node-version`, the framework versions in `tools/framework-checks` and the range each wrapper accepts. A tool test (`tools/compat-matrix.test.mjs`, in `pnpm test:tools`) fails when a pin changes and the matrix does not, and when this section is not exactly what the file renders to.
+- Each CI run of the browser checks writes what each engine reported itself as and how its checks went (`RTE_RESULTS`), and `node tools/compat-matrix.mjs --check` fails the job when an engine is a version the matrix does not say. The check job does the same for the Node versions it ran. The results files are kept with the run as the artifacts `compat-browsers`, `compat-browsers-oldest` and `compat-node`.
+- A check counts for the engine its name starts with; the speed and memory checks, which run in Chromium only, are counted apart (as `other` in the results file) and are not in the table.
+- The counts are not compared, because they change whenever a check is added; each cell says the date and commit of the run its counts come from, and whether that run was in CI or local.
+
+To record a CI run: `gh run download <run id> --pattern 'compat-*' --dir <folder>`, then `node tools/compat-matrix.mjs --record <folder>`, and commit the two files. A local run is recorded the same way from the files `RTE_RESULTS` names (with `RTE_COMMIT` set to the commit that ran); it says "a local run". The framework checks and the phones are not in CI, so their cells say "not run" until a run of `tools/framework-checks` with `RTE_RESULTS` is recorded (its counts are of the whole run, all five frameworks in three engines).
+
+<!-- compat-matrix:start: made by tools/compat-matrix.mjs from docs/compat-matrix.json; do not edit by hand -->
+
+| Engine | Version | Stands in for | CI job (Playwright) | Last recorded run |
+| --- | --- | --- | --- | --- |
+| Chromium | 156.0.8078.4 | Chrome, Edge and other Chromium browsers | `browsers` (1.64.1) | passed, 519 of 519 (a local run, 2026-11-12, `65ba27199a42`) |
+| Firefox | 157.0 | Firefox | `browsers` (1.64.1) | passed, 504 of 504 (a local run, 2026-11-12, `65ba27199a42`) |
+| WebKit | 27.2 | Safari (the Linux build is not Safari) | `browsers` (1.64.1) | passed, 511 of 511 (a local run, 2026-11-12, `65ba27199a42`) |
+| Chromium | 153.0.8010.12 | Chrome, Edge and other Chromium browsers | `browsers-oldest` (1.63.0) | passed, 519 of 519 (a local run, 2026-11-12, `65ba27199a42`) |
+| Firefox | 155.0 | Firefox | `browsers-oldest` (1.63.0) | passed, 504 of 504 (a local run, 2026-11-12, `65ba27199a42`) |
+| WebKit | 26.6 | Safari (the Linux build is not Safari) | `browsers-oldest` (1.63.0) | passed, 511 of 511 (a local run, 2026-11-12, `65ba27199a42`) |
+
+| Device | Last recorded run |
+| --- | --- |
+| iOS and iPadOS | not run in CI |
+| Android | not run in CI |
+
+| Node | What runs | Last recorded run |
+| --- | --- | --- |
+| 22.14.0 | the oldest Node that `engines` allows: every entry point is imported from the packed packages (check:packages) | not run |
+| 26 (26.12.0) | builds, tests and checks everything in the check job, and imports the packed packages | passed (a local run, 2026-11-12, `65ba27199a42`) |
+
+| Framework | Wrapper | Versions the wrapper accepts | Version checked | Last recorded run |
+| --- | --- | --- | --- | --- |
+| React | `@rathkit/rte-react` | `>=18` | 19.3.1 | not run |
+| Vue | `@rathkit/rte-vue` | `>=3.4` | 3.5.44 | not run |
+| Svelte | `@rathkit/rte-svelte` | not stated | 5.57.2 | not run |
+| Angular | `@rathkit/rte-angular` | `>=20.0.0` | 22.2.3 | not run |
+| jQuery | `@rathkit/rte-jquery` | not stated | 4.0.0 | not run |
+
+<!-- compat-matrix:end -->
+
+### The file, for the site and anyone else
+
+`docs/compat-matrix.json` in this repository (`https://raw.githubusercontent.com/rathkit/rte/main/docs/compat-matrix.json`) is the same data, for the site and anyone else who shows it. Schema version 1; a change that removes or renames a field raises `schemaVersion`.
+
+| Field | What it holds |
+| --- | --- |
+| `schemaVersion` | `1` |
+| `browsers[]` | One per CI job and engine: `job` (`browsers` or `browsers-oldest`), `engine` (`chromium`, `firefox`, `webkit`), `standsFor`, `playwright` (the pinned release), `version` (what the engine reported in the recorded run, or `null`), `result` |
+| `devices[]` | `platform` (`iOS and iPadOS`, `Android`) and `result`; not in CI, so `not run` (hand tests are described in this page, not in the file) |
+| `node[]` | `version` (exact, or a major when CI takes the newest of it), `role`, `ran` (the exact version of the recorded run, or `null`), `result` |
+| `frameworks[]` | `name`, `package`, `wrapper`, `supports` (the wrapper's peer range, or `null` when it states none), `checked` (the version the framework checks pin), `result` |
+| `result` | Either `{ "status": "not run" }`, or `{ "status": "passed" or "failed", "passed"?, "failed"?, "date", "commit", "source": "ci" or "local", "run" }`; `run` is the CI run's address, or `null` for a local run; the counts are there when the run counted checks |
 
 ## What the browser checks cover
 
