@@ -93,7 +93,7 @@ Platforms and accessibility: server rendering, touch, input methods, screen read
 - [x] [5.2](https://github.com/rathkit/rte/issues/16) Touch and mobile pass `P0` (iOS Safari and a tablet with a keyboard are not run: [#83](https://github.com/rathkit/rte/issues/83))
 - [ ] [5.3](https://github.com/rathkit/rte/issues/17) Input method (IME) pass `P0`
 - [ ] [5.4](https://github.com/rathkit/rte/issues/18) Screen reader pass `P0`
-- [ ] [5.5](https://github.com/rathkit/rte/issues/19) Keyboard, contrast, motion and zoom audit `P0`
+- [x] [5.5](https://github.com/rathkit/rte/issues/19) Keyboard, contrast, motion and zoom audit `P0` ([ACCESSIBILITY.md](ACCESSIBILITY.md))
 - [x] [5.6](https://github.com/rathkit/rte/issues/20) Localization: stable message ids and language packs `P0`
 - [ ] [5.7](https://github.com/rathkit/rte/issues/21) Published compatibility matrix `P0` (the data is in docs/compat-matrix.json; the site page is not done)
 - [x] [5.8](https://github.com/rathkit/rte/issues/22) Browser support window and older engines `P1`

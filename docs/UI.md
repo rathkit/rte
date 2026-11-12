@@ -69,9 +69,9 @@ Other languages, plural forms, the keys and right-to-left interfaces are in [LOC
 
 ## Accessibility the interface adds on the headless layer
 
-A visible focus ring, a pressed state that does not rely on color (a thicker bottom edge and a border), tooltips with the key (`Bold (Ctrl+B)`; see below), forced-colors rendering with real borders and outlines, no animation when the person prefers reduced motion, and spoken confirmation
+A visible focus ring (on the editor, inside its border, while the writing area has the focus), a pressed state that does not rely on color (a thicker bottom edge and a border), tooltips with the key (`Bold (Ctrl+B)`; see below), forced-colors rendering with real borders and outlines, no animation when the person prefers reduced motion, and spoken confirmation
 when a toggle is pressed. Controls keep their name from `aria-label`, so an icon-only toolbar is still named. The headless layer supplies roving focus,
-`aria-pressed`, `aria-disabled`, and the dialog and menu behavior.
+`aria-pressed`, `aria-disabled`, and the dialog and menu behavior. The keyboard, contrast, motion and zoom audit, with a result for each surface, is [ACCESSIBILITY.md](ACCESSIBILITY.md).
 
 ## Menus and tooltips
 
@@ -105,7 +105,7 @@ Attributes: `theme`, `scheme` and `density` (changing them restyles at once); `s
 
 ## Find bar and status line
 
-When the editor has the find plugin, a bar sits between the toolbar and the writing area (`data-rte-part="findbar"`). It opens with the toolbar button or Mod-f, with the focus in the search box. Enter and Shift+Enter move between matches, Escape closes it and puts the focus back in the editor. It holds no search logic: it reads `find.set` and runs the `find.*` commands. Matches are painted with the page's highlight registry (`::highlight(rte-find)`, `rte-find-current`) where the browser has one, so nothing in the document changes; the match being looked at is the selection. The count is announced once typing pauses.
+When the editor has the find plugin, a bar sits between the toolbar and the writing area (`data-rte-part="findbar"`). It opens with the toolbar button or Mod-f, with the focus in the search box. Enter and Shift+Enter move between matches, Escape closes it and puts the focus back in the editor. It holds no search logic: it reads `find.set` and runs the `find.*` commands. Matches are painted with the page's highlight registry (`::highlight(rte-find)`, `rte-find-current`) where the browser has one, so nothing in the document changes; the match being looked at is the selection, and is painted 3:1 darker than the others so it is not told apart by hue alone. The count is announced once typing pauses.
 
 A status line (`data-rte-part="status"`) under the writing area shows the words and characters, or the selected words against the whole. It is recounted at most a few times a second. Turn it off with `status: false`.
 
@@ -115,4 +115,4 @@ When the editor can give its HTML, a toolbar button (`source`) swaps the writing
 
 ## Special characters and keyboard shortcuts
 
-A Special characters menu inserts common symbols (currency, dashes, arrows, comparison signs) through `text.insert`. A Keyboard shortcuts button opens a dialog listing every command that has a key, read from the editor's own key map, so it follows whatever the host has rebound.
+A Special characters menu inserts common symbols (currency, dashes, arrows, comparison signs) through `text.insert`. A Keyboard shortcuts button opens a dialog listing every command that has a key, read from the editor's own key map, so it follows whatever the host has rebound. When a list or a table takes Tab, it also says how to leave the writing area: Escape, then Tab (`shortcuts.leave`, `shortcuts.leaveKeys`).
