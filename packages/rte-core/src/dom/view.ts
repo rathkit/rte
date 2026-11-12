@@ -102,6 +102,8 @@ export class Editor {
   private readonly messages: Readonly<Record<string, unknown>> | undefined;
   private readonly unhandled: ((inputType: string) => void) | undefined;
   private dragSource: Selection | null = null;
+  /** A drag from here was dropped where nothing took it, so a move asked for afterwards must not delete the source. */
+  private droppedNowhere = false;
   private readonly renderCache = createRenderCache();
   /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
   private readonly observer = new MutationObserver((records) => {
@@ -190,7 +192,18 @@ export class Editor {
     this.listen(this.element, "copy", (e) => this.onCopy(e as ClipboardEvent, false));
     this.listen(this.element, "cut", (e) => this.onCopy(e as ClipboardEvent, true));
     this.listen(this.element, "dragstart", (e) => this.onDragStart(e as DragEvent));
-    this.listen(this.element, "dragend", () => { this.dragSource = null; });
+    this.listen(this.element, "dragend", () => { this.dragSource = null; this.droppedNowhere = false; });
+    // A drag from here that is dropped somewhere else on the page. Firefox asks the source to delete the dragged selection (`deleteByDrag`)
+    // even after a drop on a part of the page that takes no drop, which would lose the text: a drop that nothing accepted, on something that
+    // is not editable, is noted and that delete refused. And the drag is over here: Firefox sends the drag end to the dragged text, which a
+    // move has just removed, so it may never reach this editor.
+    this.listen(document, "drop", (e) => {
+      const target = e.target;
+      if (!this.dragSource || (target instanceof Node && this.element.contains(target))) return;
+      const editable = target instanceof HTMLElement && (target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement);
+      if (!e.defaultPrevented && !editable) this.droppedNowhere = true;
+      this.dragSource = null;
+    });
     this.listen(this.element, "dragover", (e) => this.onDragOver(e as DragEvent));
     this.listen(this.element, "drop", (e) => this.onDrop(e as DragEvent));
     this.listen(this.element, "compositionstart", () => { this.composing = true; });
@@ -629,7 +642,8 @@ export class Editor {
           if (text !== "") this.apply("type", (doc, sel) => insertText(doc, sel, text.replace(/\r?\n/g, " ")));
           return true;
         }
-        case "deleteByCut": case "deleteByDrag": this.apply("cut", deleteSelection); return true;
+        case "deleteByCut": this.apply("cut", deleteSelection); return true;
+        case "deleteByDrag": if (!this.droppedNowhere) this.apply("cut", deleteSelection); return true;
         case "historyUndo": this.undo(); return true;
         case "historyRedo": this.redo(); return true;
         case "formatBold": this.toggle("bold"); return true;
@@ -748,6 +762,7 @@ export class Editor {
     for (const [type, value] of Object.entries(this.copyFormats())) event.dataTransfer.setData(type, value);
     event.dataTransfer.effectAllowed = this.engine.readOnly ? "copy" : "copyMove";
     this.dragSource = this.engine.selection;
+    this.droppedNowhere = false;
   }
 
   private onDragOver(event: DragEvent): void {
