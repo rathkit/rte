@@ -988,6 +988,12 @@ for (const [name, type] of engines) {
     await reset("");
     await page.evaluate((p) => window.__conf.paste(p), fx.payloads);
     pasted++;
+    // A fixture's expectations: what free paste must keep and must not (checked without a browser too, in paste-fixtures.test.ts).
+    if (fx.expect) {
+      const out = await html();
+      const wrong = [...fx.expect.includes.filter((s) => !out.includes(s)), ...fx.expect.excludes.filter((s) => out.includes(s)).map((s) => `not ${s}`)];
+      check(`${name} ${file} pastes as expected`, wrong.length === 0, { wrong, out: out.slice(0, 400) });
+    }
   }
   check(`${name} ${pasted} captures pasted, none made an outside request`, t.outside.length === 0, t.outside.slice(0, 3));
   check(`${name} no page errors`, t.errors.length === 0, t.errors);
