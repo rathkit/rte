@@ -175,3 +175,13 @@ test("deleting a selection removes the rules inside it, and keeps the ones at it
   assert.equal(del("<blockquote><p>a</p><hr><p>b</p></blockquote><hr><p>c</p>", [[0, 0], 0], [[2], 1]), "<blockquote><p></p></blockquote>");
   assert.equal(del("<p>xa</p><hr><pre>code</pre>", [[0], 1], [[2], 2]), "<p>x</p><pre>de</pre>", "blocks that do not join lose the rule between them too");
 });
+
+test("the plain text of a selection puts a tab between the cells of a row, as a spreadsheet reads it", async () => {
+  const { selectedText } = await import("./edit.ts");
+  const { containerPaths } = await import("./path.ts");
+  const text = (h: string) => { const d = doc(h); const paths = containerPaths(d); const last = paths[paths.length - 1] as number[]; return selectedText(d, { anchor: { path: paths[0] as number[], offset: 0 }, focus: { path: last, offset: 99 } }); };
+  assert.equal(text("<table><tr><td>a1</td><td>b1</td></tr><tr><td>a2</td><td>b2</td></tr></table>"), "a1\tb1\na2\tb2");
+  assert.equal(text("<p>before</p><table><tr><td>a1</td><td></td><td>c1</td></tr></table><p>after</p>"), "before\na1\t\tc1\nafter", "an empty cell keeps its place");
+  assert.equal(text("<table><tr><td><p>x</p><p>y</p></td><td>z</td></tr></table>"), "x\ny\tz", "paragraphs in one cell stay on their own lines");
+  assert.equal(text("<table><tr><td><table><tr><td>i1</td><td>i2</td></tr></table></td><td>o2</td></tr></table>"), "i1\ti2\to2", "a table in a cell");
+});

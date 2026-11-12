@@ -698,16 +698,31 @@ export function extractSelection(doc: Doc, sel: Selection): Block[] {
   return cropBlocks(doc.blocks);
 }
 
-/** Plain text of a selection, for copy. Containers are separated by newlines. */
+/**
+ * Plain text of a selection, for copy. Containers are separated by newlines, except that the cells of one table row are separated by
+ * tabs, which is how a spreadsheet (and a paste into a table here) reads rows of cells.
+ */
 export function selectedText(doc: Doc, sel: Selection): string {
   const { start, end } = order(doc, sel);
   const paths = containerPaths(doc);
   const s = ordinalOf(doc, start.path);
   const e = ordinalOf(doc, end.path);
-  const parts: string[] = [];
+  let text = "";
+  let chain: Path[] = [];
   for (let i = s; i <= e; i++) {
-    const content = getContent(doc, paths[i] as Path);
-    parts.push(inlineText(sliceInline(content, i === s ? start.offset : 0, i === e ? end.offset : Number.POSITIVE_INFINITY)));
+    const path = paths[i] as Path;
+    const content = getContent(doc, path);
+    const next = cellChain(doc, path);
+    if (i > s) {
+      // The outermost cells that differ: in the same row of the same table, they are next to each other on one line.
+      let k = 0;
+      while (k < chain.length && k < next.length && pathKey(chain[k] as Path) === pathKey(next[k] as Path)) k++;
+      const a = chain[k];
+      const b = next[k];
+      text += a && b && pathKey(a.slice(0, -1)) === pathKey(b.slice(0, -1)) ? "\t" : "\n";
+    }
+    chain = next;
+    text += inlineText(sliceInline(content, i === s ? start.offset : 0, i === e ? end.offset : Number.POSITIVE_INFINITY));
   }
-  return parts.join("\n");
+  return text;
 }
