@@ -20,6 +20,8 @@ export const DEFAULT_MESSAGES: Readonly<Record<string, Message>> = {
   "shortcuts.action": "Action",
   "shortcuts.keys": "Keys",
   "shortcuts.close": "Close",
+  "shortcuts.leave": "Leave the writing area",
+  "shortcuts.leaveKeys": "Escape, then Tab",
   "find.find": "Find",
   "find.replaceWith": "Replace with",
   "find.previous": "Previous match",

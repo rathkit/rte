@@ -111,7 +111,7 @@ export class ImageSelection {
     const box = img.getBoundingClientRect();
     const guide = document.createElement("div");
     guide.setAttribute("data-rte-resize-line", "");
-    guide.style.cssText = `position:fixed;z-index:2147483645;pointer-events:none;border:2px dashed #17408b;left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px;box-sizing:border-box`;
+    guide.style.cssText = `position:fixed;z-index:2147483645;pointer-events:none;border:2px dashed #17408b;box-shadow:0 0 0 1px #fff;left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px;box-sizing:border-box`;
     document.body.appendChild(guide);
     this.drag = { startX: event.clientX, startWidth: box.width, width: box.width, guide };
     const move = (e: PointerEvent): void => {

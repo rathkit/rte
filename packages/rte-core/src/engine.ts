@@ -100,6 +100,7 @@ export class Engine {
   private stored: { readonly path: Path; readonly offset: number; readonly marks: readonly Mark[] } | undefined;
   private readOnlyMode: boolean;
   private focusedState = false;
+  private escaped = false;
   private version = 0;
   private current: EditorSnapshot;
   private notified: EditorSnapshot;
@@ -364,6 +365,13 @@ export class Engine {
 
   /** Runs the command bound to a key event. True when a command ran and changed something, so the event should be stopped. */
   handleKey(event: KeyEventLike): boolean {
+    // Escape gives the next Tab to the browser, so the focus can always leave, even where a list or a table takes Tab (WCAG 2.1.2).
+    // A modifier pressed on its own, Shift for Shift+Tab, does not count as the next key.
+    if (!/^(Shift|Control|Alt|Meta)$/.test(event.key)) {
+      const escaped = this.escaped;
+      this.escaped = event.key === "Escape";
+      if (escaped && event.key === "Tab") return false;
+    }
     for (const binding of this.keymap.findAll(event)) if (this.commands.run(binding.command, binding.arg)) return true;
     return false;
   }

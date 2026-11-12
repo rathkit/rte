@@ -119,7 +119,7 @@ export function installColumnResize(host: ViewHost): void {
       const rowTable = rowCell.closest("table")?.getBoundingClientRect() ?? rowBox;
       const rowLine = document.createElement("div");
       rowLine.setAttribute("data-rte-resize-line", "");
-      rowLine.style.cssText = `position:fixed;z-index:2147483647;pointer-events:none;height:2px;background:#17408b;top:${rowBox.bottom - 1}px;left:${rowTable.left}px;width:${rowTable.width}px`;
+      rowLine.style.cssText = `position:fixed;z-index:2147483647;pointer-events:none;height:2px;background:#17408b;box-shadow:0 0 0 1px #fff;top:${rowBox.bottom - 1}px;left:${rowTable.left}px;width:${rowTable.width}px`;
       document.body.appendChild(rowLine);
       rowDrag = { path: rowPath, startY: event.clientY, startHeight: rowBox.height, top: rowBox.top, line: rowLine, height: rowBox.height };
       return;
@@ -129,7 +129,7 @@ export function installColumnResize(host: ViewHost): void {
     const table = cell.closest("table")?.getBoundingClientRect() ?? box;
     const line = document.createElement("div");
     line.setAttribute("data-rte-resize-line", "");
-    line.style.cssText = `position:fixed;z-index:2147483647;pointer-events:none;width:2px;background:#17408b;left:${box.right - 1}px;top:${table.top}px;height:${table.height}px`;
+    line.style.cssText = `position:fixed;z-index:2147483647;pointer-events:none;width:2px;background:#17408b;box-shadow:0 0 0 1px #fff;left:${box.right - 1}px;top:${table.top}px;height:${table.height}px`;
     document.body.appendChild(line);
     drag = { cell, path, startX: event.clientX, startWidth: box.width, line, width: box.width };
   });

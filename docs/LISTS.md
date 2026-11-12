@@ -9,7 +9,7 @@ What the list commands do, in the terms of the requirements.
   an empty placeholder item, written `<li style="list-style-type: none;">`). Otherwise every selected paragraph or heading
   becomes an item, and joins a same-type list next to it; a list of the other type that the selection touches changes type. The
   same type with a different `style` restyles the list instead of toggling it off. Headings keep their text and marks.
-- **Tab / Shift+Tab** (`list.indent` and `list.outdent`, bound to the keys by default; `indentOnTab: false` leaves Tab to the browser): Tab nests the selected items under the item
+- **Tab / Shift+Tab** (`list.indent` and `list.outdent`, bound to the keys by default; `indentOnTab: false` leaves Tab to the browser; Escape, then Tab, leaves the editor without indenting, see [ACCESSIBILITY.md](ACCESSIBILITY.md)): Tab nests the selected items under the item
   before them, or under a new placeholder when there is none. A selection of neighbours moves together. An item keeps its
   children, which move one level deeper with it. `maxDepth` stops Tab. Shift+Tab moves an item out one level with its children, and items after it in its list
   stay under it as its children. From the outermost list the item becomes a paragraph and its children come out with it as top-level

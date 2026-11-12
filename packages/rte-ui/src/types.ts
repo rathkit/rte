@@ -13,7 +13,7 @@ export type MessageKey =
   | "toolbar.label" | "floating.label" | "context.label" | "dialog.ok" | "dialog.cancel" | "field.required" | "field.url"
   | "toggle.on" | "toggle.off"
   | "status.words" | "status.characters" | "status.selection"
-  | "source.label" | "shortcuts.title" | "shortcuts.action" | "shortcuts.keys" | "shortcuts.close"
+  | "source.label" | "shortcuts.title" | "shortcuts.action" | "shortcuts.keys" | "shortcuts.close" | "shortcuts.leave" | "shortcuts.leaveKeys"
   | "find.find" | "find.replaceWith" | "find.previous" | "find.next" | "find.close" | "find.matchCase" | "find.wholeWord" | "find.replace" | "find.replaceAll" | "find.none" | "find.count" | "find.total"
   /**
    * Rename any item: `item.bold`, `item.link`; a select's choice: `item.block=1`; a dialog's field: `item.link.href`; a field's choice:

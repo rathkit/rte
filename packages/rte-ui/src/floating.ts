@@ -141,7 +141,9 @@ export function createFloating(options: FloatingOptions): Floating {
       const selection = root.ownerDocument.getSelection();
       const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
       const rect = range?.getBoundingClientRect();
-      if (!rect || (rect.width === 0 && rect.height === 0)) { bar.hidden = true; return; }
+      // WebKit drops the page's selection when the focus goes into the bar (Alt+F10); the editor keeps its own, and the bar stays where
+      // it is while it has the focus, or the focus would fall to the page.
+      if (!rect || (rect.width === 0 && rect.height === 0)) { if (!bar.contains((root.getRootNode() as Document | ShadowRoot).activeElement)) bar.hidden = true; return; }
       const box = root.getBoundingClientRect();
       const left0 = box.left + root.clientLeft;
       const top0 = box.top + root.clientTop;
