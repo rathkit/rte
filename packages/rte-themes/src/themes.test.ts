@@ -59,8 +59,10 @@ const TEXT: [string, string][] = [
   ["--rte-accent-fg", "--rte-accent"], ["--rte-accent", "--rte-bg"], ["--rte-accent", "--rte-surface-raised"], ["--rte-accent", "--rte-accent-subtle"], ["--rte-fg", "--rte-accent-subtle"],
   ["--rte-brand-text", "--rte-bg"], ["--rte-danger", "--rte-bg"], ["--rte-danger", "--rte-surface-raised"], ["--rte-fg", "--rte-selection-bg"],
   ["--rte-fg", "--rte-control-hover"], ["--rte-fg", "--rte-control-active"], ["--rte-fg-muted", "--rte-control-hover"],
+  // The keys beside a menu entry (the accessibility audit, docs/ACCESSIBILITY.md).
+  ["--rte-fg-muted", "--rte-surface-raised"],
 ];
-const EDGES: [string, string][] = [["--rte-border", "--rte-bg"], ["--rte-border", "--rte-surface"], ["--rte-focus-color", "--rte-bg"], ["--rte-focus-color", "--rte-surface"], ["--rte-focus-color", "--rte-surface-raised"], ["--rte-accent", "--rte-surface"]];
+const EDGES: [string, string][] = [["--rte-border", "--rte-bg"], ["--rte-border", "--rte-surface"], ["--rte-focus-color", "--rte-bg"], ["--rte-focus-color", "--rte-surface"], ["--rte-focus-color", "--rte-surface-raised"], ["--rte-accent", "--rte-surface"], ["--rte-border", "--rte-surface-raised"]];
 
 test("text keeps 4.5:1 against its background in every theme", () => {
   for (const [name, set] of Object.entries(sets)) {
