@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "source": {
+    "app": "webmail",
+    "sample": "M1-reply-quote",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\r\n<!--StartFragment--><div dir=\"ltr\">Sounds good, see you <b>Saturday</b>.<div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\"><br></div><div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\">Sam</div></div><br><div class=\"mail-quote\"><div dir=\"ltr\" class=\"mail-attr\">On Mon, Nov 9, 2026 at 9:14 AM Robin Vale &lt;<a href=\"mailto:robin.vale@example.com\">robin.vale@example.com</a>&gt; wrote:<br></div><blockquote class=\"mail-quote-block\" style=\"margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex\"><div dir=\"ltr\">Can you take the morning slot?<div style=\"color: rgb(34, 34, 34); font-family: Arial, Helvetica, sans-serif; font-size: small;\">We need <i>two</i> people.</div></div></blockquote></div><!--EndFragment-->\r\n</body>\r\n</html>",
+    "text/plain": "Sounds good, see you Saturday.\r\n\r\nSam\r\n\r\nOn Mon, Nov 9, 2026 at 9:14 AM Robin Vale <robin.vale@example.com> wrote:\r\n\r\nCan you take the morning slot?\r\nWe need two people."
+  },
+  "expect": {
+    "includes": [
+      "<strong>Saturday</strong>",
+      "<a href=\"mailto:robin.vale@example.com\">robin.vale@example.com</a>",
+      "<blockquote>",
+      "Can you take the morning slot?",
+      "<em>two</em>"
+    ],
+    "excludes": [
+      "0.8ex",
+      "rgb(204,204,204)"
+    ]
+  }
+}

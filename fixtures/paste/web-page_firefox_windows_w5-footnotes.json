@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "source": {
+    "app": "web-page",
+    "sample": "W5-footnotes",
+    "browser": "firefox",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\n<!--StartFragment--><p>Compost needs air<sup class=\"footnote-ref\"><a href=\"#fn1\" id=\"fnref1\" role=\"doc-noteref\">[1]</a></sup> and water<sup class=\"footnote-ref\"><a href=\"#fn2\" id=\"fnref2\" role=\"doc-noteref\">[2]</a></sup>.</p><hr class=\"footnotes-sep\"><section class=\"footnotes\" role=\"doc-endnotes\"><ol class=\"footnotes-list\"><li id=\"fn1\" class=\"footnote-item\"><p>Turn it every <em>two</em> weeks. <a href=\"#fnref1\" class=\"footnote-backref\" role=\"doc-backlink\">↩︎</a></p></li><li id=\"fn2\" class=\"footnote-item\"><p>About as damp as a wrung-out sponge. <a href=\"#fnref2\" class=\"footnote-backref\" role=\"doc-backlink\">↩︎</a></p></li></ol></section><!--EndFragment-->\n</body>\n</html>",
+    "text/plain": "Compost needs air[1] and water[2].\n\n•\nTurn it every two weeks. ↩︎\n\n•\nAbout as damp as a wrung-out sponge. ↩︎"
+  },
+  "expect": {
+    "includes": [
+      "Compost needs air",
+      "role=\"doc-noteref\"",
+      "role=\"doc-endnotes\"",
+      "Turn it every <em>two</em> weeks.",
+      "About as damp as a wrung-out sponge."
+    ],
+    "excludes": [
+      "[1]",
+      "footnote-item",
+      "footnotes-sep"
+    ]
+  }
+}

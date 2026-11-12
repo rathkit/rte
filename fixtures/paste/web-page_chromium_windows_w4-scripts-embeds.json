@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "source": {
+    "app": "web-page",
+    "sample": "W4-scripts-embeds",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\r\n<!--StartFragment--><meta charset=\"utf-8\"><div class=\"hero\" style=\"background-image:url(https://cdn.example.net/hero.jpg)\"><h2 style=\"box-sizing: border-box; margin: 1.5rem 0px 0.5rem; font-weight: 700; line-height: 1.2; font-size: 1.75rem; color: rgb(33, 37, 41); font-family: system-ui, sans-serif;\">Join the garden</h2></div><script>window.trackPaste && trackPaste();</script><script src=\"https://cdn.example.net/analytics.js\" async></script><noscript><img src=\"https://pixel.example.net/p.gif?nojs=1\" width=\"1\" height=\"1\" alt=\"\"></noscript><style>.hero{min-height:40vh}</style><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Open <span style=\"background:url(https://cdn.example.net/dot.png)\">every</span> weekend.</p><iframe src=\"https://video.example.net/embed/garden-tour\" width=\"560\" height=\"315\" title=\"Garden tour\" allowfullscreen></iframe><video controls poster=\"https://cdn.example.net/poster.jpg\" src=\"https://cdn.example.net/tour.mp4\"><track src=\"https://cdn.example.net/tour.vtt\" kind=\"captions\">Your browser cannot play this video.</video><picture><source srcset=\"https://cdn.example.net/plot.avif\" type=\"image/avif\"><img srcset=\"https://cdn.example.net/plot.webp 1x\" alt=\"Plot photo\"></picture><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><svg class=\"icon\" width=\"16\" height=\"16\" aria-hidden=\"true\"><use href=\"https://cdn.example.net/icons.svg#leaf\"></use></svg> Organic only</p><form action=\"https://www.example.org/signup\" method=\"post\"><label for=\"email\">Email</label><input id=\"email\" type=\"email\" value=\"you@example.com\" onfocus=\"track()\"><select name=\"plot\"><option>Small</option><option selected>Large</option></select><textarea>Notes</textarea><button type=\"submit\" formaction=\"javascript:alert(1)\">Sign up</button></form><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><a href=\"javascript:void(0)\" onclick=\"openMenu()\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">Menu</a> <a href=\"https://www.example.org/events\" ping=\"https://pixel.example.net/ping\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">Events</a></p><object data=\"https://cdn.example.net/map.pdf\" type=\"application/pdf\"></object><embed src=\"https://cdn.example.net/map.swf\"><template><img src=\"https://pixel.example.net/t.gif\"></template><math><mi>x</mi><mo>=</mo><mn>2</mn></math><link rel=\"prefetch\" href=\"https://cdn.example.net/next.html\"><meta http-equiv=\"refresh\" content=\"0;url=https://www.example.net/\"><img src=\"https://pixel.example.net/1x1.gif\" style=\"display:none\" width=\"1\" height=\"1\" alt=\"\" hidden><p id=\"end\" onmouseover=\"steal()\" style=\"position:fixed;top:0\">The end.</p><!--EndFragment-->\r\n</body>\r\n</html>",
+    "text/plain": "Join the garden\r\n\r\nOpen every weekend.\r\nYour browser cannot play this video.\r\nOrganic only\r\nEmailSmallLargeNotesSign up\r\nMenu Events\r\nx=2\r\nThe end."
+  },
+  "expect": {
+    "includes": [
+      "Join the garden</h2>",
+      "Open every weekend.",
+      "Organic only",
+      "Menu",
+      "<a href=\"https://www.example.org/events\">Events</a>",
+      "The end."
+    ],
+    "excludes": [
+      "<img",
+      "<iframe",
+      "<video",
+      "<script",
+      "trackPaste",
+      "url(",
+      "pixel.example.net",
+      "cdn.example.net",
+      "javascript:",
+      "onclick",
+      "onmouseover",
+      "onfocus",
+      "position:",
+      "ping=",
+      "<form",
+      "<input",
+      "<object",
+      "<embed",
+      "<math",
+      "refresh"
+    ]
+  }
+}

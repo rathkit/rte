@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "source": {
+    "app": "web-page",
+    "sample": "W2-data-table",
+    "browser": "safari",
+    "os": "macos"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<head><meta charset=\"UTF-8\"></head><div style=\"caret-color: rgb(0, 0, 0); color: rgb(0, 0, 0); font-style: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none;\"><table class=\"fees\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><caption>Plot fees for 2027</caption><thead><tr><th scope=\"col\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Size</th><th scope=\"col\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Members</th><th scope=\"col\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Others</th></tr></thead><tbody><tr><th scope=\"row\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Small (2 &times; 4 m)</th><td style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">$40</td><td style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">$55</td></tr><tr><th scope=\"row\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Large (4 &times; 4 m)</th><td style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">$70</td><td style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">$95</td></tr><tr class=\"note\"><td colspan=\"3\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><small>Seniors pay half.</small></td></tr></tbody><tfoot><tr><th scope=\"row\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Deposit</th><td colspan=\"2\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">$20, returned in October</td></tr></tfoot></table></div>",
+    "text/plain": "Plot fees for 2027\n\nSize\tMembers\tOthers\n\nSmall (2 × 4 m)\t$40\t$55\n\nLarge (4 × 4 m)\t$70\t$95\n\nSeniors pay half.\n\nDeposit\t$20, returned in October"
+  },
+  "expect": {
+    "includes": [
+      "Size</th>",
+      "Members</th>",
+      "Small (2 × 4 m)",
+      "<td>$40</td>",
+      "colspan=\"3\"",
+      "Seniors pay half.",
+      "$20, returned in October"
+    ],
+    "excludes": [
+      "fees",
+      "<thead",
+      "<small"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "source": {
+    "app": "web-page",
+    "sample": "W5-footnotes",
+    "browser": "safari",
+    "os": "macos"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<head><meta charset=\"UTF-8\"></head><div style=\"caret-color: rgb(0, 0, 0); color: rgb(0, 0, 0); font-style: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none;\"><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Compost needs air<sup class=\"footnote-ref\"><a href=\"#fn1\" id=\"fnref1\" role=\"doc-noteref\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">[1]</a></sup> and water<sup class=\"footnote-ref\"><a href=\"#fn2\" id=\"fnref2\" role=\"doc-noteref\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">[2]</a></sup>.</p><hr class=\"footnotes-sep\"><section class=\"footnotes\" role=\"doc-endnotes\"><ol class=\"footnotes-list\"><li id=\"fn1\" class=\"footnote-item\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Turn it every <em>two</em> weeks. <a href=\"#fnref1\" class=\"footnote-backref\" role=\"doc-backlink\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">↩︎</a></p></li><li id=\"fn2\" class=\"footnote-item\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">About as damp as a wrung-out sponge. <a href=\"#fnref2\" class=\"footnote-backref\" role=\"doc-backlink\" style=\"box-sizing: border-box; color: rgb(13, 110, 253); text-decoration: underline;\">↩︎</a></p></li></ol></section></div>",
+    "text/plain": "Compost needs air[1] and water[2].\n\n•\nTurn it every two weeks. ↩︎\n\n•\nAbout as damp as a wrung-out sponge. ↩︎"
+  },
+  "expect": {
+    "includes": [
+      "Compost needs air",
+      "role=\"doc-noteref\"",
+      "role=\"doc-endnotes\"",
+      "Turn it every <em>two</em> weeks.",
+      "About as damp as a wrung-out sponge."
+    ],
+    "excludes": [
+      "[1]",
+      "footnote-item",
+      "footnotes-sep"
+    ]
+  }
+}

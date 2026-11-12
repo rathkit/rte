@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "source": {
+    "app": "web-page",
+    "sample": "W3-code-quote-lists",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html><body>\r\n<!--StartFragment--><meta charset=\"utf-8\"><h2 style=\"box-sizing: border-box; margin: 1.5rem 0px 0.5rem; font-weight: 700; line-height: 1.2; font-size: 1.75rem; color: rgb(33, 37, 41); font-family: system-ui, sans-serif;\">Watering script</h2><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Run <code>water --zone north</code> or press <kbd>Ctrl</kbd>+<kbd>W</kbd>. The <abbr title=\"soil moisture sensor\">SMS</abbr> reading is <mark>low</mark>.</p><pre class=\"highlight\" style=\"box-sizing: border-box; font-family: ui-monospace, monospace; font-size: 0.875em; display: block; margin: 0px 0px 1rem; overflow: auto; background-color: rgb(246, 248, 250); padding: 1rem;\"><code class=\"language-js\"><span class=\"kw\">const</span> total = plots * <span class=\"num\">2</span>;\n<span class=\"kw\">if</span> (total &gt; <span class=\"num\">10</span>) alert(<span class=\"str\">\"big\"</span>);\n</code></pre><blockquote cite=\"https://www.example.org/quotes\" style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\"><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">The best time to plant a tree was twenty years ago.</p><footer>&mdash; <cite>Proverb</cite></footer></blockquote><dl><dt style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Mulch</dt><dd style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">A layer over the soil.</dd><dt style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Tilth</dt><dd style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">The state of the soil.</dd></dl><ol start=\"3\" type=\"a\"><li style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Third step<ul><li style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">with a note</li></ul></li><li style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Fourth step</li></ol><p style=\"color: rgb(33, 37, 41); font-family: system-ui, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: normal; text-align: start; text-indent: 0px; text-transform: none; word-spacing: 0px; white-space: normal; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;\">Line one<br>line two<wbr>long&shy;word</p><!--EndFragment-->\r\n</body>\r\n</html>",
+    "text/plain": "Watering script\r\n\r\nRun water --zone north or press Ctrl+W. The SMS reading is low.\r\n\r\nconst total = plots * 2;\r\nif (total > 10) alert(\"big\");\r\n\r\nThe best time to plant a tree was twenty years ago.\r\n— Proverb\r\n\r\nMulch\r\n\r\nA layer over the soil.\r\n\r\nTilth\r\n\r\nThe state of the soil.\r\n\r\n• Third step\r\n\r\n• with a note\r\n\r\n• Fourth step\r\n\r\nLine one\r\nline twolong­word"
+  },
+  "expect": {
+    "includes": [
+      "<h2>Watering script</h2>",
+      "<code>water --zone north</code>",
+      "<code>Ctrl</code>",
+      "SMS",
+      "low",
+      "<pre>const total = plots * 2;\nif (total &gt; 10) alert(\"big\");",
+      "<blockquote><p>The best time to plant a tree was twenty years ago.</p>",
+      "Proverb",
+      "<dl><dt>Mulch</dt><dd>A layer over the soil.</dd><dt>Tilth</dt>",
+      "<li>Third step<ul><li>with a note</li></ul></li><li>Fourth step</li>",
+      "Line one<br>line two"
+    ],
+    "excludes": [
+      "language-js",
+      "class=\"kw\"",
+      "<abbr"
+    ]
+  }
+}
