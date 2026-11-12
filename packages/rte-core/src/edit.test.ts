@@ -185,3 +185,13 @@ test("the plain text of a selection puts a tab between the cells of a row, as a 
   assert.equal(text("<table><tr><td><p>x</p><p>y</p></td><td>z</td></tr></table>"), "x\ny\tz", "paragraphs in one cell stay on their own lines");
   assert.equal(text("<table><tr><td><table><tr><td>i1</td><td>i2</td></tr></table></td><td>o2</td></tr></table>"), "i1\ti2\to2", "a table in a cell");
 });
+
+test("blocks pasted into a code block go in as their text, a line to a block, and nothing is lost", () => {
+  const into = (blocks: string, offset = 1) => insertBlocks(doc("<pre>xy</pre>"), at([0], offset), importBlocks(blocks, { styles: "semantic" }));
+  assert.equal(html(into("<p>a <b>b</b></p><p>c</p>")), "<pre>xa b\ncy</pre>");
+  assert.deepEqual(into("<p>a <b>b</b></p><p>c</p>").selection.focus, { path: [0], offset: 6 }, "the caret ends after what was pasted");
+  assert.equal(html(into("<h1>T</h1><ul><li>one</li><li>two</li></ul>")), "<pre>xT\none\ntwoy</pre>");
+  assert.equal(html(into("<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>")), "<pre>xa\tb\nc\tdy</pre>");
+  assert.equal(html(into("<pre>  one\n    two</pre><p>three</p>")), "<pre>x  one\n    two\nthreey</pre>");
+  assert.equal(html(insertBlocks(doc("<pre>xy</pre>"), { anchor: { path: [0], offset: 0 }, focus: { path: [0], offset: 2 } }, importText("1\n\n2"))), "<pre>1\n2</pre>", "over a selection");
+});

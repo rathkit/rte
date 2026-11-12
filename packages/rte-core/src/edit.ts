@@ -543,6 +543,15 @@ export function insertBlocks(doc: Doc, sel: Selection, blocks: readonly Block[],
   const content = getContent(d, pos.path);
   const before = sliceInline(content, 0, pos.offset);
   const after = sliceInline(content, pos.offset);
+  // A code block holds text only: what is pasted into one goes in as its plain text, a line to a block, as copy writes it.
+  if (getBlock(d, pos.path)?.type === "pre") {
+    const pasted: Doc = { blocks };
+    const paths = containerPaths(pasted);
+    const first = paths[0];
+    const last = paths[paths.length - 1];
+    if (!first || !last) return cleared;
+    return insertText(d, caret(pos), selectedText(pasted, { anchor: { path: first, offset: 0 }, focus: { path: last, offset: inlineLength(getContent(pasted, last)) } }), []);
+  }
   const only = blocks.length === 1 ? blocks[0] : undefined;
 
   // Inline-only paste joins the text where the caret is.

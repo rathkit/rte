@@ -15,7 +15,7 @@ import type { Warning } from "../warning.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
-import { cellChain, containerPaths, getContent, pathKey, setContent, type Pos, type Selection } from "../path.ts";
+import { cellChain, containerPaths, getBlock, getContent, pathKey, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
 import { imageSelection } from "../imageselect.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
@@ -409,12 +409,28 @@ export class Editor {
 
   /** Pastes raw clipboard data through the same pipeline a paste event uses. */
   paste(data: ClipboardData): void {
+    this.engine.refresh();
+    const doc = this.engine.document;
+    const { anchor, focus } = this.engine.selection;
+    // Into a code block, the clipboard's own plain text goes in as it is, so indentation and blank lines are kept. Plugins still see it first.
+    if (data.text && pathKey(anchor.path) === pathKey(focus.path) && getBlock(doc, focus.path)?.type === "pre") {
+      const text = data.text.replace(/\r\n?/g, "\n");
+      for (const handler of this.engine.pasteHandlers) {
+        const taken = handler(data);
+        if (taken) { this.insertSettled(taken); return; }
+      }
+      const options = this.engine.importOptions;
+      const max = options.maxInputLength ?? Number.POSITIVE_INFINITY;
+      if (text.length > max) { options.onLimit?.({ limit: "maxInputLength", max, length: text.length }); return; }
+      this.apply("paste", (d, sel) => insertText(d, sel, text, []));
+      return;
+    }
     let blocks = pasteBlocks(data, this.engine.pasteHandlers, this.engine.importOptions);
     if (blocks.length === 0) return;
+    const inTable = cellChain(doc, focus.path).length > 0;
     // Plain text with tabs, pasted into a table, is cells.
     if (!data.html?.trim() && data.text) {
-      this.engine.refresh();
-      const table = cellChain(this.engine.document, this.engine.selection.focus.path).length > 0 ? tableFromText(data.text) : undefined;
+      const table = inTable ? tableFromText(data.text) : undefined;
       if (table) blocks = [table];
     }
     this.insertSettled(blocks);
