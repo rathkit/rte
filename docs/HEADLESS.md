@@ -200,7 +200,7 @@ export interface StyleProvider {
   tokens?: Partial<Record<TokenName, string>>;             // applied as custom properties on the root
   icons?: Partial<Record<IconName, string | (() => Node)>>;// SVG string or factory; missing names fall back to defaults
   classes?: Partial<Record<PartName, string>>;             // extra classes appended per part (utility-class systems)
-  messages?: Partial<Record<MessageKey, string>>;          // labels, tooltips, announcements (also the i18n path)
+  messages?: Partial<Record<MessageKey, Message>>;         // labels, tooltips, announcements; words or plural forms (LOCALIZATION.md)
   parts?: Partial<Record<PartName, (ctx: PartContext) => HTMLElement>>;  // escape hatch: replace one part's element
 }
 createUi(editor, { root, style: provider });
