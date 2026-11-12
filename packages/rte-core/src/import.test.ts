@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { exportHtml } from "./export.ts";
 import { importBlocks, importHtml, importText } from "./import.ts";
+import { defaultPaste } from "./paste.ts";
 
 const load = (html: string): string => exportHtml({ blocks: importBlocks(html, { keepEmptyBlocks: true }) });
 const paste = (html: string): string => exportHtml({ blocks: importBlocks(html, { styles: "semantic" }) });
@@ -177,4 +178,26 @@ test("definition lists import as terms and details, with or without wrapper divs
   // An entry holding a list cannot be an entry; the content is kept as plain blocks.
   assert.equal(load("<dl><dt>A</dt><dd><ul><li>x</li></ul></dd></dl>"), "<p>A</p><ul><li>x</li></ul>");
   assert.equal(load("<dl></dl><p>x</p>"), "<p>x</p>");
+});
+
+test("a pasted link that starts with a host name gets a scheme; a loaded one is kept as written", () => {
+  const pasted = (href: string): string => exportHtml({ blocks: defaultPaste({ html: `<p><a href="${href}">x</a></p>` }) });
+  assert.equal(pasted("www.example.com/a"), '<p><a href="https://www.example.com/a">x</a></p>');
+  assert.equal(pasted("example.com"), '<p><a href="https://example.com">x</a></p>');
+  assert.equal(pasted(" Example.org:8080/x?y=1#z"), '<p><a href="https://Example.org:8080/x?y=1#z">x</a></p>');
+  // Addresses that do not start with a host name are left as they were.
+  for (const href of ["#top", "/a", "./a", "../a", "a/b", "?q=1", "page.html", "notes.pdf", "mailto:a@example.com", "https://x.test/", "//x.test/a"]) {
+    assert.equal(pasted(href), `<p><a href="${href}">x</a></p>`, href);
+  }
+  assert.equal(load('<a href="www.example.com">x</a>'), '<p><a href="www.example.com">x</a></p>');
+});
+
+test("the empty zero-height row a word processor adds to size misaligned columns is left out", () => {
+  const sizing = "<![if !supportMisalignedColumns]><tr height=0><td width=10 style='border:none'></td><td width=20 style='border:none'></td></tr><![endif]>";
+  const expected = '<table><tbody><tr><td colspan="2">a</td></tr><tr><td>b</td><td>c</td></tr></tbody></table>';
+  assert.equal(paste(`<table><tr><td colspan=2>a</td></tr><tr><td>b</td><td>c</td></tr>${sizing}</table>`), expected);
+  assert.equal(load(`<table><tr><td colspan=2>a</td></tr><tr><td>b</td><td>c</td></tr>${sizing}</table>`), expected);
+  // A zero-height row with something in it is content, and an ordinary empty row is kept.
+  assert.ok(paste("<table><tr><td>a</td></tr><tr height=0><td>b</td></tr></table>").includes("<td>b</td>"));
+  assert.equal(load("<table><tr><td>a</td></tr><tr><td></td></tr></table>"), "<table><tbody><tr><td>a</td></tr><tr><td></td></tr></tbody></table>");
 });

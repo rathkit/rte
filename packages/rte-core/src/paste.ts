@@ -43,7 +43,7 @@ function unwrapSingleCell(blocks: Block[]): Block[] {
 /** Built-in handling: standard HTML if there is any, otherwise plain text. */
 export function defaultPaste(data: ClipboardData, importOptions: ImportOptions = {}): Block[] {
   if (data.html && data.html.trim() !== "") {
-    const blocks = importBlocks(data.html, { ...importOptions, styles: "semantic", relativeImages: importOptions.pasteRelativeImages ?? false });
+    const blocks = importBlocks(data.html, { ...importOptions, styles: "semantic", relativeImages: importOptions.pasteRelativeImages ?? false, addLinkScheme: true });
     if (blocks.length > 0) return unwrapSingleCell(blocks);
   }
   const text = data.text ?? "";
