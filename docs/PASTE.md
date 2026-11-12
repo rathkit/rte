@@ -2,6 +2,8 @@
 
 Decided 2026-10-21. It follows the public Free and paid page (`/docs/free-and-paid/` on rathkit.com).
 
+What copy, cut, paste, drag and drop do in each kind of place, and which browser check covers each, is in [CLIPBOARD.md](CLIPBOARD.md).
+
 ## The line
 
 Free paste turns whatever the standard clipboard HTML can express into correct, safe content.

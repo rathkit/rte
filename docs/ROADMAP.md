@@ -97,7 +97,7 @@ Platforms and accessibility: server rendering, touch, input methods, screen read
 - [x] [5.6](https://github.com/rathkit/rte/issues/20) Localization: stable message ids and language packs `P0`
 - [ ] [5.7](https://github.com/rathkit/rte/issues/21) Published compatibility matrix `P0`
 - [ ] [5.8](https://github.com/rathkit/rte/issues/22) Browser support window and older engines `P1`
-- [ ] [1.9](https://github.com/rathkit/rte/issues/23) Clipboard completeness `P0`
+- [x] [1.9](https://github.com/rathkit/rte/issues/23) Clipboard completeness `P0` (the matrix: [CLIPBOARD.md](CLIPBOARD.md))
 - [ ] [1.10](https://github.com/rathkit/rte/issues/24) Grow the scrubbed paste captures `P1`
 
 ### 0.4.0-beta.0
