@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { crc32, deflateSync } from "node:zlib";
 import { provenance } from "../compat-matrix.mjs";
+import { accessibilityAudit } from "./accessibility.mjs";
 
 const base = process.argv[2];
 const require = createRequire(`${process.env.RTE_PLAYWRIGHT}/`);
@@ -2368,6 +2369,9 @@ for (const [name, type] of engines) {
   check(`${name} (audit) names, ids, references and roles are in order`, audit.length === 0, audit);
   await t.browser.close();
 }
+
+// --- the keyboard, contrast, motion and zoom audit (docs/ACCESSIBILITY.md), in its own file
+await accessibilityAudit({ engines, open, check, onePixelPng });
 
 // --- a narrow screen (a phone): nothing sticks out sideways, menus and dialogs stay on the screen, and a tap leaves no tooltip behind
 for (const [name, type] of engines) {
