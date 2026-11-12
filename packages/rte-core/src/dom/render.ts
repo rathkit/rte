@@ -35,10 +35,23 @@ function placeholder(): HTMLElement {
 /** Above this many top-level blocks, blocks that are off screen skip layout and paint until they are needed. */
 const LARGE_DOCUMENT = 200;
 
+/**
+ * The words the writing area says to assistive technology, by stable id, in English: the name of a footnote list, of a task's checkbox,
+ * and of a footnote reference (`{n}` is its number). Give others in the editor's `messages` option.
+ */
+export const CONTENT_MESSAGES = { "content.notes": "Notes", "content.done": "Done", "content.footnote": "Footnote {n}" } as const;
+
 export interface RenderOptions {
   /** Draw `http` and `https` images with their real address. Off by default: a pasted image never causes a request. */
   readonly loadRemoteImages: boolean;
+  /** Words over `CONTENT_MESSAGES`, by the same ids. Other keys are not read. */
+  readonly messages?: Readonly<Record<string, unknown>>;
 }
+
+const say = (options: RenderOptions, key: keyof typeof CONTENT_MESSAGES): string => {
+  const given = options.messages?.[key];
+  return typeof given === "string" ? given : CONTENT_MESSAGES[key];
+};
 
 const isRemote = (src: string): boolean => /^https?:/i.test(src) || src.startsWith("//");
 
@@ -108,7 +121,7 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
   const el = document.createElement(list.type);
   if (list.start !== undefined) el.setAttribute("start", String(list.start));
   if (list.style !== undefined) el.style.listStyleType = list.style;
-  if (list.notes) { el.setAttribute("data-rte-notes", ""); el.setAttribute("role", "doc-endnotes"); el.setAttribute("aria-label", "Notes"); }
+  if (list.notes) { el.setAttribute("data-rte-notes", ""); el.setAttribute("role", "doc-endnotes"); el.setAttribute("aria-label", say(options, "content.notes")); }
   list.items.forEach((item, i) => {
     const itemPath = [...path, i];
     const li = tag("li", itemPath);
@@ -122,7 +135,7 @@ function renderList(list: List, path: readonly number[], options: RenderOptions)
       box.setAttribute("data-rte-check", "");
       box.setAttribute("role", "checkbox");
       box.setAttribute("aria-checked", String(item.checked));
-      box.setAttribute("aria-label", "Done");
+      box.setAttribute("aria-label", say(options, "content.done"));
       box.textContent = item.checked ? "\u2611" : "\u2610";
       li.appendChild(box);
     }
@@ -286,7 +299,7 @@ export function renderDoc(doc: Doc, root: HTMLElement, options: RenderOptions = 
   // A reference shows its place among the references, which an edit far above it can change, so every one is numbered again.
   root.querySelectorAll("sup[data-rte-note]").forEach((mark, i) => {
     const n = String(i + 1);
-    if (mark.textContent !== n) { mark.textContent = n; mark.setAttribute("aria-label", `Footnote ${n}`); }
+    if (mark.textContent !== n) { mark.textContent = n; mark.setAttribute("aria-label", say(options, "content.footnote").replaceAll("{n}", n)); }
   });
 }
 

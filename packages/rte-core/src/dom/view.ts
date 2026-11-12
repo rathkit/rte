@@ -62,6 +62,12 @@ export interface EditorOptions {
   readonly spellcheck?: boolean;
   /** Put the caret in the editor when it is made. */
   readonly autofocus?: boolean;
+  /**
+   * The words the writing area says to assistive technology, by the ids in `CONTENT_MESSAGES` (`content.notes`, `content.done`,
+   * `content.footnote`); the others are said in English. Other keys are not read, so a message pack's `messages` can be given as it is.
+   * Read when the editor is made.
+   */
+  readonly messages?: Readonly<Record<string, unknown>>;
 }
 
 type Listener = (editor: Editor) => void;
@@ -93,6 +99,7 @@ export class Editor {
   private ownTabindex = false;
   private savedTabindex: string | null = null;
   private readonly loadRemoteImages: boolean;
+  private readonly messages: Readonly<Record<string, unknown>> | undefined;
   private readonly unhandled: ((inputType: string) => void) | undefined;
   private dragSource: Selection | null = null;
   private readonly renderCache = createRenderCache();
@@ -119,6 +126,7 @@ export class Editor {
   constructor(options: EditorOptions) {
     this.element = options.element;
     this.loadRemoteImages = options.loadRemoteImages ?? false;
+    this.messages = options.messages;
     this.unhandled = options.onUnhandledInput;
     this.engine = createEngine({
       readOnly: (options.readOnly ?? false) || (options.disabled ?? false),
@@ -439,7 +447,7 @@ export class Editor {
   }
 
   private draw(): void {
-    renderDoc(this.engine.document, this.element, { loadRemoteImages: this.loadRemoteImages }, this.renderCache);
+    renderDoc(this.engine.document, this.element, { loadRemoteImages: this.loadRemoteImages, ...(this.messages ? { messages: this.messages } : {}) }, this.renderCache);
     const blocks = this.engine.document.blocks;
     this.element.toggleAttribute("data-rte-empty", blocks.length === 1 && blocks[0]?.type === "p" && blocks[0].content.length === 0);
     // Changes drawing just made are not disturbances; throw their records away.
