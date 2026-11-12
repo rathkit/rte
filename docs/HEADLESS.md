@@ -294,5 +294,5 @@ Decided by the owner on 2026-10-22. Where this differs from the default that was
 | Are `rte-icons` and `rte-themes` separate from `rte-ui` | Yes, separate packages |
 | API stability label | `experimental` until the external-plugin test passes against both UIs |
 | Plugin panels (rich UI from plugins) | Named `panel` items with per-UI renderers |
-| Does the styled UI default to English labels only | Yes; `messages` table is the i18n path, translations are later |
+| Does the styled UI default to English labels only | Yes; other languages come as message packs with stable ids and plural forms, and only English ships (see `LOCALIZATION.md`) |
 | Later integrations | Blazor, AngularJS, and platform packages (WordPress, Laravel, Django, Ruby on Rails and the like), a Bootstrap-matched theme. The aim is to match the integrations of the leading commercial editors; the list is still to be compiled |
