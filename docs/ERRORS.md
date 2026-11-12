@@ -39,6 +39,7 @@ editor down. Warnings are for developers; show a user-facing message with your o
 | `missing-label` | `<rte-editor>` has no `label`, `aria-label` or `aria-labelledby`; or a dialog given to `createDialog` in `@rathkit/rte-headless` has no `aria-label` or `aria-labelledby` | Nothing; it has no accessible name until one is given |
 | `late-options` | `options` was set on `<rte-editor>` after it was connected | Nothing; they have no effect |
 | `listener-failed` | Your `change`, `focus`, `blur` or `selection` listener, a `subscribe` listener or a `select` callback threw | The listener was skipped; the others still ran |
+| `unsupported-browser` | The browser lacks a platform feature the editor needs (it is below the support window in [SUPPORT.md](SUPPORT.md)); the message names what is missing | Nothing; the editor starts, but how it behaves is not promised. `missingFeatures()` from `@rathkit/rte-core/dom` asks the same question before an editor is made |
 
 ## What throws
 

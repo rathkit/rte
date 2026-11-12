@@ -16,6 +16,31 @@ Every browser check runs in all three engines of Playwright 1.64.1, headless, on
 
 The packages are tested under Node 22.14.0 (the oldest that `engines` allows) and Node 26: every entry point that does not need a browser is imported with each of them from the packed tarballs, and the types are compiled as a user of the packages would.
 
+## Support window
+
+The policy: the current and the previous major version of Chrome, Edge and the other Chromium browsers, of Firefox and of Safari, and of the browsers on iOS and iPadOS (which all use WebKit) and on Android. A browser older than that is below the window.
+
+How much of it is tested: the browser checks run twice in CI, on every pull request. The `browsers` job in CI uses the browsers of the Playwright release in `tools/browser-checks` (the table above), and the `browsers-oldest` job runs the same checks with the browsers of the release before it, pinned by its own lockfile in `tools/browser-checks/oldest`. The versions are the ones each Playwright release reports for its builds:
+
+| Engine | `browsers` (Playwright 1.64.1) | `browsers-oldest` (Playwright 1.63.0) |
+| --- | --- | --- |
+| Chromium | 156.0.8078.4 | 153.0.8010.12 |
+| Firefox | 157.0 | 155.0 |
+| WebKit | 27.2 | 26.6 |
+
+The older set is the floor that runs. When `tools/browser-checks` moves to a new Playwright release, `tools/browser-checks/oldest` moves to the release it replaces, and both columns change in the same pull request. Nothing checks by itself that the older column is at or below the previous major of each product on a given day: the owner confirms that when either pin moves. Both columns are Linux builds of the engines, not the products (see above). The phones are not in CI: Android was tested by hand (Chrome 156.0.8078.80 and Firefox 159.0.1 on 2026-11-10, "Touch and phones" below), and iOS and iPadOS have not been run.
+
+Below the window nothing is promised: there is no reduced mode and no polyfill. What the editor does there is say so. When an editor is made it checks the platform features it calls with no fallback (`window.getSelection`, `InputEvent.prototype.getTargetRanges` for `beforeinput`, `MutationObserver`, `Element.prototype.replaceChildren`, `queueMicrotask`, `Array.prototype.at` and `Object.hasOwn`), and if any is missing it reports `unsupported-browser` to `onWarning` (by default, the console) with the names of the missing features ([`ERRORS.md`](ERRORS.md)). It still starts, because some of it may work, but nothing about how it behaves is promised. A page that wants a plain `<textarea>` or a message instead asks first:
+
+```ts
+import { missingFeatures } from "@rathkit/rte-core/dom";
+
+if (missingFeatures().length > 0) showPlainTextarea();
+else createEditor({ element });
+```
+
+`missingFeatures()` is safe to call on a server: in Node, with no DOM, it lists the browser features and does not throw. A browser check makes sure each engine in both columns lacks nothing, and that an editor made in a page with `getTargetRanges` taken away reports `unsupported-browser`, names it, and starts.
+
 ## What the browser checks cover
 
 About 740 checks per run (`tools/browser-checks`): typing, Enter, Backspace and Delete, the system clipboard (copy, cut and paste of text and HTML), drag and drop of text, dropped and pasted images, input-method composition (Chromium only, through the debugging protocol, which simulates it), lists, tables, find and replace, the source view, the toolbar, menus, dialogs, tooltips, the custom element in a form, the styled interface in four themes with density and token changes, forced colors and reduced motion, a phone-sized viewport (touch in Chromium and WebKit, a narrow window in Firefox), and the speed and memory figures in `MEASUREMENTS.md`.

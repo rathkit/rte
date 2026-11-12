@@ -185,6 +185,7 @@ value Editor
 type EditorEvents
 type EditorOptions
 value domFromPos
+value missingFeatures
 value posFromDom
 value renderDoc
 # @rathkit/rte-core/lists

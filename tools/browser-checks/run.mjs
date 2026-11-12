@@ -1614,6 +1614,34 @@ for (const [name, type] of engines) {
   await t.browser.close();
 }
 
+// --- the support window (docs/SUPPORT.md): every engine here has what the editor needs, and a browser without it is told so
+for (const [name, type] of engines) {
+  const t = await open(type);
+  const missing = await t.page.evaluate(async () => (await import("/dist/dom/index.js")).missingFeatures());
+  check(`${name} support: missingFeatures() finds nothing missing`, Array.isArray(missing) && missing.length === 0, missing);
+  const told = await t.page.evaluate(async () => {
+    const { Editor } = await import("/dist/dom/index.js");
+    const seen = [];
+    const kept = InputEvent.prototype.getTargetRanges;
+    delete InputEvent.prototype.getTargetRanges;
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    let started = false;
+    try {
+      const editor = new Editor({ element, html: "<p>old</p>", onWarning: (w) => seen.push(w) });
+      started = editor.getHtml() === "<p>old</p>";
+      editor.destroy();
+    } finally {
+      InputEvent.prototype.getTargetRanges = kept;
+      element.remove();
+    }
+    return { started, codes: seen.map((w) => w.code), message: seen.find((w) => w.code === "unsupported-browser")?.message ?? "" };
+  });
+  check(`${name} support: an editor in a browser without beforeinput target ranges reports unsupported-browser, names it, and still starts`, told.started && told.codes.join() === "unsupported-browser" && told.message.includes("getTargetRanges"), told);
+  check(`${name} support: no page errors`, t.errors.length === 0, t.errors);
+  await t.browser.close();
+}
+
 // --- the styled interface: parts, themes, tokens, density, classes, messages, icons, forced colors, reduced motion, the link dialog
 for (const [name, type] of engines) {
   const t = await open(type, {}, "", "ui");

@@ -164,3 +164,33 @@ jobs:
           path: rte-bench/results/*.json
           if-no-files-found: ignore
           retention-days: 30
+
+  # The oldest engines in the support window (docs/SUPPORT.md, "Support window"): the same browser checks, with the browsers of the Playwright release
+  # before the one in tools/browser-checks. That driver is a project of its own too (tools/browser-checks/oldest), its lockfile pinning the exact tarball.
+  browsers-oldest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4
+        with:
+          cache: true
+          require-lockfile: true
+      - run: pnpm build
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-oldest-ubuntu-24.04-${{ runner.os }}-${{ hashFiles('tools/browser-checks/oldest/pnpm-lock.yaml') }}
+      - name: Install the older browser driver and its browsers
+        working-directory: tools/browser-checks/oldest
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          node node_modules/playwright/cli.js install --with-deps chromium firefox webkit
+      - name: Allow unprivileged network namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: tools/browser-checks/run.sh
+        env:
+          RTE_PLAYWRIGHT: ${{ github.workspace }}/tools/browser-checks/oldest/node_modules
+          RTE_SPEED_SCALE: "2"

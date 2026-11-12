@@ -18,6 +18,7 @@ import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts"
 import { cellChain, containerPaths, getBlock, getContent, pathKey, sameCells, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
 import { imageSelection } from "../imageselect.ts";
+import { missingFeatures } from "./support.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
 
 /** Input types the browser may ask for that are commands here: the command, and what it is given ("data" is the event's text). */
@@ -106,17 +107,7 @@ export class Editor {
   private droppedNowhere = false;
   private readonly renderCache = createRenderCache();
   /** Notices changes to the page that the editor did not make, so the block they touched is drawn again from the model. */
-  private readonly observer = new MutationObserver((records) => {
-    for (const record of records) {
-      let node: Node | null = record.target;
-      // Inside a table the cells around the change are marked too, so only they are drawn again, not the whole table.
-      for (let up: Node | null = node; up && up !== this.element; up = up.parentNode) {
-        if (up instanceof HTMLElement && (up.tagName === "TD" || up.tagName === "TH")) this.renderCache.dirty.add(up);
-      }
-      while (node && node.parentNode !== this.element) node = node.parentNode;
-      if (node) this.renderCache.dirty.add(node);
-    }
-  });
+  private readonly observer: MutationObserver;
   private readonly cleanups: (() => void)[] = [];
   private readonly changeListeners = new Set<(change: ViewChange) => void>();
   /** Set while `setHtml` replaces the document, so replacing it is not reported as an edit. */
@@ -139,6 +130,20 @@ export class Editor {
       ...(options.onWarning ? { onWarning: options.onWarning } : {}),
       ...(options.maxLength !== undefined ? { maxLength: options.maxLength } : {}),
       ...(options.onMaxLength ? { onMaxLength: options.onMaxLength } : {}),
+    });
+    // A browser below the support window is told about before anything that needs the missing features is touched (docs/SUPPORT.md).
+    const missing = missingFeatures();
+    if (missing.length > 0) this.engine.report({ code: "unsupported-browser", message: `This browser lacks what the editor needs: ${missing.join(", ")}. The editor starts, but nothing is promised about how it behaves; see the support window in docs/SUPPORT.md.` });
+    this.observer = new MutationObserver((records) => {
+      for (const record of records) {
+        let node: Node | null = record.target;
+        // Inside a table the cells around the change are marked too, so only they are drawn again, not the whole table.
+        for (let up: Node | null = node; up && up !== this.element; up = up.parentNode) {
+          if (up instanceof HTMLElement && (up.tagName === "TD" || up.tagName === "TH")) this.renderCache.dirty.add(up);
+        }
+        while (node && node.parentNode !== this.element) node = node.parentNode;
+        if (node) this.renderCache.dirty.add(node);
+      }
     });
     this.viewHost = {
       element: this.element, engine: this.engine, ops,
