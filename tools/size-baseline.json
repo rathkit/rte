@@ -8,25 +8,25 @@
     "@rathkit/rte-angular angular": 1598,
     "@rathkit/rte-angular angular forms": 1681,
     "@rathkit/rte-core autoformat plugin": 1923,
-    "@rathkit/rte-core core": 48571,
-    "@rathkit/rte-core core + browser view": 60313,
+    "@rathkit/rte-core core": 48596,
+    "@rathkit/rte-core core + browser view": 60737,
     "@rathkit/rte-core find plugin": 2495,
     "@rathkit/rte-core footnotes plugin": 3878,
-    "@rathkit/rte-core images plugin": 5988,
+    "@rathkit/rte-core images plugin": 6035,
     "@rathkit/rte-core lists plugin": 9413,
     "@rathkit/rte-core markdown plugin": 15211,
     "@rathkit/rte-core svg plugin": 3813,
     "@rathkit/rte-core tables plugin": 13307,
     "@rathkit/rte-core word plugin": 1918,
     "@rathkit/rte-element element": 3476,
-    "@rathkit/rte-headless headless": 7675,
+    "@rathkit/rte-headless headless": 7739,
     "@rathkit/rte-icons all icons": 2181,
     "@rathkit/rte-jquery jquery": 777,
     "@rathkit/rte-react react": 1088,
     "@rathkit/rte-svelte svelte": 694,
-    "@rathkit/rte-ui ui": 13478,
-    "@rathkit/rte-ui ui element": 14327,
-    "@rathkit/rte-ui ui with default icons": 13564,
+    "@rathkit/rte-ui ui": 14814,
+    "@rathkit/rte-ui ui element": 15652,
+    "@rathkit/rte-ui ui with default icons": 14889,
     "@rathkit/rte-vue vue": 1195
   },
   "history": [
@@ -253,6 +253,55 @@
       "from": 14283,
       "to": 14327,
       "reason": "bigger, harder-to-misfire touch targets for the image resize handle and table grips (found on a real phone)"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-core core",
+      "from": 48571,
+      "to": 48596,
+      "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-core core + browser view",
+      "from": 60313,
+      "to": 60737,
+      "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-core images plugin",
+      "from": 5988,
+      "to": 6035,
+      "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-headless headless",
+      "from": 7675,
+      "to": 7739,
+      "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-ui ui",
+      "from": 13478,
+      "to": 14814,
+      "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-ui ui with default icons",
+      "from": 13564,
+      "to": 14889,
+      "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-ui ui element",
+      "from": 14327,
+      "to": 15652,
+      "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
     }
   ]
 }
