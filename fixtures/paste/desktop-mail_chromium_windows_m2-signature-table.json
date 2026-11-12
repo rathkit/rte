@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "source": {
+    "app": "desktop-mail",
+    "sample": "M2-signature-table",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/rtf",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html xmlns:v=\"urn:schemas-example-com:vml\"\nxmlns:o=\"urn:schemas-example-com:office\"\nxmlns:w=\"urn:schemas-example-com:processor\"\nxmlns=\"http://www.w3.org/TR/REC-html40\">\n\n<head>\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\n<meta name=ProgId content=Mail.Message>\n<meta name=Generator content=\"Desktop mail client 16\">\n<meta name=Originator content=\"Desktop mail client 16\">\n<link rel=File-List\nhref=\"file:///C:/Users/user/AppData/Local/Temp/clip/01/clip_filelist.xml\">\n<!--[if gte mso 9]><xml>\n <o:DocumentProperties>\n  <o:Author>Sample Author</o:Author>\n  <o:Template>Normal</o:Template>\n  <o:Revision>3</o:Revision>\n </o:DocumentProperties>\n <o:OfficeDocumentSettings>\n  <o:AllowPNG/>\n </o:OfficeDocumentSettings>\n</xml><![endif]-->\n<!--[if gte mso 9]><xml>\n <w:WordDocument>\n  <w:View>Normal</w:View>\n  <w:Zoom>0</w:Zoom>\n  <w:TrackMoves/>\n  <w:DoNotOptimizeForBrowser/>\n </w:WordDocument>\n</xml><![endif]-->\n<style>\n<!--\n /* Font Definitions */\n @font-face\n\t{font-family:\"Body Serif\";\n\tpanose-1:2 4 5 3 5 4 6 3 2 4;\n\tmso-font-charset:0;\n\tmso-generic-font-family:roman;\n\tmso-font-pitch:variable;}\n /* Style Definitions */\n p.MsoNormal, li.MsoNormal, div.MsoNormal\n\t{mso-style-unhide:no;\n\tmso-style-qformat:yes;\n\tmso-style-parent:\"\";\n\tmargin-top:0in;\n\tmargin-right:0in;\n\tmargin-bottom:8.0pt;\n\tmargin-left:0in;\n\tline-height:107%;\n\tmso-pagination:widow-orphan;\n\tfont-size:12.0pt;\n\tfont-family:\"Body Serif\",serif;}\nh1\n\t{mso-style-priority:9;\n\tmso-style-qformat:yes;\n\tmso-style-link:\"Heading 1 Char\";\n\tmso-outline-level:1;\n\tfont-size:20.0pt;}\np.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst\n\t{mso-style-priority:34;\n\tmargin-left:.5in;\n\tmso-add-space:auto;}\n@list l0\n\t{mso-list-id:101;\n\tmso-list-type:hybrid;\n\tmso-list-template-ids:-1 67698703 67698713 67698715;}\n@list l0:level1\n\t{mso-level-tab-stop:none;\n\tmso-level-number-position:left;\n\ttext-indent:-.25in;}\n.MsoChpDefault\n\t{mso-style-type:export-only;\n\tmso-default-props:yes;}\ndiv.Section1\n\t{page:Section1;}\n-->\n</style>\n<!--[if gte mso 10]>\n<style>\n /* Style Definitions */\n table.MsoNormalTable\n\t{mso-style-name:\"Table Normal\";\n\tmso-tstyle-rowband-size:0;\n\tmso-style-noshow:yes;\n\tmso-padding-alt:0in 5.4pt 0in 5.4pt;}\n</style>\n<![endif]-->\n</head>\n\n<body lang=EN-US style='tab-interval:.5in;word-wrap:break-word'>\n<!--StartFragment-->\n<div class=Section1>\n\n<p class=MsoNormal>See you there.<o:p></o:p></p>\n\n<p class=MsoNormal><o:p>&nbsp;</o:p></p>\n\n<table class=MsoNormalTable border=0 cellspacing=0 cellpadding=0 style='border-collapse:collapse'>\n <tr>\n  <td width=64 valign=top style='width:48pt;padding:0in 5.4pt 0in 0in'>\n  <p class=MsoNormal><img width=48 height=48 id=\"Picture_x0020_2\" src=\"cid:logo.part1@example.com\" alt=\"Garden logo\"><o:p></o:p></p>\n  </td>\n  <td valign=top style='padding:0in 0in 0in 5.4pt;border-left:solid #70AD47 1.5pt'>\n  <p class=MsoNormal><b><span style='font-size:10.0pt;color:#385723'>Sam Rowe</span></b><span style='font-size:10.0pt'><br>\n  Volunteer coordinator<br>\n  Tel. <a href=\"tel:+15550100123\">555-0100 ext. 123</a> | <a href=\"https://www.example.org/\">example.org</a></span><o:p></o:p></p>\n  </td>\n </tr>\n</table>\n\n<p class=MsoNormal><span style='font-size:8.0pt;color:gray'>This message is for the named recipient only.<o:p></o:p></span></p>\n\n</div>\n\n<!--EndFragment-->\n</body>\n\n</html>\n",
+    "text/plain": "See you there.\r\n\r\nSam Rowe\r\n\r\nVolunteer coordinator\r\n\r\nTel. 555-0100 ext. 123 | example.org\r\n\r\nThis message is for the named recipient only."
+  },
+  "expect": {
+    "includes": [
+      "See you there.",
+      "<strong>Sam Rowe</strong>",
+      "Volunteer coordinator",
+      "<a href=\"tel:+15550100123\">555-0100 ext. 123</a>",
+      "<a href=\"https://www.example.org/\">example.org</a>",
+      "This message is for the named recipient only."
+    ],
+    "excludes": [
+      "cid:",
+      "<img",
+      "#70AD47"
+    ]
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "source": {
+    "app": "desktop-writer",
+    "sample": "D3-table-merged",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/rtf",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html xmlns:v=\"urn:schemas-example-com:vml\"\nxmlns:o=\"urn:schemas-example-com:office\"\nxmlns:w=\"urn:schemas-example-com:processor\"\nxmlns=\"http://www.w3.org/TR/REC-html40\">\n\n<head>\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\n<meta name=ProgId content=Processor.Document>\n<meta name=Generator content=\"Desktop word processor 16\">\n<meta name=Originator content=\"Desktop word processor 16\">\n<link rel=File-List\nhref=\"file:///C:/Users/user/AppData/Local/Temp/clip/01/clip_filelist.xml\">\n<!--[if gte mso 9]><xml>\n <o:DocumentProperties>\n  <o:Author>Sample Author</o:Author>\n  <o:Template>Normal</o:Template>\n  <o:Revision>3</o:Revision>\n </o:DocumentProperties>\n <o:OfficeDocumentSettings>\n  <o:AllowPNG/>\n </o:OfficeDocumentSettings>\n</xml><![endif]-->\n<!--[if gte mso 9]><xml>\n <w:WordDocument>\n  <w:View>Normal</w:View>\n  <w:Zoom>0</w:Zoom>\n  <w:TrackMoves/>\n  <w:DoNotOptimizeForBrowser/>\n </w:WordDocument>\n</xml><![endif]-->\n<style>\n<!--\n /* Font Definitions */\n @font-face\n\t{font-family:\"Body Serif\";\n\tpanose-1:2 4 5 3 5 4 6 3 2 4;\n\tmso-font-charset:0;\n\tmso-generic-font-family:roman;\n\tmso-font-pitch:variable;}\n /* Style Definitions */\n p.MsoNormal, li.MsoNormal, div.MsoNormal\n\t{mso-style-unhide:no;\n\tmso-style-qformat:yes;\n\tmso-style-parent:\"\";\n\tmargin-top:0in;\n\tmargin-right:0in;\n\tmargin-bottom:8.0pt;\n\tmargin-left:0in;\n\tline-height:107%;\n\tmso-pagination:widow-orphan;\n\tfont-size:12.0pt;\n\tfont-family:\"Body Serif\",serif;}\nh1\n\t{mso-style-priority:9;\n\tmso-style-qformat:yes;\n\tmso-style-link:\"Heading 1 Char\";\n\tmso-outline-level:1;\n\tfont-size:20.0pt;}\np.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst\n\t{mso-style-priority:34;\n\tmargin-left:.5in;\n\tmso-add-space:auto;}\n@list l0\n\t{mso-list-id:101;\n\tmso-list-type:hybrid;\n\tmso-list-template-ids:-1 67698703 67698713 67698715;}\n@list l0:level1\n\t{mso-level-tab-stop:none;\n\tmso-level-number-position:left;\n\ttext-indent:-.25in;}\n.MsoChpDefault\n\t{mso-style-type:export-only;\n\tmso-default-props:yes;}\ndiv.Section1\n\t{page:Section1;}\n-->\n</style>\n<!--[if gte mso 10]>\n<style>\n /* Style Definitions */\n table.MsoNormalTable\n\t{mso-style-name:\"Table Normal\";\n\tmso-tstyle-rowband-size:0;\n\tmso-style-noshow:yes;\n\tmso-padding-alt:0in 5.4pt 0in 5.4pt;}\n</style>\n<![endif]-->\n</head>\n\n<body lang=EN-US style='tab-interval:.5in;word-wrap:break-word'>\n<!--StartFragment-->\n<div class=Section1>\n\n<table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0\n style='border-collapse:collapse;border:none;mso-border-alt:solid windowtext .5pt;\n mso-yfti-tbllook:1184;mso-padding-alt:0in 5.4pt 0in 5.4pt'>\n <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes'>\n  <td width=208 colspan=2 valign=top style='width:155.8pt;border:solid windowtext 1.0pt;\n  mso-border-alt:solid windowtext .5pt;background:#D9E2F3;mso-background-themecolor:accent1;\n  mso-background-themetint:51;padding:0in 5.4pt 0in 5.4pt'>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'><b>Plot<o:p></o:p></b></p>\n  </td>\n  <td width=208 valign=top style='width:155.8pt;border:solid windowtext 1.0pt;\n  border-left:none;padding:0in 5.4pt 0in 5.4pt'>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'><b>Holder<o:p></o:p></b></p>\n  </td>\n </tr>\n <tr style='mso-yfti-irow:1'>\n  <td width=104 rowspan=2 valign=top style='width:77.9pt;border:solid windowtext 1.0pt;\n  border-top:none;padding:0in 5.4pt 0in 5.4pt'>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'>North<o:p></o:p></p>\n  </td>\n  <td width=104 valign=top style='width:77.9pt;border-top:none;border-left:none;\n  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;padding:0in 5.4pt 0in 5.4pt'>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'>N-1<o:p></o:p></p>\n  </td>\n  <td width=208 valign=top style='width:155.8pt;border-top:none;border-left:none;\n  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;padding:0in 5.4pt 0in 5.4pt'>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'>Robin Vale<o:p></o:p></p>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'><i>shares with a neighbor</i><o:p></o:p></p>\n  </td>\n </tr>\n <tr style='mso-yfti-irow:2;mso-yfti-lastrow:yes'>\n  <td width=104 valign=top style='width:77.9pt;border-top:none;border-left:none;\n  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;padding:0in 5.4pt 0in 5.4pt'>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'>N-2<o:p></o:p></p>\n  </td>\n  <td width=208 valign=top style='width:155.8pt;border-top:none;border-left:none;\n  border-bottom:solid windowtext 1.0pt;border-right:solid windowtext 1.0pt;padding:0in 5.4pt 0in 5.4pt'>\n  <table class=MsoTableGrid border=1 cellspacing=0 cellpadding=0 style='border-collapse:collapse;border:none'>\n   <tr><td style='border:solid windowtext 1.0pt;padding:0in 5.4pt 0in 5.4pt'><p class=MsoNormal style='margin-bottom:0in'>Mon<o:p></o:p></p></td>\n   <td style='border:solid windowtext 1.0pt;border-left:none;padding:0in 5.4pt 0in 5.4pt'><p class=MsoNormal style='margin-bottom:0in'>Wed<o:p></o:p></p></td></tr>\n  </table>\n  <p class=MsoNormal style='margin-bottom:0in;line-height:normal'><o:p>&nbsp;</o:p></p>\n  </td>\n </tr>\n <![if !supportMisalignedColumns]>\n <tr height=0>\n  <td width=104 style='border:none'></td>\n  <td width=104 style='border:none'></td>\n  <td width=208 style='border:none'></td>\n </tr>\n <![endif]>\n</table>\n\n<p class=MsoNormal><o:p>&nbsp;</o:p></p>\n\n</div>\n\n<!--EndFragment-->\n</body>\n\n</html>\n",
+    "text/plain": "Plot\r\n\r\nHolder\r\n\r\nNorth\r\n\r\nN-1\r\n\r\nRobin Vale\r\n\r\nshares with a neighbor\r\n\r\nN-2\r\n\r\nMon\r\n\r\nWed"
+  },
+  "expect": {
+    "includes": [
+      "colspan=\"2\"",
+      "rowspan=\"2\"",
+      "<strong>Plot</strong>",
+      "<strong>Holder</strong>",
+      "North",
+      "N-1",
+      "N-2",
+      "Robin Vale",
+      "<em>shares with a neighbor</em>",
+      "Mon",
+      "Wed"
+    ],
+    "excludes": [
+      "windowtext",
+      "mso-yfti",
+      "background:#D9E2F3",
+      "<tr><td></td><td></td><td></td></tr>"
+    ]
+  }
+}

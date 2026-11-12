@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "source": {
+    "app": "desktop-writer",
+    "sample": "D4-images-links",
+    "browser": "chromium",
+    "os": "windows"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/plain",
+    "text/rtf",
+    "text/html"
+  ],
+  "payloads": {
+    "text/html": "<html xmlns:v=\"urn:schemas-example-com:vml\"\nxmlns:o=\"urn:schemas-example-com:office\"\nxmlns:w=\"urn:schemas-example-com:processor\"\nxmlns=\"http://www.w3.org/TR/REC-html40\">\n\n<head>\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\n<meta name=ProgId content=Processor.Document>\n<meta name=Generator content=\"Desktop word processor 16\">\n<meta name=Originator content=\"Desktop word processor 16\">\n<link rel=File-List\nhref=\"file:///C:/Users/user/AppData/Local/Temp/clip/01/clip_filelist.xml\">\n<!--[if gte mso 9]><xml>\n <o:DocumentProperties>\n  <o:Author>Sample Author</o:Author>\n  <o:Template>Normal</o:Template>\n  <o:Revision>3</o:Revision>\n </o:DocumentProperties>\n <o:OfficeDocumentSettings>\n  <o:AllowPNG/>\n </o:OfficeDocumentSettings>\n</xml><![endif]-->\n<!--[if gte mso 9]><xml>\n <w:WordDocument>\n  <w:View>Normal</w:View>\n  <w:Zoom>0</w:Zoom>\n  <w:TrackMoves/>\n  <w:DoNotOptimizeForBrowser/>\n </w:WordDocument>\n</xml><![endif]-->\n<style>\n<!--\n /* Font Definitions */\n @font-face\n\t{font-family:\"Body Serif\";\n\tpanose-1:2 4 5 3 5 4 6 3 2 4;\n\tmso-font-charset:0;\n\tmso-generic-font-family:roman;\n\tmso-font-pitch:variable;}\n /* Style Definitions */\n p.MsoNormal, li.MsoNormal, div.MsoNormal\n\t{mso-style-unhide:no;\n\tmso-style-qformat:yes;\n\tmso-style-parent:\"\";\n\tmargin-top:0in;\n\tmargin-right:0in;\n\tmargin-bottom:8.0pt;\n\tmargin-left:0in;\n\tline-height:107%;\n\tmso-pagination:widow-orphan;\n\tfont-size:12.0pt;\n\tfont-family:\"Body Serif\",serif;}\nh1\n\t{mso-style-priority:9;\n\tmso-style-qformat:yes;\n\tmso-style-link:\"Heading 1 Char\";\n\tmso-outline-level:1;\n\tfont-size:20.0pt;}\np.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst\n\t{mso-style-priority:34;\n\tmargin-left:.5in;\n\tmso-add-space:auto;}\n@list l0\n\t{mso-list-id:101;\n\tmso-list-type:hybrid;\n\tmso-list-template-ids:-1 67698703 67698713 67698715;}\n@list l0:level1\n\t{mso-level-tab-stop:none;\n\tmso-level-number-position:left;\n\ttext-indent:-.25in;}\n.MsoChpDefault\n\t{mso-style-type:export-only;\n\tmso-default-props:yes;}\ndiv.Section1\n\t{page:Section1;}\n-->\n</style>\n<!--[if gte mso 10]>\n<style>\n /* Style Definitions */\n table.MsoNormalTable\n\t{mso-style-name:\"Table Normal\";\n\tmso-tstyle-rowband-size:0;\n\tmso-style-noshow:yes;\n\tmso-padding-alt:0in 5.4pt 0in 5.4pt;}\n</style>\n<![endif]-->\n</head>\n\n<body lang=EN-US style='tab-interval:.5in;word-wrap:break-word'>\n<!--StartFragment-->\n<div class=Section1>\n\n<p class=MsoNormal>Site map, drawn by the committee:<o:p></o:p></p>\n\n<p class=MsoNormal><!--[if gte vml 1]><v:shapetype id=\"_x0000_t75\" coordsize=\"21600,21600\"\n o:spt=\"75\" o:preferrelative=\"t\" path=\"m@4@5l@4@11@9@11@9@5xe\" filled=\"f\"\n stroked=\"f\">\n <v:stroke joinstyle=\"miter\"/>\n <v:path o:extrusionok=\"f\" gradientshapeok=\"t\" o:connecttype=\"rect\"/>\n <o:lock v:ext=\"edit\" aspectratio=\"t\"/>\n</v:shapetype><v:shape id=\"Picture_x0020_1\" o:spid=\"_x0000_i1025\" type=\"#_x0000_t75\"\n alt=\"Hand-drawn map of the garden plots\" style='width:240pt;height:160pt;visibility:visible;mso-wrap-style:square'>\n <v:imagedata src=\"file:///C:/Users/user/AppData/Local/Temp/clip/01/clip_image001.png\"\n  o:title=\"\"/>\n</v:shape><![endif]--><![if !vml]><img width=320 height=213\nsrc=\"file:///C:/Users/user/AppData/Local/Temp/clip/01/clip_image002.png\"\nalt=\"Hand-drawn map of the garden plots\" v:shapes=\"Picture_x0020_1\"><![endif]><o:p></o:p></p>\n\n<p class=MsoNormal>Details are on the <a href=\"https://www.example.org/garden/map\">garden\nweb page</a> and in the <a href=\"www.example.org/garden/rules\">rules</a>. Questions go to\n<a href=\"mailto:garden.committee@example.com\">the committee</a>, or see <a\nhref=\"file:///C:/Users/user/Documents/Garden%20Rules.docx\">the shared copy</a> and <a href=\"#_Appendix\">the appendix</a>.<o:p></o:p></p>\n\n<p class=MsoNormal><span style='mso-field-code:\" HYPERLINK \\0022https://www.example.org/garden/signup\\0022 \"'><span\nclass=MsoHyperlink>Sign up online</span></span><o:p></o:p></p>\n\n</div>\n\n<!--EndFragment-->\n</body>\n\n</html>\n",
+    "text/plain": "Site map, drawn by the committee:\r\n\r\nDetails are on the garden\r\nweb page and in the rules. Questions go to\r\nthe committee, or see the shared copy and the appendix.\r\n\r\nSign up online"
+  },
+  "expect": {
+    "includes": [
+      "<a href=\"https://www.example.org/garden/map\">garden web page</a>",
+      "<a href=\"https://www.example.org/garden/rules\">rules</a>",
+      "<a href=\"mailto:garden.committee@example.com\">the committee</a>",
+      "the shared copy",
+      "Sign up online"
+    ],
+    "excludes": [
+      "<img",
+      "clip_image",
+      "Users",
+      "v:shape",
+      "href=\"file:"
+    ]
+  }
+}
