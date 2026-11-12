@@ -15,7 +15,7 @@ import type { Warning } from "../warning.ts";
 import { importBlocks, importHtml } from "../import.ts";
 import { inlineLength, type Block, type Doc, type MarkType } from "../model.ts";
 import { pasteBlocks, type ClipboardData, type PasteHandler } from "../paste.ts";
-import { cellChain, containerPaths, getBlock, getContent, pathKey, setContent, type Pos, type Selection } from "../path.ts";
+import { cellChain, containerPaths, getBlock, getContent, pathKey, sameCells, setContent, type Pos, type Selection } from "../path.ts";
 import { tableFromText } from "../tablefill.ts";
 import { imageSelection } from "../imageselect.ts";
 import { containerAt, createRenderCache, domFromPos, posFromDom, renderDoc } from "./render.ts";
@@ -432,6 +432,12 @@ export class Editor {
     if (!data.html?.trim() && data.text) {
       const table = inTable ? tableFromText(data.text) : undefined;
       if (table) blocks = [table];
+    }
+    // One copied cell pastes as text, except over a range of cells, which it fills (the paste pipeline has taken the cell's table away).
+    if (inTable && blocks.length === 1 && blocks[0]?.type !== "table" && data.html && !sameCells(cellChain(doc, anchor.path), cellChain(doc, focus.path))) {
+      const options = this.engine.importOptions;
+      const cell = importBlocks(data.html, { ...options, styles: "semantic", relativeImages: options.pasteRelativeImages ?? false });
+      if (cell.length === 1 && cell[0]?.type === "table") blocks = cell;
     }
     this.insertSettled(blocks);
   }
