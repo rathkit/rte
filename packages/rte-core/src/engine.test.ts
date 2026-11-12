@@ -182,6 +182,24 @@ test("Tab runs list.indent only in a list; elsewhere it is left to the browser",
   assert.equal(off.handleKey(tab), false);
 });
 
+test("Escape gives the next Tab back to the browser, so the focus can always leave a list or a table (WCAG 2.1.2)", () => {
+  const e = engine("<ul><li>x</li><li>y</li></ul>");
+  const key = (k: string, mods: object = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...mods });
+  e.setSelection(caret({ path: [0, 1], offset: 1 }));
+  assert.equal(e.handleKey(key("Escape")), false);
+  assert.equal(e.handleKey(key("Tab")), false);
+  e.handleKey(key("Escape"));
+  // Holding Shift down for Shift+Tab is a key of its own; it does not use up the Escape.
+  assert.equal(e.handleKey(key("Shift", { shiftKey: true })), false);
+  assert.equal(e.handleKey(key("Tab", { shiftKey: true })), false);
+  assert.equal(html(e), "<ul><li>x</li><li>y</li></ul>");
+  // Any other key in between, and Tab is the list's again.
+  e.handleKey(key("Escape"));
+  e.handleKey(key("ArrowLeft"));
+  assert.equal(e.handleKey(key("Tab")), true);
+  assert.equal(html(e), "<ul><li>x<ul><li>y</li></ul></li></ul>");
+});
+
 test("keys: Mod means Command on Apple platforms and Control elsewhere; conflicts warn; the host can rebind", () => {
   const mac = engine("<p>abc</p>", { platform: "apple" });
   const win = engine("<p>abc</p>", { platform: "other" });

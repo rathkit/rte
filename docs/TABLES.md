@@ -35,7 +35,7 @@ dropped. Cell styles are read when a document is loaded, not from a paste, like 
 | `table.sort` | `"asc"` or `"desc"` | Puts the rows in order by the column of the caret's cell: numbers (`1,200`, `$5`, `12%`) by value and before text, text by the user's language with digits in order, empty cells last either way. A header row stays first, the sort is stable, a row's height moves with it, and the caret stays in its cell. Rows tied together by a cell that spans rows move as one group, ordered by the group's first row; off when there is only one group to order |
 | `table.moveRow`, `table.moveColumn` | `{ by }` (-1 or 1), or `{ to, after }` | Moves the caret's row or column a step, or next to the row or column `to` (after it with `after`). Rows or columns tied by a spanning cell move together, a header row stays first, and heights and widths move with them. `cell` names another cell's row or column (used by the grips) |
 | `table.rowHeight` | `{ height }` | The least height of the rows the selection covers: `40`, `40px`, or empty for automatic |
-| `table.nextCell`, `table.previousCell` | Tab and Shift+Tab. Tab past the last cell adds a row; Shift+Tab in the first cell is left to the browser. Lists inside a cell get Tab first |
+| `table.nextCell`, `table.previousCell` | Tab and Shift+Tab. Tab past the last cell adds a row; Shift+Tab in the first cell is left to the browser; Escape, then Tab, leaves the editor from any cell. Lists inside a cell get Tab first |
 
 The styled interface offers them in a Table menu, and the look of cells (fill, line, row height) in a Cell style menu.
 
