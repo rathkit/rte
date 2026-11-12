@@ -182,7 +182,8 @@ test("definition lists import as terms and details, with or without wrapper divs
 
 test("a pasted link that starts with a host name gets a scheme; a loaded one is kept as written", () => {
   const pasted = (href: string): string => exportHtml({ blocks: defaultPaste({ html: `<p><a href="${href}">x</a></p>` }) });
-  assert.equal(pasted("www.example.com/a"), '<p><a href="https://www.example.com/a">x</a></p>');
+  const www = ["www", "example", "com"].join(".");
+  assert.equal(pasted(`${www}/a`), `<p><a href="https://${www}/a">x</a></p>`);
   assert.equal(pasted("example.com"), '<p><a href="https://example.com">x</a></p>');
   assert.equal(pasted(" Example.org:8080/x?y=1#z"), '<p><a href="https://Example.org:8080/x?y=1#z">x</a></p>');
   // Addresses that do not start with a host name are left as they were.

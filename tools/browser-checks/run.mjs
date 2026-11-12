@@ -1141,13 +1141,26 @@ for (const [name, type] of engines) {
     "list item": ["<ul><li>xy</li></ul>", ["li", 1, "li", 1]],
   };
   const row = (a, b) => `<table><tbody><tr>${a}</tr><tr>${b}</tr></tbody></table>`;
+  // Whether this engine hands a paste event the image that was written to the system clipboard. Firefox as Playwright runs it, and the older
+  // WebKit of the older driver, deliver an empty clipboard; the editor never sees the image there, so the image rows are not run and the drop
+  // route covers files. This asks the browser itself (a listener that runs before the editor's), not the editor.
+  let imageIn = false;
+  {
+    await set("ed", "<p>x</p>");
+    await clip({ "image/png": onePixelPng().split(",")[1] });
+    await sel("ed", "p", 1, "p", 1);
+    await page.evaluate(() => { window.__files = -1; document.addEventListener("paste", (e) => { window.__files = e.clipboardData.files.length; }, { capture: true, once: true }); });
+    await paste();
+    imageIn = (await page.evaluate(() => window.__files)) > 0;
+    if (!imageIn) console.log(`note: ${name} hands the paste event no image written to the system clipboard; the image paste rows are left to the drop checks`);
+  }
   const grid = [
     ["html", { "text/html": "<p>a <b>b</b></p><p>c</p>", "text/plain": "a b\n\nc" }, ["<p>xa <strong>b</strong></p><p>cy</p>", "<pre>xa b\n\ncy</pre>", row("<td><p>aa <strong>b</strong></p><p>c1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><p>a <strong>b</strong></p><p>c</p></td><td></td>", "<td></td><td></td>"), "<ul><li>xa <strong>b</strong></li><li>cy</li></ul>"]],
     ["one cell", { "text/html": "<table><tr><td>S</td></tr></table>", "text/plain": "S" }, ["<p>xSy</p>", "<pre>xSy</pre>", row("<td>aS1</td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td>S</td><td>S</td>", "<td>S</td><td>S</td>"), "<ul><li>xSy</li></ul>"]],
     ["plain text", { "text/plain": "one\n\ntwo" }, ["<p>xone</p><p>twoy</p>", "<pre>xone\n\ntwoy</pre>", row("<td><p>aone</p><p>two1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><p>one</p><p>two</p></td><td></td>", "<td></td><td></td>"), "<ul><li>xone</li><li>twoy</li></ul>"]],
     ["tab-separated text", { "text/plain": "x\ty\nz\tw" }, ["<p>xx\ty<br>z\twy</p>", "<pre>xx\ty\nz\twy</pre>", row("<td>x</td><td>y</td>", "<td>z</td><td>w</td>"), row("<td>x</td><td>y</td>", "<td>z</td><td>w</td>"), "<ul><li>xx\ty<br>z\twy</li></ul>"]],
     ["Markdown text", { "text/plain": "# T\n\n- i\n- j" }, ["<p>xT</p><ul><li>i</li><li>j</li></ul><p>y</p>", "<pre>x# T\n\n- i\n- jy</pre>", row("<td><p>aT</p><ul><li>i</li><li>j</li></ul><p>1</p></td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><h1>T</h1><ul><li>i</li><li>j</li></ul></td><td></td>", "<td></td><td></td>"), "<ul><li>xT</li><li>i</li><li>jy</li></ul>"]],
-    ...(name === "firefox" ? [] : [["an image", { "image/png": onePixelPng().split(",")[1] }, ["<p>x<img>y</p>", "<pre>xy</pre>", row("<td>a<img>1</td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><img></td><td></td>", "<td></td><td></td>"), "<ul><li>x<img>y</li></ul>"]]]),
+    ...(!imageIn ? [] : [["an image", { "image/png": onePixelPng().split(",")[1] }, ["<p>x<img>y</p>", "<pre>xy</pre>", row("<td>a<img>1</td><td>b1</td>", "<td>a2</td><td>b2</td>"), row("<td><img></td><td></td>", "<td></td><td></td>"), "<ul><li>x<img>y</li></ul>"]]]),
   ];
   for (const [what, data, expected] of grid) {
     const id = what === "Markdown text" ? "ed2" : "ed";
@@ -1231,9 +1244,8 @@ for (const [name, type] of engines) {
   await page.waitForTimeout(100);
   cb("a dropped file that is not an image is ignored", (await html()) === "<p>alpha</p><p>gamma<strong>B</strong></p>", await html());
 
-  // An image on the clipboard, with no text beside it. Firefox, as Playwright runs it, hands the paste event an empty clipboard for an
-  // image written this way, so there the file route is checked by the drop above and in the image checks.
-  if (name !== "firefox") {
+  // An image on the clipboard, with no text beside it (when this engine delivers one: see the probe above).
+  if (imageIn) {
     await set("ed", "<p>x</p>");
     const wrote = await clip({ "image/png": onePixelPng().split(",")[1] });
     await sel("ed", "p", 1, "p", 1);

@@ -60,7 +60,7 @@ More, each with its own check:
 | A file that is not an image | Ignored unless a plugin's file handler takes it | Checked by drop: "clipboard: a dropped file that is not an image is ignored"; **not checked** by paste |
 | Anything, into a read-only editor | Refused | "clipboard: read-only: copy and cut write, nothing is deleted, paste is refused" (plain text), "access (readonly): a paste event and a cut event change nothing" (Chromium and WebKit) |
 | The scrubbed captures from word processors and spreadsheets (`fixtures/paste`) | Every one pasted; none makes a request outside the machine, none throws | "… captures pasted, none made an outside request"; what they turn into is checked by the conformance suites ([CONFORMANCE.md](CONFORMANCE.md)) |
-| An image on the clipboard in Firefox | **Not checked** (see "Known gaps") | — |
+| An image on the clipboard in Firefox, and in the older WebKit of the older CI job | **Not checked** (see "Known gaps") | — |
 
 ## Between two editors on one page
 
@@ -106,8 +106,9 @@ How long a large paste takes is not given here; measured figures are only in [ME
   name, and an image copied from a web page that also writes `<img src>` pastes as that address, which is then handled as any pasted
   image address is ([IMAGES.md](IMAGES.md)), not as a file.
 - **An image pasted into a code block is dropped without a word.** A code block holds only text; no warning is reported.
-- **An image on the clipboard in Firefox is not checked.** Firefox, as the browser checks run it, hands the paste event an empty
-  clipboard for an image written by the page, so the file route is checked there only by drop.
+- **An image on the clipboard in Firefox, and in the older WebKit of the older CI job (26.6), is not checked.** As the browser checks run
+  them, these engines hand the paste event an empty clipboard for an image written by the page (the check asks the browser itself, before
+  the editor sees the event, and leaves the rows out when nothing arrives), so the file route is checked there only by drop.
 - **Dragging out deleted the text in Firefox** when the drop landed where nothing takes a drop; this is fixed and checked, but it was
   seen only in the Firefox build that Playwright runs and has not been confirmed by hand.
 - **Clipboard formats on phones** are as [SUPPORT.md](SUPPORT.md) says: Android strips formatting before the editor sees a paste.
