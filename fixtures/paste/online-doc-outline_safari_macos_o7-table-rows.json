@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "source": {
+    "app": "online-doc-outline",
+    "sample": "O7-table-rows",
+    "browser": "safari",
+    "os": "macos"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<head><meta charset=\"UTF-8\"></head><div style=\"caret-color: rgb(0, 0, 0); color: rgb(0, 0, 0); font-style: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none;\"><div class=\"TableContainer Ltr SCXW1000001 BCX8\"><table class=\"Table TableWordWrap SCXW1000001 BCX8\" border=\"1\" data-tablestyle=\"MsoTableGrid\" data-tablelook=\"1184\" aria-rowcount=\"3\"><tbody class=\"SCXW1000001 BCX8\"><tr class=\"TableRow SCXW1000001 BCX8\" role=\"row\" aria-rowindex=\"2\"><td class=\"TableCellBorder SCXW1000001 BCX8\" data-celllook=\"69905\" role=\"rowheader\"><div class=\"TableCellContent SCXW1000001 BCX8\"><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1001\" paraeid=\"{00000000-0000-4000-8000-000000000201}{1}\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Spade</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div></div></td><td class=\"TableCellBorder SCXW1000001 BCX8\" data-celllook=\"4369\"><div class=\"TableCellContent SCXW1000001 BCX8\"><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1002\" paraeid=\"{00000000-0000-4000-8000-000000000202}{2}\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"font-weight:bold;\"><span class=\"NormalTextRun SCXW1000001 BCX8\">2</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div></div></td></tr><tr class=\"TableRow SCXW1000001 BCX8\" role=\"row\" aria-rowindex=\"3\"><td class=\"TableCellBorder SCXW1000001 BCX8\" data-celllook=\"69905\"><div class=\"TableCellContent SCXW1000001 BCX8\"><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1003\" paraeid=\"{00000000-0000-4000-8000-000000000203}{3}\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">Rake</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div></div></td><td class=\"TableCellBorder SCXW1000001 BCX8\" data-celllook=\"4369\"><div class=\"TableCellContent SCXW1000001 BCX8\"><div class=\"OutlineElement Ltr SCXW1000001 BCX8\"><p class=\"Paragraph SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" paraid=\"1004\" paraeid=\"{00000000-0000-4000-8000-000000000204}{4}\"><span class=\"TextRun SCXW1000001 BCX8\" lang=\"EN-US\" xml:lang=\"EN-US\" data-contrast=\"auto\" style=\"\"><span class=\"NormalTextRun SCXW1000001 BCX8\">5</span></span><span class=\"EOP SCXW1000001 BCX8\" data-ccp-props=\"{&quot;134233117&quot;:false,&quot;134233118&quot;:false,&quot;335559738&quot;:0,&quot;335559739&quot;:160}\">&nbsp;</span></p></div></div></td></tr></tbody></table></div></div>",
+    "text/plain": "Spade\n\n2\n\nRake\n\n5"
+  },
+  "expect": {
+    "includes": [
+      "<table",
+      "<td>Spade</td>",
+      "<td><strong>2</strong></td>",
+      "<td>Rake</td>",
+      "<td>5</td>"
+    ],
+    "excludes": [
+      "TableCell",
+      "aria-rowindex",
+      "data-celllook"
+    ]
+  }
+}

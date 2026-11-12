@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "source": {
+    "app": "online-sheet",
+    "sample": "X5-merged-links",
+    "browser": "safari",
+    "os": "macos"
+  },
+  "provenance": {
+    "kind": "reconstructed",
+    "note": "Hand-reconstructed approximation of the clipboard HTML this class of source writes, not a capture. Product names, fonts and identifiers are generic stand-ins; all content is fictional."
+  },
+  "types": [
+    "text/html",
+    "text/plain"
+  ],
+  "payloads": {
+    "text/html": "<head><meta charset=\"UTF-8\"></head><div dir=\"ltr\" data-clip-origin=\"sheet\" style=\"caret-color: rgb(0, 0, 0); color: rgb(0, 0, 0); font-style: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration: none;\"><div dir=\"ltr\" data-clip-origin=\"sheet\"><table xmlns=\"http://www.w3.org/1999/xhtml\" cellspacing=\"0\" cellpadding=\"0\" dir=\"ltr\" border=\"1\" style=\"table-layout:fixed;font-size:10pt;font-family:Arial;width:0px;border-collapse:collapse;border:none\"><colgroup><col width=\"100\"/><col width=\"100\"/></colgroup><tbody><tr style=\"height:21px;\"><td colspan=\"2\" rowspan=\"1\" style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;font-weight:bold;text-align:center;\" data-cell-value='{\"1\":2,\"2\":\"Shift rota\"}'>Shift rota</td></tr><tr style=\"height:21px;\"><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;\" data-cell-value='{\"1\":2,\"2\":\"Week 1\"}' data-cell-hyperlink=\"https://www.example.org/rota/week-1\"><a class=\"cell-link\" href=\"https://www.example.org/rota/week-1\" target=\"_blank\">Week 1</a></td><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;white-space:normal;overflow-wrap:break-word;\" data-cell-value='{\"1\":2,\"2\":\"Dana\\nLee\"}' data-cell-note=\"Swapped with Kim\">Dana<br/>Lee</td></tr><tr style=\"height:21px;\"><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;\" data-cell-value='{\"1\":2,\"2\":\"tentative\"}'><span style=\"font-style:italic;\">tentative</span></td><td style=\"overflow:hidden;padding:2px 3px 2px 3px;vertical-align:bottom;text-decoration:line-through;\" data-cell-value='{\"1\":2,\"2\":\"Kim\"}'>Kim</td></tr></tbody></table></div></div>",
+    "text/plain": "Shift rota\n\nWeek 1\tDana\nLee\n\ntentative\tKim"
+  },
+  "expect": {
+    "includes": [
+      "colspan=\"2\"",
+      "<strong>Shift rota</strong>",
+      "<a href=\"https://www.example.org/rota/week-1\"",
+      "Week 1",
+      "Dana<br>Lee",
+      "<em>tentative</em>",
+      "<s>Kim</s>"
+    ],
+    "excludes": [
+      "Swapped with Kim",
+      "data-cell"
+    ]
+  }
+}
