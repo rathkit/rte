@@ -174,9 +174,12 @@
   [data-rte-part="content"] th { background: var(--rte-surface); text-align: start; }
   /* Cells a selection runs across (the view marks them): a tint and an outline, so it is not color alone. */
   [data-rte-part="content"] [data-rte-cell-selected] { background: var(--rte-selection-bg); outline: 2px solid var(--rte-accent); outline-offset: -2px; }
+  /* A link in a selected cell is drawn in the text color, as selected text is: the accent on the selection tint is too faint in a dark theme. It keeps its underline. */
+  [data-rte-part="content"] [data-rte-cell-selected] a { color: inherit; }
   [data-rte-part="content"] img[data-rte-image-selected] { outline: 2px solid var(--rte-accent); outline-offset: 2px; }
-  /* Focus inside the writing area shows on the whole editor, not as a box around the text. */
-  .rte-root:focus-within { outline: var(--rte-focus-width) solid var(--rte-focus-color); outline-offset: var(--rte-focus-offset); }
+  /* Focus inside the writing area shows on the whole editor, not as a box around the text. The ring is drawn just inside the editor's
+     border, on the editor's own colors, which the themes keep at 3:1 against it; outside, it would sit on whatever the page is. */
+  .rte-root:focus-within { outline: var(--rte-focus-width) solid var(--rte-focus-color); outline-offset: calc(-1 * (var(--rte-focus-width) + var(--rte-border-width))); }
   .rte-root:focus-within [data-rte-part="content"] :focus-visible,
   .rte-root [data-rte-part="content"] :focus-visible { outline: none; }
 
@@ -198,7 +201,8 @@
   [data-rte-part="findbar"][hidden] { display: none; }
   [data-rte-part="find-line"] { display: flex; flex-wrap: wrap; align-items: center; gap: var(--rte-space-1); }
   [data-rte-part="find-line"] + [data-rte-part="find-line"] { margin-top: var(--rte-space-1); }
-  [data-rte-part="find-row"] { display: flex; align-items: center; gap: var(--rte-space-2); flex: 1 1 14rem; }
+  /* min-width: 0 lets the row, and its field, shrink to a 320px wide window (400% zoom) instead of pushing the page sideways. */
+  [data-rte-part="find-row"] { display: flex; align-items: center; gap: var(--rte-space-2); flex: 1 1 14rem; min-width: 0; }
   [data-rte-part="find-label"] { min-width: 6.5em; font-weight: 600; }
   [data-rte-part="find-field"] {
     flex: 1; min-width: 6em; height: var(--rte-control-size); padding: 0 var(--rte-space-2); font: inherit; color: var(--rte-fg);
@@ -244,9 +248,10 @@
   }
   [data-rte-part="action"][data-primary] { color: var(--rte-accent-fg); background: var(--rte-accent); border-color: var(--rte-accent); }
 
-  /* Matches painted by the page's highlight registry (nothing in the document changes). Dark text on a strong tint reads on any theme. */
-  ::highlight(rte-find) { background-color: #ffe08a; color: #14181f; }
-  ::highlight(rte-find-current) { background-color: #ff9632; color: #14181f; }
+  /* Matches painted by the page's highlight registry (nothing in the document changes). Dark text on a strong tint reads on any theme.
+     The match being looked at is 3:1 darker than the others, so it is told apart by more than its hue; the text keeps 4.5:1 on both. */
+  ::highlight(rte-find) { background-color: #fff0b3; color: #14181f; }
+  ::highlight(rte-find-current) { background-color: #d96a00; color: #14181f; }
 
   @media (prefers-reduced-motion: reduce) { .rte-root { --rte-motion-scale: 0; } }
 
