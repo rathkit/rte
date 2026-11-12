@@ -127,7 +127,7 @@ export class TableGrips {
     const horizontal = kind === "column" || kind === "width";
     const line = document.createElement("div");
     line.setAttribute("data-rte-resize-line", "");
-    line.style.cssText = `position:fixed;z-index:2147483645;pointer-events:none;background:${COLOR};${horizontal ? `width:2px;top:${t.top}px;height:${t.height}px` : `height:2px;left:${t.left}px;width:${t.width}px`}`;
+    line.style.cssText = `position:fixed;z-index:2147483645;pointer-events:none;background:${COLOR};box-shadow:0 0 0 1px #fff;${horizontal ? `width:2px;top:${t.top}px;height:${t.height}px` : `height:2px;left:${t.left}px;width:${t.width}px`}`;
     document.body.appendChild(line);
     this.guide = line;
     const startX = event.clientX;
