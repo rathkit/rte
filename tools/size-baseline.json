@@ -8,8 +8,8 @@
     "@rathkit/rte-angular angular": 1598,
     "@rathkit/rte-angular angular forms": 1681,
     "@rathkit/rte-core autoformat plugin": 1923,
-    "@rathkit/rte-core core": 48596,
-    "@rathkit/rte-core core + browser view": 60737,
+    "@rathkit/rte-core core": 49240,
+    "@rathkit/rte-core core + browser view": 62475,
     "@rathkit/rte-core find plugin": 2495,
     "@rathkit/rte-core footnotes plugin": 3878,
     "@rathkit/rte-core images plugin": 6035,
@@ -302,6 +302,20 @@
       "from": 14327,
       "to": 15652,
       "reason": "5.6 localization: plural messages, stable keys for every word, message packs, right-to-left interface, messageCatalog"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-core core",
+      "from": 48596,
+      "to": 49240,
+      "reason": "combined 0.3.0 items: message packs and plural forms (5.6), clipboard fixes (1.9), support-window feature check (5.8), link scheme and table row paste fixes (1.10)"
+    },
+    {
+      "date": "2026-11-12",
+      "entry": "@rathkit/rte-core core + browser view",
+      "from": 60737,
+      "to": 62475,
+      "reason": "combined 0.3.0 items: message packs and plural forms (5.6), clipboard fixes (1.9), support-window feature check (5.8), link scheme and table row paste fixes (1.10)"
     }
   ]
 }
