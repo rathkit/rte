@@ -32,7 +32,9 @@ Paid paste recovers information that HTML does not carry in a standard form.
 ## Test material
 
 Scrubbed captures from real Office, Google and LibreOffice copies are in `fixtures/paste/`. The tool and the
-scrubber are in `tools/paste-capture/`.
+scrubber are in `tools/paste-capture/`. Next to them are hand-reconstructed approximations of what desktop word processors,
+online document editors, spreadsheets, mail clients and web pages put on the clipboard; each says so in its `provenance`, and
+each carries the free-paste expectations it is checked against (see `tools/paste-capture/README.md`).
 
 ## Word-processor recognizers: decided free (owner, 2026-10-22)
 
@@ -46,6 +48,7 @@ Anything that has to be inferred or looked up is paid.
 | A paragraph with `role="heading"` and `aria-level` becomes a heading | Free |
 | Marker styles read from Word-for-web's `data-list-defn-props` | Free |
 | Table rows that arrive without their table; bold set on a cell or row; a `<pre>` wrapper around a table | Free |
+| The empty, zero-height row written after a table to size columns that do not line up is left out | Free |
 | Headings inferred from bold or large text | Paid |
 
 Number formats 1 (upper roman) and 3 (upper letter) in `data-list-defn-props` have not been seen in a capture.

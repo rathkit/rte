@@ -34,6 +34,27 @@ The scrubber keeps only `text/html` and `text/plain` (add `--keep text/rtf` wher
 
 `pnpm check:fixtures` fails if a committed fixture still carries an account name in a path, an unscrubbed id, an email address, a user agent string, real image data or more than 400 KB. `pnpm test:tools` tests the scrubber and the check.
 
+## Reconstructed fixtures
+
+Some fixtures are not captures. They were written by hand to approximate what a class of source puts on the clipboard: a desktop
+word processor (`desktop-writer`), a desktop mail client that uses the same markup (`desktop-mail`), online document editors
+(`online-doc`, `online-doc-outline`), desktop and online spreadsheets (`desktop-sheet`, `online-sheet`), web mail (`webmail`) and
+web pages (`web-page`), each in the wrapper the named browser adds. Such a fixture has `"provenance": { "kind": "reconstructed", "note": … }`.
+Product names, fonts and ids in them are generic stand-ins, and all content is made up. They are useful for structure, not as proof
+of what a particular product writes; a real capture is better whenever one can be made.
+
+Pictures in them use addresses the paste must refuse (`file:`, `cid:`, relative paths), a stand-in for image bytes, or a remote
+address on a reserved example domain, which the editor keeps but does not load. Nothing in a fixture may make the browser checks
+reach outside the machine.
+
+A fixture may carry `"expect": { "includes": [...], "excludes": [...] }`: pieces of HTML that free paste must produce and must not.
+`packages/rte-core/src/paste-fixtures.test.ts` checks them without a browser, and the browser checks paste every fixture and check them
+in Chromium, Firefox and WebKit. Both also fail on active content, local addresses or a source's own markup coming through for any
+fixture. Write expectations from the source and `docs/PASTE.md`, not from what the editor does today, and expect nothing the paid tier
+does (style-class fills and number formats, typed values, headings inferred from looks).
+
+`pnpm check:fixtures` checks `provenance` and `expect` when a fixture has them.
+
 ## Privacy
 
 Captures contain whatever you copied. Use sample content you wrote, never real documents. Review the scrubbed fixtures before committing them.
