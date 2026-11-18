@@ -1,3 +1,72 @@
+## 0.3.0-beta.0 (2026-11-18)
+
+Published to the `next` dist-tag only. This beta is about platforms and accessibility: server rendering of every wrapper, a touch and phone pass (tried by hand on one Android phone), a keyboard, contrast, motion and zoom audit with its checklist in `docs/ACCESSIBILITY.md`, message packs with plural forms and a mirrored right-to-left interface (`docs/LOCALIZATION.md`), a support window with an older-browser CI job and a feature check, a compatibility matrix made from the runs, a source-and-target clipboard matrix (`docs/CLIPBOARD.md`), and 84 more reconstructed paste fixtures. Fixed on the way: pasting into a code block no longer drops the first pasted block, a selection across a horizontal rule no longer leaves the rule behind, Tab can leave a document that ends in a list or table, and a phone keyboard's autocorrect is one undo step. `docs/KNOWN-ISSUES.md` lists what has not been tried and what does not work. A beta can still change options, output and plugin support.
+
+**What could break an upgrade from 0.2.0-beta.0**
+
+- The `warn(message)` option of the headless `createDialog` is replaced by `onWarning(warning)`.
+- The message key `status.word` is gone: it is folded into the plural message `status.words`. `find.total` and the `status.*` messages are now plural messages (a string, or an object of plural forms), and the type of `DEFAULT_MESSAGES` values widened to `string | PluralMessage`. A host that reads or replaces these messages by key must handle both shapes.
+- After Escape, the next Tab in a list or a table moves the focus out of the editor instead of indenting or moving to the next cell. Any other key in between brings the old behavior back, and `indentOnTab: false` still works.
+- Pasting into a code block now puts everything pasted in as plain text, a line for each block, and a link pasted with a host name and no scheme (`www.example.com/a`) now gets `https://`. A blank zero-height table row that a word processor writes after a table is dropped, in loading as well as in paste.
+- Deleting or cutting a selection that covers a horizontal rule now removes the rule, and copying one now carries it.
+
+### Features
+
+- localization, clipboard completeness, support window and matrix, more paste fixtures ([#84](https://github.com/rathkit/rte/pull/84), [#20](https://github.com/rathkit/rte/issues/20), [#23](https://github.com/rathkit/rte/issues/23), [#22](https://github.com/rathkit/rte/issues/22))
+- the keyboard, contrast, motion and zoom audit, and the faults it found ([#85](https://github.com/rathkit/rte/pull/85), [#19](https://github.com/rathkit/rte/issues/19))
+- ⚠️  **headless:** report a dialog with no name on the warning channel ([#81](https://github.com/rathkit/rte/issues/81))
+- **release:** ask for the authenticator code once and use it for every approval ([9f873bf](https://github.com/rathkit/rte/commit/9f873bf))
+
+### Fixes
+
+- a suggestion is its own undo step, and a phone keyboard's key press no longer shows the selection bar ([be4b5a9](https://github.com/rathkit/rte/commit/be4b5a9))
+- a keyboard's suggestion is one undo step, and a finger letting go of a handle opens no editor menu ([e0132ef](https://github.com/rathkit/rte/commit/e0132ef))
+- **angular:** make the editor in the browser only ([ba977f7](https://github.com/rathkit/rte/commit/ba977f7))
+- **core:** a finger on a picture no longer brings up the browser's selection menu ([1f1d06b](https://github.com/rathkit/rte/commit/1f1d06b))
+- **element:** import the custom elements in Node and make define() do nothing on a server ([6ab01ed](https://github.com/rathkit/rte/commit/6ab01ed))
+- **icons:** document the new tableLines icon and record it in the exports snapshot ([f8224cb](https://github.com/rathkit/rte/commit/f8224cb))
+- **release:** read the staged list the way npm prints it ([f512784](https://github.com/rathkit/rte/commit/f512784))
+- **release:** let the approve script continue a run that stopped half way ([e2123c4](https://github.com/rathkit/rte/commit/e2123c4))
+- **release:** keep a stray Enter from stopping an approval ([66ced57](https://github.com/rathkit/rte/commit/66ced57))
+- **tools:** the hand-testing log prints one cleaned line at a time ([9a80ad5](https://github.com/rathkit/rte/commit/9a80ad5))
+- **tools:** take the line breaks out of the printed hand-testing log by name ([6db3234](https://github.com/rathkit/rte/commit/6db3234))
+- **ui:** let the selection toolbar wrap inside the editor ([2ebbb9c](https://github.com/rathkit/rte/commit/2ebbb9c))
+- **ui:** touch targets and icons found on a real phone ([a18ce49](https://github.com/rathkit/rte/commit/a18ce49))
+
+### Documentation
+
+- say 0.2.0-beta.0 is on npm and record the first beta in the roadmap ([065fc43](https://github.com/rathkit/rte/commit/065fc43))
+- a known-issues page for the first people to try the beta ([9c89e18](https://github.com/rathkit/rte/commit/9c89e18))
+- **hand-testing:** add the phone steps and a way to open the demo on a phone ([5508579](https://github.com/rathkit/rte/commit/5508579))
+- **hand-testing:** Chrome on Android needs the Nearby devices permission for a local address ([0d9334b](https://github.com/rathkit/rte/commit/0d9334b))
+- **measurements:** say which budgets and figures are the first beta's ([abea29e](https://github.com/rathkit/rte/commit/abea29e))
+- **roadmap:** tick 5.2, the touch and mobile pass ([#16](https://github.com/rathkit/rte/issues/16))
+- **roadmap:** move 5.3, 5.4 and 1.10 to 0.4.0-beta.0, and tick 5.7 ([21ce22f](https://github.com/rathkit/rte/commit/21ce22f))
+- **support:** record the framework check on the published 0.2.0-beta.0 packages ([593f989](https://github.com/rathkit/rte/commit/593f989))
+- **support:** record the hand test on a phone, what it found and what is still not run ([84c940e](https://github.com/rathkit/rte/commit/84c940e))
+- **support:** record the compatibility matrix from the CI run on main ([ab35cba](https://github.com/rathkit/rte/commit/ab35cba))
+- **support:** record the framework checks run of 2026-11-18 ([255be9f](https://github.com/rathkit/rte/commit/255be9f))
+
+### Build
+
+- **frameworks:** take the fixes for the advisories in the server-rendering apps ([c0c74a1](https://github.com/rathkit/rte/commit/c0c74a1))
+- **release:** check staged packages against the signed checksums and approve them ([74b03da](https://github.com/rathkit/rte/commit/74b03da))
+
+### Tests
+
+- **browser-checks:** wait for the drag guide and the grip instead of reading them once ([715c148](https://github.com/rathkit/rte/commit/715c148))
+- **core:** add the other HTML comment end to the error-model fuzz pieces ([46400b4](https://github.com/rathkit/rte/commit/46400b4))
+- **frameworks:** render each wrapper on a server with its framework's own renderer ([e5b5212](https://github.com/rathkit/rte/commit/e5b5212))
+- **frameworks:** render and hydrate a real Next.js, Nuxt, SvelteKit and Angular app ([#15](https://github.com/rathkit/rte/issues/15))
+
+### Continuous integration
+
+- make the apt mirror resolve and bound the browser install in both browser jobs ([4494116](https://github.com/rathkit/rte/commit/4494116))
+
+### ⚠️  Breaking Changes
+
+- **headless:** report a dialog with no name on the warning channel ([#81](https://github.com/rathkit/rte/issues/81)): the warn(message) option of createDialog is replaced by onWarning(warning).
+
 ## 0.2.0-beta.0 (2026-11-06)
 
 Published to the `next` dist-tag only. This is the first beta, and it is about measuring: the benchmark suite and its method now live in their own repository (`rathkit/rte-bench`) and run in a container; CI enforces numeric size and speed budgets against the base commit; there are memory and leak checks, runs at a slower CPU, and a low-memory run. `docs/MEASUREMENTS.md` has the figures and how each was taken. Markdown is now read in time proportional to its length, and its nesting limit follows the content profile. Nothing in this release breaks the API of `0.1.0-alpha.5`, but a beta can still change options, output and plugin support.
