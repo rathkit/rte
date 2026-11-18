@@ -29,7 +29,7 @@ const server = createServer(async (req, res) => {
     req.on("data", (c) => { size += c.length; if (size <= 65536) parts.push(c); });
     req.on("end", () => {
       // One line at a time, with every control character (a line break too) taken out of what is printed, so a page cannot forge a line of this server's output.
-      for (const line of Buffer.concat(parts).toString("utf8").split("\n")) console.log(line.replace(/[^\x20-\x7e\u00a0-\uffff]/g, "?"));
+      for (const line of Buffer.concat(parts).toString("utf8").split("\n")) console.log(line.replace(/[\r\n]/g, "").replace(/[^\x20-\x7e\u00a0-\uffff]/g, "?"));
       res.writeHead(204).end();
     });
     return;
