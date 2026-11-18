@@ -27,7 +27,11 @@ const server = createServer(async (req, res) => {
     let size = 0;
     const parts = [];
     req.on("data", (c) => { size += c.length; if (size <= 65536) parts.push(c); });
-    req.on("end", () => { console.log(Buffer.concat(parts).toString("utf8").replace(/[^\x20-\x7e\n\u00a0-\uffff]/g, "?")); res.writeHead(204).end(); });
+    req.on("end", () => {
+      // One line at a time, with every control character (a line break too) taken out of what is printed, so a page cannot forge a line of this server's output.
+      for (const line of Buffer.concat(parts).toString("utf8").split("\n")) console.log(line.replace(/[^\x20-\x7e\u00a0-\uffff]/g, "?"));
+      res.writeHead(204).end();
+    });
     return;
   }
   const prefix = Object.keys(packages).find((p) => url.pathname.startsWith(p));
