@@ -91,11 +91,24 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-ubuntu-24.04-${{ runner.os }}-${{ hashFiles('tools/browser-checks/pnpm-lock.yaml') }}
+      # The runner's first apt mirror often fails to resolve, and the browser install's apt then stalls for the rest of the job (a run
+      # waited 30 minutes in it, twice, where it normally takes half a minute): see tools/ci-apt-mirror.sh. Each try is cut off at seven
+      # minutes, apt gives up on a silent connection after 15 seconds, and there are two tries.
+      - name: Make the apt mirror name resolve
+        run: bash tools/ci-apt-mirror.sh
       - name: Install the browser driver and the browsers
         working-directory: tools/browser-checks
+        timeout-minutes: 16
         run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' | sudo tee /etc/apt/apt.conf.d/99-rathkit-fetch >/dev/null
           pnpm install --frozen-lockfile --ignore-scripts
-          node node_modules/playwright/cli.js install --with-deps chromium firefox webkit
+          for attempt in 1 2; do
+            timeout --kill-after=20 420 node node_modules/playwright/cli.js install --with-deps chromium firefox webkit && exit 0
+            echo "attempt $attempt of the browser install did not finish"
+            sudo killall apt-get dpkg 2>/dev/null || true
+            sudo dpkg --configure -a
+          done
+          exit 1
       # The checks run with the network switched off, in a new network namespace; this runner image restricts those by default.
       - name: Allow unprivileged network namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -200,11 +213,24 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-oldest-ubuntu-24.04-${{ runner.os }}-${{ hashFiles('tools/browser-checks/oldest/pnpm-lock.yaml') }}
+      # The runner's first apt mirror often fails to resolve, and the browser install's apt then stalls for the rest of the job (a run
+      # waited 30 minutes in it, twice, where it normally takes half a minute): see tools/ci-apt-mirror.sh. Each try is cut off at seven
+      # minutes, apt gives up on a silent connection after 15 seconds, and there are two tries.
+      - name: Make the apt mirror name resolve
+        run: bash tools/ci-apt-mirror.sh
       - name: Install the older browser driver and its browsers
         working-directory: tools/browser-checks/oldest
+        timeout-minutes: 16
         run: |
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "15";\nAcquire::https::Timeout "15";\n' | sudo tee /etc/apt/apt.conf.d/99-rathkit-fetch >/dev/null
           pnpm install --frozen-lockfile --ignore-scripts
-          node node_modules/playwright/cli.js install --with-deps chromium firefox webkit
+          for attempt in 1 2; do
+            timeout --kill-after=20 420 node node_modules/playwright/cli.js install --with-deps chromium firefox webkit && exit 0
+            echo "attempt $attempt of the browser install did not finish"
+            sudo killall apt-get dpkg 2>/dev/null || true
+            sudo dpkg --configure -a
+          done
+          exit 1
       - name: Allow unprivileged network namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: tools/browser-checks/run.sh
