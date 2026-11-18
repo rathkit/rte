@@ -4,7 +4,7 @@ A rich text editor built from scratch, with zero runtime dependencies.
 
 > Built from scratch. Ships with nothing else.
 
-**Status: beta.** `0.2.0-beta.0` of all eleven packages is on npm under the `next` tag. The APIs may still change between releases, and there is no API reference yet. Do not build on this yet.
+**Status: beta.** `0.2.0-beta.0` of all eleven packages is on npm under the `next` tag. The APIs may still change between releases, and there is no API reference yet. Do not build on this yet. What does not work and what has not been tried is in [docs/KNOWN-ISSUES.md](docs/KNOWN-ISSUES.md).
 
 ```sh
 npm install @rathkit/rte-core@next
