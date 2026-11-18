@@ -509,6 +509,8 @@ export async function accessibilityAudit({ engines, open, check, onePixelPng }) 
         await page.mouse.move(p.x, p.y);
         await page.mouse.down();
         await page.mouse.move(p.x + dx, p.y + dy, { steps: 3 });
+        // On a slow runner the guide can be drawn a moment after the pointer moves; wait for it rather than read it once.
+        await page.waitForSelector("[data-rte-resize-line]", { timeout: 2000 }).catch(() => {});
         const seen = await guide();
         await page.mouse.up();
         await page.waitForTimeout(60);
@@ -517,6 +519,7 @@ export async function accessibilityAudit({ engines, open, check, onePixelPng }) 
       const guides = [["image", await drag("[data-rte-resize-handle]", 10, 10)]];
       await page.evaluate((html) => { const e = window.__two.editor; e.setHtml(html); e.focus(); const td = window.__a11y.firstText(document.querySelector("#second td")); e.selectDom(td, 1, td, 1); }, sample);
       await page.waitForTimeout(100);
+      await page.waitForSelector('[data-rte-grip="row"]', { timeout: 2000 }).catch(() => {});
       guides.push(["row grip", await drag('[data-rte-grip="row"]', 0, 12)]);
       guides.push(["column edge", await drag("#second [data-rte-part=content] td", 12, 0)]);
       check(`${name} (a11y) ${tag}: the guides shown while dragging the image handle, a grip or a column edge stand out 3:1 from the writing area`, guides.every(([, r]) => r !== null && r >= 3), guides);
