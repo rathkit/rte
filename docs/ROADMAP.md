@@ -87,23 +87,23 @@ Measure and gate: a benchmark suite with a stated method, numeric budgets, memor
 
 ### 0.3.0-beta.0
 
-Platforms and accessibility: server rendering, touch, input methods, screen readers, the keyboard and contrast audit, language packs, the browser support window and clipboard completeness.
+Platforms and accessibility: server rendering, touch, the keyboard and contrast audit, language packs, the compatibility matrix, the browser support window and clipboard completeness. The input method pass, the screen reader pass and more real paste captures need a device, a screen reader or the owner's applications, and moved to 0.4.0-beta.0.
 
 - [x] [5.1](https://github.com/rathkit/rte/issues/15) Server-side use and server rendering `P0`
 - [x] [5.2](https://github.com/rathkit/rte/issues/16) Touch and mobile pass `P0` (iOS Safari and a tablet with a keyboard are not run: [#83](https://github.com/rathkit/rte/issues/83))
-- [ ] [5.3](https://github.com/rathkit/rte/issues/17) Input method (IME) pass `P0`
-- [ ] [5.4](https://github.com/rathkit/rte/issues/18) Screen reader pass `P0`
 - [x] [5.5](https://github.com/rathkit/rte/issues/19) Keyboard, contrast, motion and zoom audit `P0` ([ACCESSIBILITY.md](ACCESSIBILITY.md))
 - [x] [5.6](https://github.com/rathkit/rte/issues/20) Localization: stable message ids and language packs `P0`
-- [ ] [5.7](https://github.com/rathkit/rte/issues/21) Published compatibility matrix `P0` (the data is in docs/compat-matrix.json; the site page is not done)
+- [x] [5.7](https://github.com/rathkit/rte/issues/21) Published compatibility matrix `P0` (the page is on the site)
 - [x] [5.8](https://github.com/rathkit/rte/issues/22) Browser support window and older engines `P1`
 - [x] [1.9](https://github.com/rathkit/rte/issues/23) Clipboard completeness `P0` (the matrix: [CLIPBOARD.md](CLIPBOARD.md))
-- [ ] [1.10](https://github.com/rathkit/rte/issues/24) Grow the scrubbed paste captures `P1` (84 reconstructed fixtures added; real captures are still 80)
 
 ### 0.4.0-beta.0
 
 Content features: formatting decisions, links and anchors, image upload, code blocks, table properties, lists and collapsible sections.
 
+- [ ] [5.3](https://github.com/rathkit/rte/issues/17) Input method (IME) pass `P0` *(needs a real input method; moved from 0.3.0-beta.0)*
+- [ ] [5.4](https://github.com/rathkit/rte/issues/18) Screen reader pass `P0` *(needs a real screen reader; moved from 0.3.0-beta.0)*
+- [ ] [1.10](https://github.com/rathkit/rte/issues/24) Grow the scrubbed paste captures `P1` *(84 reconstructed fixtures added; real captures are still 80; moved from 0.3.0-beta.0)*
 - [ ] [2.1](https://github.com/rathkit/rte/issues/25) Decide font family and font size *(maintainer)* *(spike)* `P0`
 - [ ] [2.2](https://github.com/rathkit/rte/issues/26) Complete the link flows `P0`
 - [ ] [2.3](https://github.com/rathkit/rte/issues/27) Image upload flow and editing `P0`

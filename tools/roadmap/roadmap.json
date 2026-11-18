@@ -228,7 +228,7 @@
     {
       "id": "5.3",
       "title": "Input method (IME) pass",
-      "milestone": "0.3.0-beta.0",
+      "milestone": "0.4.0-beta.0",
       "track": "platform",
       "priority": "P0",
       "size": "L",
@@ -238,7 +238,7 @@
     {
       "id": "5.4",
       "title": "Screen reader pass",
-      "milestone": "0.3.0-beta.0",
+      "milestone": "0.4.0-beta.0",
       "track": "platform",
       "priority": "P0",
       "size": "L",
@@ -298,7 +298,7 @@
     {
       "id": "1.10",
       "title": "Grow the scrubbed paste captures",
-      "milestone": "0.3.0-beta.0",
+      "milestone": "0.4.0-beta.0",
       "track": "behavior",
       "priority": "P1",
       "size": "M",
