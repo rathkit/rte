@@ -147,7 +147,13 @@
       "supports": ">=18",
       "checked": "19.3.1",
       "result": {
-        "status": "not run"
+        "status": "passed",
+        "passed": 723,
+        "failed": 0,
+        "date": "2026-11-18",
+        "commit": "79f0f85608f4dc6a620fe42c393cdd7400d3b631",
+        "source": "local",
+        "run": null
       }
     },
     {
@@ -157,7 +163,13 @@
       "supports": ">=3.4",
       "checked": "3.5.44",
       "result": {
-        "status": "not run"
+        "status": "passed",
+        "passed": 723,
+        "failed": 0,
+        "date": "2026-11-18",
+        "commit": "79f0f85608f4dc6a620fe42c393cdd7400d3b631",
+        "source": "local",
+        "run": null
       }
     },
     {
@@ -167,7 +179,13 @@
       "supports": null,
       "checked": "5.57.2",
       "result": {
-        "status": "not run"
+        "status": "passed",
+        "passed": 723,
+        "failed": 0,
+        "date": "2026-11-18",
+        "commit": "79f0f85608f4dc6a620fe42c393cdd7400d3b631",
+        "source": "local",
+        "run": null
       }
     },
     {
@@ -177,7 +195,13 @@
       "supports": ">=20.0.0",
       "checked": "22.2.3",
       "result": {
-        "status": "not run"
+        "status": "passed",
+        "passed": 723,
+        "failed": 0,
+        "date": "2026-11-18",
+        "commit": "79f0f85608f4dc6a620fe42c393cdd7400d3b631",
+        "source": "local",
+        "run": null
       }
     },
     {
@@ -187,7 +211,13 @@
       "supports": null,
       "checked": "4.0.0",
       "result": {
-        "status": "not run"
+        "status": "passed",
+        "passed": 723,
+        "failed": 0,
+        "date": "2026-11-18",
+        "commit": "79f0f85608f4dc6a620fe42c393cdd7400d3b631",
+        "source": "local",
+        "run": null
       }
     }
   ]

@@ -65,11 +65,11 @@ To record a CI run: `gh run download <run id> --pattern 'compat-*' --dir <folder
 
 | Framework | Wrapper | Versions the wrapper accepts | Version checked | Last recorded run |
 | --- | --- | --- | --- | --- |
-| React | `@rathkit/rte-react` | `>=18` | 19.3.1 | not run |
-| Vue | `@rathkit/rte-vue` | `>=3.4` | 3.5.44 | not run |
-| Svelte | `@rathkit/rte-svelte` | not stated | 5.57.2 | not run |
-| Angular | `@rathkit/rte-angular` | `>=20.0.0` | 22.2.3 | not run |
-| jQuery | `@rathkit/rte-jquery` | not stated | 4.0.0 | not run |
+| React | `@rathkit/rte-react` | `>=18` | 19.3.1 | passed, 723 of 723 (a local run, 2026-11-18, `79f0f85608f4`) |
+| Vue | `@rathkit/rte-vue` | `>=3.4` | 3.5.44 | passed, 723 of 723 (a local run, 2026-11-18, `79f0f85608f4`) |
+| Svelte | `@rathkit/rte-svelte` | not stated | 5.57.2 | passed, 723 of 723 (a local run, 2026-11-18, `79f0f85608f4`) |
+| Angular | `@rathkit/rte-angular` | `>=20.0.0` | 22.2.3 | passed, 723 of 723 (a local run, 2026-11-18, `79f0f85608f4`) |
+| jQuery | `@rathkit/rte-jquery` | not stated | 4.0.0 | passed, 723 of 723 (a local run, 2026-11-18, `79f0f85608f4`) |
 
 <!-- compat-matrix:end -->
 
