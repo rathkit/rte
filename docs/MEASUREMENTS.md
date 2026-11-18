@@ -82,12 +82,14 @@ Not budgeted, only reported: documents of 20,000 paragraphs and tables of 20,000
 
 | Entry point | gzipped | budget | left |
 | --- | --- | --- | --- |
-| `@rathkit/rte-core/dom` (core + browser view) | 58.8 KB | 65 KB | 1.2 KB |
-| `@rathkit/rte-core` (core) | 47.4 KB | 65 KB | 12.6 KB |
+| `@rathkit/rte-core/dom` (core + browser view) | 58.8 KB | 60 KB | 1.2 KB |
+| `@rathkit/rte-core` (core) | 47.4 KB | 60 KB | 12.6 KB |
 | `@rathkit/rte-core/markdown` | 14.8 KB | 15 KB | 0.2 KB |
 | `@rathkit/rte-core/tables` | 12.8 KB | 15 KB | 2.2 KB |
 | `@rathkit/rte-core/lists` | 9.2 KB | 15 KB | 5.8 KB |
 | `@rathkit/rte-ui` / with default icons / the element | 13.2 / 13.2 / 13.9 KB | 25 / 30 / 30 KB | 11.8 / 16.8 / 16.1 KB |
+
+These figures and budgets are those of the first beta (0.2.0-beta.0). The budget for the core and for core plus view was raised to 65 KB on 2026-11-12, when the clipboard, message pack and support-window work grew them; `pnpm check:size` prints the current figures (core plus view 61.1 KB and core 48.2 KB on 2026-11-18), and `tools/size-baseline.json` records each approved increase with its reason.
 | `@rathkit/rte-headless` | 7.4 KB | 12 KB | 4.6 KB |
 | `@rathkit/rte-element` | 3.3 KB | 4 KB | 0.7 KB |
 | The other plugins (`autoformat`, `footnotes`, `find`, `word`, `svg`, `images`) | 1.9 to 5.7 KB | 15 KB each | 9.3 KB or more |
@@ -109,11 +111,11 @@ A budget is a ceiling with room under it, so it cannot see a change that makes s
 
 ## Size
 
-`pnpm check:size` gzips the built JavaScript of each entry point (level 9) and compares it with the budget in the package's `package.json`. Without a minifier it gzips each file on its own and adds them up, which is an upper bound; that is what CI checks and what is quoted here. Comments are not in the shipped JavaScript. Date: 2026-10-24.
+`pnpm check:size` gzips the built JavaScript of each entry point (level 9) and compares it with the budget in the package's `package.json`. Without a minifier it gzips each file on its own and adds them up, which is an upper bound; that is what CI checks and what is quoted here. Comments are not in the shipped JavaScript. Date: 2026-10-24. The budget for the core and for core plus view has been 65 KB since 2026-11-12 (see above).
 
 | Entry point | gzipped | budget |
 | --- | --- | --- |
-| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 43.8 KB | 65 KB |
+| `@rathkit/rte-core` (document model, import and export, commands, plugin host) | 43.8 KB | 60 KB |
 | `@rathkit/rte-core/dom` (core + browser view) | 54.0 KB | 60 KB |
 | `@rathkit/rte-core/lists` | 9.1 KB | 15 KB |
 | `@rathkit/rte-core/tables` | 12.8 KB | 15 KB |
